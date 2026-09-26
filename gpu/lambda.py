@@ -1,7 +1,7 @@
 """Minimal Lambda Cloud control: launch an instance whose cloud-init starts the job
 runner, show status, terminate. Reads LAMBDA_API_KEY, LAMBDA_SSH_KEY_NAME and
 GH_REPO_TOKEN from the environment; never prints them."""
-import base64, json, os, sys, urllib.request
+import base64, json, os, sys, urllib.error, urllib.request
 
 API = "https://cloud.lambda.ai/api/v1"
 KEY = os.environ["LAMBDA_API_KEY"]
@@ -11,8 +11,11 @@ def call(method, path, body=None):
     req = urllib.request.Request(API + path, method=method, data=json.dumps(body).encode() if body else None,
                                  headers={"Content-Type": "application/json", "User-Agent": "moe-sol-runner/1.0",
                                           "Authorization": "Basic " + base64.b64encode(f"{KEY}:".encode()).decode()})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"HTTP {e.code}: {e.read().decode()[:800]}")
 
 
 def user_data():

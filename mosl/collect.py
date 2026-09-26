@@ -108,6 +108,61 @@ def is_packed(store, i):
     return f"model.layers.{i}.mlp.experts.gate_up_proj_blocks" in store.weight_map
 
 
+class RangeStore:
+    """Reads individual tensors straight out of remote safetensors files with
+    HTTP range requests: no shard ever touches the disk, so models far larger
+    than the disk can be traced. Same interface as ShardStore."""
+
+    DT = {"BF16": torch.bfloat16, "F16": torch.float16, "F32": torch.float32, "U8": torch.uint8,
+          "I8": torch.int8, "I32": torch.int32, "I64": torch.int64, "F8_E4M3": torch.float8_e4m3fn}
+
+    def __init__(self, repo: str, cache_dir: str = None, keep: bool = False):
+        import requests
+        self.repo, self.sess = repo, requests.Session()
+        try:
+            idx_path = hf_hub_download(repo, "model.safetensors.index.json")
+            self.weight_map = json.load(open(idx_path))["weight_map"]
+        except Exception:
+            self.weight_map = None
+        self.headers = {}
+        if self.weight_map is None:
+            h = self._header("model.safetensors")
+            self.weight_map = {k: "model.safetensors" for k in h if k != "__metadata__"}
+
+    def _url(self, f):
+        return f"https://huggingface.co/{self.repo}/resolve/main/{f}"
+
+    def _range(self, f, a, b):
+        for attempt in range(6):
+            try:
+                r = self.sess.get(self._url(f), headers={"Range": f"bytes={a}-{b}"}, timeout=600)
+                if r.status_code == 206 and len(r.content) == b - a + 1:
+                    return r.content
+            except Exception:
+                pass
+            time.sleep(2 ** attempt)
+        raise RuntimeError(f"range read failed: {f} {a}-{b}")
+
+    def _header(self, f):
+        if f not in self.headers:
+            import struct
+            n = struct.unpack("<Q", self._range(f, 0, 7))[0]
+            self.headers[f] = (json.loads(self._range(f, 8, 8 + n - 1)), 8 + n)
+        return self.headers[f][0]
+
+    def names(self, prefix: str):
+        return [k for k in self.weight_map if k.startswith(prefix)]
+
+    def get(self, name: str) -> torch.Tensor:
+        f = self.weight_map[name]
+        h = self._header(f)
+        base = self.headers[f][1]
+        info = h[name]
+        a, b = info["data_offsets"]
+        buf = bytearray(self._range(f, base + a, base + b - 1))
+        return torch.frombuffer(buf, dtype=self.DT[info["dtype"]]).reshape(info["shape"]).clone()
+
+
 def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.float32) -> None:
     """Copy checkpoint tensors for layer i straight into the (materialized)
     layer's parameters, one tensor at a time, to keep peak RAM ~= layer size.
@@ -158,14 +213,14 @@ def causal_mask(T: int, dtype, window: int = 0) -> torch.Tensor:
     return m[None, None]
 
 
-def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print):
+def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print, remote=False):
     os.makedirs(out_dir, exist_ok=True)
     cfg = AutoConfig.from_pretrained(repo)
     cfg._attn_implementation = "eager" if cfg.model_type == "gpt_oss" else "sdpa"
     with torch.device("meta"):
         model = AutoModelForCausalLM.from_config(cfg, torch_dtype=dtype)
     base = model.model
-    store = ShardStore(repo, cache_dir or os.path.join(out_dir, "_hf"), keep=keep)
+    store = (RangeStore if remote else ShardStore)(repo, cache_dir or os.path.join(out_dir, "_hf"), keep=keep)
 
     # embeddings
     emb = store.get("model.embed_tokens.weight").to(dtype)
@@ -193,13 +248,24 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
         hook = None
         if gate is not None and hasattr(gate, "top_k"):
             hook = gate.register_forward_hook(lambda mod, inp, out: rec.append(out[2].to(torch.int16).clone()))
+        # Phase A (per sequence): attention sub-block. Phase B (all tokens at once):
+        # the MoE sub-block is token-wise, so we run it once over the concatenated
+        # corpus; each expert's weights are then touched once per layer.
+        normed, lens_j = [], []
         for j, h in enumerate(hs):
             T = h.shape[1]
             if (T, window) not in masks:
                 masks[(T, window)] = causal_mask(T, dtype, window)
-            out = layer(h, attention_mask=masks[(T, window)], position_embeddings=pos[j],
-                        position_ids=torch.arange(T)[None])
-            hs[j] = out[0] if isinstance(out, tuple) else out
+            a = layer.self_attn(hidden_states=layer.input_layernorm(h), attention_mask=masks[(T, window)],
+                                position_embeddings=pos[j], position_ids=torch.arange(T)[None])[0]
+            hs[j] = h + a
+            normed.append(layer.post_attention_layernorm(hs[j]))
+            lens_j.append(T)
+        y = layer.mlp(torch.cat(normed, dim=1))
+        y = y[0] if isinstance(y, tuple) else y
+        for j, part in enumerate(torch.split(y, lens_j, dim=1)):
+            hs[j] = hs[j] + part
+        del normed, y
         if hook is not None:
             hook.remove()
             idx = torch.cat(rec, 0).numpy()
@@ -237,6 +303,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--dtype", default="float32")
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--remote", action="store_true", help="read tensors via HTTP range requests (no disk)")
     a = ap.parse_args()
     seqs, doms = [], []
     for line in open(a.corpus):
@@ -245,5 +312,5 @@ if __name__ == "__main__":
         doms.append(r["domain"])
     os.makedirs(a.out, exist_ok=True)
     json.dump(doms, open(os.path.join(a.out, "domains.json"), "w"))
-    collect(a.repo, seqs, a.out, dtype=getattr(torch, a.dtype), keep=a.keep,
+    collect(a.repo, seqs, a.out, dtype=getattr(torch, a.dtype), keep=a.keep, remote=a.remote,
             log=lambda s: print(s, flush=True))

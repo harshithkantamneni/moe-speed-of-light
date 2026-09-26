@@ -69,6 +69,10 @@ ROWS = [
     dict(id="P117", repo=G20, kind="static", n_cpu=24, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RX 7900 XT"], bw_cpu=dram(2, 3200), engine="llama.cpp", tok_s=20, ctx=256, assume="approximate web-UI speed"),
     dict(id="P120", repo=G20, kind="static", n_cpu=2, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RTX 5070"], bw_cpu=dram(2, 6000), engine="llama.cpp", tok_s=62.21, ctx=256),
     dict(id="P121", repo=G120, kind="static", n_cpu=31, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RTX 4070"], bw_cpu=dram(2, 6000), engine="llama.cpp", tok_s=28.0, ctx=512),
+    # all-in-VRAM baselines reported in the same threads (identify GPU efficiency)
+    dict(id="P114v", src="P114", repo=G20, kind="static", n_cpu=0, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RX 7900 XT"], bw_cpu=dram(2, 3200), engine="llama.cpp", tok_s=94, ctx=256, assume="approximate; 'All-in-VRAM baseline ~94 tok/s' in thread"),
+    dict(id="P120v", src="P120", repo=G20, kind="static", n_cpu=0, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RTX 5070"], bw_cpu=dram(2, 6000), engine="llama.cpp", tok_s=128, ctx=1024, assume="'128 t/s fully in VRAM (2K ctx)'"),
+    dict(id="P118v", src="P118", repo=G20, kind="static", n_cpu=0, b_exp=BPW["MXFP4"], b_dense=BPW["GGUF_GPTOSS_DENSE"], bw_gpu=GPU["RTX 3060"], bw_cpu=51.2, engine="llama.cpp", tok_s=75, ctx=1024, assume="'Fully in VRAM with 2K ctx: 75 tok/s'"),
     # ---------------- static CPU offload, servers ----------------
     dict(id="P038", repo=DS3, kind="static", n_cpu=58, b_exp=BPW["Q4_K_M_DS"], b_dense=BPW["Q4_K_M_DS"], bw_gpu=GPU["RTX 4090D"], bw_cpu=dram(16, 4800), engine="KTransformers", tok_s=12.208, ctx=500, assume="dual-socket, weights replicated per NUMA node"),
     dict(id="P037", repo=DS3, kind="static", n_cpu=58, top_k=6, b_exp=BPW["Q4_K_M_DS"], b_dense=BPW["Q4_K_M_DS"], bw_gpu=GPU["RTX 4090D"], bw_cpu=dram(16, 4800), engine="KTransformers", tok_s=13.69, ctx=500, assume="dual-socket; top-6 routing"),

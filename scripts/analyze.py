@@ -30,6 +30,10 @@ PLATFORMS = {
     "RTX 5090 + DDR5-6400 (PCIe5 x16)": HW(bw_gpu=1792, bw_cpu=102.4, bw_pcie=63.0),
 }
 FRACS = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+VRAM_GB = {"RTX 4060 8GB + DDR5-5600 (PCIe4 x8)": 8, "RTX 4090 + DDR5-6000 (PCIe4 x16)": 24,
+           "RTX 5090 + DDR5-6400 (PCIe5 x16)": 32}
+RESERVE_GB = 1.5   # CUDA context, activations, fragmentation
+MATCH_CTX = 8192   # KV cache sized for an 8k-token conversation
 
 
 TAUS = [None, 20.0, 50.0]  # hand-off latency sensitivity: fitted value, 20 us, 50 us
@@ -107,13 +111,33 @@ def analyze(name):
                 hit[f][k_ + "_adm_per_tok"] = float(v[1].sum(1).mean())
         sims[f] = (runs, L_gpu)
     out["hit_rate"] = {str(f): v for f, v in hit.items()}
+    # VRAM-matched operating point per platform: experts that fit after dense weights + KV + reserve
+    wk = Workload(s, b_exp, b_dense, ctx=MATCH_CTX)
+    routed_gb = s.routed_params_total * b_exp / 8e9
+    out["matched"] = {}
+    for pname, vram in VRAM_GB.items():
+        f = max(0.0, min(1.0, (vram - RESERVE_GB - wk.dense_bytes / 1e9) / routed_gb))
+        cap = int(f * tr.E)
+        L_gpu = int(f * tr.L)
+        runs = {"static_hot_xdomain": xdomain_static(tr, cap), "static_hot_oracle": per_layer(tr, cap, "static"),
+                "lru": per_layer(tr, cap, "lru"), "min_fetch": per_layer(tr, cap, "min"),
+                "min_bypass": per_layer(tr, cap, "min", bypass=True)}
+        hr = {k_: 1 - v[0].sum() / (tr.T * tr.L * tr.k) for k_, v in runs.items()}
+        hr["static_layer"] = L_gpu / tr.L
+        out["matched"][pname] = {"frac": f, "cap_per_layer": cap, "gpu_layers": L_gpu, "hit": hr, "_runs": (runs, L_gpu)}
     # tok/s per platform and strategy, for each hand-off latency assumption
     out["tok_s"] = {}
     for tau in TAUS:
         p = Params(**{k: getattr(p0, k) for k in Params.__dataclass_fields__ if k != "extra"})
         if tau is not None:
             p.tau_us = tau
-        out["tok_s"]["tau=" + ("fitted" if tau is None else f"{tau:g}us")] = throughput(tr, w, p, sims)
+        key = "tau=" + ("fitted" if tau is None else f"{tau:g}us")
+        out["tok_s"][key] = throughput(tr, w, p, sims)
+        for pname, hw in PLATFORMS.items():
+            m = out["matched"][pname]
+            m.setdefault("tok_s", {})[key] = strategies(tr, Workload(s, b_exp, b_dense, ctx=MATCH_CTX), hw, p, *m["_runs"])
+    for m in out["matched"].values():
+        m.pop("_runs")
     # reuse threshold r*: an expert is worth copying to the GPU only if reused at least r* times
     out["r_star"] = {}
     for pname, hw in PLATFORMS.items():
@@ -131,26 +155,30 @@ def throughput(tr, w, p, sims):
     for pname, hw in PLATFORMS.items():
         tps[pname] = {}
         for f in FRACS:
-            runs, L_gpu = sims[f]
-            r = {}
-            r["static_layer_cpu"] = 1 / static_offload_time(w, hw, p, tr.L - L_gpu)[0]
-            for pol in ("static_hot_xdomain", "static_hot_oracle"):
-                m, a = runs[pol]
-                r[pol + "_cpu"] = 1 / dynamic_time(w, hw, p, m, a, "cpu")[0]
-            for pol in ("lru", "min_bypass"):
-                m, a = runs[pol]
-                r[pol + "_cpu"] = 1 / dynamic_time(w, hw, p, m, a, "cpu")[0]
-            for pol in ("lru", "min_fetch"):
-                m, a = runs[pol]
-                t, _ = dynamic_time(w, hw, p, m, a, "fetch")
-                r[pol + "_fetch"] = 1 / (t + fetch_extra_time(w, hw, p, m))
-            M = runs["min_bypass"][0].sum() / (tr.T * tr.L)
-            r["speed_of_light"] = 1 / speed_of_light_time(w, hw, p, M)
-            tps[pname][str(f)] = r
+            tps[pname][str(f)] = strategies(tr, w, hw, p, *sims[f])
         # all experts resident (no offload) and all on CPU, for reference
         tps[pname]["all_gpu"] = 1 / static_offload_time(w, hw, p, 0)[0]
         tps[pname]["all_experts_cpu"] = 1 / static_offload_time(w, hw, p, tr.L)[0]
     return tps
+
+
+def strategies(tr, w, hw, p, runs, L_gpu):
+    r = {}
+    r["static_layer_cpu"] = 1 / static_offload_time(w, hw, p, tr.L - L_gpu)[0]
+    for pol in ("static_hot_xdomain", "static_hot_oracle"):
+        m, a = runs[pol]
+        r[pol + "_cpu"] = 1 / dynamic_time(w, hw, p, m, a, "cpu")[0]
+    for pol in ("lru", "min_bypass"):
+        m, a = runs[pol]
+        r[pol + "_cpu"] = 1 / dynamic_time(w, hw, p, m, a, "cpu")[0]
+    for pol in ("lru", "min_fetch"):
+        m, a = runs[pol]
+        t, _ = dynamic_time(w, hw, p, m, a, "fetch")
+        r[pol + "_fetch"] = 1 / (t + fetch_extra_time(w, hw, p, m))
+    M = runs["min_bypass"][0].sum() / (tr.T * tr.L)
+    r["speed_of_light"] = 1 / speed_of_light_time(w, hw, p, M)
+    r["all_experts_cpu"] = 1 / static_offload_time(w, hw, p, tr.L)[0]
+    return r
 
 
 if __name__ == "__main__":

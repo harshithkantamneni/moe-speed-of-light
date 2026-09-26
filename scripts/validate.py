@@ -27,7 +27,7 @@ SERVER_BW = 150.0  # GB/s: 2-channel desktops are <= ~110, servers >= 230
 def group_of(r):
     if r["kind"] == "fetch":
         return f"fetch:{r['bw_gpu']}:{r['bw_pcie']}"
-    return MEAS[r["id"]]["source_url"].split("#")[0]
+    return MEAS[r.get("src", r["id"])]["source_url"].split("#")[0]
 
 
 # name, lower, upper, init

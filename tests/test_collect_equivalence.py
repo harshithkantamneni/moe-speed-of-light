@@ -35,6 +35,27 @@ def reference(repo, seqs):
     return {i: np.sort(torch.cat(v).numpy(), axis=1) for i, v in recs.items()}
 
 
+def decode_reference(repo, seqs):
+    """Routing observed during genuine autoregressive decode with a KV cache
+    (one token per forward call), to show prefill routing == decode routing."""
+    from transformers import AutoConfig
+    impl = "eager" if AutoConfig.from_pretrained(repo).model_type == "gpt_oss" else "sdpa"
+    m = AutoModelForCausalLM.from_pretrained(repo, dtype=torch.float32, attn_implementation=impl).eval()
+    recs, cur = {}, []
+    for i, layer in enumerate(m.model.layers):
+        g = getattr(layer.mlp, "gate", None) or getattr(layer.mlp, "router", None)
+        if g is not None and hasattr(g, "top_k"):
+            recs[i] = []
+            g.register_forward_hook(lambda mod, inp, out, i=i: recs[i].append(out[2].clone()))
+    with torch.no_grad():
+        for s in seqs:
+            past = None
+            for t in range(len(s)):
+                o = m(torch.tensor([[s[t]]]), past_key_values=past, use_cache=True)
+                past = o.past_key_values
+    return {i: np.sort(torch.cat(v).numpy(), axis=1) for i, v in recs.items()}
+
+
 def check(repo):
     rng = np.random.default_rng(0)
     from transformers import AutoConfig
@@ -48,7 +69,12 @@ def check(repo):
             got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
             agree = (got == r).all(1).mean()
             assert agree == 1.0, f"{repo} layer {i}: token agreement {agree:.4f}"
-    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match")
+        dec = decode_reference(repo, seqs)
+        for i, r in dec.items():
+            got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
+            agree = (got == r).all(1).mean()
+            assert agree == 1.0, f"{repo} layer {i}: decode-vs-streamed agreement {agree:.4f}"
+    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match vs reference prefill AND KV-cache decode")
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ This repo has everything behind the paper in `paper/`: exact routing traces coll
 | `data/traces/<model>/` | Routing traces: `layerNNN.npy` = int16 `[tokens, top_k]`, plus `meta.json`, `seq_lens.npy` and `domains.json`. |
 | `scripts/validate.py` | Fits the model, runs leave-one-source-out CV and the term ablation. Writes `results/validation.{json,csv}`. |
 | `scripts/analyze.py` | Locality statistics, cache sweeps, and tok/s per platform and strategy against the bound. |
-| `scripts/figures.py`, `scripts/numbers.py` | Regenerate every figure and every number quoted in the paper. |
+| `scripts/figures.py`, `scripts/paper_numbers.py` | Regenerate every figure and every number quoted in the paper. |
 | `tests/` | Bit-exactness of the collector against reference `transformers` on 5 architectures, and optimality of MIN against exhaustive search. |
 
 ## Reproduce
@@ -35,7 +35,7 @@ python -m mosl.tokenize_corpus --repo Qwen/Qwen3-30B-A3B-Instruct-2507 --out dat
 python -m mosl.collect --remote --repo Qwen/Qwen3-30B-A3B-Instruct-2507 \
     --corpus data/tok_qwen3_30b.jsonl --out data/traces/qwen3-30b-a3b
 
-python scripts/validate.py && python scripts/analyze.py && python scripts/figures.py && python scripts/numbers.py
+python scripts/validate.py && python scripts/analyze.py && python scripts/figures.py && python scripts/paper_numbers.py
 cd paper && latexmk -pdf paper.tex
 ```
 

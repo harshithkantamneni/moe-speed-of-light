@@ -74,9 +74,31 @@ def xdomain_static(tr, cap):
     return miss, np.zeros_like(miss)
 
 
-def fetch_extra_time(w, hw, p, miss):
-    """Per-transfer latency for fetch strategies (added on the critical path)."""
-    return float(miss.sum(1).mean()) * p.tau_x_us * 1e-6
+BOOT = 300
+
+
+def boot_ci(tr, fn, B=BOOT, seed=0):
+    """Percentile 95% CI by resampling whole conversations (block bootstrap);
+    cache state is taken from the single full-stream simulation."""
+    rng = np.random.default_rng(seed)
+    convs = np.unique(tr.conv)
+    rows = {c: np.where(tr.conv == c)[0] for c in convs}
+    vals = []
+    for _ in range(B):
+        pick = rng.choice(convs, len(convs), replace=True)
+        vals.append(fn(np.concatenate([rows[c] for c in pick])))
+    return [float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5))]
+
+
+def reuse1_per_token(tr):
+    r = np.zeros(tr.T)
+    for R in tr.R:
+        prev = np.zeros(tr.E, bool)
+        for t in range(tr.T):
+            cur = np.zeros(tr.E, bool); cur[R[t]] = True
+            r[t] += (cur & prev).sum() / tr.k
+            prev = cur
+    return r / tr.L
 
 
 def analyze(name):
@@ -111,6 +133,13 @@ def analyze(name):
                 hit[f][k_ + "_adm_per_tok"] = float(v[1].sum(1).mean())
         sims[f] = (runs, L_gpu)
     out["hit_rate"] = {str(f): v for f, v in hit.items()}
+    # bootstrap CIs (conversation blocks) for the 25%-cache hit rates and reuse@1
+    runs25, _ = sims[0.25]
+    denom = lambda idx: len(idx) * tr.L * tr.k
+    out["hit_rate_ci_0.25"] = {k_: boot_ci(tr, lambda idx, m=v[0]: 1 - m[idx].sum() / denom(idx))
+                               for k_, v in runs25.items() if v is not None}
+    r1 = reuse1_per_token(tr)
+    out["reuse1_ci"] = boot_ci(tr, lambda idx: float(r1[idx].mean()))
     # VRAM-matched operating point per platform: experts that fit after dense weights + KV + reserve
     wk = Workload(s, b_exp, b_dense, ctx=MATCH_CTX)
     routed_gb = s.routed_params_total * b_exp / 8e9
@@ -136,6 +165,26 @@ def analyze(name):
         for pname, hw in PLATFORMS.items():
             m = out["matched"][pname]
             m.setdefault("tok_s", {})[key] = strategies(tr, Workload(s, b_exp, b_dense, ctx=MATCH_CTX), hw, p, *m["_runs"])
+    # CIs for matched-point ratios (fitted parameters), and eta_g sensitivity
+    for pname, hw in PLATFORMS.items():
+        m = out["matched"][pname]
+        runs, L_gpu = m["_runs"]
+        wk = Workload(s, b_exp, b_dense, ctx=MATCH_CTX)
+        st = static_offload_time(wk, hw, p0, tr.L - L_gpu)[0]
+        lm, la = runs["lru"]
+        bm = runs["min_bypass"][0]
+        def lru_over_static(idx):
+            return st / dynamic_time(wk, hw, p0, lm[idx], la[idx], "cpu")[0]
+        def lru_over_sol(idx):
+            M = bm[idx].sum() / (len(idx) * tr.L)
+            return speed_of_light_time(wk, hw, p0, M, grid=201) / dynamic_time(wk, hw, p0, lm[idx], la[idx], "cpu")[0]
+        m["ci"] = {"lru_cpu_over_static": boot_ci(tr, lru_over_static, B=100),
+                   "lru_cpu_over_sol": boot_ci(tr, lru_over_sol, B=100)}
+        sens = {}
+        for eg in (0.6, 0.8):
+            q = Params(**{k: getattr(p0, k) for k in Params.__dataclass_fields__ if k != "extra"}); q.eta_g = eg
+            sens[f"eta_g={eg}"] = strategies(tr, wk, hw, q, runs, L_gpu)
+        m["sensitivity"] = sens
     for m in out["matched"].values():
         m.pop("_runs")
     # reuse threshold r*: an expert is worth copying to the GPU only if reused at least r* times
@@ -171,12 +220,17 @@ def strategies(tr, w, hw, p, runs, L_gpu):
     for pol in ("lru", "min_bypass"):
         m, a = runs[pol]
         r[pol + "_cpu"] = 1 / dynamic_time(w, hw, p, m, a, "cpu")[0]
+        r[pol + "_cpuseq"] = 1 / dynamic_time(w, hw, p, m, a, "cpu_seq")[0]
     for pol in ("lru", "min_fetch"):
         m, a = runs[pol]
-        t, _ = dynamic_time(w, hw, p, m, a, "fetch")
-        r[pol + "_fetch"] = 1 / (t + fetch_extra_time(w, hw, p, m))
+        r[pol + "_fetch"] = 1 / dynamic_time(w, hw, p, m, a, "fetch")[0]
+    # an optimistic oracle prefetcher: every MIN-bypass admission is loaded one
+    # step early, turning that miss into a hit (capacity cost ignored)
+    m, a = runs["min_bypass"]
+    r["oracle_prefetch_cpu"] = 1 / dynamic_time(w, hw, p, m - a, a, "cpu")[0]
     M = runs["min_bypass"][0].sum() / (tr.T * tr.L)
     r["speed_of_light"] = 1 / speed_of_light_time(w, hw, p, M)
+    r["speed_of_light_serial"] = 1 / speed_of_light_time(w, hw, p, M, concurrent=False)
     r["all_experts_cpu"] = 1 / static_offload_time(w, hw, p, tr.L)[0]
     return r
 

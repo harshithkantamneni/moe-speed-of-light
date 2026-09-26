@@ -34,13 +34,14 @@ def group_of(r):
 TERMS = {
     "eta_g": (0.05, 1.0, 0.7), "eta_c": (0.05, 1.0, 0.6), "eta_c_srv": (0.05, 1.0, 0.6),
     "eta_p": (0.02, 1.0, 0.7), "tau_us": (0.0, 2000.0, 50.0), "tau_g_us": (0.0, 500.0, 20.0),
-    "tau_c_us": (0.0, 2000.0, 50.0), "tau_x_us": (0.0, 50000.0, 1000.0),
+    "tau_c_us": (0.0, 2000.0, 50.0), "tau_x_us": (0.0, 50000.0, 1000.0), "tau_e_us": (0.0, 500.0, 10.0),
 }
 VARIANTS = {
     "M0 bytes/bandwidth + hand-off": ["eta_g", "eta_c", "eta_p", "tau_us"],
     "M1 + per-transfer latency": ["eta_g", "eta_c", "eta_p", "tau_us", "tau_x_us"],
     "M2 + per-layer fixed costs": ["eta_g", "eta_c", "eta_p", "tau_us", "tau_x_us", "tau_g_us", "tau_c_us"],
     "M3 + server/desktop CPU efficiency": ["eta_g", "eta_c", "eta_c_srv", "eta_p", "tau_us", "tau_x_us", "tau_g_us", "tau_c_us"],
+    "M4 M1 + per-CPU-expert latency": ["eta_g", "eta_c", "eta_p", "tau_us", "tau_x_us", "tau_e_us"],
 }
 
 
@@ -136,6 +137,13 @@ if __name__ == "__main__":
             return [np.log(predict(r, q)[0] / r["tok_s"]) for r in sub]
         eng[e] = dict(n=len(sub), eta_c=float(least_squares(res, [0.6], bounds=([0.05], [1.0])).x[0]))
     report["per_engine_eta_c"] = eng
+    per_model = defaultdict(list)
+    for x in e_cv:
+        per_model[x["repo"]].append(x["rel_err"])
+    report["loso_per_model"] = {m: dict(n=len(v), median_signed=float(np.median(v)), median_abs=float(np.median(np.abs(v))))
+                                for m, v in per_model.items()}
+    report["selection_note"] = ("variant chosen by leave-one-group-out MAPE after evaluating all variants; "
+                                "the reported CV error of the selected variant is therefore slightly optimistic")
     json.dump(report, open("results/validation.json", "w"), indent=1, default=float)
     e_numa = errs(NUMA_ROWS, p)
     cv = {x["id"]: x["predicted"] for x in e_cv}

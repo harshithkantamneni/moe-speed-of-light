@@ -1,0 +1,1585 @@
+diff --git a/ggml/include/ggml-backend.h b/ggml/include/ggml-backend.h
+index cc3f8cd..ea8c543 100644
+--- a/ggml/include/ggml-backend.h
++++ b/ggml/include/ggml-backend.h
+@@ -353,6 +353,10 @@ extern "C" {
+     // Set a callback to be called for each resulting node during graph compute
+     GGML_API void                 ggml_backend_sched_set_eval_callback(ggml_backend_sched_t sched, ggml_backend_sched_eval_callback callback, void * user_data);
+ 
++    // expert-cache: when a GPU split is directly followed by an independent CPU split, copy the CPU split's
++    // inputs first, enqueue the GPU split, then run the CPU split, so the two execute concurrently
++    GGML_API void                 ggml_backend_sched_set_overlap_cpu(ggml_backend_sched_t sched, bool enable);
++
+     //
+     // Meta backend
+     //
+diff --git a/ggml/include/ggml.h b/ggml/include/ggml.h
+index 224bdef..6438973 100644
+--- a/ggml/include/ggml.h
++++ b/ggml/include/ggml.h
+@@ -665,6 +665,7 @@ extern "C" {
+         GGML_TENSOR_FLAG_PARAM   =  4, // ...contains trainable parameters
+         GGML_TENSOR_FLAG_LOSS    =  8, // ...defines loss for numerical optimization (multiple loss tensors add up)
+         GGML_TENSOR_FLAG_COMPUTE = 16, // ...must be computed
++        GGML_TENSOR_FLAG_SPLIT_BEFORE = 32, // ...starts a new scheduler split (expert-cache: lets GPU hits overlap CPU misses)
+     };
+ 
+     enum ggml_tri_type {
+diff --git a/ggml/src/ggml-backend.cpp b/ggml/src/ggml-backend.cpp
+index 20bf965..61a385f 100644
+--- a/ggml/src/ggml-backend.cpp
++++ b/ggml/src/ggml-backend.cpp
+@@ -830,6 +830,7 @@ struct ggml_backend_sched {
+     size_t context_buffer_size;
+ 
+     bool op_offload;
++    bool overlap_cpu;
+ 
+     int debug;
+ 
+@@ -1341,7 +1342,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
+                 }
+             }
+ 
+-            if (node_backend_id != cur_backend_id || need_new_split) {
++            if (node_backend_id != cur_backend_id || need_new_split || (node->flags & GGML_TENSOR_FLAG_SPLIT_BEFORE)) {
+                 split->i_end = i;
+                 i_split++;
+                 if (i_split >= sched->splits_capacity) {
+@@ -1653,7 +1654,7 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+ 
+     int prev_backend_id = -1;
+ 
+-    for (int split_id = 0; split_id < sched->n_splits; split_id++) {
++    auto copy_inputs = [&](int split_id) -> void {
+         struct ggml_backend_sched_split * split = &splits[split_id];
+         int split_backend_id = split->backend_id;
+         ggml_backend_t split_backend = sched->backends[split_backend_id];
+@@ -1795,6 +1796,12 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+             }
+         }
+ 
++    };
++
++    auto compute = [&](int split_id) -> enum ggml_status {
++        struct ggml_backend_sched_split * split = &splits[split_id];
++        int split_backend_id = split->backend_id;
++        ggml_backend_t split_backend = sched->backends[split_backend_id];
+         if (!sched->callback_eval) {
+             enum ggml_status ec = ggml_backend_graph_compute_async(split_backend, &split->graph);
+             if (ec != GGML_STATUS_SUCCESS) {
+@@ -1840,6 +1847,50 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+         }
+ 
+         prev_backend_id = split_backend_id;
++        return GGML_STATUS_SUCCESS;
++    };
++
++    const int cpu_backend_id = sched->n_backends - 1;
++
++    for (int split_id = 0; split_id < sched->n_splits; split_id++) {
++        struct ggml_backend_sched_split * split = &splits[split_id];
++
++        if (sched->overlap_cpu && !sched->callback_eval && split->backend_id != cpu_backend_id &&
++                split_id + 1 < sched->n_splits && splits[split_id + 1].backend_id == cpu_backend_id) {
++            // the CPU split may run concurrently with this split if none of its inputs is produced here
++            struct ggml_backend_sched_split * next = &splits[split_id + 1];
++            bool independent = true;
++            for (int k = 0; k < next->n_inputs && independent; k++) {
++                const ggml_tensor * in = next->inputs[k];
++                for (int n = 0; n < split->graph.n_nodes; n++) {
++                    const ggml_tensor * node = split->graph.nodes[n];
++                    if (node == in || (in->view_src && node == in->view_src)) {
++                        independent = false;
++                        break;
++                    }
++                }
++            }
++            if (independent) {
++                copy_inputs(split_id + 1);          // GPU stream holds only earlier splits: short wait
++                copy_inputs(split_id);
++                enum ggml_status ec = compute(split_id);   // async enqueue on the GPU
++                if (ec != GGML_STATUS_SUCCESS) {
++                    return ec;
++                }
++                ec = compute(split_id + 1);                // CPU runs while the GPU works
++                if (ec != GGML_STATUS_SUCCESS) {
++                    return ec;
++                }
++                split_id++;
++                continue;
++            }
++        }
++
++        copy_inputs(split_id);
++        enum ggml_status ec = compute(split_id);
++        if (ec != GGML_STATUS_SUCCESS) {
++            return ec;
++        }
+     }
+ 
+     return GGML_STATUS_SUCCESS;
+@@ -2042,6 +2093,11 @@ void ggml_backend_sched_synchronize(ggml_backend_sched_t sched) {
+     }
+ }
+ 
++void ggml_backend_sched_set_overlap_cpu(ggml_backend_sched_t sched, bool enable) {
++    GGML_ASSERT(sched);
++    sched->overlap_cpu = enable;
++}
++
+ void ggml_backend_sched_set_eval_callback(ggml_backend_sched_t sched, ggml_backend_sched_eval_callback callback, void * user_data) {
+     GGML_ASSERT(sched);
+     sched->callback_eval = callback;
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.c b/ggml/src/ggml-cpu/ggml-cpu.c
+index 046f17c..608cb0c 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.c
++++ b/ggml/src/ggml-cpu/ggml-cpu.c
+@@ -1646,7 +1646,12 @@ static void ggml_compute_forward_mul_mat_id(
+             for (int id = 0; id < n_ids; ++id) {
+                 const int32_t i02 = *(const int32_t *) ((const char *) ids->data + iid1*ids->nb[1] + id*ids->nb[0]);
+ 
+-                assert(i02 >= 0 && i02 < n_as);
++                if (i02 < 0) {
++                    // expert-cache: a negative id means "not served on this backend"; the row is zero
++                    memset((char *) dst->data + id*nb1 + iid1*nb2, 0, ne0*sizeof(float));
++                    continue;
++                }
++                assert(i02 < n_as);
+ 
+                 MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = (struct mmid_row_mapping) {id, iid1};
+                 matrix_row_counts[i02] += 1;
+diff --git a/ggml/src/ggml-cpu/ops.cpp b/ggml/src/ggml-cpu/ops.cpp
+index ba00a0a..6742b05 100644
+--- a/ggml/src/ggml-cpu/ops.cpp
++++ b/ggml/src/ggml-cpu/ops.cpp
+@@ -743,7 +743,16 @@ static void ggml_compute_forward_add_id_f32(
+         // src1 indices
+         const int i11 = *(int32_t *) ((char *) src2->data + i1*nb20 + i2*nb21);
+ 
+-        GGML_ASSERT(i11 >= 0 && i11 < ne11);
++        if (i11 < 0) {
++            // expert-cache: negative id = entry not served here; keep src0 (zero) without bias
++            float * d = (float *) ((char *) dst->data  + i3*nb3  + i2*nb2  + i1*nb1 );
++            const float * a = (const float *) ((char *) src0->data + i3*nb03 + i2*nb02 + i1*nb01);
++            if (d != a) {
++                memcpy(d, a, ne0*sizeof(float));
++            }
++            continue;
++        }
++        GGML_ASSERT(i11 < ne11);
+ 
+         ggml_vec_add_f32(ne0,
+                 (float *) ((char *) dst->data  + i3*nb3  + i2*nb2  + i1*nb1 ),
+diff --git a/ggml/src/ggml-cpu/repack.cpp b/ggml/src/ggml-cpu/repack.cpp
+index d56db98..14ccea7 100644
+--- a/ggml/src/ggml-cpu/repack.cpp
++++ b/ggml/src/ggml-cpu/repack.cpp
+@@ -4855,7 +4855,11 @@ template <typename BLOC_TYPE, int64_t INTER_SIZE, int64_t NB_COLS, ggml_type PAR
+                     const int32_t i02 =
+                         *(const int32_t *) ((const char *) ids->data + iid1 * ids->nb[1] + id * ids->nb[0]);
+ 
+-                    GGML_ASSERT(i02 >= 0 && i02 < n_as);
++                    if (i02 < 0) {  // expert-cache: entry not served on this backend -> zero row
++                        memset((char *) op->data + id * op->nb[1] + iid1 * op->nb[2], 0, op->ne[0] * sizeof(float));
++                        continue;
++                    }
++                    GGML_ASSERT(i02 < n_as);
+ 
+                     MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = { id, iid1 };
+                     matrix_row_counts[i02] += 1;
+diff --git a/ggml/src/ggml-cuda/add-id.cu b/ggml/src/ggml-cuda/add-id.cu
+index 8d9cf69..005d774 100644
+--- a/ggml/src/ggml-cuda/add-id.cu
++++ b/ggml/src/ggml-cuda/add-id.cu
+@@ -20,6 +20,12 @@ static __global__ void add_id_kernel(
+     const float * src0_row = (const float *)((const char *)src0 +  i1*nb01 + i2*nb02);
+     const float * src1_row = (const float *)((const char *)src1 + i11*nb11);
+ 
++    if (i11 < 0) { // expert-cache: entry not served here, keep src0 (zero) without bias
++        for (int64_t i0 = threadIdx.x; i0 < ne0; i0 += blockDim.x) {
++            dst_row[i0] = src0_row[i0];
++        }
++        return;
++    }
+     for (int64_t i0 = threadIdx.x; i0 < ne0; i0 += blockDim.x) {
+         dst_row[i0] = src0_row[i0] + src1_row[i0];
+     }
+diff --git a/ggml/src/ggml-cuda/mmvq.cu b/ggml/src/ggml-cuda/mmvq.cu
+index a851553..2a88cc2 100644
+--- a/ggml/src/ggml-cuda/mmvq.cu
++++ b/ggml/src/ggml-cuda/mmvq.cu
+@@ -636,6 +636,15 @@ static __global__ void mul_mat_vec_q(
+     channel_y  = ncols_dst == 1 && ids ? fastmodulo(channel_dst, nchannels_y) : channel_dst;
+     sample_dst = blockIdx.z;
+ 
++    if (ncols_dst == 1 && ids && (int32_t) channel_x < 0) {
++        // expert-cache: a negative id means the expert is not served on this device; its output row is zero
++        if (threadIdx.y == 0 && threadIdx.x < rows_per_cuda_block &&
++                (rows_per_cuda_block == 1 || uint32_t(row0 + threadIdx.x) < stride_col_dst)) {
++            dst[sample_dst*stride_sample_dst + channel_dst*stride_channel_dst + row0 + threadIdx.x] = 0.0f;
++        }
++        return;
++    }
++
+     const uint32_t sample_x    = fastdiv(sample_dst, sample_ratio);
+     const uint32_t sample_y    = sample_dst;
+ 
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index afdaddc..15ab013 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -18,6 +18,7 @@ set(LLAMA_CORE_SOURCES
+     llama-cparams.cpp
+     llama-grammar.cpp
+     llama-graph.cpp
++    llama-expert-cache.cpp
+     llama-hparams.cpp
+     llama-impl.cpp
+     llama-io.cpp
+diff --git a/src/llama-context.cpp b/src/llama-context.cpp
+index 99e55da..92c2675 100644
+--- a/src/llama-context.cpp
++++ b/src/llama-context.cpp
+@@ -1,4 +1,5 @@
+ #include "llama-context.h"
++#include "llama-expert-cache.h"
+ 
+ #include "ggml.h"
+ #include "llama-arch.h"
+@@ -640,7 +641,30 @@ void llama_context::sched_reserve() {
+     gf_res_reserve.reset(new llm_graph_result(max_nodes));
+     gf_res_prev_active = nullptr;
+ 
++    if (!ec_init_done) {
++        ec_init_done = true;
++        ggml_backend_t ec_backend = backend_cpu;
++        ggml_backend_dev_t ec_dev = backend_cpu ? ggml_backend_get_device(backend_cpu) : nullptr;
++        for (auto & b : backends) {
++            ggml_backend_dev_t dev = ggml_backend_get_device(b.get());
++            if (dev && ggml_backend_dev_type(dev) != GGML_BACKEND_DEVICE_TYPE_CPU) {
++                ec_backend = b.get();
++                ec_dev = dev;
++                break;
++            }
++        }
++        if (getenv("LLAMA_EC_SLOTS")) {
++            ec = std::make_unique<llama_expert_cache>(model, ec_backend, ec_dev);
++            if (!ec->enabled()) {
++                ec.reset();
++            }
++        }
++    }
++
+     sched.reset(ggml_backend_sched_new(backend_ptrs.data(), backend_buft.data(), backend_ptrs.size(), max_nodes, cparams.pipeline_parallel, cparams.op_offload));
++    if (ec) {
++        ggml_backend_sched_set_overlap_cpu(sched.get(), ec->overlap());
++    }
+ 
+     llama_memory_context_ptr mctx;
+     if (memory) {
+@@ -680,6 +704,9 @@ void llama_context::sched_reserve() {
+                 LLAMA_LOG_WARN("%s: compute buffer allocation failed, retrying without pipeline parallelism\n", __func__);
+                 cparams.pipeline_parallel = false;
+                 sched.reset(ggml_backend_sched_new(backend_ptrs.data(), backend_buft.data(), backend_ptrs.size(), max_nodes, false, cparams.op_offload));
++                if (ec) {
++                    ggml_backend_sched_set_overlap_cpu(sched.get(), ec->overlap());
++                }
+                 gf = graph_reserve(n_tokens, n_seqs, n_outputs_pp, mctx.get());
+             }
+             if (!gf) {
+@@ -1445,6 +1472,10 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
+     {
+         //const auto t_start_us = ggml_time_us();
+ 
++        if (ec) {
++            ec->pre_compute();
++        }
++
+         // FIXME this call causes a crash if any model inputs were not used in the graph and were therefore not allocated
+         res->set_inputs(&ubatch);
+ 
+@@ -1458,6 +1489,11 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
+         return nullptr;
+     }
+ 
++    if (ec) {
++        ggml_backend_sched_synchronize(sched.get());
++        ec->post_compute(ubatch.n_tokens == 1 && !cparams.warmup);
++    }
++
+     ret = GGML_STATUS_SUCCESS;
+ 
+     return res;
+@@ -2560,6 +2596,7 @@ llm_graph_params llama_context::graph_params(
+         /*.n_outputs   =*/ n_outputs,
+         /*.cb          =*/ graph_get_cb(),
+         /*.res         =*/ res,
++        /*.ec          =*/ ec.get(),
+     };
+ }
+ 
+diff --git a/src/llama-context.h b/src/llama-context.h
+index b403b09..e38fff9 100644
+--- a/src/llama-context.h
++++ b/src/llama-context.h
+@@ -40,6 +40,8 @@ struct llama_memory_buffer {
+ 
+ using llama_memory_buffers = std::map<ggml_backend_buffer_type_t, llama_memory_buffer>;
+ 
++struct llama_expert_cache;
++
+ struct llama_context {
+     // init scheduler and compute buffers, reserve worst-case graphs
+     llama_context(
+@@ -351,6 +353,9 @@ private:
+ 
+     ggml_backend_sched_ptr sched;
+ 
++    std::unique_ptr<llama_expert_cache> ec; // optional MoE expert cache (LLAMA_EC_SLOTS)
++    bool ec_init_done = false;
++
+     bool sched_need_reserve = true;
+ 
+     ggml_backend_t backend_cpu = nullptr;
+diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
+new file mode 100644
+index 0000000..ab3e13b
+--- /dev/null
++++ b/src/llama-expert-cache.cpp
+@@ -0,0 +1,434 @@
++#include "llama-expert-cache.h"
++
++#include "llama-impl.h"
++#include "llama-model.h"
++
++#include <algorithm>
++#include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <sstream>
++
++static int env_int(const char * name, int def) {
++    const char * v = getenv(name);
++    return v ? atoi(v) : def;
++}
++
++static double env_double(const char * name, double def) {
++    const char * v = getenv(name);
++    return v ? atof(v) : def;
++}
++
++// bytes of one expert in a per-expert tensor: [ne0, ne1, E] weights or [ne0, E] biases.
++// The expert dimension is decided by the source tensor (a slot tensor with one slot has a trailing 1).
++static int expert_dim(const ggml_tensor * src) {
++    return ggml_n_dims(src) >= 3 ? 2 : 1;
++}
++
++static size_t expert_stride(const ggml_tensor * src) {
++    return src->nb[expert_dim(src)];
++}
++
++llama_expert_cache::llama_expert_cache(const llama_model & model, ggml_backend_t gpu_backend, ggml_backend_dev_t gpu_dev) {
++    n_slots = env_int("LLAMA_EC_SLOTS", 0);
++    if (n_slots <= 0) {
++        n_slots = 0;
++        return;
++    }
++    const char * pol = getenv("LLAMA_EC_POLICY");
++    std::string p = pol ? pol : "dfa";
++    policy    = p == "static" ? STATIC : p == "lru" ? LRU : DFA;
++    half_life = env_double("LLAMA_EC_HALF_LIFE", 16.0);
++    kappa     = env_double("LLAMA_EC_KAPPA", 0.0);
++    overlap_cpu = env_int("LLAMA_EC_OVERLAP", 1) != 0;
++    if (const char * s = getenv("LLAMA_EC_STATS")) {
++        stats_path = s;
++    }
++
++    const auto & hp = model.hparams;
++
++    for (int il = 0; il < (int) model.layers.size(); ++il) {
++        const auto & ly = model.layers[il];
++        if (ly.ffn_up_exps_s || ly.ffn_gate_exps_s || ly.ffn_down_exps_s) {
++            continue; // scaled experts are not supported
++        }
++        std::vector<ggml_tensor *> src;
++        for (ggml_tensor * t : { ly.ffn_gate_exps, ly.ffn_up_exps, ly.ffn_down_exps, ly.ffn_gate_up_exps,
++                                 ly.ffn_gate_exps_b, ly.ffn_up_exps_b, ly.ffn_down_exps_b, ly.ffn_gate_up_exps_b }) {
++            if (t) {
++                src.push_back(t);
++            }
++        }
++        if (src.empty() || !ly.ffn_down_exps) {
++            continue;
++        }
++        bool host = true;
++        for (auto * t : src) {
++            host = host && t->buffer && ggml_backend_buffer_is_host(t->buffer) && ggml_is_contiguous(t);
++        }
++        if (!host) {
++            continue; // experts of this layer already live on a device: nothing to cache
++        }
++        layer L;
++        L.il       = il;
++        L.n_expert = (int) hp.n_expert;
++        L.n_used   = (int) hp.n_expert_used(il);
++        L.src      = src;
++        idx_of[il] = (int) layers.size();
++        layers.push_back(std::move(L));
++        max_used = std::max(max_used, (int) hp.n_expert_used(il));
++    }
++    if (layers.empty()) {
++        LLAMA_LOG_WARN("%s: LLAMA_EC_SLOTS set, but no MoE layer has its experts in host memory; cache disabled\n", __func__);
++        n_slots = 0;
++        return;
++    }
++
++    size_t n_tensors = 1;
++    for (auto & L : layers) {
++        n_tensors += L.src.size();
++        n_slots = std::min(n_slots, L.n_expert);
++    }
++    ggml_init_params ip = { ggml_tensor_overhead() * (n_tensors + 1), nullptr, true };
++    ctx = ggml_init(ip);
++
++    for (auto & L : layers) {
++        for (auto * t : L.src) {
++            ggml_tensor * s = expert_dim(t) == 2
++                ? ggml_new_tensor_3d(ctx, t->type, t->ne[0], t->ne[1], n_slots)
++                : ggml_new_tensor_2d(ctx, t->type, t->ne[0], n_slots);
++            ggml_format_name(s, "ec_slot.%s", t->name);
++            GGML_ASSERT(s->nb[expert_dim(t)] == expert_stride(t));
++            L.slot.push_back(s);
++        }
++        const int E = L.n_expert;
++        L.slot_of.assign(E, -1);
++        L.cpu_of.resize(E);
++        for (int e = 0; e < E; ++e) {
++            L.cpu_of[e] = e;
++        }
++        L.resident.assign(n_slots, -1);
++        L.loading.assign(n_slots, -1);
++        L.load_batch.assign(n_slots, 0);
++        L.score.assign(E, 0.0);
++        L.last.assign(E, 0);
++        L.stamp.assign(E, -1);
++        L.count.assign(E, 0);
++    }
++    routing = ggml_new_tensor_2d(ctx, GGML_TYPE_I32, max_used, (int64_t) layers.size());
++    ggml_set_name(routing, "ec_routing");
++    routing_host.assign(max_used * layers.size(), -1);
++
++    ggml_backend_buffer_type_t buft = gpu_dev ? ggml_backend_dev_buffer_type(gpu_dev)
++                                              : ggml_backend_get_default_buffer_type(gpu_backend);
++    buf = ggml_backend_alloc_ctx_tensors_from_buft(ctx, buft);
++    GGML_ASSERT(buf && "expert cache: failed to allocate slot memory");
++    ggml_backend_buffer_clear(buf, 0);
++
++    if (gpu_dev && ggml_backend_dev_type(gpu_dev) != GGML_BACKEND_DEVICE_TYPE_CPU) {
++        copy_backend = ggml_backend_dev_init(gpu_dev, nullptr);
++        events[0] = ggml_backend_event_new(gpu_dev);
++        events[1] = ggml_backend_event_new(gpu_dev);
++    }
++
++    // optional initial resident set: a text file of "<layer> <e0> <e1> ..." lines, or a stats JSON
++    // written by LLAMA_EC_STATS, from which the n_slots most requested experts of every layer are taken
++    if (const char * init = getenv("LLAMA_EC_INIT")) {
++        std::ifstream f(init);
++        std::string line;
++        int n_loaded = 0;
++        std::vector<std::string> lines;
++        const std::string ip = init;
++        if (ip.size() > 5 && ip.substr(ip.size() - 5) == ".json") {
++            std::stringstream all;
++            all << f.rdbuf();
++            const std::string js = all.str();
++            size_t pos = 0;
++            while ((pos = js.find("\"il\":", pos)) != std::string::npos) {
++                const int il = atoi(js.c_str() + pos + 5);
++                const size_t c0 = js.find('[', js.find("\"count\":", pos));
++                const size_t c1 = js.find(']', c0);
++                std::vector<std::pair<long long, int>> cnt;
++                std::stringstream cs(js.substr(c0 + 1, c1 - c0 - 1));
++                std::string v;
++                for (int e = 0; std::getline(cs, v, ','); ++e) {
++                    cnt.emplace_back(-atoll(v.c_str()), e);
++                }
++                std::stable_sort(cnt.begin(), cnt.end());
++                std::string l = std::to_string(il);
++                for (auto & [c, e] : cnt) {
++                    l += " " + std::to_string(e);
++                }
++                lines.push_back(l);
++                pos = c1;
++            }
++        } else {
++            while (std::getline(f, line)) {
++                lines.push_back(line);
++            }
++        }
++        for (const auto & ln : lines) {
++            line = ln;
++            std::istringstream ss(line);
++            int il;
++            if (!(ss >> il) || !idx_of.count(il)) {
++                continue;
++            }
++            layer & L = layers[idx_of[il]];
++            int e, s = 0;
++            while (s < n_slots && (ss >> e)) {
++                if (e < 0 || e >= L.n_expert || L.slot_of[e] >= 0) {
++                    continue;
++                }
++                for (size_t k = 0; k < L.src.size(); ++k) {
++                    const size_t st = expert_stride(L.src[k]);
++                    ggml_backend_tensor_set(L.slot[k], (const char *) L.src[k]->data + e * st, s * st, st);
++                }
++                L.resident[s] = e;
++                L.slot_of[e] = s;
++                L.cpu_of[e] = -1;
++                ++s;
++                ++n_loaded;
++            }
++        }
++        LLAMA_LOG_INFO("%s: loaded %d experts from %s\n", __func__, n_loaded, init);
++    }
++
++    LLAMA_LOG_INFO("%s: %d MoE layers, %d slots/layer, policy %s, overlap %d, %.2f MiB of slots\n", __func__,
++            (int) layers.size(), n_slots, p.c_str(), (int) overlap_cpu, ggml_backend_buffer_get_size(buf) / 1024.0 / 1024.0);
++}
++
++llama_expert_cache::~llama_expert_cache() {
++    if (!stats_path.empty() && enabled()) {
++        write_stats(stats_path.c_str());
++    }
++    if (copy_backend) {
++        ggml_backend_synchronize(copy_backend);
++    }
++    for (auto * ev : events) {
++        if (ev) {
++            ggml_backend_event_free(ev);
++        }
++    }
++    if (copy_backend) {
++        ggml_backend_free(copy_backend);
++    }
++    if (buf) {
++        ggml_backend_buffer_free(buf);
++    }
++    if (ctx) {
++        ggml_free(ctx);
++    }
++}
++
++const llama_expert_cache::layer * llama_expert_cache::get_layer(int il) const {
++    auto it = idx_of.find(il);
++    return it == idx_of.end() ? nullptr : &layers[it->second];
++}
++
++ggml_tensor * llama_expert_cache::slot_for(int il, const ggml_tensor * src) const {
++    const layer * L = get_layer(il);
++    if (!L || !src) {
++        return nullptr;
++    }
++    for (size_t k = 0; k < L->src.size(); ++k) {
++        if (L->src[k] == src) {
++            return L->slot[k];
++        }
++    }
++    return nullptr;
++}
++
++ggml_tensor * llama_expert_cache::routing_view(ggml_context * ctx0, int il, int n_used) {
++    const int i = idx_of.at(il);
++    return ggml_view_1d(ctx0, routing, n_used, i * routing->nb[1]);
++}
++
++const std::vector<int32_t> & llama_expert_cache::gpu_map(int il) const {
++    return get_layer(il)->slot_of;
++}
++
++const std::vector<int32_t> & llama_expert_cache::cpu_map(int il) const {
++    return get_layer(il)->cpu_of;
++}
++
++int llama_expert_cache::n_expert_max() const {
++    int m = 0;
++    for (const auto & L : layers) {
++        m = std::max(m, L.n_expert);
++    }
++    return m;
++}
++
++void llama_expert_cache::fill_maps(int32_t * dst) const {
++    const int E = n_expert_max();
++    for (size_t i = 0; i < layers.size(); ++i) {
++        const auto & L = layers[i];
++        int32_t * g = dst + (2 * i + 0) * E;
++        int32_t * c = dst + (2 * i + 1) * E;
++        std::fill(g, g + E, -1);
++        std::fill(c, c + E, -1);
++        std::copy(L.slot_of.begin(), L.slot_of.end(), g);
++        std::copy(L.cpu_of.begin(), L.cpu_of.end(), c);
++    }
++}
++
++void llama_expert_cache::admit(layer & L, int s, int e) {
++    for (size_t k = 0; k < L.src.size(); ++k) {
++        const size_t st = expert_stride(L.src[k]);
++        const void * host = (const char *) L.src[k]->data + (size_t) e * st;
++        if (copy_backend) {
++            ggml_backend_tensor_set_async(copy_backend, L.slot[k], host, (size_t) s * st, st);
++        } else {
++            ggml_backend_tensor_set(L.slot[k], host, (size_t) s * st, st);
++        }
++    }
++    L.loading[s] = e;
++    L.load_batch[s] = (int) (step & 1);
++    L.admits++;
++}
++
++void llama_expert_cache::pre_compute() {
++    if (!enabled()) {
++        return;
++    }
++    // publish the copies issued two decode steps ago (they overlapped the previous step)
++    const int b = (int) (step & 1);
++    if (issued[b]) {
++        if (events[b]) {
++            ggml_backend_event_synchronize(events[b]);
++        } else if (copy_backend) {
++            ggml_backend_synchronize(copy_backend);
++        }
++        issued[b] = false;
++    }
++    for (auto & L : layers) {
++        for (int s = 0; s < n_slots; ++s) {
++            if (L.loading[s] >= 0 && L.load_batch[s] == b) {
++                const int e = L.loading[s];
++                L.loading[s]  = -1;
++                L.resident[s] = e;
++                L.slot_of[e]  = s;
++                L.cpu_of[e]   = -1;
++            }
++        }
++    }
++}
++
++void llama_expert_cache::post_compute(bool decoded) {
++    if (!enabled() || !decoded) {
++        return;
++    }
++    ggml_backend_tensor_get(routing, routing_host.data(), 0, ggml_nbytes(routing));
++
++    const double decay = std::pow(0.5, 1.0 / half_life);
++    bool any = false;
++
++    for (size_t li = 0; li < layers.size(); ++li) {
++        layer & L = layers[li];
++        const int32_t * sel = routing_host.data() + li * max_used;
++        const int k = L.n_used;
++
++        std::vector<int> missed;
++        for (int j = 0; j < k; ++j) {
++            const int e = sel[j];
++            if (e < 0 || e >= L.n_expert) {
++                continue;
++            }
++            L.count[e]++;
++            L.score[e] = L.score[e] * std::pow(decay, (double) (step - L.last[e])) + 1.0;
++            L.last[e]  = step;
++            if (L.slot_of[e] >= 0) {
++                L.hits++;
++                L.stamp[e] = step;
++            } else {
++                L.misses++;
++                missed.push_back(e);
++            }
++        }
++        if (policy == STATIC) {
++            continue;
++        }
++        for (int e : missed) {
++            if (std::find(L.loading.begin(), L.loading.end(), e) != L.loading.end()) {
++                continue; // already on its way
++            }
++            int free_slot = -1;
++            for (int s = 0; s < n_slots; ++s) {
++                if (L.resident[s] < 0 && L.loading[s] < 0) {
++                    free_slot = s;
++                    break;
++                }
++            }
++            if (free_slot >= 0) {
++                admit(L, free_slot, e);
++                any = true;
++                continue;
++            }
++            // victim: resident, not being replaced, not requested this step
++            int victim = -1;
++            double best = 0.0;
++            for (int s = 0; s < n_slots; ++s) {
++                const int c = L.resident[s];
++                if (c < 0 || L.loading[s] >= 0 || std::find(sel, sel + k, c) != sel + k) {
++                    continue;
++                }
++                const double key = policy == LRU ? (double) L.stamp[c]
++                                                 : L.score[c] * std::pow(decay, (double) (step - L.last[c]));
++                if (victim < 0 || key < best) {
++                    best = key;
++                    victim = s;
++                }
++            }
++            if (victim < 0) {
++                continue;
++            }
++            if (policy == DFA && !(L.score[e] > best + kappa)) {
++                continue;
++            }
++            const int v = L.resident[victim];
++            L.resident[victim] = -1;
++            L.slot_of[v] = -1;
++            L.cpu_of[v]  = v;
++            admit(L, victim, e);
++            any = true;
++        }
++    }
++    if (any) {
++        const int b = (int) (step & 1);
++        if (events[b]) {
++            ggml_backend_event_record(events[b], copy_backend);
++        }
++        issued[b] = true;
++    }
++    step++;
++}
++
++void llama_expert_cache::write_stats(const char * path) const {
++    FILE * f = fopen(path, "w");
++    if (!f) {
++        return;
++    }
++    uint64_t h = 0, m = 0, a = 0;
++    for (const auto & L : layers) {
++        h += L.hits; m += L.misses; a += L.admits;
++    }
++    const char * pn = policy == STATIC ? "static" : policy == LRU ? "lru" : "dfa";
++    fprintf(f, "{\"slots\": %d, \"policy\": \"%s\", \"half_life\": %g, \"kappa\": %g, \"overlap\": %d, \"steps\": %lld,\n",
++            n_slots, pn, half_life, kappa, (int) overlap_cpu, (long long) step);
++    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f,\n \"layers\": [\n",
++            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0);
++    for (size_t i = 0; i < layers.size(); ++i) {
++        const auto & L = layers[i];
++        fprintf(f, "  {\"il\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"count\": [", L.il,
++                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits);
++        for (int e = 0; e < L.n_expert; ++e) {
++            fprintf(f, "%s%llu", e ? "," : "", (unsigned long long) L.count[e]);
++        }
++        fprintf(f, "]}%s\n", i + 1 < layers.size() ? "," : "");
++    }
++    fprintf(f, " ]}\n");
++    fclose(f);
++}
+diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
+new file mode 100644
+index 0000000..d3cf8e3
+--- /dev/null
++++ b/src/llama-expert-cache.h
+@@ -0,0 +1,102 @@
++#pragma once
++
++// Expert cache for MoE decode with experts resident in host memory.
++//
++// Every MoE layer keeps `slots` expert copies in GPU memory. At each decode
++// step the router's selection is split in the graph: experts resident in a
++// slot ("hits") run on the GPU from the slot, the others ("misses") run on the
++// CPU from host memory, and the two partial results are summed. After each
++// step a policy decides which missed experts to copy into slots; the copies
++// run asynchronously on a separate stream and take effect one step later.
++//
++// Configured through environment variables (research prototype):
++//   LLAMA_EC_SLOTS      slots per MoE layer (0 or unset = off)
++//   LLAMA_EC_POLICY     static | lru | dfa           (default dfa)
++//   LLAMA_EC_HALF_LIFE  dfa decay half-life in decode steps (default 16)
++//   LLAMA_EC_KAPPA      dfa admission margin (default 0)
++//   LLAMA_EC_INIT       file with the initial resident set: one line per MoE layer,
++//                       "<layer> <e0> <e1> ..." (optional; static uses it as the fixed set)
++//   LLAMA_EC_OVERLAP    1 = run GPU hits concurrently with CPU misses (default 1)
++//   LLAMA_EC_STATS      file to write per-layer statistics and expert counts at exit
++
++#include "ggml.h"
++#include "ggml-backend.h"
++
++#include <cstdint>
++#include <map>
++#include <string>
++#include <vector>
++
++struct llama_model;
++
++struct llama_expert_cache {
++    enum policy_t { STATIC = 0, LRU = 1, DFA = 2 };
++
++    struct layer {
++        int il = -1;
++        int n_expert = 0;
++        int n_used = 0;
++        std::vector<ggml_tensor *> src;   // host-resident expert tensors (weights and per-expert biases)
++        std::vector<ggml_tensor *> slot;  // GPU slot tensors, same order as src
++        std::vector<int32_t> slot_of;     // [E]  expert -> slot, or -1
++        std::vector<int32_t> cpu_of;      // [E]  expert -> expert if served by the CPU, else -1
++        std::vector<int32_t> resident;    // [C]  slot -> expert, or -1
++        std::vector<int32_t> loading;     // [C]  slot -> expert being copied in, or -1
++        std::vector<int>     load_batch;  // [C]  copy batch (step parity) of the pending load
++        std::vector<double>  score;       // [E]  decayed request count (dfa)
++        std::vector<int64_t> last;        // [E]  last step the score was updated
++        std::vector<int64_t> stamp;       // [E]  last step the expert was used (lru)
++        std::vector<uint64_t> count;      // [E]  total requests
++        uint64_t hits = 0, misses = 0, admits = 0;
++    };
++
++    llama_expert_cache(const llama_model & model, ggml_backend_t gpu_backend, ggml_backend_dev_t gpu_dev);
++    ~llama_expert_cache();
++
++    bool enabled() const { return n_slots > 0 && !layers.empty(); }
++    bool overlap() const { return overlap_cpu; }
++
++    // graph building
++    const layer * get_layer(int il) const;
++    ggml_tensor * slot_for(int il, const ggml_tensor * src) const;   // nullptr if src is not cached
++    ggml_tensor * routing_view(ggml_context * ctx, int il, int n_used);
++
++    // host-side maps copied into the graph inputs before every step
++    const std::vector<int32_t> & gpu_map(int il) const;
++    const std::vector<int32_t> & cpu_map(int il) const;
++    int layer_index(int il) const { return idx_of.at(il); }
++    int n_layers() const { return (int) layers.size(); }
++    int n_expert_max() const;
++    void fill_maps(int32_t * dst) const;   // [n_layers][2][n_expert_max]: gpu map, cpu map
++
++    // decode loop hooks
++    void pre_compute();                 // finish copies issued two steps ago, publish them
++    void post_compute(bool decoded);    // read this step's routing, run the policy, issue copies
++
++    void write_stats(const char * path) const;
++
++    int n_slots = 0;
++    policy_t policy = DFA;
++    double half_life = 16.0;
++    double kappa = 0.0;
++    bool overlap_cpu = true;
++    std::string stats_path;
++
++private:
++    void admit(layer & L, int slot, int e);
++
++    std::vector<layer> layers;
++    std::map<int, int> idx_of;          // il -> index in layers
++
++    ggml_context * ctx = nullptr;       // slot and routing tensor metadata
++    ggml_backend_buffer_t buf = nullptr;
++    ggml_tensor * routing = nullptr;    // [n_used, n_moe_layers] I32, written by the graph
++    std::vector<int32_t> routing_host;
++
++    ggml_backend_t copy_backend = nullptr;      // separate stream for slot copies (GPU only)
++    ggml_backend_event_t events[2] = {nullptr, nullptr};
++    bool issued[2] = {false, false};
++
++    int64_t step = 0;
++    int max_used = 0;
++};
+diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
+index 0b3bab6..43a71b1 100644
+--- a/src/llama-graph.cpp
++++ b/src/llama-graph.cpp
+@@ -1,4 +1,5 @@
+ #include "llama-graph.h"
++#include "llama-expert-cache.h"
+ 
+ #include "llama-impl.h"
+ #include "llama-model.h"
+@@ -1452,6 +1453,19 @@ void llm_graph_result::set_params(const llm_graph_params & params) {
+ // llm_graph_context
+ //
+ 
++void llm_graph_input_expert_cache::set_input(const llama_ubatch * ubatch) {
++    GGML_UNUSED(ubatch);
++    if (maps && maps->buffer) {
++        host.resize(ggml_nelements(maps));
++        ec->fill_maps(host.data());
++        ggml_backend_tensor_set(maps, host.data(), 0, ggml_nbytes(maps));
++    }
++}
++
++bool llm_graph_input_expert_cache::can_reuse(const llm_graph_params & params) {
++    return params.ec == ec;
++}
++
+ llm_graph_context::llm_graph_context(const llm_graph_params & params) :
+     arch             (params.arch),
+     hparams          (params.hparams),
+@@ -1493,6 +1507,7 @@ llm_graph_context::llm_graph_context(const llm_graph_params & params) :
+     samplers         (params.samplers),
+     cb_func          (params.cb),
+     res              (params.res),
++    ec               (params.ec),
+     ctx0             (res->get_ctx()),
+     gf               (res->get_gf()) {
+         res->set_params(params);
+@@ -2175,6 +2190,12 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+     ggml_tensor * up = nullptr;
+     ggml_tensor * experts = nullptr;
+ 
++    if (ec && !weight_before_ffn && !up_exps_s && !gate_exps_s && !down_exps_s) {
++        experts = build_moe_ffn_ec(cur, selected_experts, up_exps, up_exps_b, gate_exps, gate_exps_b,
++                down_exps, down_exps_b, gate_up_exps, gate_up_exps_b, type_op, n_expert, n_expert_used, il);
++    }
++
++    if (experts == nullptr) {
+     if (gate_up_exps) {
+         // merged gate_up path: one mul_mat_id, then split into gate and up views
+         ggml_tensor * gate_up = build_lora_mm_id(gate_up_exps, cur, selected_experts, up_exps_s); // [n_ff*2, n_expert_used, n_tokens]
+@@ -2325,6 +2346,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+         experts = ggml_add_id(ctx0, experts, down_exps_b, selected_experts);
+         cb(experts, "ffn_moe_down_biased", il);
+     }
++    } // experts == nullptr
+ 
+     if (!weight_before_ffn) {
+         experts = ggml_mul(ctx0, experts, weights);
+@@ -2367,6 +2389,135 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+     return moe_out;
+ }
+ 
++ggml_tensor * llm_graph_context::build_moe_ffn_ec(
++         ggml_tensor * cur,
++         ggml_tensor * selected_experts,
++         ggml_tensor * up_exps,   ggml_tensor * up_exps_b,
++         ggml_tensor * gate_exps, ggml_tensor * gate_exps_b,
++         ggml_tensor * down_exps, ggml_tensor * down_exps_b,
++         ggml_tensor * gate_up_exps, ggml_tensor * gate_up_exps_b,
++     llm_ffn_op_type   type_op,
++             int64_t   n_expert,
++             int64_t   n_expert_used,
++                 int   il) const {
++    // decode only (one token), no warmup, supported activations, and every expert tensor of the layer cached
++    if (!ec || !ec->enabled() || cparams.warmup || n_tokens != 1 || !ec->get_layer(il)) {
++        return nullptr;
++    }
++    if (type_op != LLM_FFN_SILU && type_op != LLM_FFN_SWIGLU_OAI_MOE) {
++        return nullptr;
++    }
++    if (type_op == LLM_FFN_SILU && il >= 0 && hparams.swiglu_clamp_exp[il] > 1e-6f) {
++        return nullptr;
++    }
++    if (!(gate_exps || gate_up_exps) || n_expert_used != (int64_t) ec->get_layer(il)->n_used) {
++        return nullptr;
++    }
++    for (ggml_tensor * t : { up_exps, up_exps_b, gate_exps, gate_exps_b, down_exps, down_exps_b, gate_up_exps, gate_up_exps_b }) {
++        if (t && !ec->slot_for(il, t)) {
++            return nullptr;
++        }
++    }
++
++    ggml_backend_t be_gpu = ggml_backend_sched_get_backend(sched, 0);
++    ggml_backend_t be_cpu = backend_cpu ? backend_cpu : ggml_backend_sched_get_backend(sched, ggml_backend_sched_get_n_backends(sched) - 1);
++
++    if (!inp_ec) {
++        auto inp = std::make_unique<llm_graph_input_expert_cache>(ec);
++        inp_ec = inp.get();
++        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 2 * ec->n_layers());
++        ggml_set_input(inp_ec->maps);
++        ggml_set_name(inp_ec->maps, "ec_maps");
++        res->add_input(std::move(inp));
++    }
++    GGML_ASSERT(n_expert <= ec->n_expert_max());
++    const int li = ec->layer_index(il);
++    ggml_tensor * maps = inp_ec->maps;
++    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 0) * maps->nb[1]);
++    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 1) * maps->nb[1]);
++
++    // record this step's selection for the cache policy
++    {
++        ggml_tensor * sel = ggml_reshape_1d(ctx0, selected_experts, n_expert_used);
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, sel, ec->routing_view(ctx0, il, (int) n_expert_used)));
++    }
++
++    ggml_tensor * gr_g = ggml_get_rows(ctx0, map_g, selected_experts); // [1, n_expert_used, n_tokens]
++    ggml_tensor * gr_c = ggml_get_rows(ctx0, map_c, selected_experts);
++    ggml_format_name(gr_g, "ec_gid-%d", il);
++    ggml_format_name(gr_c, "ec_cid-%d", il);
++    ggml_backend_sched_set_tensor_backend(sched, gr_g, be_gpu);
++    ggml_backend_sched_set_tensor_backend(sched, gr_c, be_gpu);
++    ggml_tensor * gid = ggml_reshape_2d(ctx0, gr_g, n_expert_used, n_tokens);
++    ggml_tensor * cid = ggml_reshape_2d(ctx0, gr_c, n_expert_used, n_tokens);
++    ggml_build_forward_expand(gf, gid);
++    ggml_build_forward_expand(gf, cid);
++
++    // one expert FFN over the entries `ids` selects; entries with id < 0 produce zeros
++    auto path = [&](ggml_tensor * ids, bool on_gpu) -> ggml_tensor * {
++        auto W = [&](ggml_tensor * t) { return on_gpu && t ? ec->slot_for(il, t) : t; };
++        ggml_backend_t be = on_gpu ? be_gpu : be_cpu;
++        std::vector<ggml_tensor *> nodes;
++        auto pin = [&](ggml_tensor * t) { nodes.push_back(t); return t; };
++
++        ggml_tensor * x = ggml_reshape_3d(ctx0, cur, n_embd, 1, n_tokens);
++        ggml_tensor * g = nullptr;
++        ggml_tensor * u = nullptr;
++        if (gate_up_exps) {
++            ggml_tensor * gu = pin(ggml_mul_mat_id(ctx0, W(gate_up_exps), x, ids));
++            if (gate_up_exps_b) {
++                gu = pin(ggml_add_id(ctx0, gu, W(gate_up_exps_b), ids));
++            }
++            const int64_t nff = gu->ne[0] / 2;
++            g = ggml_view_3d(ctx0, gu, nff, gu->ne[1], gu->ne[2], gu->nb[1], gu->nb[2], 0);
++            u = ggml_view_3d(ctx0, gu, nff, gu->ne[1], gu->ne[2], gu->nb[1], gu->nb[2], nff * gu->nb[0]);
++        } else {
++            u = pin(ggml_mul_mat_id(ctx0, W(up_exps), x, ids));
++            if (up_exps_b) {
++                u = pin(ggml_add_id(ctx0, u, W(up_exps_b), ids));
++            }
++            g = pin(ggml_mul_mat_id(ctx0, W(gate_exps), x, ids));
++            if (gate_exps_b) {
++                g = pin(ggml_add_id(ctx0, g, W(gate_exps_b), ids));
++            }
++        }
++        ggml_tensor * a = type_op == LLM_FFN_SWIGLU_OAI_MOE
++            ? pin(ggml_swiglu_oai(ctx0, g, u, 1.702f, 7.0f))
++            : pin(ggml_swiglu_split(ctx0, g, u));
++        ggml_tensor * d = pin(ggml_mul_mat_id(ctx0, W(down_exps), a, ids));
++        if (down_exps_b) {
++            d = pin(ggml_add_id(ctx0, d, W(down_exps_b), ids));
++        }
++        for (ggml_tensor * t : nodes) {
++            ggml_backend_sched_set_tensor_backend(sched, t, be);
++        }
++        return d;
++    };
++
++    const int n_before = ggml_graph_n_nodes(gf);
++    ggml_tensor * out_gpu = path(gid, true);
++    cb(out_gpu, "ffn_moe_ec_gpu", il);
++    ggml_build_forward_expand(gf, out_gpu);
++    if (ec->overlap()) {
++        // start a scheduler split at the first GPU-path node so the CPU path can run beside it
++        for (int i = n_before; i < ggml_graph_n_nodes(gf); ++i) {
++            ggml_tensor * t = ggml_graph_node(gf, i);
++            if (t->op != GGML_OP_RESHAPE && t->op != GGML_OP_VIEW && t->op != GGML_OP_PERMUTE && t->op != GGML_OP_TRANSPOSE) {
++                t->flags |= GGML_TENSOR_FLAG_SPLIT_BEFORE;
++                break;
++            }
++        }
++    }
++    ggml_tensor * out_cpu = path(cid, false);
++    cb(out_cpu, "ffn_moe_ec_cpu", il);
++    ggml_build_forward_expand(gf, out_cpu);
++
++    ggml_tensor * experts = ggml_add(ctx0, out_gpu, out_cpu); // [n_embd, n_expert_used, n_tokens]
++    ggml_backend_sched_set_tensor_backend(sched, experts, be_gpu);
++    cb(experts, "ffn_moe_ec_merged", il);
++    return experts;
++}
++
+ // input embeddings with optional lora
+ ggml_tensor * llm_graph_context::build_inp_embd(ggml_tensor * tok_embd) const {
+     const int64_t n_embd_inp = hparams.n_embd_inp();
+diff --git a/src/llama-graph.h b/src/llama-graph.h
+index 3daa425..33681a4 100644
+--- a/src/llama-graph.h
++++ b/src/llama-graph.h
+@@ -8,6 +8,7 @@
+ #include <cstdint>
+ #include <cstdlib>
+ #include <vector>
++#include <map>
+ #include <memory>
+ #include <set>
+ #include <functional>
+@@ -94,6 +95,7 @@ struct llama_cross {
+ };
+ 
+ struct llm_graph_params;
++struct llama_expert_cache;
+ 
+ //
+ // llm_graph_input
+@@ -125,6 +127,21 @@ protected:
+ 
+ using llm_graph_input_ptr = std::unique_ptr<llm_graph_input_i>;
+ 
++// expert cache: per-layer maps expert -> GPU slot (or -1) and expert -> expert-if-CPU (or -1)
++class llm_graph_input_expert_cache : public llm_graph_input_i {
++public:
++    llm_graph_input_expert_cache(llama_expert_cache * ec) : ec(ec) {}
++    virtual ~llm_graph_input_expert_cache() = default;
++
++    void set_input(const llama_ubatch * ubatch) override;
++
++    bool can_reuse(const llm_graph_params & params) override;
++
++    llama_expert_cache * ec;
++    ggml_tensor * maps = nullptr; // I32 [n_expert, 2*n_cached_layers]: expert->slot and expert->cpu maps of every layer
++    std::vector<int32_t> host;
++};
++
+ class llm_graph_input_embd : public llm_graph_input_i {
+ public:
+     llm_graph_input_embd(int64_t n_embd) : n_embd(n_embd) {}
+@@ -813,6 +830,8 @@ struct llm_graph_params {
+ 
+     llm_graph_result * res;
+ 
++    llama_expert_cache * ec = nullptr;
++
+     // return true if the "other" params would result in a graph with the same topology as with the current params
+     //   having the same topology allows us to reuse the graph in some cases
+     bool allow_reuse(const llm_graph_params & other) const {
+@@ -1038,6 +1057,9 @@ struct llm_graph_context {
+ 
+     llm_graph_result * res;
+ 
++    llama_expert_cache * ec;
++    mutable llm_graph_input_expert_cache * inp_ec = nullptr;
++
+     ggml_context * ctx0 = nullptr;
+     ggml_cgraph  * gf   = nullptr;
+ 
+@@ -1162,6 +1184,19 @@ struct llm_graph_context {
+              ggml_tensor * down_exps_s = nullptr,
+              ggml_tensor * selected_experts_in = nullptr) const;
+ 
++    // expert cache: GPU hits and CPU misses of one MoE layer, summed; nullptr if not applicable
++    ggml_tensor * build_moe_ffn_ec(
++             ggml_tensor * cur,
++             ggml_tensor * selected_experts,
++             ggml_tensor * up_exps,   ggml_tensor * up_exps_b,
++             ggml_tensor * gate_exps, ggml_tensor * gate_exps_b,
++             ggml_tensor * down_exps, ggml_tensor * down_exps_b,
++             ggml_tensor * gate_up_exps, ggml_tensor * gate_up_exps_b,
++         llm_ffn_op_type   type_op,
++                 int64_t   n_expert,
++                 int64_t   n_expert_used,
++                     int   il) const;
++
+     //
+     // inputs
+     //
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 6527049..9234e56 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -3391,6 +3391,8 @@ struct test_bin_bcast : public test_case {
+ };
+ 
+ // GGML_OP_ADD_ID
++static void ec_negate_half_ids(ggml_context * ctx);
++
+ struct test_add_id : public test_case {
+     const ggml_type type_a;
+     const ggml_type type_b;
+@@ -3452,6 +3454,18 @@ struct test_add_id : public test_case {
+     }
+ };
+ 
++struct test_add_id_ec : public test_add_id {
++    using test_add_id::test_add_id;
++    std::string op_desc(ggml_tensor * t) override {
++        GGML_UNUSED(t);
++        return "ADD_ID_EC";
++    }
++    void initialize_tensors(ggml_context * ctx) override {
++        test_add_id::initialize_tensors(ctx);
++        ec_negate_half_ids(ctx);
++    }
++};
++
+ // GGML_OP_SCALE
+ struct test_scale : public test_case {
+     const ggml_type type;
+@@ -5271,6 +5285,35 @@ struct test_mul_mat_id : public test_case {
+     }
+ };
+ 
++// expert-cache: every other selected id is -1 ("served elsewhere"), whose output must be zero
++static void ec_negate_half_ids(ggml_context * ctx) {
++    for (ggml_tensor * t = ggml_get_first_tensor(ctx); t != NULL; t = ggml_get_next_tensor(ctx, t)) {
++        if (t->type != GGML_TYPE_I32 || ggml_is_view_op(t->op)) {
++            continue;
++        }
++        std::vector<int32_t> data(ggml_nelements(t));
++        ggml_backend_tensor_get(t, data.data(), 0, ggml_nbytes(t));
++        for (int64_t r = 0; r < ggml_nrows(t); r++) {
++            for (int64_t i = (r & 1); i < t->ne[0]; i += 2) {
++                data[r * t->ne[0] + i] = -1;
++            }
++        }
++        ggml_backend_tensor_set(t, data.data(), 0, ggml_nbytes(t));
++    }
++}
++
++struct test_mul_mat_id_ec : public test_mul_mat_id {
++    using test_mul_mat_id::test_mul_mat_id;
++    std::string op_desc(ggml_tensor * t) override {
++        GGML_UNUSED(t);
++        return "MUL_MAT_ID_EC";
++    }
++    void initialize_tensors(ggml_context * ctx) override {
++        test_mul_mat_id::initialize_tensors(ctx);
++        ec_negate_half_ids(ctx);
++    }
++};
++
+ // FP4 W4A8 path on the MoE path (GGML_PREC_Q8 on src1 disallows 4-bit activations)
+ struct test_mul_mat_id_w4a8 : public test_mul_mat_id {
+     test_mul_mat_id_w4a8(ggml_type type_a = GGML_TYPE_NVFP4, ggml_type type_b = GGML_TYPE_F32,
+@@ -10063,6 +10106,15 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+ 
+     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_Q8_0, GGML_TYPE_F32, 128, 128, false, 8192, 2, 5120)); // Llama-4-Maverick-17B-128E-PAB-Q8_0
+     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_Q8_0, GGML_TYPE_F32, 128, 128, false, 8192, 1, 5120)); // Llama-4-Maverick-17B-128E-PAB-Q8_0
++    // expert-cache: negative ids (decode, one token), quantized weights as in the cached models
++    for (ggml_type t : { GGML_TYPE_Q8_0, GGML_TYPE_Q4_K, GGML_TYPE_Q6_K, GGML_TYPE_MXFP4 }) {
++        for (bool bc : { true, false }) {
++            test_cases.emplace_back(new test_mul_mat_id_ec(t, GGML_TYPE_F32, 32, 4, bc, 512, 1, 256));
++            test_cases.emplace_back(new test_mul_mat_id_ec(t, GGML_TYPE_F32, 128, 8, bc, 768, 1, 2048));
++        }
++    }
++    test_cases.emplace_back(new test_add_id_ec(GGML_TYPE_F32, GGML_TYPE_F32, 2880, 32, 4, 1));
++    test_cases.emplace_back(new test_add_id_ec(GGML_TYPE_F32, GGML_TYPE_F32, 768, 128, 8, 1));
+     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 1, 5120, {128, 1}, {1, 1}));
+     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 512, 5120, {128, 1}, {1, 1}));
+ #endif
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+index c8ad1db..0ed8d16 100644
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -18,6 +18,7 @@ else()
+     add_subdirectory(gguf-split)
+     add_subdirectory(imatrix)
+     add_subdirectory(llama-bench)
++    add_subdirectory(ec-bench)
+     add_subdirectory(completion)
+     add_subdirectory(perplexity)
+     add_subdirectory(quantize)
+diff --git a/tools/ec-bench/CMakeLists.txt b/tools/ec-bench/CMakeLists.txt
+new file mode 100644
+index 0000000..1654fea
+--- /dev/null
++++ b/tools/ec-bench/CMakeLists.txt
+@@ -0,0 +1,5 @@
++set(TARGET llama-ec-bench)
++add_executable(${TARGET} ec-bench.cpp)
++install(TARGETS ${TARGET} RUNTIME)
++target_link_libraries(${TARGET} PRIVATE llama ggml ${CMAKE_THREAD_LIBS_INIT})
++target_compile_features(${TARGET} PRIVATE cxx_std_17)
+diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
+new file mode 100644
+index 0000000..fbe7d1b
+--- /dev/null
++++ b/tools/ec-bench/ec-bench.cpp
+@@ -0,0 +1,304 @@
++// ec-bench: teacher-forced decode benchmark on real token sequences.
++//
++// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
++// the KV cache is cleared, the first min(P, --n-prefill) tokens are prefilled in one batch
++// (untimed), and the next --n-decode tokens are decoded ONE AT A TIME (timed), feeding the
++// corpus tokens rather than sampled ones, so expert routing follows real text and is the
++// same for every configuration. Expert placement:
++//   --ncmoe N         experts of the first N MoE layers in (pageable) CPU memory, like llama-bench -ncmoe
++//   --host-experts    all experts in pinned host memory (for the expert cache, LLAMA_EC_* env vars)
++// Output: one JSON line per sequence on stdout; --dump FILE writes the top-5 logits of every step.
++#include "llama.h"
++#include "ggml-backend.h"
++
++#include <algorithm>
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <fstream>
++#include <sstream>
++#include <string>
++#include <vector>
++
++struct seq_t {
++    std::vector<llama_token> ids;
++    int prompt_len = 0;
++    std::string domain;
++};
++
++static std::vector<seq_t> read_corpus(const std::string & path) {
++    std::vector<seq_t> out;
++    std::ifstream f(path);
++    std::string line;
++    while (std::getline(f, line)) {
++        seq_t s;
++        size_t p = line.find("\"ids\"");
++        if (p == std::string::npos) {
++            continue;
++        }
++        p = line.find('[', p);
++        size_t q = line.find(']', p);
++        std::string arr = line.substr(p + 1, q - p - 1);
++        const char * c = arr.c_str();
++        char * end;
++        while (*c) {
++            long v = strtol(c, &end, 10);
++            if (end == c) {
++                ++c;
++                continue;
++            }
++            s.ids.push_back((llama_token) v);
++            c = end;
++        }
++        size_t pl = line.find("\"prompt_len\"");
++        if (pl != std::string::npos) {
++            s.prompt_len = atoi(line.c_str() + line.find(':', pl) + 1);
++        }
++        size_t d = line.find("\"domain\"");
++        if (d != std::string::npos) {
++            size_t a = line.find('"', line.find(':', d) + 1);
++            size_t b = line.find('"', a + 1);
++            s.domain = line.substr(a + 1, b - a - 1);
++        }
++        out.push_back(std::move(s));
++    }
++    return out;
++}
++
++int main(int argc, char ** argv) {
++    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs;
++    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
++    bool host_experts = false;
++    for (int i = 1; i < argc; ++i) {
++        std::string a = argv[i];
++        auto next = [&]() { return std::string(argv[++i]); };
++        if (a == "-m") model_path = next();
++        else if (a == "--corpus") corpus_path = next();
++        else if (a == "-ngl") ngl = std::stoi(next());
++        else if (a == "--ncmoe") ncmoe = std::stoi(next());
++        else if (a == "--host-experts") host_experts = true;
++        else if (a == "--n-seq") n_seq = std::stoi(next());
++        else if (a == "--seq0") seq0 = std::stoi(next());
++        else if (a == "--n-prefill") n_prefill = std::stoi(next());
++        else if (a == "--n-decode") n_decode = std::stoi(next());
++        else if (a == "-t") threads = std::stoi(next());
++        else if (a == "--dump") dump_path = next();
++        else if (a == "--seqs") seqs_arg = next();
++        else if (a == "--ec") ec_configs = next();
++        else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 1; }
++    }
++    auto corpus = read_corpus(corpus_path);
++    if (corpus.empty()) {
++        fprintf(stderr, "empty corpus %s\n", corpus_path.c_str());
++        return 1;
++    }
++
++    llama_backend_init();
++
++    // buffer types for the expert overrides
++    ggml_backend_buffer_type_t buft_cpu = ggml_backend_dev_buffer_type(ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU));
++    ggml_backend_buffer_type_t buft_host = buft_cpu;
++    for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
++        ggml_backend_dev_t dev = ggml_backend_dev_get(i);
++        if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_GPU) {
++            if (auto * hb = ggml_backend_dev_host_buffer_type(dev)) {
++                buft_host = hb;
++            }
++            break;
++        }
++    }
++    std::vector<std::string> patterns;
++    std::vector<llama_model_tensor_buft_override> ov;
++    if (host_experts) {
++        patterns.push_back("\\.ffn_(up|down|gate|gate_up)_exps");
++        ov.push_back({ patterns.back().c_str(), buft_host });
++    } else if (ncmoe > 0) {
++        patterns.reserve(ncmoe);
++        for (int il = 0; il < ncmoe; ++il) {
++            patterns.push_back("blk\\." + std::to_string(il) + "\\.ffn_(up|down|gate|gate_up)_exps");
++            ov.push_back({ patterns.back().c_str(), buft_cpu });
++        }
++    }
++    ov.push_back({ nullptr, nullptr });
++
++    llama_model_params mp = llama_model_default_params();
++    mp.n_gpu_layers = ngl;
++    if (host_experts) {
++        mp.load_mode = LLAMA_LOAD_MODE_NONE; // read weights into their (pinned) buffers instead of mapping the file
++    }
++    if (ov.size() > 1) {
++        mp.tensor_buft_overrides = ov.data();
++    }
++    llama_model * model = llama_model_load_from_file(model_path.c_str(), mp);
++    if (!model) {
++        fprintf(stderr, "failed to load %s\n", model_path.c_str());
++        return 1;
++    }
++    const llama_vocab * vocab = llama_model_get_vocab(model);
++    const int n_vocab = llama_vocab_n_tokens(vocab);
++
++    // sequence selection
++    std::vector<int> seqs;
++    if (!seqs_arg.empty()) {
++        std::stringstream ss(seqs_arg);
++        std::string tok;
++        while (std::getline(ss, tok, ',')) {
++            seqs.push_back(std::stoi(tok));
++        }
++    } else {
++        for (int si = seq0; si < std::min<int>(seq0 + n_seq, (int) corpus.size()); ++si) {
++            seqs.push_back(si);
++        }
++    }
++
++    // expert-cache configurations: "k=v:k=v;k=v:..." with k in {slots, policy, overlap, init, stats, half_life, kappa, seqs};
++    // each configuration gets its own context on the same loaded model. Empty = one run with the current environment.
++    std::vector<std::vector<std::pair<std::string, std::string>>> configs;
++    {
++        std::stringstream ss(ec_configs);
++        std::string cfg;
++        while (std::getline(ss, cfg, ';')) {
++            std::vector<std::pair<std::string, std::string>> kv;
++            std::stringstream cs(cfg);
++            std::string item;
++            while (std::getline(cs, item, ':')) {
++                const size_t eq = item.find('=');
++                if (eq != std::string::npos) {
++                    kv.emplace_back(item.substr(0, eq), item.substr(eq + 1));
++                }
++            }
++            configs.push_back(kv);
++        }
++        if (configs.empty()) {
++            configs.emplace_back();
++        }
++    }
++
++    llama_batch batch = llama_batch_init(std::max(n_prefill, 1), 0, 1);
++
++    for (size_t ci = 0; ci < configs.size(); ++ci) {
++        std::string label;
++        if (!ec_configs.empty()) {
++            for (const char * k : { "LLAMA_EC_SLOTS", "LLAMA_EC_POLICY", "LLAMA_EC_OVERLAP", "LLAMA_EC_INIT", "LLAMA_EC_STATS", "LLAMA_EC_HALF_LIFE", "LLAMA_EC_KAPPA" }) {
++                unsetenv(k);
++            }
++            for (auto & [k, v] : configs[ci]) {
++                if (k == "seqs") {
++                    continue;
++                }
++                std::string ek = "LLAMA_EC_" + k;
++                std::transform(ek.begin(), ek.end(), ek.begin(), ::toupper);
++                setenv(ek.c_str(), v.c_str(), 1);
++                label += (label.empty() ? "" : ":") + k + "=" + v;
++            }
++        }
++        llama_context_params cp = llama_context_default_params();
++        cp.n_ctx = (uint32_t) (n_prefill + n_decode + 16);
++        cp.n_batch = cp.n_ubatch = (uint32_t) std::max(n_prefill, 32);
++        cp.no_perf = false;
++        if (threads > 0) {
++            cp.n_threads = cp.n_threads_batch = threads;
++        }
++        llama_context * ctx = llama_init_from_model(model, cp);
++        if (!ctx) {
++            fprintf(stderr, "failed to create context\n");
++            return 1;
++        }
++
++        const std::string dpath = configs.size() > 1 ? dump_path + "." + std::to_string(ci) : dump_path;
++        FILE * dump = dump_path.empty() ? nullptr : fopen(dpath.c_str(), "wb");
++
++        std::vector<int> run_seqs = seqs;   // a config may carry its own sequence list: seqs=a/b/c
++        for (auto & [k, v] : configs[ci]) {
++            if (k == "seqs") {
++                run_seqs.clear();
++                std::stringstream vs(v);
++                std::string tok;
++                while (std::getline(vs, tok, '/')) {
++                    run_seqs.push_back(std::stoi(tok));
++                }
++            }
++        }
++        for (int si : run_seqs) {
++            const seq_t & s = corpus[si];
++            const int P = std::max(1, std::min<int>({ n_prefill, s.prompt_len > 0 ? s.prompt_len : n_prefill, (int) s.ids.size() - 1 }));
++            const int N = std::min<int>(n_decode, (int) s.ids.size() - P);
++            if (N <= 0) {
++                continue;
++            }
++            llama_memory_clear(llama_get_memory(ctx), true);
++
++            batch.n_tokens = 0;
++            for (int i = 0; i < P; ++i) {
++                batch.token[i] = s.ids[i];
++                batch.pos[i] = i;
++                batch.n_seq_id[i] = 1;
++                batch.seq_id[i][0] = 0;
++                batch.logits[i] = i == P - 1;
++                batch.n_tokens++;
++            }
++            if (llama_decode(ctx, batch) != 0) {
++                fprintf(stderr, "prefill failed on seq %d\n", si);
++                return 1;
++            }
++            llama_synchronize(ctx);
++
++            std::vector<double> step_ms;
++            step_ms.reserve(N);
++            for (int j = 0; j < N; ++j) {
++                batch.n_tokens = 1;
++                batch.token[0] = s.ids[P + j];
++                batch.pos[0] = P + j;
++                batch.n_seq_id[0] = 1;
++                batch.seq_id[0][0] = 0;
++                batch.logits[0] = 1;
++                const auto t0 = std::chrono::steady_clock::now();
++                if (llama_decode(ctx, batch) != 0) {
++                    fprintf(stderr, "decode failed on seq %d step %d\n", si, j);
++                    return 1;
++                }
++                const float * lg = llama_get_logits_ith(ctx, -1);   // synchronizes
++                const auto t1 = std::chrono::steady_clock::now();
++                step_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
++                if (dump) {
++                    int32_t top[5] = { 0, 0, 0, 0, 0 };
++                    float val[5] = { -1e30f, -1e30f, -1e30f, -1e30f, -1e30f };
++                    for (int v = 0; v < n_vocab; ++v) {
++                        if (lg[v] > val[4]) {
++                            int k = 4;
++                            while (k > 0 && lg[v] > val[k - 1]) {
++                                val[k] = val[k - 1];
++                                top[k] = top[k - 1];
++                                --k;
++                            }
++                            val[k] = lg[v];
++                            top[k] = v;
++                        }
++                    }
++                    fwrite(top, sizeof(top), 1, dump);
++                    fwrite(val, sizeof(val), 1, dump);
++                }
++            }
++            double tot = 0;
++            for (double x : step_ms) {
++                tot += x;
++            }
++            printf("{\"config\": \"%s\", \"seq\": %d, \"domain\": \"%s\", \"n_prefill\": %d, \"n_decode\": %d, \"decode_ms\": %.3f, \"tok_s\": %.3f, \"step_ms\": [",
++                   label.c_str(), si, s.domain.c_str(), P, N, tot, 1000.0 * N / tot);
++            for (size_t j = 0; j < step_ms.size(); ++j) {
++                printf("%s%.3f", j ? "," : "", step_ms[j]);
++            }
++            printf("]}\n");
++            fflush(stdout);
++        }
++        if (dump) {
++            fclose(dump);
++        }
++        llama_free(ctx);        // the expert cache writes LLAMA_EC_STATS here
++    }
++    llama_batch_free(batch);
++    llama_model_free(model);
++    llama_backend_free();
++    return 0;
++}

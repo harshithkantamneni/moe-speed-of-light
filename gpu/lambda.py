@@ -9,7 +9,7 @@ KEY = os.environ["LAMBDA_API_KEY"]
 
 def call(method, path, body=None):
     req = urllib.request.Request(API + path, method=method, data=json.dumps(body).encode() if body else None,
-                                 headers={"Content-Type": "application/json",
+                                 headers={"Content-Type": "application/json", "User-Agent": "moe-sol-runner/1.0",
                                           "Authorization": "Basic " + base64.b64encode(f"{KEY}:".encode()).decode()})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)

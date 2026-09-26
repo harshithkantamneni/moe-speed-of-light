@@ -134,3 +134,29 @@ def dynamic_time(w: Workload, hw: HW, p: Params, miss, adm, strategy: str, overl
             t = t + t_adm
         return float(t.mean()), dict(dense=dense, experts=float(per_layer.sum(1).mean()), adm=float(t_adm.mean()))
     raise ValueError(strategy)
+
+
+def speed_of_light_time(w: Workload, hw: HW, p: Params, min_misses_per_layer_step: float, grid: int = 2001):
+    """Lower bound on seconds/token for ANY expert-placement policy that keeps at
+    most `cap` experts per layer on the GPU, given the Belady-with-bypass
+    minimum number of misses M (expressed per layer-step, M/N).
+
+    Each routed-expert execution is (i) GPU-resident: cost a, (ii) fetched then
+    run on the GPU, serially: cost pf + a, or (iii) run on the CPU concurrently
+    with the GPU: cost b. Per layer-step, time >= max((k - m_c) a + m_f pf, m_c b)
+    — a convex function of (m_f, m_c) — and any policy has mean m_f + m_c >= M/N.
+    By Jensen's inequality the mean layer time is at least the minimum of that
+    function at the mean, which we find on a grid. Admission traffic, hand-off
+    latency and per-transfer latency are dropped (they only add time), so this
+    is a valid bound under the model."""
+    k = w.k
+    s = w.expert_bytes
+    a = s / (p.eta_g * hw.bw_gpu * 1e9)
+    b = s / (p.eta_c * hw.bw_cpu * 1e9)
+    pf = s / (p.eta_p * hw.bw_pcie * 1e9)
+    mbar = min_misses_per_layer_step
+    mc = np.linspace(0, k, grid)
+    mf = np.maximum(0.0, mbar - mc)
+    layer = np.maximum((k - mc) * a + mf * pf, mc * b)
+    dense = w.dense_bytes / (p.eta_g * hw.bw_gpu * 1e9) + w.shape.n_layers * p.tau_g_us * 1e-6
+    return dense + w.shape.n_moe_layers * float(layer.min())

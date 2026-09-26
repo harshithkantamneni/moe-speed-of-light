@@ -64,7 +64,7 @@ import csv
 meas = [float(r["measured"]) for r in csv.DictReader(open("results/validation.csv")) if r["kind"] != "numa_holdout"]
 put("tokMin", min(meas), "{:.2f}"); put("tokMax", max(meas), "{:.0f}")
 
-TAGS = {"olmoe-1b-7b": "Olmoe", "qwen3-30b-a3b": "Qwen", "gpt-oss-20b": "Gptsmall", "gpt-oss-120b": "Gptbig"}
+TAGS = {"olmoe-1b-7b": "Olmoe", "qwen3-30b-a3b": "Qwen", "gpt-oss-20b": "Gptsmall"}
 PL = {"RTX 4060 8GB + DDR5-5600 (PCIe4 x8)": "Low", "RTX 4090 + DDR5-6000 (PCIe4 x16)": "Mid",
       "RTX 5090 + DDR5-6400 (PCIe5 x16)": "High"}
 for m, t in TAGS.items():

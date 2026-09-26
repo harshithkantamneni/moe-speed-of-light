@@ -84,3 +84,32 @@ Version 2025.1.1.0 (build 35528883) (public-release)
 cmake rc=0
 ++ nproc
 + cmake --build build -j30 --target llama-bench llama-cli
++ echo 'build rc=0'
+build rc=0
++ tail -3 /opt/runner/repo/results/005_fix/build.txt
+[100%] Building CXX object tools/cli/CMakeFiles/llama-cli.dir/main.cpp.o
+[100%] Linking CXX executable ../../bin/llama-cli
+[100%] Built target llama-cli
++ tee /opt/runner/repo/results/005_fix/smoke.md
++ ./build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -fa 1 -p 0 -n 16 -r 1 -o md
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 22598 MiB):
+  Device 0: NVIDIA A10, compute capability 8.6, VMM: yes, VRAM: 22598 MiB
+| model                          |       size |     params | backend    | ngl |  fa |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
+| gpt-oss 20B MXFP4 MoE          |  11.27 GiB |    20.91 B | CUDA       |  99 |   1 |            tg16 |        134.45 ± 0.00 |
+
+build: 2145525a4 (11201)
++ sudo ncu --metrics dram__bytes_read.sum --launch-count 3 ./build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -fa 1 -p 0 -n 1 -r 1 --no-warmup
++ tail -12 /opt/runner/repo/results/005_fix/ncu-check.txt
+    -------------------- ----------- ------------
+    dram__bytes_read.sum       Kbyte        19.07
+    -------------------- ----------- ------------
+
+  void mul_mat_vec_q<8, 1, 1, 0, 0>(const void *, const void *, const int *, ggml_cuda_mm_fusion_args_device, float *, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, uint3, unsigned int, unsigned int, unsigned int, unsigned int) (4096, 1, 1)x(32, 4, 1), Context 1, Stream 14, Device 0, CC 8.6
+    Section: Command line profiler metrics
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    dram__bytes_read.sum       Mbyte        14.76
+    -------------------- ----------- ------------
+

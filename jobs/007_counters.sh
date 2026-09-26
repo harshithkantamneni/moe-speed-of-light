@@ -12,7 +12,9 @@ declare -A F=([gpt-oss-20b-mxfp4]=gpt-oss-20b-MXFP4.gguf [qwen3-30b-a3b-q4_k_m]=
 T=$(sed -n 's/threads=//p' "$(dirname "$OUT")/006_sweep/threads.txt" 2>/dev/null || true)
 [ -n "$T" ] || T=$(( $(nproc) / 2 ))
 NCU=$(command -v ncu || ls /usr/local/cuda*/bin/ncu 2>/dev/null | head -1)
-NSYS=$(command -v nsys || ls /usr/local/cuda*/bin/nsys /opt/nvidia/nsight-systems/*/bin/nsys 2>/dev/null | head -1)
+[ -L /usr/local/bin/nsys ] && [ ! -e /usr/local/bin/nsys ] && sudo rm -f /usr/local/bin/nsys  # 005 left a self-link
+NSYS=$(command -v nsys || ls /opt/nvidia/nsight-systems/*/bin/nsys /usr/local/cuda*/bin/nsys 2>/dev/null | head -1)
+[ -n "$NSYS" ] || NSYS=$(find / -xdev -type f -name nsys -path "*bin*" 2>/dev/null | head -1)
 echo "ncu=$NCU nsys=$NSYS threads=$T"
 
 for spec in "gpt-oss-20b-mxfp4 0" "gpt-oss-20b-mxfp4 12" "qwen3-30b-a3b-q4_k_m 0" "qwen3-30b-a3b-q4_k_m 24"; do

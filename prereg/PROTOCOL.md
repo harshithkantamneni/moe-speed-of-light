@@ -87,3 +87,39 @@ separately. No pass threshold is set; this is an explanatory measurement.
     is that 007 reads the thread count from 006.
   - **Timing.** Predictions were generated from the job-001 data
     (`prereg/a10/`) and committed before 006 was pushed.
+
+## Outcome on the A10 (scored by `scripts/analyze_firstparty.py`; see `prereg/a10/scored.md`)
+
+| hypothesis | result |
+|---|---|
+| **H0** (roofline never beaten) | **PASS**, 31/31 |
+| **H1** (ncu bytes within ±10 %) | **FAIL**: measured bytes exceed GGUF bytes by 12–15 % |
+| **H2** (median APE ≤ 20 %) | **FAIL**: 27.4 % |
+| **H3** (affine, R² ≥ 0.98) | **PASS** on all four models (0.9965–0.9987) |
+| **H4** (decomposition) | **Intercept:** over-predicted by 25–55 %. **Slope:** within 1–10 % for gpt-oss, over-predicted by 72–73 % for Qwen3. |
+| **Drift** (repeats) | ≤ 0.9 % |
+
+**H1.** The over-read is uniform across kernels: +14 % (Q8_0 head), +16 %
+(Q8_0 attention) and +19 % (MXFP4 experts). ECC is enabled on this GDDR6 card
+(23028 of 24576 MiB visible, i.e. inline ECC). The error is not in the
+byte accounting of the weights.
+
+**H2.** Every prediction was too slow. Two sources explain it:
+- The third-party η_g (0.38) is far below this platform's (~0.58).
+- η_c, relative to STREAM, is ~0.72, versus 0.60 relative to peak. We
+  pre-registered this bias direction.
+
+The per-CPU-expert latency τ_e = 20.7 µs over-predicts Qwen3's slope (k = 8).
+
+## Pre-registration for the next platform (added before any run on it)
+
+- **H5 (two-run calibration).** `scripts/calibrate2.py` fixes η_g from
+  gpt-oss-20b at n_cpu_moe = 0 and η_c from gpt-oss-20b CPU-only. τ_e stays
+  at 20.7 µs. It then predicts every other sweep configuration.
+  - **Pass:** median APE ≤ 10 %.
+  - **A10 reference (exploratory, post hoc):** 4.9 % median, 10.6 % MAPE,
+    25.6 % max over 29 configurations.
+- **H1′ (counter calibration).** The platform's DRAM over-read factor f is
+  measured with ncu on the 1 GiB device-read microbenchmark of job 001:
+  f = dram__bytes_read / bytes requested.
+  - **Prediction:** f × GGUF bytes, within ±10 % for the ncu configurations.

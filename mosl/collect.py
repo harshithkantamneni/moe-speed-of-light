@@ -71,7 +71,44 @@ class ShardStore:
         return t
 
 
-def load_layer(layer: torch.nn.Module, store: ShardStore, i: int) -> None:
+class PackedExperts(torch.nn.Module):
+    """gpt-oss experts kept in their MXFP4 checkpoint format and dequantized one
+    expert at a time during the forward pass (a 120B layer would need ~13 GB
+    in fp32). Math mirrors transformers' GptOssExperts exactly."""
+
+    def __init__(self, gu_blocks, gu_scales, gu_bias, dn_blocks, dn_scales, dn_bias, dtype):
+        super().__init__()
+        self.t = dict(gu_blocks=gu_blocks, gu_scales=gu_scales, dn_blocks=dn_blocks, dn_scales=dn_scales)
+        self.gu_bias, self.dn_bias = gu_bias.to(dtype), dn_bias.to(dtype)
+        self.num_experts = gu_blocks.shape[0]
+        self.dtype = dtype
+        self.alpha, self.limit = 1.702, 7.0
+
+    def _w(self, kind, e):
+        from transformers.integrations.mxfp4 import convert_moe_packed_tensors
+        return convert_moe_packed_tensors(self.t[f"{kind}_blocks"][e:e + 1], self.t[f"{kind}_scales"][e:e + 1],
+                                          dtype=self.dtype)[0]
+
+    def forward(self, hidden_states, router_indices=None, routing_weights=None):
+        out = torch.zeros_like(hidden_states)
+        for e in torch.unique(router_indices).tolist():
+            tok, pos = torch.where(router_indices == e)
+            x = hidden_states[tok]
+            gate_up = x @ self._w("gu", e) + self.gu_bias[e]
+            gate, up = gate_up[..., ::2], gate_up[..., 1::2]
+            gate = gate.clamp(min=None, max=self.limit)
+            up = up.clamp(min=-self.limit, max=self.limit)
+            h = (up + 1) * (gate * torch.sigmoid(gate * self.alpha))
+            y = h @ self._w("dn", e) + self.dn_bias[e]
+            out.index_add_(0, tok, (y * routing_weights[tok, pos, None]).to(out.dtype))
+        return out
+
+
+def is_packed(store, i):
+    return f"model.layers.{i}.mlp.experts.gate_up_proj_blocks" in store.weight_map
+
+
+def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.float32) -> None:
     """Copy checkpoint tensors for layer i straight into the (materialized)
     layer's parameters, one tensor at a time, to keep peak RAM ~= layer size.
     Per-expert projections are written into transformers v5's fused layout:
@@ -80,8 +117,12 @@ def load_layer(layer: torch.nn.Module, store: ShardStore, i: int) -> None:
     params = dict(layer.named_parameters())
     params.update(dict(layer.named_buffers()))
     seen = set()
+    packed = {}
     for name in store.names(prefix):
         local = name[len(prefix):]
+        if is_packed(store, i) and local.startswith("mlp.experts."):
+            packed[local[len("mlp.experts."):]] = store.get(name)
+            continue
         t = store.get(name)
         m = EXPERT_RE.match(local)
         if m:
@@ -101,20 +142,26 @@ def load_layer(layer: torch.nn.Module, store: ShardStore, i: int) -> None:
         tgt.data.copy_(t) if tgt is params.get(key) else tgt.copy_(t)
         seen.add(key)
         del t
+    if packed:
+        layer.mlp.experts = PackedExperts(packed["gate_up_proj_blocks"], packed["gate_up_proj_scales"],
+                                          packed["gate_up_proj_bias"], packed["down_proj_blocks"],
+                                          packed["down_proj_scales"], packed["down_proj_bias"], dtype)
     missing = [k for k in params if k not in seen and not k.endswith("inv_freq")]
     if missing:
         raise RuntimeError(f"layer {i}: parameters not found in checkpoint: {missing}")
 
 
-def causal_mask(T: int, dtype) -> torch.Tensor:
+def causal_mask(T: int, dtype, window: int = 0) -> torch.Tensor:
     m = torch.full((T, T), float("-inf"), dtype=dtype).triu(1)
+    if window:  # sliding-window attention: query i sees keys (i-window, i]
+        m = m + torch.full((T, T), float("-inf"), dtype=dtype).tril(-window)
     return m[None, None]
 
 
 def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print):
     os.makedirs(out_dir, exist_ok=True)
     cfg = AutoConfig.from_pretrained(repo)
-    cfg._attn_implementation = "sdpa"
+    cfg._attn_implementation = "eager" if cfg.model_type == "gpt_oss" else "sdpa"
     with torch.device("meta"):
         model = AutoModelForCausalLM.from_config(cfg, torch_dtype=dtype)
     base = model.model
@@ -135,19 +182,24 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
 
     for i, layer in enumerate(base.layers):
         t0 = time.time()
+        if is_packed(store, i):
+            layer.mlp.experts = torch.nn.Module()  # replaced by PackedExperts in load_layer
         layer = layer.to_empty(device="cpu")
-        load_layer(layer, store, i)
+        load_layer(layer, store, i, dtype)
         rec = []
-        gate = getattr(layer.mlp, "gate", None)
+        gate = getattr(layer.mlp, "gate", None) or getattr(layer.mlp, "router", None)
+        lt = getattr(cfg, "layer_types", None)
+        window = int(cfg.sliding_window) if lt and "sliding" in lt[i] and getattr(cfg, "sliding_window", None) else 0
         hook = None
         if gate is not None and hasattr(gate, "top_k"):
             hook = gate.register_forward_hook(lambda mod, inp, out: rec.append(out[2].to(torch.int16).clone()))
         for j, h in enumerate(hs):
             T = h.shape[1]
-            if T not in masks:
-                masks[T] = causal_mask(T, dtype)
-            hs[j] = layer(h, attention_mask=masks[T], position_embeddings=pos[j],
-                          position_ids=torch.arange(T)[None])
+            if (T, window) not in masks:
+                masks[(T, window)] = causal_mask(T, dtype, window)
+            out = layer(h, attention_mask=masks[(T, window)], position_embeddings=pos[j],
+                        position_ids=torch.arange(T)[None])
+            hs[j] = out[0] if isinstance(out, tuple) else out
         if hook is not None:
             hook.remove()
             idx = torch.cat(rec, 0).numpy()

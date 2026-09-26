@@ -18,7 +18,9 @@ This repo has everything behind the paper in `paper/`: exact routing traces coll
 | `scripts/validate.py` | Fits the model, runs leave-one-source-out CV and the term ablation. Writes `results/validation.{json,csv}`. |
 | `scripts/analyze.py` | Locality statistics, cache sweeps, and tok/s per platform and strategy against the bound. |
 | `scripts/figures.py`, `scripts/paper_numbers.py` | Regenerate every figure and every number quoted in the paper. |
-| `tests/` | Bit-exactness of the collector against reference `transformers` on 5 architectures, and optimality of MIN against exhaustive search. |
+| `tests/` | Bit-exactness of the collector against reference `transformers` prefill and KV-cache decode on 4 architectures (5 checkpoints), optimality of MIN/MIN-bypass against exhaustive search, and the speed-of-light bound against every simulated policy, including an oracle prefetcher. |
+
+Traced models: OLMoE-1B-7B, Qwen3-30B-A3B, gpt-oss-20b. A gpt-oss-120b trace was also collected, but it is excluded from all results because of an unexplained teacher-forced perplexity anomaly (see the paper's Limitations).
 
 ## Reproduce
 
@@ -27,9 +29,10 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install transformers safetensors huggingface_hub numba scipy pandas pyarrow matplotlib
 
 python tests/test_cachesim.py                 # MIN / MIN-bypass optimal vs brute force
-python tests/test_collect_equivalence.py      # collector == reference routing, 5 architectures
+python tests/test_collect_equivalence.py      # collector == reference prefill and KV-cache decode routing
+python tests/test_bound.py                    # no simulated policy beats the speed-of-light bound
 
-# traces (CPU only; about 30 min for Qwen3-30B-A3B, about 90 min for gpt-oss-120b on 2 vCPUs)
+# traces (CPU only; about 30 min for Qwen3-30B-A3B on 2 vCPUs)
 python -m mosl.corpus --n 40
 python -m mosl.tokenize_corpus --repo Qwen/Qwen3-30B-A3B-Instruct-2507 --out data/tok_qwen3_30b.jsonl
 python -m mosl.collect --remote --repo Qwen/Qwen3-30B-A3B-Instruct-2507 \

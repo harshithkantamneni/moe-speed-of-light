@@ -112,9 +112,18 @@ for m, t in TAGS.items():
         if sv:
             put(f"{t}{pt}LruGainSens", sv["lru_cpu"] / sv["static_layer_cpu"], "{:.2f}")
             put(f"{t}{pt}LruOfSolSens", pct(sv["lru_cpu"] / sv["speed_of_light"]))
-    a25 = a["tok_s"]["tau=fitted"]["RTX 4090 + DDR5-6000 (PCIe4 x16)"]["0.25"]
-    put(f"{t}MidQuarterStatic", a25["static_layer_cpu"], "{:.0f}"); put(f"{t}MidQuarterLru", a25["lru_cpu"], "{:.0f}")
-    put(f"{t}MidQuarterSol", a25["speed_of_light"], "{:.0f}")
+    for pname, pt in PL.items():
+        a25 = a["tok_s"]["tau=fitted"][pname]["0.25"]
+        put(f"{t}{pt}QStatic", a25["static_layer_cpu"], "{:.0f}"); put(f"{t}{pt}QLru", a25["lru_cpu"], "{:.0f}")
+        put(f"{t}{pt}QLruFetch", a25["lru_fetch"], "{:.0f}"); put(f"{t}{pt}QSol", a25["speed_of_light"], "{:.0f}")
+        put(f"{t}{pt}QStaticOfSol", pct(a25["static_layer_cpu"] / a25["speed_of_light"]))
+        put(f"{t}{pt}QLruOfSol", pct(a25["lru_cpu"] / a25["speed_of_light"]))
+        put(f"{t}{pt}QLruGain", a25["lru_cpu"] / a25["static_layer_cpu"], "{:.1f}")
+        put(f"{t}{pt}QBypassOfSol", pct(a25["min_bypass_cpu"] / a25["speed_of_light"]))
+        put(f"{t}{pt}QBypass", a25["min_bypass_cpu"], "{:.0f}"); put(f"{t}{pt}QOracle", a25["oracle_prefetch_cpu"], "{:.0f}")
+        put(f"{t}{pt}QOracleOfSol", pct(a25["oracle_prefetch_cpu"] / a25["speed_of_light"]))
+        put(f"{t}{pt}QLruSeq", a25["lru_cpuseq"], "{:.0f}"); put(f"{t}{pt}QSolSerial", a25["speed_of_light_serial"], "{:.0f}")
+        put(f"{t}{pt}QAllCpu", a["tok_s"]["tau=fitted"][pname]["all_experts_cpu"], "{:.0f}")
 PLACEHOLDER = False
 
 if os.path.exists("results/bf16_check.json"):

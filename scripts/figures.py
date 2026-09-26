@@ -42,7 +42,7 @@ def fig_validation():
 
 
 def fig_hit_rates(models):
-    fig, axes = plt.subplots(1, len(models), figsize=(1.75 * len(models) + 0.3, 1.9), sharey=True)
+    fig, axes = plt.subplots(1, len(models), figsize=(2.2 * len(models), 2.0), sharey=True)
     axes = np.atleast_1d(axes)
     pol = [("static_layer", "static layers", "#7f7f7f"), ("static_hot_xdomain", "static hot (held-out domain)", "#bcbd22"),
            ("static_hot_oracle", "static hot (oracle)", "#8c564b"), ("lru", "LRU", "#1f77b4"),
@@ -52,11 +52,12 @@ def fig_hit_rates(models):
         fr = sorted(float(f) for f in a["hit_rate"])
         for key, lab, col in pol:
             ax.plot(fr, [a["hit_rate"][str(f)][key] for f in fr], "-o", ms=2, lw=1, color=col, label=lab)
-        ax.set_title(f"{m} (E={a['E']}, k={a['k']})")
-        ax.set_xlabel("GPU cache (fraction of experts)")
+        ax.set_title(f"{m}\n(E={a['E']}, k={a['k']})", fontsize=7)
+        ax.set_xlabel("GPU cache fraction")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("expert hit rate")
-    axes[-1].legend(loc="lower right", frameon=False)
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="center left", bbox_to_anchor=(1.0, 0.5), frameon=False)
     fig.savefig("paper/figs/hit_rates.pdf")
 
 
@@ -68,6 +69,8 @@ def fig_tok_s(model, tau="tau=20us"):
         d = a["tok_s"][tau][pn]
         fr = sorted(float(f) for f in d if f not in ("all_gpu", "all_experts_cpu"))
         for key in LBL:
+            if key not in d[str(fr[0])]:
+                continue
             ax.plot(fr, [d[str(f)][key] for f in fr], "-" if key != "speed_of_light" else "--", marker="o", ms=2,
                     lw=1, color=C[key], label=LBL[key])
         ax.axhline(d["all_experts_cpu"], color="#7f7f7f", lw=0.5, ls=":")
@@ -82,7 +85,7 @@ def fig_tok_s(model, tau="tau=20us"):
 
 if __name__ == "__main__":
     fig_validation()
-    models = [m for m in ("olmoe-1b-7b", "qwen3-30b-a3b", "gpt-oss-20b", "gpt-oss-120b")
+    models = [m for m in ("olmoe-1b-7b", "qwen3-30b-a3b", "gpt-oss-20b")
               if os.path.exists(f"results/analysis_{m}.json")]
     fig_hit_rates(models)
     for m in models:

@@ -288,7 +288,9 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
         for j, h in enumerate(hs):
             logits = norm(h)[0, :-1] @ W.T
             tgt = torch.tensor(sequences[j][1:])
-            nll += torch.nn.functional.cross_entropy(logits.float(), tgt, reduction="sum").item()
+            per = torch.nn.functional.cross_entropy(logits.float(), tgt, reduction="none")
+            np.save(os.path.join(out_dir, f"nll_seq{j:03d}.npy"), per.numpy().astype(np.float32))
+            nll += per.sum().item()
             cnt += len(tgt)
         meta["teacher_forced_ppl"] = float(np.exp(nll / cnt))
         log(f"teacher-forced perplexity: {meta['teacher_forced_ppl']:.3f}")

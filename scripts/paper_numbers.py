@@ -4,6 +4,7 @@ The paper never hard-codes a result; it uses these macros, so the text cannot
 drift from the data.
 """
 import json
+import numpy as np
 import os
 import sys
 
@@ -182,3 +183,19 @@ for m, t in (("qwen3-30b-a3b", "Qwen"), ("gpt-oss-20b", "Gptsmall"), ("olmoe-1b-
 open("paper/numbers.tex", "a").write("\n".join(out2) + "\n")
 print("\n".join(out2))
 open("paper/numbers.tex", "a").write("\\newcommand{\\pcieFiveFetchGain}{%.0f}\n" % (100 * (1 / float([x for x in out2 if "pcieFiveMinAdv" in x][0].split("{")[-1].rstrip("}")) - 1)))
+# ---- online decayed-frequency admission policy (tuned on OLMoE, evaluated on held-out models) ----
+if os.path.exists("results/rstar_policy.json"):
+    rp = json.load(open("results/rstar_policy.json"))
+    rows = [d for m in ("qwen3-30b-a3b", "gpt-oss-20b") for d in rp[m].values()]
+    g = [d["rstar_policy"] / d["lru"] for d in rows]
+    closed = [(d["rstar_policy"] - d["lru"]) / (d["bypass"] - d["lru"]) for d in rows if d["bypass"] > 1.05 * d["lru"]]
+    red = [d["lru_adm_tok"] / max(d["adm_tok"], 1e-9) for d in rows]
+    lines = ["\\newcommand{\\dfaHalfLife}{%g}" % rp["chosen"][0],
+             "\\newcommand{\\dfaGainMin}{%.2f}" % min(g), "\\newcommand{\\dfaGainMax}{%.2f}" % max(g),
+             "\\newcommand{\\dfaGapClosedMed}{%.0f}" % (100 * float(np.median(closed))),
+             "\\newcommand{\\dfaAdmRed}{%.0f--%.0f}" % (min(red), max(red)),
+             "\\newcommand{\\dfaGptLowEighth}{%.2f}" % (rp["gpt-oss-20b"]["RTX 4060 8GB + DDR5-5600 (PCIe4 x8)|0.125"]["rstar_policy"] / rp["gpt-oss-20b"]["RTX 4060 8GB + DDR5-5600 (PCIe4 x8)|0.125"]["lru"]),
+             "\\newcommand{\\dfaGptMidEighth}{%.2f}" % (rp["gpt-oss-20b"]["RTX 4090 + DDR5-6000 (PCIe4 x16)|0.125"]["rstar_policy"] / rp["gpt-oss-20b"]["RTX 4090 + DDR5-6000 (PCIe4 x16)|0.125"]["lru"]),
+             "\\newcommand{\\dfaHighMax}{%.2f}" % max(d["rstar_policy"] / d["lru"] for m in ("qwen3-30b-a3b", "gpt-oss-20b") for k, d in rp[m].items() if "5090" in k)]
+    open("paper/numbers.tex", "a").write("\n".join(lines) + "\n")
+    print("\n".join(lines))

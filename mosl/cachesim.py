@@ -154,3 +154,73 @@ def brute_force_opt(R, E, cap, bypass):
                     new[s2] = c
         best = new
     return min(best.values())
+
+
+@njit(cache=True)
+def _sim_rstar(R, E, cap, half_life, theta, evict_lfu):
+    """Online r*-aware admission (bypass semantics: misses run on the CPU).
+
+    Each expert keeps an exponentially decayed request count (half-life in
+    decode steps) - an online estimate of its near-future reuse. A missed
+    expert is copied to the GPU only if its score exceeds the victim's score by
+    `theta`; set theta ~ kappa * r*, the number of extra reuses needed to pay
+    for the copy on the target platform. Victim: least-recently used, or
+    lowest decayed score if evict_lfu. Returns (miss[T], adm[T])."""
+    T, k = R.shape
+    decay = 0.5 ** (1.0 / half_life)
+    score = np.zeros(E)
+    last = np.zeros(E, dtype=np.int64)
+    stamp = np.zeros(E, dtype=np.int64)
+    incache = np.zeros(E, dtype=np.bool_)
+    req = np.zeros(E, dtype=np.bool_)
+    miss = np.zeros(T, dtype=np.int32)
+    adm = np.zeros(T, dtype=np.int32)
+    missed = np.zeros(k, dtype=np.int64)
+    size = 0
+    for t in range(T):
+        for j in range(k):
+            e = R[t, j]
+            score[e] = score[e] * decay ** (t - last[e]) + 1.0
+            last[e] = t
+            req[e] = True
+        nm = 0
+        for j in range(k):
+            e = R[t, j]
+            if incache[e]:
+                stamp[e] = t
+            else:
+                missed[nm] = e
+                nm += 1
+        miss[t] = nm
+        for q in range(nm):
+            e = missed[q]
+            if cap == 0:
+                continue
+            if size < cap:
+                incache[e] = True; size += 1; stamp[e] = t; adm[t] += 1
+                continue
+            victim = -1
+            best = 0.0
+            for c in range(E):
+                if incache[c] and not req[c]:
+                    if evict_lfu:
+                        key = -score[c] * decay ** (t - last[c])
+                    else:
+                        key = -float(stamp[c])
+                    if victim == -1 or key > best:
+                        best, victim = key, c
+            if victim == -1:
+                continue
+            sv = score[victim] * decay ** (t - last[victim])
+            if score[e] > sv + theta:
+                incache[victim] = False
+                incache[e] = True
+                stamp[e] = t
+                adm[t] += 1
+        for j in range(k):
+            req[R[t, j]] = False
+    return miss, adm
+
+
+def simulate_rstar(R, E, cap, half_life=16.0, theta=1.0, evict_lfu=True):
+    return _sim_rstar(np.ascontiguousarray(R, dtype=np.int64), E, int(cap), float(half_life), float(theta), bool(evict_lfu))

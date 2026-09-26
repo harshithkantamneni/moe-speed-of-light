@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 from mosl.archs import shape
-from mosl.cachesim import simulate
+from mosl.cachesim import simulate, simulate_rstar
 from mosl.perfmodel import HW, Params, Workload, dynamic_time, speed_of_light_time
 from mosl.traces import Trace
 
@@ -31,6 +31,8 @@ def test_bound_holds(model="qwen3-30b-a3b", tok="data/tok_qwen3_30b.jsonl", repo
             mm = np.stack([simulate(R, tr.E, cap, pol, bypass=byp)[0] for R in tr.R], 1)
             aa = np.stack([simulate(R, tr.E, cap, pol, bypass=byp)[1] for R in tr.R], 1)
             runs[(pol, byp)] = (mm, aa)
+        runs[("dfa", True)] = (np.stack([simulate_rstar(R, tr.E, cap)[0] for R in tr.R], 1),
+                               np.stack([simulate_rstar(R, tr.E, cap)[1] for R in tr.R], 1))
         M = runs[("min", True)][0].sum() / mm.size
         # scale layer count: evaluate per-layer quantities on `layers` layers, tile to the model's L
         rep = int(np.ceil(s.n_moe_layers / layers))

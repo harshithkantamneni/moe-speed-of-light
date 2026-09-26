@@ -163,6 +163,7 @@ def speed_of_light_time(w: Workload, hw: HW, p: Params, min_misses_per_layer_ste
     latency and the capacity cost of prefetching are dropped, so the result is
     a valid lower bound under the model."""
     a, b, pf = _rates(w, hw, p)
+    b = b + p.tau_e_us * 1e-6   # per-expert CPU latency is part of every CPU execution
     k, L = w.k, w.shape.n_moe_layers
     dense = dense_time(w, hw, p)
     xs = np.linspace(0.0, max(min_misses_per_layer_step, 1e-9), grid)

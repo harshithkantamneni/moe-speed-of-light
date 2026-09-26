@@ -46,7 +46,8 @@ def model_params():
     v = json.load(open("results/validation.json"))
     p = v["variants"][v["selected"]]["params"]
     q = Params(eta_g=p["eta_g"], eta_c=p["eta_c"], eta_p=p["eta_p"], tau_us=p["tau_us"],
-               tau_g_us=p.get("tau_g_us", 0.0), tau_c_us=p.get("tau_c_us", 0.0), tau_x_us=10.0)
+               tau_g_us=p.get("tau_g_us", 0.0), tau_c_us=p.get("tau_c_us", 0.0), tau_e_us=p.get("tau_e_us", 0.0),
+               tau_x_us=10.0)
     return q, v["selected"]
 
 
@@ -111,7 +112,7 @@ def analyze(name):
     out["locality"] = locality_stats(tr)
     p0, variant = model_params()
     out["model_variant"] = variant
-    out["params"] = {k: getattr(p0, k) for k in ("eta_g", "eta_c", "eta_p", "tau_us", "tau_g_us", "tau_c_us", "tau_x_us")}
+    out["params"] = {k: getattr(p0, k) for k in ("eta_g", "eta_c", "eta_p", "tau_us", "tau_g_us", "tau_c_us", "tau_e_us", "tau_x_us")}
     w = Workload(s, b_exp, b_dense, ctx=1024)
     hit, sims = {}, {}
     for f in FRACS:
@@ -190,8 +191,11 @@ def analyze(name):
     # reuse threshold r*: an expert is worth copying to the GPU only if reused at least r* times
     out["r_star"] = {}
     for pname, hw in PLATFORMS.items():
-        g, c, pc = p0.eta_g * hw.bw_gpu, p0.eta_c * hw.bw_cpu, p0.eta_p * hw.bw_pcie
-        out["r_star"][pname] = (1 / pc) / (1 / c - 1 / g) if c < g else float("inf")
+        eb = w.expert_bytes
+        a_ = eb / (p0.eta_g * hw.bw_gpu * 1e9)
+        b_ = eb / (p0.eta_c * hw.bw_cpu * 1e9) + p0.tau_e_us * 1e-6
+        pf_ = eb / (p0.eta_p * hw.bw_pcie * 1e9)
+        out["r_star"][pname] = pf_ / (b_ - a_) if b_ > a_ else float("inf")
     out["bytes"] = {"expert_MB": w.expert_bytes / 1e6, "dense_GB": w.dense_bytes / 1e9,
                     "routed_total_GB": s.routed_params_total * b_exp / 8e9}
     os.makedirs("results", exist_ok=True)

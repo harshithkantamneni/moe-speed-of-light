@@ -24,7 +24,5 @@ SPCL is the natural place to continue this work because the paper is, at its cor
 - **(b) Kernels.** Build offloaded-expert kernels in the spirit of MARLIN that reach the bound.
 - **(c) Architecture co-design.** Invert the model to design MoE architectures under hardware constraints: choose expert count, expert size and top-k so that a given memory hierarchy decodes at a target speed, and connect this to scaling laws. My long-term goal is to make frontier-level models run well on consumer hardware.
 
-I work best where claims are measured and falsifiable, and I would value SPCL's standards for scientific benchmarking.
-
 Sincerely,
 Harshith Kantamneni

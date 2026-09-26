@@ -15,7 +15,7 @@ from mosl.traces import Trace
 
 PLATS = [HW(272, 89.6, 15.75), HW(1008, 96.0, 31.5), HW(1792, 102.4, 63.0), HW(1792, 51.2, 63.0),
          HW(1792, 51.2, 126.0), HW(936, 204.8, 31.5)]
-PARAMS = [Params(0.39, 0.53, 0.86, tau_us=0.0), Params(0.8, 0.8, 0.9, tau_us=0.0), Params(0.3, 0.9, 0.95, tau_us=0.0)]
+PARAMS = [Params(0.38, 0.60, 0.86, tau_us=0.0, tau_e_us=20.7), Params(0.39, 0.53, 0.86, tau_us=0.0), Params(0.8, 0.8, 0.9, tau_us=0.0), Params(0.3, 0.9, 0.95, tau_us=0.0)]
 
 
 def test_bound_holds(model="qwen3-30b-a3b", tok="data/tok_qwen3_30b.jsonl", repo="Qwen/Qwen3-30B-A3B-Instruct-2507", layers=12):

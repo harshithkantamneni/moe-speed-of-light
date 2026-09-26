@@ -31,7 +31,7 @@ def fig_validation():
         meas = np.array([float(x["measured"]) for x in r])
         pred = np.array([float(x["predicted_loso"] or x["predicted"]) for x in r])
         ax.scatter(meas, pred, marker=m, s=14, label=lab, alpha=0.8)
-    lim = [0.4, 120]
+    lim = [0.4, 160]
     ax.plot(lim, lim, "k-", lw=0.6)
     for f in (1.25, 0.8):
         ax.plot(lim, [l * f for l in lim], "k:", lw=0.5)
@@ -64,7 +64,7 @@ def fig_hit_rates(models):
 def fig_tok_s(model, tau="tau=20us"):
     a = json.load(open(f"results/analysis_{model}.json"))
     plats = list(a["tok_s"][tau].keys())
-    fig, axes = plt.subplots(1, len(plats), figsize=(7.0, 2.1))
+    fig, axes = plt.subplots(1, len(plats), figsize=(7.0, 2.3))
     for ax, pn in zip(axes, plats):
         d = a["tok_s"][tau][pn]
         fr = sorted(float(f) for f in d if f not in ("all_gpu", "all_experts_cpu"))
@@ -75,11 +75,11 @@ def fig_tok_s(model, tau="tau=20us"):
                     lw=1, color=C[key], label=LBL[key])
         ax.axhline(d["all_experts_cpu"], color="#7f7f7f", lw=0.5, ls=":")
         ax.set_title(pn, fontsize=6.5)
-        ax.set_xlabel("GPU cache (fraction of experts)")
+        ax.set_xlabel("GPU cache fraction")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel(f"{model} decode tok/s")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=4, frameon=False, fontsize=6, bbox_to_anchor=(0.5, -0.12))
+    fig.legend(h, l, loc="lower center", ncol=4, frameon=False, fontsize=6, bbox_to_anchor=(0.5, -0.22))
     fig.savefig(f"paper/figs/toks_{model}.pdf")
 
 

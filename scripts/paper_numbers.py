@@ -135,3 +135,50 @@ else:
 os.makedirs("paper", exist_ok=True)
 open("paper/numbers.tex", "w").write("\n".join(out) + "\n")
 print(len(out), "macros")
+
+# ---- ranges quoted in the text, computed across models/platforms ----
+out2 = []
+def put2(n, v):
+    out2.append("\\newcommand{\\%s}{%s}" % (n, v))
+AN = {m: json.load(open(f"results/analysis_{m}.json")) for m in ("olmoe-1b-7b", "qwen3-30b-a3b", "gpt-oss-20b")}
+MIDHI = ["RTX 4090 + DDR5-6000 (PCIe4 x16)", "RTX 5090 + DDR5-6400 (PCIe5 x16)"]
+LOW = "RTX 4060 8GB + DDR5-5600 (PCIe4 x8)"
+def rng(vals, f="{:.0f}"):
+    return f"{f.format(min(vals))}--{f.format(max(vals))}"
+q = [AN[m]["tok_s"]["tau=fitted"][p]["0.25"] for m in AN for p in MIDHI]
+put2("rngQStatic", rng([pct(d["static_layer_cpu"] / d["speed_of_light"]) for d in q]))
+put2("rngQLru", rng([pct(d["lru_cpu"] / d["speed_of_light"]) for d in q]))
+put2("rngQOracle", rng([pct(d["oracle_prefetch_cpu"] / d["speed_of_light"]) for d in q]))
+put2("rngQGain", rng([d["lru_cpu"] / d["static_layer_cpu"] for d in q], "{:.1f}"))
+off = [m for m in AN if AN[m]["matched"][LOW]["frac"] < 1.0]
+lo = [AN[m]["matched"][LOW]["tok_s"]["tau=fitted"] for m in off]
+put2("rngLowLruOfSol", rng([pct(d["lru_cpu"] / d["speed_of_light"]) for d in lo]))
+put2("rngLowGain", rng([d["lru_cpu"] / d["static_layer_cpu"] for d in lo], "{:.2f}"))
+put2("rngLowGainSens", rng([AN[m]["matched"][LOW]["sensitivity"]["eta_g=0.6"]["lru_cpu"] / AN[m]["matched"][LOW]["sensitivity"]["eta_g=0.6"]["static_layer_cpu"] for m in off], "{:.2f}"))
+put2("rngLowLruOfSolSens", rng([pct(AN[m]["matched"][LOW]["sensitivity"]["eta_g=0.6"]["lru_cpu"] / AN[m]["matched"][LOW]["sensitivity"]["eta_g=0.6"]["speed_of_light"]) for m in off]))
+strat = ("static_layer_cpu", "static_hot_xdomain_cpu", "lru_cpu", "lru_cpuseq", "min_bypass_cpu", "lru_fetch", "oracle_prefetch_cpu")
+put2("maxLowOverCpu", "{:.2f}".format(max(d[k] / d["all_experts_cpu"] for d in lo for k in strat)))
+# claim (i): CPU-miss LRU vs fetch-on-miss LRU across all fractions and hand-off latencies
+def ratio_min(plats):
+    r = []
+    for m in AN:
+        for tau, T in AN[m]["tok_s"].items():
+            for p in plats:
+                for f, d in T[p].items():
+                    if isinstance(d, dict):
+                        r.append(d["lru_cpu"] / d["lru_fetch"])
+    return min(r)
+put2("pcieFourMinAdv", "{:.2f}".format(ratio_min([LOW, MIDHI[0]])))
+put2("pcieFiveMinAdv", "{:.2f}".format(ratio_min([MIDHI[1]])))
+# extra memory the per-layer cache gets vs the layer split at matched points
+ex = []
+for m in off:
+    mm = AN[m]["matched"][LOW]
+    ex.append(pct(mm["cap_per_layer"] / AN[m]["E"] - mm["gpu_layers"] / AN[m]["L"]))
+put2("matchedExtraMem", rng(ex))
+# r* per model
+for m, t in (("qwen3-30b-a3b", "Qwen"), ("gpt-oss-20b", "Gptsmall"), ("olmoe-1b-7b", "Olmoe")):
+    pass
+open("paper/numbers.tex", "a").write("\n".join(out2) + "\n")
+print("\n".join(out2))
+open("paper/numbers.tex", "a").write("\\newcommand{\\pcieFiveFetchGain}{%.0f}\n" % (100 * (1 / float([x for x in out2 if "pcieFiveMinAdv" in x][0].split("{")[-1].rstrip("}")) - 1)))

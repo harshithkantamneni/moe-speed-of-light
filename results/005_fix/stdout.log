@@ -1,0 +1,86 @@
++ export DEBIAN_FRONTEND=noninteractive
++ DEBIAN_FRONTEND=noninteractive
++ cd /opt/runner/work
++ command -v ncu
++ curl -fsSLO https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
++ sudo dpkg -i cuda-keyring_1.1-1_all.deb
+Selecting previously unselected package cuda-keyring.
+(Reading database ... 214077 files and directories currently installed.)
+Preparing to unpack cuda-keyring_1.1-1_all.deb ...
+Unpacking cuda-keyring (1.1-1) ...
+Setting up cuda-keyring (1.1-1) ...
++ sudo apt-get update -qq
++ apt-cache search nsight
++ head -20
+cmake - cross-platform, open-source make system
+libsub-install-perl - module for installing subroutines into packages easily
+python3-vitrageclient - OpenStack root cause analysis as a Service client - Python 3.x
+carmetal - dynamic geometry software with highly ergonomic UI
+cobertura - java tool that calculates the percentage of code accessed by tests
+elastix - toolbox for rigid and nonrigid registration of images
+elastix-doc - toolbox for rigid and nonrigid registration of images - docs
+fitgcp - fitting genome coverage distributions with mixture models
+fonts-sil-andika-compact - Smart Unicode Latin/Greek fonts for literacy (tight spacing version)
+golang-github-ensighten-udnssdk-dev - ultradns SDK for golang
+golang-github-go-kit-log-dev - minimal and extensible structured logger (Go library)
+insighttoolkit4-examples - Image processing toolkit for registration and segmentation - examples
+insighttoolkit5-examples - Image processing toolkit for registration and segmentation - examples
+libacme-bleach-perl - Perl module for really clean programs
+libacme-eyedrops-perl - funny way for visual programming in Perl
+libcobertura-java - java library that calculates the percentage of code accessed by tests
+libinsighttoolkit4-dev - Image processing toolkit for registration and segmentation - development
+libinsighttoolkit4.13 - Image processing toolkit for registration and segmentation - runtime
+libinsighttoolkit5-dev - Image processing toolkit for registration and segmentation - development
+libinsighttoolkit5.2 - Image processing toolkit for registration and segmentation - runtime
++ sudo apt-get install -y -qq cuda-nsight-compute-12-8 cuda-nsight-systems-12-8
++ for d in /usr/local/cuda-12.8/bin /usr/local/cuda/bin /opt/nvidia/nsight-compute/*/ /opt/nvidia/nsight-systems/*/bin
++ '[' -d /usr/local/cuda-12.8/bin ']'
++ tee /opt/runner/repo/results/005_fix/nsight_paths.txt
++ ls /usr/local/cuda-12.8/bin
++ grep -E '^(ncu|nsys)$'
++ sed 's|^|/usr/local/cuda-12.8/bin/|'
+/usr/local/cuda-12.8/bin/ncu
+/usr/local/cuda-12.8/bin/nsys
++ for d in /usr/local/cuda-12.8/bin /usr/local/cuda/bin /opt/nvidia/nsight-compute/*/ /opt/nvidia/nsight-systems/*/bin
++ '[' -d /usr/local/cuda/bin ']'
++ grep -E '^(ncu|nsys)$'
++ ls /usr/local/cuda/bin
++ sed 's|^|/usr/local/cuda/bin/|'
++ for d in /usr/local/cuda-12.8/bin /usr/local/cuda/bin /opt/nvidia/nsight-compute/*/ /opt/nvidia/nsight-systems/*/bin
++ '[' -d /opt/nvidia/nsight-compute/2025.1.1/ ']'
++ ls /opt/nvidia/nsight-compute/2025.1.1/
++ grep -E '^(ncu|nsys)$'
++ sed 's|^|/opt/nvidia/nsight-compute/2025.1.1//|'
+/opt/nvidia/nsight-compute/2025.1.1//ncu
++ for d in /usr/local/cuda-12.8/bin /usr/local/cuda/bin /opt/nvidia/nsight-compute/*/ /opt/nvidia/nsight-systems/*/bin
++ '[' -d /opt/nvidia/nsight-systems/2024.6.2/bin ']'
++ grep -E '^(ncu|nsys)$'
++ ls /opt/nvidia/nsight-systems/2024.6.2/bin
++ sed 's|^|/opt/nvidia/nsight-systems/2024.6.2/bin/|'
+/opt/nvidia/nsight-systems/2024.6.2/bin/nsys
+++ command -v ncu
+++ grep -m1 '/ncu$' /opt/runner/repo/results/005_fix/nsight_paths.txt
++ NCU=/usr/local/cuda-12.8/bin/ncu
+++ command -v nsys
++ NSYS=/usr/local/bin/nsys
++ '[' -n /usr/local/cuda-12.8/bin/ncu ']'
++ sudo ln -sf /usr/local/cuda-12.8/bin/ncu /usr/local/bin/ncu
++ '[' -n /usr/local/bin/nsys ']'
++ sudo ln -sf /usr/local/bin/nsys /usr/local/bin/nsys
++ ncu --version
++ tail -1
+Version 2025.1.1.0 (build 35528883) (public-release)
++ nsys --version
+/opt/runner/repo/jobs/005_fix.sh: line 23: nsys: command not found
+++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+++ tr -d .
+++ head -1
++ SM=86
++ cd /opt/runner/work/llama.cpp
++ git checkout -q 2145525a4081d66ff1a87cf43ef809f95a85ac0c
++ rm -rf build
++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
++ echo 'cmake rc=0'
+cmake rc=0
+++ nproc
++ cmake --build build -j30 --target llama-bench llama-cli

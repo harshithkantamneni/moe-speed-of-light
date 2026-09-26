@@ -1,0 +1,155 @@
++ nvidia-smi -q
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version --format=csv
++ tee /opt/runner/repo/results/001_platform/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version
+NVIDIA A10, 23028 MiB, 1695 MHz, 6251 MHz, 4, 1, 16, 16, 570.148.08
++ lscpu
++ tee /opt/runner/repo/results/001_platform/lscpu.txt
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        46 bits physical, 57 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               30
+On-line CPU(s) list:                  0-29
+Vendor ID:                            GenuineIntel
+Model name:                           Intel(R) Xeon(R) Platinum 8358 CPU @ 2.60GHz
+CPU family:                           6
+Model:                                106
+Thread(s) per core:                   1
+Core(s) per socket:                   1
+Socket(s):                            30
+Stepping:                             6
+BogoMIPS:                             5187.93
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon rep_good nopl xtopology cpuid tsc_known_freq pni pclmulqdq vmx ssse3 fma cx16 pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves wbnoinvd arat vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq la57 rdpid fsrm md_clear arch_capabilities
+Virtualization:                       VT-x
+Hypervisor vendor:                    KVM
+Virtualization type:                  full
+L1d cache:                            960 KiB (30 instances)
+L1i cache:                            960 KiB (30 instances)
+L2 cache:                             120 MiB (30 instances)
+L3 cache:                             480 MiB (30 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-29
+Vulnerability Gather data sampling:   Unknown: Dependent on hypervisor status
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Not affected
+Vulnerability Spec rstack overflow:   Not affected
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Enhanced / Automatic IBRS; IBPB conditional; RSB filling; PBRSB-eIBRS SW sequence; BHI SW loop, KVM SW loop
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Mitigation; TSX disabled
++ free -g
+               total        used        free      shared  buff/cache   available
+Mem:             222           1         219           0           1         219
+Swap:              0           0           0
++ nproc
+30
++ sudo dmidecode -t memory
++ cat /etc/os-release
++ head -3
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
++ which nvcc ncu nsys
+/usr/bin/nvcc
++ nvcc --version
++ tail -2
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
++ tail -1
++ ncu --version
+/opt/runner/repo/jobs/001_platform.sh: line 12: ncu: command not found
+++ nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
+++ head -1
++ MAXSM=1695
+++ head -1
+++ nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
++ MAXMEM=6251
++ nvidia-smi --query-gpu=clocks.sm,clocks.mem --format=csv
++ mkdir -p /opt/runner/work/bench
++ cd /opt/runner/work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=400000000 -DNTIMES=10 -mcmodel=medium stream.c -o stream
++ tee /opt/runner/repo/results/001_platform/stream.txt
+++ nproc
+++ nproc
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=1'
+== OMP_NUM_THREADS=1
++ OMP_NUM_THREADS=1
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:           28910.0     0.221798     0.221377     0.222760
+Scale:          14702.9     0.435738     0.435288     0.436741
+Add:            15003.1     0.640324     0.639867     0.640663
+Triad:          15208.3     0.631736     0.631235     0.632150
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=4'
+== OMP_NUM_THREADS=4
++ OMP_NUM_THREADS=4
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:           93631.7     0.068957     0.068353     0.069322
+Scale:          47538.0     0.135489     0.134629     0.136716
+Add:            55257.9     0.174592     0.173731     0.175606
+Triad:          55307.5     0.173918     0.173575     0.174446
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=8'
+== OMP_NUM_THREADS=8
++ OMP_NUM_THREADS=8
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          130911.6     0.049108     0.048888     0.049305
+Scale:          75644.6     0.085005     0.084606     0.085302
+Add:            89071.1     0.108159     0.107779     0.108524
+Triad:          89104.2     0.108029     0.107739     0.108295
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=15'
+== OMP_NUM_THREADS=15
++ OMP_NUM_THREADS=15
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          151493.3     0.042429     0.042246     0.042586
+Scale:         103511.1     0.061995     0.061829     0.062619
+Add:           122223.2     0.078791     0.078545     0.080020
+Triad:         122700.6     0.078425     0.078239     0.078785
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=30'
+== OMP_NUM_THREADS=30
++ OMP_NUM_THREADS=30
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          157927.4     0.040684     0.040525     0.041012
+Scale:         148148.1     0.043466     0.043200     0.044485
+Add:           151400.1     0.063751     0.063408     0.065470
+Triad:         152219.2     0.063451     0.063067     0.064540
++ cat
++ nvcc -O3 -arch=native bw.cu -o bw
++ ./bw
++ tee /opt/runner/repo/results/001_platform/bw.txt
+H2D pinned      1.0 MB    24.19 GB/s     43.3 us/copy
+D2H pinned      1.0 MB    25.35 GB/s     41.4 us/copy
+H2D pinned      4.2 MB    25.02 GB/s    167.6 us/copy
+D2H pinned      4.2 MB    26.02 GB/s    161.2 us/copy
+H2D pinned     16.8 MB    25.20 GB/s    665.7 us/copy
+D2H pinned     16.8 MB    26.27 GB/s    638.6 us/copy
+H2D pinned     67.1 MB    25.24 GB/s   2658.4 us/copy
+D2H pinned     67.1 MB    26.33 GB/s   2549.1 us/copy
+H2D pinned    268.4 MB    25.26 GB/s  10628.2 us/copy
+D2H pinned    268.4 MB    26.34 GB/s  10191.1 us/copy
+device read 1 GiB:   514.4 GB/s
+tiny kernel launch:   2.02 us each
++ sudo ncu --metrics dram__bytes_read.sum,gpu__time_duration.sum --kernel-name rd --launch-count 1 ./bw
++ tail -15 /opt/runner/repo/results/001_platform/ncu-check.txt
+sudo: ncu: command not found

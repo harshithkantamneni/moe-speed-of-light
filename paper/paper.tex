@@ -59,7 +59,7 @@ We argue that what is missing is a \emph{bound}. For a given model, platform and
 
 \paragraph{Corpus.} We use two-turn conversations from four public datasets: chat (UltraChat), math (NuminaMath-CoT), code (CodeFeedback) and multilingual (Aya, non-English). About 6k tokens per domain per model gives 34--36 conversations. Each is formatted with the model's own chat template and nothing else, to avoid shared-template contamination~\cite{zhang2026reproducible}. Prompt tokens are prefill; only assistant tokens are decode steps. The conversations are replayed back to back in a fixed shuffled order, as one user's session, so cache state carries across conversations and domains.
 
-\paragraph{Cost.} Everything ran on a 2-vCPU, \SI{7}{GB} cloud VM with no GPU. Qwen3-30B-A3B (\SI{61}{GB} of bf16 weights) took about 30 minutes, and gpt-oss-20b about 25 minutes, mostly spent reading weights over the network. We also traced gpt-oss-120b but exclude it: its teacher-forced perplexity on the chat corpus is implausibly high, although its weights match an independent bf16 checkpoint exactly and it gives a normal perplexity on plain text. Until the cause is understood, we do not use its routing.
+\paragraph{Cost.} Everything ran on a 2-vCPU, \SI{7}{GB} cloud VM with no GPU. Qwen3-30B-A3B (\SI{61}{GB} of bf16 weights) took about 30 minutes, and gpt-oss-20b about 25 minutes, mostly spent reading weights over the network. We also traced gpt-oss-120b but exclude it. Its weights match an independent bf16 checkpoint exactly, and on plain text its perplexity is normal (2.4). On some conversations, however, its per-token loss climbs to near-uniform ($\approx$12 nats) partway through the assistant turn. The same code is exact against the reference implementation on tiny checkpoints and behaves normally for gpt-oss-20b. We suspect a numerical issue in the fp32 CPU path for the larger model, but have not confirmed it, so we do not use its routing.
 
 \section{A Bytes-over-Bandwidth Decode Model}\label{sec:model}
 \paragraph{Model.} For one decode step,
@@ -230,7 +230,7 @@ On the held-out models, DFA is never slower than LRU. Its speed-up over LRU rang
 \item \textbf{Unmodelled platform effects.} The model has no NUMA or cross-socket term, no core-count limit, and no DRAM contention between the CPU expert path and admission copies. Fitted efficiencies absorb implementation quality, and $\eta_g$ is weakly identified.
 \item \textbf{Retrodictive validation only.} The author had no hardware, so every measurement is third-party. Some are approximate or come from VMs, and four assume unstated DDR5 speeds. Dynamic-cache projections are validated in structure only.
 \item \textbf{Scope of the bound.} It covers policies with per-layer capacity; a global pool across layers could do better.
-\item \textbf{gpt-oss-120b excluded.} Its trace has an unexplained perplexity anomaly (\cref{sec:traces}), so it is not used for any result.
+\item \textbf{gpt-oss-120b excluded.} Its trace degenerates on some sequences (\cref{sec:traces}). Resolving this needs a comparison against an independent GPU implementation of the model, which we did not have.
 \item \textbf{Numerics.} Traces were computed in fp32 on the CPU. GPU inference in bf16 can break near-ties differently; re-tracing OLMoE with bf16 compute changes \olmoeBfDiff\% of (token, layer) expert sets and moves the 25\%-cache LRU hit rate by \olmoeBfHitDelta{} points.
 \end{itemize}
 

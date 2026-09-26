@@ -5,6 +5,9 @@ drift from the data.
 """
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 out = []
 
@@ -32,9 +35,24 @@ for k, n in (("cpu_only", "Cpu"), ("static", "Static"), ("fetch", "Fetch")):
 put("numaMedian", pct(sel["numa_holdout"]["median_ape"])); put("nNuma", sel["numa_holdout"]["n"])
 P = sel["params"]
 put("etaG", P["eta_g"], "{:.2f}"); put("etaC", P["eta_c"], "{:.2f}"); put("etaP", P["eta_p"], "{:.2f}")
-put("tauH", P["tau_us"]); put("tauX", P["tau_x_us"] / 1000, "{:.1f}")
+put("tauH", P["tau_us"]); put("tauX", P["tau_x_us"] / 1000, "{:.1f}"); put("tauE", P.get("tau_e_us", 0.0))
+put("selectedVariant", v["selected"].split()[0])
+MEAS = {x["id"]: x for x in json.load(open("data/published_measurements.json"))}
+from mosl.validation_set import ROWS
+srcs = {MEAS[r.get("src", r["id"])]["source_url"].split("#")[0] for r in ROWS}
+put("nSources", len(srcs)); put("nModelsVal", len({r["repo"] for r in ROWS}))
+put("nUnstatedRam", sum(1 for r in ROWS if "RAM speed not stated" in r.get("assume", "")))
+pm = v["loso_per_model"]
+put("qwenThirtyResid", pct(pm["Qwen/Qwen3-30B-A3B"]["median_abs"]))
+# hybrid (dynamic cache + CPU misses) consistency check: DeepSeek-V4-Flash rows P079-P082
+T0, T53 = 1 / 13.61, 1 / 15.84
+d = (T0 - T53) / 0.53
+for h, meas, nm in ((0.76, 17.58, "SeventySix"), (0.806, 17.66, "Eighty")):
+    pred = 1 / (T0 - h * d)
+    put(f"hyb{nm}Pred", pred, "{:.2f}"); put(f"hyb{nm}Err", pct(abs(pred - meas) / meas), "{:.0f}")
+put("hybCpuShare", pct(d / T0))
 for name, rep in v["variants"].items():
-    tag = {"M0": "MZero", "M1": "MOne", "M2": "MTwo", "M3": "MThree"}[name.split()[0]]
+    tag = {"M0": "MZero", "M1": "MOne", "M2": "MTwo", "M3": "MThree", "M4": "MFour"}[name.split()[0]]
     put(f"cv{tag}", pct(rep["loso"]["median_ape"])); put(f"cvMape{tag}", pct(rep["loso"]["mape"]))
     put(f"in{tag}", pct(rep["in_sample"]["median_ape"]))
 eng = v["per_engine_eta_c"]
@@ -63,6 +81,12 @@ for m, t in TAGS.items():
     put(f"{t}TopQuarter", pct(L["top25pct_share"]))
     put(f"{t}Jaccard", L["domain_top25_jaccard"], "{:.2f}"); put(f"{t}JaccardRand", L["random_top25_jaccard"], "{:.2f}")
     h = a["hit_rate"]["0.25"]
+    ci = a.get("hit_rate_ci_0.25", {})
+    for k, n in (("lru", "Lru"), ("static_hot_xdomain", "Xdom"), ("min_bypass", "Bypass")):
+        lo, hi = ci.get(k, [0, 0])
+        put(f"{t}Hit{n}Ci", f"{pct(lo):.0f}--{pct(hi):.0f}")
+    lo, hi = a.get("reuse1_ci", [0, 0]); put(f"{t}ReuseOneCi", f"{pct(lo):.0f}--{pct(hi):.0f}")
+    put(f"{t}MissRatio", (1 - h["lru"]) / max(1e-9, 1 - h["min_bypass"]), "{:.1f}")
     for k, n in (("static_layer", "Layer"), ("static_hot_xdomain", "Xdom"), ("static_hot_oracle", "Oracle"),
                  ("lru", "Lru"), ("lfu", "Lfu"), ("min_fetch", "Min"), ("min_bypass", "Bypass")):
         put(f"{t}Hit{n}", pct(h[k]))
@@ -79,11 +103,26 @@ for m, t in TAGS.items():
             put(f"{t}{pt}StaticOfSol{tt}", pct(d["static_layer_cpu"] / d["speed_of_light"]))
             put(f"{t}{pt}LruOfSol{tt}", pct(d["lru_cpu"] / d["speed_of_light"]))
             put(f"{t}{pt}LruGain{tt}", d["lru_cpu"] / d["static_layer_cpu"], "{:.2f}")
+            put(f"{t}{pt}LruSeq{tt}", d["lru_cpuseq"], "{:.1f}"); put(f"{t}{pt}SolSerial{tt}", d["speed_of_light_serial"], "{:.1f}")
+            put(f"{t}{pt}Oracle{tt}", d["oracle_prefetch_cpu"], "{:.1f}")
+            put(f"{t}{pt}BypassOfSol{tt}", pct(d["min_bypass_cpu"] / d["speed_of_light"]))
+            put(f"{t}{pt}LruSeqGain{tt}", d["lru_cpuseq"] / d["static_layer_cpu"], "{:.2f}")
+            put(f"{t}{pt}CpuGain{tt}", d["lru_cpu"] / d["all_experts_cpu"], "{:.1f}")
+        sv = mm.get("sensitivity", {}).get("eta_g=0.6")
+        if sv:
+            put(f"{t}{pt}LruGainSens", sv["lru_cpu"] / sv["static_layer_cpu"], "{:.2f}")
+            put(f"{t}{pt}LruOfSolSens", pct(sv["lru_cpu"] / sv["speed_of_light"]))
     a25 = a["tok_s"]["tau=fitted"]["RTX 4090 + DDR5-6000 (PCIe4 x16)"]["0.25"]
     put(f"{t}MidQuarterStatic", a25["static_layer_cpu"], "{:.0f}"); put(f"{t}MidQuarterLru", a25["lru_cpu"], "{:.0f}")
     put(f"{t}MidQuarterSol", a25["speed_of_light"], "{:.0f}")
 PLACEHOLDER = False
 
+if os.path.exists("results/bf16_check.json"):
+    bf = json.load(open("results/bf16_check.json"))
+    put("olmoeBfDiff", pct(bf["frac_token_layer_sets_differ"]), "{:.1f}")
+    put("olmoeBfHitDelta", pct(abs(bf["lru25_bf16"] - bf["lru25_fp32"])), "{:.1f}")
+else:
+    put("olmoeBfDiff", "\\textbf{??}"); put("olmoeBfHitDelta", "\\textbf{??}")
 os.makedirs("paper", exist_ok=True)
 open("paper/numbers.tex", "w").write("\n".join(out) + "\n")
 print(len(out), "macros")

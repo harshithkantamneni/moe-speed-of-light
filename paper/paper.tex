@@ -4,8 +4,6 @@
 \usepackage[capitalise]{cleveref}
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
 \input{numbers}
-\newcommand{\eg}{e.g.,\ }
-\newcommand{\ie}{i.e.,\ }
 
 \title{Where Do the Experts Go?\\[2pt]\large A Validated Speed-of-Light Model for Mixture-of-Experts Decode on Memory-Constrained Consumer Hardware}
 \author{Harshith Kantamneni\\Independent Researcher}
@@ -15,168 +13,216 @@
 \maketitle
 
 \begin{abstract}
-Frontier-scale Mixture-of-Experts (MoE) models reach desktops only by keeping most experts in host memory, and more than thirty systems now propose policies for which experts to cache on the GPU, how to prefetch them, and where to execute misses. What is missing is a measured ceiling that every policy can be compared against. We contribute three things. \textbf{(1)} A method to record \emph{exact} decode-time routing traces without a GPU: because a causal model's routing of a token depends only on its prefix, teacher-forced prefill streamed one decoder layer at a time reproduces decode routing bit-for-bit (verified against reference implementations on five architectures) while reading each weight once per corpus. On a 2-vCPU, 7\,GB virtual machine we trace OLMoE, Qwen3-30B-A3B, gpt-oss-20b and gpt-oss-120b over four domains. \textbf{(2)} A five-parameter bytes-over-bandwidth model of batch-1 decode that retrodicts \nRows{} published measurements from \nGroups{} independent sources (\tokMin{}--\tokMax{} tok/s, seven models, CPU-only, static CPU offload and PCIe demand fetch) with \cvMedian\% median held-out error. \textbf{(3)} A speed-of-light bound for any per-layer expert placement policy, combining Belady's optimal replacement with Jensen's inequality, and a closed-form reuse threshold $r^\star$ that says when copying an expert to the GPU can pay off at all. The traces show strong short-range locality (\QwenReuseOne\% of Qwen3's selected experts were selected by the previous token, \QwenReuseX$\times$ the uniform rate) but hot-expert sets that do not transfer across domains (Jaccard \QwenJaccard{} vs.\ \QwenJaccardRand{} for random sets), so static ``popular-expert'' pinning calibrated on other data is worse than no pinning. On PCIe~4 desktops, executing a missed expert on the CPU is cheaper than fetching it, and the llama.cpp-style static layer split leaves up to half of the attainable throughput unused, while a plain LRU cache with CPU-executed misses closes most of the gap to the bound, leaving little for predictors to win. Code, traces and the measurement set are released.
+Frontier-scale Mixture-of-Experts (MoE) models run on desktops only by keeping most experts in host memory. More than thirty systems now propose which experts to cache on the GPU, how to prefetch them, and where to execute the rest. What is missing is a ceiling that all of them can be measured against. We contribute three things.
+\textbf{(1)} A way to record \emph{exact} decode-time routing traces without a GPU. A causal model routes each token according to its prefix alone, so teacher-forced prefill, streamed one decoder layer at a time with tensors read over HTTP, reproduces the routing of KV-cache decode exactly. We verify this against reference implementations of four architectures. With it we trace OLMoE, Qwen3-30B-A3B, gpt-oss-20b and gpt-oss-120b over four domains on a 2-vCPU, 7\,GB virtual machine.
+\textbf{(2)} A six-parameter bytes-over-bandwidth model of batch-1 decode. It predicts \nRows{} published measurements from \nSources{} independent sources (\tokMin{}--\tokMax{} tok/s; \nModelsVal{} models; CPU-only, static CPU offload and PCIe demand fetch) with \cvMedian\% median error when whole sources are held out.
+\textbf{(3)} A speed-of-light bound for \emph{any} expert placement policy with a per-layer GPU budget, whether demand-driven or prefetching. It combines Belady's MIN-with-bypass, a load-accounting argument and Jensen's inequality. We also give a closed-form reuse threshold $r^\star$ that says when copying an expert to the GPU can pay off.
+The traces show strong short-range reuse: \QwenReuseOne\% of Qwen3's selected experts were also selected by the previous token, \QwenReuseX$\times$ the uniform rate. Long-range popularity, however, is weak and model-dependent across domains; for Qwen3, pinning experts that were popular on other domains does worse than not pinning. Under the validated model, running cache misses on the CPU beats fetching them over PCIe~4. On the platforms where a model does not fit, a per-layer LRU cache with CPU-executed misses recovers most of the gap between llama.cpp's static layer split and the bound. Code, traces and the annotated measurement set are released.
 \end{abstract}
 
 \section{Introduction}
-A 120B-parameter MoE with 4-bit experts occupies \SI{61}{GB}; a consumer GPU has 8--\SI{32}{GB}. Running such models locally therefore means splitting experts between GPU memory and host DRAM, and the resulting decode speed is set almost entirely by where each routed expert's weights live when the router selects it. The literature has responded with many mechanisms: demand fetching into an LRU cache~\cite{eliseev2023offloading}, activation-aware caches and prefetchers~\cite{xue2024moeinfinity,song2024promoe,hwang2024pregated,zhu2025preattention,wang2026seqmoe}, executing misses on the CPU~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu}, mixed-precision or substituted experts~\cite{tang2024hobbit,zhao2025mobile}, and in practice, llama.cpp's static assignment of whole layers' experts to the CPU~\cite{llamacpp}. Recent trace studies disagree on basic questions, such as whether a predictor beats LRU~\cite{zhang2026reproducible,si2026expertcache,wang2026seqmoe}, and one explicitly notes that fewer misses need not mean higher throughput~\cite{zhang2026reproducible}.
+A 120B-parameter MoE with 4-bit experts needs \SI{61}{GB} for its experts alone, while a consumer GPU has 8--\SI{32}{GB}. Running such models locally means splitting the experts between GPU memory and host DRAM. Decode speed is then set largely by where each routed expert's weights live when the router selects it.
 
-We argue that the field lacks a \emph{bound}: for a given model, hardware platform and GPU memory budget, how fast can batch-1 decode possibly be, and how close are the strategies people actually run? A bound turns policy comparisons into a fraction of what is attainable, the way the roofline model~\cite{williams2009roofline} does for kernels. Building one needs (i) routing traces of real models, (ii) a cost model that is \emph{validated} rather than assumed, and (iii) an argument that no policy can beat it. This paper supplies all three, using only public data and a CPU-only virtual machine.
+The literature has responded with many mechanisms:
+\begin{itemize}\setlength\itemsep{0pt}
+\item demand fetching into an LRU cache~\cite{eliseev2023offloading};
+\item activation-aware caches and prefetchers~\cite{xue2024moeinfinity,song2024promoe,hwang2024pregated,zhu2025preattention,wang2026seqmoe};
+\item running misses on the CPU~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu,zhong2025hybrimoe};
+\item mixed-precision or substitute experts~\cite{tang2024hobbit,zhao2025mobile};
+\item and, in practice, llama.cpp's static assignment of whole layers' experts to the CPU~\cite{llamacpp}.
+\end{itemize}
+Recent trace studies disagree on basic questions, such as whether a learned predictor beats LRU~\cite{zhang2026reproducible,si2026expertcache,wang2026seqmoe}. One of them notes explicitly that fewer misses need not mean higher throughput~\cite{zhang2026reproducible}.
+
+We argue that what is missing is a \emph{bound}. For a given model, platform and GPU memory budget, how fast can batch-1 decode possibly be, and how close do the strategies people run actually get? A bound turns policy comparisons into fractions of the attainable, as the roofline model~\cite{williams2009roofline} does for kernels. Building one takes three things: routing traces of real models, a cost model that is \emph{validated} rather than assumed, and a proof that no policy in the class can beat it. This paper provides all three, using only public data and a CPU-only virtual machine.
 
 \paragraph{Contributions.}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{Exact traces without a GPU} (\cref{sec:traces}). Layer-streaming, teacher-forced prefill yields decode routing exactly; each weight byte is read once per corpus rather than once per token. Bit-exact agreement with reference implementations on five architectures, including MXFP4-packed and sliding-window models.
-\item \textbf{A validated decode model} (\cref{sec:model}). Five fitted parameters, every other input taken from datasheets and model configurations. Leave-one-source-out median error \cvMedian\% over \nRows{} published points; an ablation shows which terms matter; two-socket NUMA is the dominant unmodeled effect.
-\item \textbf{A speed-of-light bound and $r^\star$} (\cref{sec:bound}). A policy-independent lower bound on time per token, and the minimum reuse count that makes an expert worth copying to the GPU.
-\item \textbf{Findings} (\cref{sec:results}). Strong short-range locality, weak cross-domain popularity, CPU execution of misses dominating PCIe fetch on PCIe~4, and a quantified ceiling on what predictors can add.
+\item \textbf{Exact traces without a GPU} (\cref{sec:traces}). Teacher-forced prefill, streamed layer by layer, matches KV-cache decode routing exactly. Each weight byte is read once per corpus instead of once per token, and never touches the disk.
+\item \textbf{A validated decode model} (\cref{sec:model}). Six fitted parameters; every other input comes from datasheets and model configurations. The held-out median error is \cvMedian\% on \nRows{} published points. An ablation shows which terms matter.
+\item \textbf{A speed-of-light bound and $r^\star$} (\cref{sec:bound}). A lower bound on time per token for every per-layer placement policy, including prefetchers, with a regression test against an oracle prefetcher.
+\item \textbf{Findings} (\cref{sec:results}). Strong short-range locality, weak and model-dependent cross-domain popularity, a quantified advantage for CPU-executed misses on PCIe~4, and the remaining headroom for predictors.
 \end{itemize}
 
 \section{Background and Related Work}
-\paragraph{MoE decode is a data-movement problem.} At batch 1, each routed expert is a pair of matrix--vector products whose cost is the bytes of its weights divided by the bandwidth of the memory it is read from. The transformer data-movement view~\cite{ivanov2021datamovement} and sparsity as a first-class efficiency lever~\cite{hoefler2021sparsity} frame MoE placement naturally: the question is which bytes cross which link, and how often.
+\paragraph{MoE decode moves data.} At batch 1, a routed expert is a pair of matrix--vector products. Its cost is the size of its weights divided by the bandwidth of the memory they are read from. The data-movement view of transformers~\cite{ivanov2021datamovement} and sparsity as an efficiency lever~\cite{hoefler2021sparsity} frame MoE placement naturally: which bytes cross which link, and how often.
 
-\paragraph{Offloading systems.} Demand-paging systems keep a per-layer GPU expert cache and copy misses over PCIe~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit}; prefetchers predict the next layer's experts~\cite{hwang2024pregated,zhu2025preattention,wang2026seqmoe}. CPU-execution systems run the experts that are not resident on the host~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu}; llama.cpp exposes this as \texttt{--n-cpu-moe} and tensor overrides~\cite{llamacpp}. MoE-Lightning~\cite{cao2024moelightning} and MoE-Lens~\cite{yuan2025moelens} model \emph{batched throughput}; we target single-user latency, where the constraints differ.
+\paragraph{Offloading systems.} Demand-paging systems keep a per-layer GPU expert cache and copy misses over PCIe~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit}. Prefetchers predict the next layer's experts~\cite{hwang2024pregated,zhu2025preattention,wang2026seqmoe}. CPU-execution systems run non-resident experts on the host~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu,zhong2025hybrimoe}; llama.cpp exposes this as \texttt{--n-cpu-moe} and tensor overrides~\cite{llamacpp}. MoE-Lightning~\cite{cao2024moelightning} and MoE-Lens~\cite{yuan2025moelens} model \emph{batched throughput}. We target single-user latency.
 
-\paragraph{Traces and evaluation methodology.} Two recent trace studies analyse expert caching offline~\cite{zhang2026reproducible,si2026expertcache}. The first shows that replay semantics and prompt-template contamination can reverse policy rankings and reports miss rates only; the second studies kernel-managed tiering on GH200. A dense-model study predicts llama.cpp throughput from GGUF metadata, with 36\% decode error on an RTX system~\cite{qiu2026gguf}. We follow the benchmarking-rigour guidelines of Hoefler and Belli~\cite{hoefler2015benchmarking}: report medians and ranges, make the fitted parameters explicit, and hold out whole sources.
+\paragraph{Caching theory and methodology.} Belady's MIN~\cite{belady1966study} minimises misses under demand paging. The interplay of prefetching and caching has been studied for file systems~\cite{cao1995prefetching}. Recent expert-cache trace studies report miss rates~\cite{zhang2026reproducible} and kernel-managed tiering on GH200~\cite{si2026expertcache}. A related study predicts llama.cpp throughput from GGUF metadata~\cite{qiu2026gguf}. We follow Hoefler and Belli's benchmarking guidelines~\cite{hoefler2015benchmarking}: medians with intervals, explicit fitted parameters, and held-out sources.
 
 \section{Exact Routing Traces Without a GPU}\label{sec:traces}
-\paragraph{Observation.} In a causal decoder, the hidden state of token $t$ at every layer is a function of tokens $1..t$ only. The experts that decode selects for token $t$ are therefore exactly the experts that a teacher-forced prefill over the same sequence selects at position $t$, up to floating-point ties. Collecting decode traces does not require running decode.
+\paragraph{Observation.} In a causal decoder, the hidden state of token $t$ at every layer is a function of tokens $1..t$ only. The experts that decode selects for token $t$ are therefore the experts that teacher-forced prefill selects at position $t$, up to floating-point ties.
 
-\paragraph{Layer streaming.} Prefill makes it possible to invert the loop order. Instead of loading every layer for every token, we load \emph{one} decoder layer, push every sequence of the corpus through it, record the router's top-$k$ indices, free the layer and continue. Weights are read once per corpus, activations for the whole corpus stay resident ($\sim$\SI{200}{MB} for 25k tokens), and peak memory is one layer. Safetensors shards are downloaded on demand and deleted once consumed, so disk usage stays at a few shards. Two engineering details matter. First, the MoE sub-block is token-wise, so after per-sequence attention we run it once over the concatenated corpus, touching each expert once per layer. Second, gpt-oss stores experts in MXFP4; a 120B layer would need \SI{13}{GB} in fp32, so we keep the packed tensors and dequantize one expert at a time.
+\paragraph{Layer streaming.} Prefill lets us invert the usual loop order. We load \emph{one} decoder layer, push every corpus sequence through it, record the router's top-$k$ indices, free the layer, and move on. Weights are read once per corpus. The corpus's activations stay in memory ($\sim$\SI{200}{MB} for 25k tokens), and peak memory is one layer. Tensors are read straight from the model hub with HTTP range requests, so no checkpoint shard is ever stored. This matters because gpt-oss-120b's shards interleave layers and would otherwise need \SI{35}{GB} of disk. Two further details: the MoE sub-block is token-wise, so after per-sequence attention it runs once over the concatenated corpus and touches each expert once per layer; and gpt-oss experts stay MXFP4-packed and are dequantised one at a time, since a 120B layer would need \SI{13}{GB} in fp32.
 
-\paragraph{Exactness.} A test compares our per-layer expert selections with the reference \texttt{transformers} implementation on tiny random checkpoints of Qwen3-MoE, OLMoE, DeepSeek-V2 and gpt-oss (both MXFP4-packed and bf16, with sequences longer than gpt-oss's 128-token sliding window). All selections match exactly. For the real models we also report teacher-forced perplexity as an end-to-end check that weights were loaded correctly (\cref{tab:locality}).
+\paragraph{Exactness.} Tests compare our per-layer selections with the reference \texttt{transformers} models on tiny random checkpoints of four architectures: Qwen3-MoE, OLMoE, DeepSeek-V2, and gpt-oss (both MXFP4-packed and bf16, with sequences longer than gpt-oss's 128-token sliding window). The references run both as prefill and as genuine token-by-token decode with a KV cache. All selections match exactly. For the real models, teacher-forced perplexity checks that the weights loaded correctly (\cref{tab:locality}). All traces are computed in fp32; \cref{sec:limits} quantifies how bf16 compute changes routing.
 
-\paragraph{Corpus.} We build 160 two-turn conversations from four public datasets: chat (UltraChat), math (NuminaMath-CoT), code (CodeFeedback) and multilingual (Aya, non-English). Each is formatted with the model's own chat template and nothing else, avoiding shared-template contamination~\cite{zhang2026reproducible}. We take about 6k tokens per domain per model. Prompt tokens are prefill; only assistant tokens are decode steps. Conversations are replayed back-to-back in a fixed shuffled order, as one user's session, so cache state carries across conversations and domains.
+\paragraph{Corpus.} We use two-turn conversations from four public datasets: chat (UltraChat), math (NuminaMath-CoT), code (CodeFeedback) and multilingual (Aya, non-English). About 6k tokens per domain per model gives 34--36 conversations. Each is formatted with the model's own chat template and nothing else, to avoid shared-template contamination~\cite{zhang2026reproducible}. Prompt tokens are prefill; only assistant tokens are decode steps. The conversations are replayed back to back in a fixed shuffled order, as one user's session, so cache state carries across conversations and domains.
 
-\paragraph{Cost.} The whole collection ran on a 2-vCPU, \SI{7}{GB} RAM cloud VM with no GPU. Qwen3-30B-A3B (\SI{61}{GB} of bf16 weights) took about 25 minutes of compute over 25k tokens, dominated by the download.
+\paragraph{Cost.} Everything ran on a 2-vCPU, \SI{7}{GB} cloud VM with no GPU. Qwen3-30B-A3B (\SI{61}{GB} of bf16 weights) took about 30 minutes; gpt-oss-120b took about 75 minutes, mostly spent reading weights over the network.
 
 \section{A Bytes-over-Bandwidth Decode Model}\label{sec:model}
 \paragraph{Model.} For one decode step,
 \begin{equation}
-T = \frac{D + X_{g}}{\eta_g B_g} + \frac{X_{c}}{\eta_c B_c} + \frac{X_{f}}{\eta_p B_p} + n_f\,\tau_x + n_h\,\tau_h,
+T = \frac{D + X_{g}}{\eta_g B_g} + \frac{X_{c}}{\eta_c B_c} + n_c\tau_e + \frac{X_{f}}{\eta_p B_p} + n_f\tau_x + n_h\tau_h.
 \label{eq:model}
 \end{equation}
-where $D$ is the per-token dense traffic: attention, shared experts, dense MLPs, routers, norms, LM head and KV-cache reads. $X_g$, $X_c$ and $X_f$ are the routed-expert bytes executed from GPU memory, executed on the CPU, and fetched over PCIe. $B_g$, $B_c$ and $B_p$ are datasheet peak bandwidths of GPU memory, host DRAM (channels\,$\times$\,MT/s\,$\times$\,8\,B) and the host--device link. $n_f$ transfers each pay a fixed latency $\tau_x$, and $n_h$ GPU$\leftrightarrow$CPU hand-offs (one per layer with CPU work) each pay $\tau_h$. Byte counts are exact: we instantiate each architecture on PyTorch's \texttt{meta} device and classify every parameter, and we take bits per weight from the quantization format or from the model file size when the source reports it.
+$D$ is the per-token dense traffic: attention, shared experts, dense MLPs, routers, norms, the LM head and KV-cache reads. $X_g$, $X_c$ and $X_f$ are routed-expert bytes executed from GPU memory, executed on the CPU ($n_c$ expert executions), and fetched over PCIe ($n_f$ transfers). $B_g$, $B_c$ and $B_p$ are datasheet peak bandwidths of GPU memory, host DRAM (channels\,$\times$\,MT/s\,$\times$\,8\,B) and the host--device link. The $\tau$s are fixed latencies per CPU expert, per transfer and per GPU$\leftrightarrow$CPU hand-off. Byte counts are exact: each architecture is instantiated on PyTorch's \texttt{meta} device and every parameter classified. Bits per weight come from the quantisation format, or from the model's file size when the source reports it.
 
-\paragraph{Validation data.} We collected published decode measurements with full hardware descriptions from papers, project documentation and detailed public benchmark threads (\nRows{} points from \nGroups{} groups; each row cites its source and the quoted table or line). They span CPU-only execution on 2- to 12-channel DDR5, static CPU offload (llama.cpp, ik\_llama.cpp, KTransformers and a 2026 research engine~\cite{wang2026cloudgrade}), and demand fetch over PCIe~\cite{eliseev2023offloading}. The models are gpt-oss-20b and 120b, Qwen3-30B-A3B and 235B-A22B, DeepSeek-V3/R1, Kimi-K2 and Mixtral. Rows whose RAM speed was not stated (two), approximate web-UI readings, and VM runs are flagged; two-socket runs of llama.cpp-family engines are held out entirely (below).
+\paragraph{Validation data.} We collected published decode measurements that state the hardware. Each row cites its source and quotes the table or line; there are \nRows{} points from \nSources{} independent sources. They cover:
+\begin{itemize}\setlength\itemsep{0pt}
+\item CPU-only execution on 2- to 12-channel DDR5;
+\item static CPU offload in llama.cpp, ik\_llama.cpp, KTransformers and a 2026 research engine~\cite{wang2026cloudgrade};
+\item all-in-VRAM baselines;
+\item demand fetch over PCIe~\cite{eliseev2023offloading}.
+\end{itemize}
+The \nModelsVal{} models are gpt-oss-20b and 120b, Qwen3-30B-A3B and 235B-A22B, DeepSeek-V3/R1, Kimi-K2, and Mixtral 8$\times$7B and 8$\times$22B. Four rows with unstated DRAM speed (assumed DDR5-6000), approximate web-UI readings and VM runs are flagged in the data. Two-socket runs of llama.cpp-family engines are held out before fitting (see below).
 
-\paragraph{Fitting and held-out evaluation.} We fit the efficiencies $\eta$ and latencies $\tau$ by least squares on $\log(\hat{y}/y)$. We evaluate by \emph{leave-one-source-out} cross-validation: all rows from one paper or thread are held out and predicted by a model fit on the rest. The demand-fetch rows come from a single paper, so for them we hold out one GPU at a time. \Cref{tab:ablation} shows the ablation. Bytes over bandwidth with a hand-off term (M0) already reaches \cvMZero\% median held-out error. Adding a per-transfer latency (M1) fixes the fetch rows, because the naive whole-layer copy and the per-expert copy differ in transfer count, not bytes. Per-layer fixed costs (M2) and a server/desktop CPU split (M3) do not improve held-out error. We select M1: $\eta_g=\etaG$, $\eta_c=\etaC$, $\eta_p=\etaP$, $\tau_h=\SI{\tauH}{\micro s}$ and $\tau_x=\SI{\tauX}{ms}$. The fitted $\tau_x$ describes one Python prototype's per-copy overhead: its bulk copies run at $\approx$87\% of PCIe peak while each expert copy costs milliseconds. For speed-of-light analysis we therefore use $\tau_x=\SI{10}{\micro s}$, a DMA-engine latency.
+\paragraph{Fitting and held-out evaluation.} We fit $\eta$ and $\tau$ by least squares on $\log(\hat{y}/y)$ and evaluate by \emph{leave-one-source-out} cross-validation: all rows from one paper or thread are predicted by a model fitted on the rest. The demand-fetch rows come from a single paper, so they are held out one GPU at a time, giving \nGroups{} held-out groups in total. \Cref{tab:ablation} shows the ablation.
+\begin{itemize}\setlength\itemsep{0pt}
+\item Bytes over bandwidth plus a hand-off term (M0) already reaches \cvMZero\% median error.
+\item A per-transfer latency (M1) fixes the fetch rows, because the naive whole-layer copy and the per-expert copy differ in transfer count, not in bytes.
+\item A per-CPU-expert latency (M4) fixes the small-expert models on the CPU, bringing the Qwen3-30B-A3B rows to \qwenThirtyResid\%.
+\item Per-layer fixed costs (M2) and a server/desktop split of $\eta_c$ (M3) do not help.
+\end{itemize}
+We report \selectedVariant{}, the variant with the lowest held-out MAPE. Because it was picked after seeing every variant's held-out error, its reported error is slightly optimistic; the gap to M1 is one point.
+
+The fitted values are $\eta_g=\etaG$, $\eta_c=\etaC$, $\eta_p=\etaP$, $\tau_e=\SI{\tauE}{\micro s}$ and $\tau_x=\SI{\tauX}{ms}$. $\tau_h$ is driven to zero and absorbed by $\tau_e$. The fitted $\tau_x$ describes one Python prototype, whose bulk copies run at $\approx$87\% of PCIe peak while each per-expert copy costs milliseconds. For all bounds and projections we therefore use $\tau_x=\SI{10}{\micro s}$, a DMA-engine latency.
 
 \begin{table}[t]\centering\small
-\caption{Model-term ablation: median absolute percentage error (leave-one-source-out) and MAPE.}\label{tab:ablation}
+\caption{Model-term ablation. Median absolute percentage error and MAPE, leave-one-source-out.}\label{tab:ablation}
 \begin{tabular}{lccc}\toprule
 Variant & params & median & MAPE\\\midrule
 M0 bytes/BW + hand-off & 4 & \cvMZero\% & \cvMapeMZero\%\\
 M1 + per-transfer latency & 5 & \cvMOne\% & \cvMapeMOne\%\\
 M2 + per-layer fixed costs & 7 & \cvMTwo\% & \cvMapeMTwo\%\\
-M3 + server/desktop $\eta_c$ & 8 & \cvMThree\% & \cvMapeMThree\%\\\bottomrule
+M3 + server/desktop $\eta_c$ & 8 & \cvMThree\% & \cvMapeMThree\%\\
+M4 M1 + per-CPU-expert latency & 6 & \cvMFour\% & \cvMapeMFour\%\\\bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]\centering
 \includegraphics[width=0.92\linewidth]{figs/validation.pdf}
-\caption{Held-out predictions vs.\ published decode throughput (log--log; dotted lines $\pm$25\%). Crosses: two-socket llama.cpp runs, not used for fitting.}\label{fig:validation}
+\caption{Held-out predictions vs.\ published decode throughput (log--log; dotted lines mark $\pm$25\%). Crosses are two-socket llama.cpp-family runs, which were not used for fitting.}\label{fig:validation}
 \end{figure}
 
-\paragraph{Results.} With M1, the held-out median error is \cvMedian\% (MAPE \cvMape\%). \cvWithinTwentyFive\% of points fall within 25\%, and the worst is \cvMax\% (\cref{fig:validation}). By execution style, the median is \cvMedianCpu\% for CPU-only, \cvMedianStatic\% for static offload and \cvMedianFetch\% for demand fetch. Fitting a CPU efficiency per engine ranks the implementations as expected: \engOsdi{} for the 2026 AVX-512 engine~\cite{wang2026cloudgrade}, \engIk{} for ik\_llama.cpp, \engLlama{} for llama.cpp and \engKt{} for KTransformers' early releases. The \nNuma{} two-socket llama.cpp-family runs are over-predicted by a median of \numaMedian\%, because these engines do not scale across sockets; the model assumes one NUMA domain, and we report this as its main limitation rather than adding a fitted fudge factor.
+\paragraph{Results.} The held-out median error is \cvMedian\% (MAPE \cvMape\%), with \cvWithinTwentyFive\% of points within 25\% and the worst at \cvMax\% (\cref{fig:validation}). By execution style, the median error is \cvMedianCpu\% for CPU-only, \cvMedianStatic\% for static offload and \cvMedianFetch\% for demand fetch. Fitting a CPU efficiency per engine ranks the implementations as expected: \engOsdi{} for the 2026 AVX-512 engine~\cite{wang2026cloudgrade}, \engIk{} for ik\_llama.cpp, \engLlama{} for llama.cpp and \engKt{} for early KTransformers releases. The \nNuma{} held-out two-socket llama.cpp-family runs are over-predicted by a median of \numaMedian\%. The effect is largest for DeepSeek, whose experts are small, and small for Mixtral 8$\times$22B, whose experts are large. That points to cross-socket synchronisation per expert rather than bandwidth; the model has no term for it. The GPU-side efficiency $\eta_g$ is the least constrained parameter: only three all-in-VRAM rows pin it, and they disagree by vendor. We therefore test every projection below with $\eta_g=0.6$ as well.
+
+\paragraph{A consistency check for dynamic caches.} One public benchmark thread~\cite{llamacppdisc24528} runs DeepSeek-V4-Flash on the same two-GPU machine with a llama.cpp fork that keeps a GPU expert cache and runs misses on the CPU. It reports hit rates of 0\%, 53\%, 76\% and 81\% at 13.61, 15.84, 17.58 and 17.66 tok/s. Our serial-cache model makes per-token time affine in the hit rate: CPU time scales with misses, and the extra GPU work for hits is small. Calibrated on the 0\% and 53\% points, it predicts \hybSeventySixPred{} and \hybEightyPred{} tok/s for the other two, errors of \hybSeventySixErr\% and \hybEightyErr\%. The fitted CPU share of time is only \hybCpuShare\%, which explains this rig's modest gains. This validates the structure of the dynamic-cache model, not its absolute scale; no public measurement of a dynamic cache states all the inputs the model needs.
 
 \section{A Speed-of-Light Bound}\label{sec:bound}
-Consider any policy that keeps at most $c$ experts per layer on the GPU. Each routed-expert execution is served in one of three ways: from GPU memory (cost $a=s/\eta_gB_g$ for an expert of $s$ bytes), by fetching it and then running it on the GPU (cost $p+a$ with $p=s/\eta_pB_p$, serial with the layer), or on the CPU concurrently with the GPU (cost $b=s/\eta_cB_c$). With $m_f$ fetched and $m_c$ CPU executions out of $k$ in a layer step, the layer takes at least
-\begin{equation}
-g(m_f,m_c)=\max\big((k-m_c)\,a+m_f\,p,\; m_c\,b\big).
-\end{equation}
-$g$ is convex, being a maximum of affine functions. \textbf{Bound.} Let $M^\star$ be the minimum total number of misses any policy can incur on the trace with per-layer capacity $c$. If misses may be served without admission, this is Belady's MIN with bypass~\cite{belady1966study}; we verify its optimality against exhaustive search on random small instances. Every policy has mean misses $\bar m=\bar m_f+\bar m_c\ge M^\star/N$ over $N$ layer steps, so by Jensen's inequality the mean layer time is at least
-\begin{equation}
-\min_{m_f+m_c\,\ge\, M^\star/N} g(m_f,m_c).
-\end{equation}
-Adding the dense time gives a lower bound on time per token for every policy in the class, whether static or dynamic, predictive or not. Admission traffic, hand-offs and transfer latency only add time, so dropping them keeps the bound valid.
+\paragraph{Class.} Consider any policy that keeps at most $c$ of each layer's experts resident on the GPU at any time. It may be static or dynamic, demand-driven or prefetching. Every routed-expert execution runs either on the GPU from a resident copy (cost $a=s/\eta_gB_g$ for an expert of $s$ bytes) or on the CPU (cost $b=s/\eta_cB_c$). Each resident copy needs one load over PCIe (cost $p=s/\eta_pB_p$), and loads may overlap with anything.
 
-\paragraph{When is copying an expert worth it?} Copying an expert costs $p$ once. Afterwards, each GPU execution saves $b-a$ relative to running it on the CPU. The copy pays off only if the expert is reused at least
+\paragraph{Loads bound misses.} Group each expert's requests into maximal runs that are served by one resident copy. A run of $r$ requests needs one load and \emph{bridges} $r{-}1$ reuse gaps while occupying a slot. Belady's MIN with bypass maximises the number of bridged gaps under the per-layer capacity limit; its hits are exactly the bridged gaps. We verify its optimality against exhaustive search on random instances. Hence, for any policy in the class, GPU executions $\le G^\star + \text{loads}$, and so
+\begin{equation}
+\text{CPU executions} \;\ge\; M^\star - \text{loads},
+\end{equation}
+where $G^\star$ and $M^\star$ are MIN-bypass's hits and misses. A prefetcher can turn misses into hits, but each conversion costs a load.
+
+\paragraph{Bound.} Let $x$ be the mean number of loads per layer step and $m_c$ the mean number of CPU executions. Each layer step takes at least $\max((k{-}m_c)a,\,m_cb)$ if the CPU and GPU work concurrently, or $(k{-}m_c)a+m_cb$ if they serialise. Both are convex in $m_c$, so by Jensen's inequality the mean over layer steps is at least the value at the mean $m_c\ge\max(0,M^\star/N-x)$. Across the run, the link must also carry the loads, so time per token is at least $L\,x\,p$. Minimising over $x\ge0$ gives the bound
+\begin{equation}
+T \ge \min_{x\ge 0}\max\Big(T_D + L\min_{m_c\ge (M^\star/N-x)^+} \ell(m_c),\; L\,x\,p\Big),
+\end{equation}
+with $\ell$ the concurrent or serial layer cost and $T_D$ the dense time. Hand-offs, per-transfer latency and the capacity cost of prefetching are all dropped, so the bound remains valid under the model. A regression test checks it on six platforms and three parameter sets against LRU, LFU, MIN and an optimistic oracle prefetcher that loads every MIN-bypass admission one step early; the tightest policy reaches 98\% of the bound. The static layer split and a global cross-layer pool fall outside the class, because both give some layers more than $c$ slots. We still report them for comparison. With concurrent CPU--GPU execution, the bound can exceed all-in-VRAM speed, since the CPU adds bandwidth.
+
+\paragraph{When is copying an expert worth it?} A copy costs $p$ once. Each later GPU execution then saves $b-a$ compared with the CPU. The copy therefore pays off only if the expert is reused at least
 \begin{equation}
 r^\star=\frac{p}{b-a}=\frac{1/(\eta_pB_p)}{1/(\eta_cB_c)-1/(\eta_gB_g)}
 \end{equation}
-times while resident. $r^\star$ does not depend on the model. It is \QwenRstarLow{} for an RTX~4060 on PCIe~4\,$\times$8 with DDR5-5600, \QwenRstarMid{} for an RTX~4090 on PCIe~4 with DDR5-6000, and \QwenRstarHigh{} for an RTX~5090 on PCIe~5 with DDR5-6400. On weak GPUs, the GPU is barely faster than the CPU for expert GEMV, so almost nothing is worth copying. On PCIe~5 with a fast GPU, one reuse suffices. For the same reason, fetching a miss on the critical path ($p+a$) loses to executing it on the CPU ($b$) whenever $\eta_pB_p<\eta_cB_c$, which holds on every PCIe~4 desktop we consider.
+times while resident. $r^\star$ does not depend on the model. It is \QwenRstarMid{} for an RTX~4090 on PCIe~4 with DDR5-6000, and \QwenRstarHigh{} for an RTX~5090 on PCIe~5 with DDR5-6400. It is \QwenRstarLow{} for an RTX~4060 on PCIe~4\,$\times$8 with DDR5-5600: its narrow link makes copies expensive, and its modest memory bandwidth makes GPU execution only about twice as fast as the CPU. Likewise, fetching a miss onto the critical path (cost $p+a$) loses to running it on the CPU (cost $b$) whenever $\eta_pB_p<\eta_cB_c$ holds, as it does on the PCIe~4 platforms we consider.
 
 \section{Results}\label{sec:results}
 \subsection{Routing locality}
 \begin{table*}[t]\centering\small
-\caption{Routing statistics over decode tokens (per-layer averages). Reuse@$w$: fraction of selections whose expert was selected within the previous $w$ tokens. Top-25\%: share of selections taken by the most popular quarter of experts. Jaccard: overlap of different domains' top-25\% sets (random: 0.14). Hit rates are at a GPU cache of 25\% of each layer's experts.}\label{tab:locality}
-\setlength\tabcolsep{3pt}
+\caption{Routing statistics over decode tokens, averaged over layers. Reuse@$w$ is the fraction of selections whose expert was also selected within the previous $w$ tokens (uniform routing in parentheses). Top-25\% share is the fraction of selections that go to the most popular quarter of experts. Domain Jaccard is the overlap between different domains' top-25\% sets; random sets give 0.14. Hit rates are for a GPU cache holding 25\% of each layer's experts. Brackets are 95\% bootstrap intervals over conversations.}\label{tab:locality}
+\setlength\tabcolsep{4pt}
 \begin{tabular}{lcccc}\toprule
- & OLMoE & Qwen3-30B & gpt-oss-20b & gpt-oss-120b\\\midrule
-$E$ / $k$ & \OlmoeE/\OlmoeK & \QwenE/\QwenK & \GptsmallE/\GptsmallK & \GptbigE/\GptbigK\\
-decode tokens & \OlmoeTokens & \QwenTokens & \GptsmallTokens & \GptbigTokens\\
-teacher-forced ppl & \OlmoePpl & \QwenPpl & \GptsmallPpl & \GptbigPpl\\
-reuse@1 (uniform) & \OlmoeReuseOne\% (\OlmoeUniform) & \QwenReuseOne\% (\QwenUniform) & \GptsmallReuseOne\% (\GptsmallUniform) & \GptbigReuseOne\% (\GptbigUniform)\\
+ & OLMoE-1B-7B & Qwen3-30B-A3B & gpt-oss-20b & gpt-oss-120b\\\midrule
+experts $E$ / active $k$ / MoE layers & \OlmoeE/\OlmoeK/\OlmoeL & \QwenE/\QwenK/\QwenL & \GptsmallE/\GptsmallK/\GptsmallL & \GptbigE/\GptbigK/\GptbigL\\
+decode tokens; teacher-forced ppl & \OlmoeTokens; \OlmoePpl & \QwenTokens; \QwenPpl & \GptsmallTokens; \GptsmallPpl & \GptbigTokens; \GptbigPpl\\
+reuse@1 (uniform) & \OlmoeReuseOne\% [\OlmoeReuseOneCi] (\OlmoeUniform) & \QwenReuseOne\% [\QwenReuseOneCi] (\QwenUniform) & \GptsmallReuseOne\% [\GptsmallReuseOneCi] (\GptsmallUniform) & \GptbigReuseOne\% [\GptbigReuseOneCi] (\GptbigUniform)\\
 reuse@16 & \OlmoeReuseSixteen\% & \QwenReuseSixteen\% & \GptsmallReuseSixteen\% & \GptbigReuseSixteen\%\\
 top-25\% share & \OlmoeTopQuarter\% & \QwenTopQuarter\% & \GptsmallTopQuarter\% & \GptbigTopQuarter\%\\
 domain Jaccard & \OlmoeJaccard & \QwenJaccard & \GptsmallJaccard & \GptbigJaccard\\\midrule
-hit: static layers & \OlmoeHitLayer\% & \QwenHitLayer\% & \GptsmallHitLayer\% & \GptbigHitLayer\%\\
-hit: hot, held-out dom. & \OlmoeHitXdom\% & \QwenHitXdom\% & \GptsmallHitXdom\% & \GptbigHitXdom\%\\
-hit: hot, oracle & \OlmoeHitOracle\% & \QwenHitOracle\% & \GptsmallHitOracle\% & \GptbigHitOracle\%\\
-hit: LRU & \OlmoeHitLru\% & \QwenHitLru\% & \GptsmallHitLru\% & \GptbigHitLru\%\\
-hit: Belady & \OlmoeHitMin\% & \QwenHitMin\% & \GptsmallHitMin\% & \GptbigHitMin\%\\
-hit: Belady-bypass & \OlmoeHitBypass\% & \QwenHitBypass\% & \GptsmallHitBypass\% & \GptbigHitBypass\%\\\bottomrule
+hit: static layer split & \OlmoeHitLayer\% & \QwenHitLayer\% & \GptsmallHitLayer\% & \GptbigHitLayer\%\\
+hit: hot experts, held-out domain & \OlmoeHitXdom\% [\OlmoeHitXdomCi] & \QwenHitXdom\% [\QwenHitXdomCi] & \GptsmallHitXdom\% [\GptsmallHitXdomCi] & \GptbigHitXdom\% [\GptbigHitXdomCi]\\
+hit: hot experts, oracle & \OlmoeHitOracle\% & \QwenHitOracle\% & \GptsmallHitOracle\% & \GptbigHitOracle\%\\
+hit: LRU & \OlmoeHitLru\% [\OlmoeHitLruCi] & \QwenHitLru\% [\QwenHitLruCi] & \GptsmallHitLru\% [\GptsmallHitLruCi] & \GptbigHitLru\% [\GptbigHitLruCi]\\
+hit: Belady (MIN) & \OlmoeHitMin\% & \QwenHitMin\% & \GptsmallHitMin\% & \GptbigHitMin\%\\
+hit: MIN-bypass & \OlmoeHitBypass\% & \QwenHitBypass\% & \GptsmallHitBypass\% & \GptbigHitBypass\%\\\bottomrule
 \end{tabular}
 \end{table*}
 
 \begin{figure*}[t]\centering
 \includegraphics[width=0.95\linewidth]{figs/hit_rates.pdf}
-\caption{Expert hit rate vs.\ GPU cache size (fraction of each layer's experts) for static and dynamic policies.}\label{fig:hits}
+\caption{Expert hit rate against GPU cache size (as a fraction of each layer's experts) for static and dynamic policies.}\label{fig:hits}
 \end{figure*}
 
-\Cref{tab:locality,fig:hits} summarise routing behaviour. Short-range reuse is strong in every model. For Qwen3-30B, \QwenReuseOne\% of selections repeat an expert chosen by the \emph{previous} token, \QwenReuseX$\times$ the uniform-routing rate, and \QwenReuseSixteen\% repeat within 16 tokens. A 25\% LRU cache consequently hits \QwenHitLru\%, within a few points of Belady (\QwenHitMin\%). Long-range popularity is weaker, and it does not transfer. The most popular quarter of experts takes only about half of all selections, and the popular sets of different domains overlap \emph{less} than random sets would (Jaccard \QwenJaccard{} vs.\ \QwenJaccardRand{} for Qwen3). Pinning the experts that are hottest on the other three domains therefore hits only \QwenHitXdom\% on the held-out domain, fewer than simply pinning 25\% of the layers. The oracle version, calibrated on the same data it is evaluated on, reaches \QwenHitOracle\%, which shows how much in-distribution calibration flatters static pinning.
+\Cref{tab:locality,fig:hits} summarise routing behaviour.
+
+\emph{Short-range reuse is strong in every model.} For Qwen3-30B, \QwenReuseOne\% of selections repeat an expert chosen by the \emph{previous} token, \QwenReuseX$\times$ the uniform-routing rate, and \QwenReuseSixteen\% repeat one chosen within the last 16 tokens. A 25\% LRU cache therefore hits \QwenHitLru\%, against \QwenHitBypass\% for the offline optimum. LRU still incurs \QwenMissRatio$\times$ as many misses.
+
+\emph{Long-range popularity is weak, and whether it transfers across domains depends on the model.} The most popular quarter of experts receives only about half of all selections. In Qwen3, the popular sets of different domains overlap \emph{less} than random sets would (Jaccard \QwenJaccard{} vs.\ \QwenJaccardRand{}). Pinning the experts that are hottest on the other three domains then hits only \QwenHitXdom\% on the held-out domain, below the 25\% of a static layer split with the same memory. In OLMoE the overlap is somewhat above random (\OlmoeJaccard), and held-out pinning (\OlmoeHitXdom\%) does beat the layer split. In both models, pinning calibrated on the evaluation data itself (``oracle'') flatters static placement considerably.
 
 \subsection{Throughput against the bound}
 \begin{figure*}[t]\centering
 \includegraphics[width=\linewidth]{figs/toks_gpt-oss-120b.pdf}
-\caption{gpt-oss-120b decode tok/s vs.\ GPU cache size on three desktop platforms (validated model, hand-off \SI{20}{\micro s}). Dashed: speed-of-light bound for any per-layer placement policy. Dotted grey: all experts on the CPU.}\label{fig:toks}
+\caption{gpt-oss-120b decode tok/s against GPU cache size on three desktop platforms, using the validated model with a \SI{20}{\micro s} hand-off. Dashed: speed-of-light bound for per-layer policies. Dotted grey: all experts on the CPU.}\label{fig:toks}
 \end{figure*}
 
 \begin{table*}[t]\centering\small
-\caption{Decode tok/s at each platform's VRAM-matched operating point (experts that fit after dense weights, 8k-token KV cache and \SI{1.5}{GB} reserve), with the fitted hand-off latency. ``\% SoL'' is relative to the speed-of-light bound.}\label{tab:matched}
-\setlength\tabcolsep{3.5pt}
-\begin{tabular}{llccc}\toprule
-Model & Strategy & 4060 8GB & 4090 & 5090\\\midrule
-gpt-oss-120b & GPU cache fraction & \GptbigFracLow\% & \GptbigFracMid\% & \GptbigFracHigh\%\\
- & static layers (llama.cpp) & \GptbigLowStatic & \GptbigMidStatic & \GptbigHighStatic\\
- & \quad \% SoL & \GptbigLowStaticOfSol\% & \GptbigMidStaticOfSol\% & \GptbigHighStaticOfSol\%\\
- & LRU, fetch on miss & \GptbigLowLruFetch & \GptbigMidLruFetch & \GptbigHighLruFetch\\
- & LRU, CPU misses & \GptbigLowLruCpu & \GptbigMidLruCpu & \GptbigHighLruCpu\\
- & \quad \% SoL & \GptbigLowLruOfSol\% & \GptbigMidLruOfSol\% & \GptbigHighLruOfSol\%\\
- & speed of light & \GptbigLowSol & \GptbigMidSol & \GptbigHighSol\\\midrule
-Qwen3-30B & GPU cache fraction & \QwenFracLow\% & \QwenFracMid\% & \QwenFracHigh\%\\
- & static layers & \QwenLowStatic & \QwenMidStatic & \QwenHighStatic\\
- & LRU, CPU misses & \QwenLowLruCpu & \QwenMidLruCpu & \QwenHighLruCpu\\
- & speed of light & \QwenLowSol & \QwenMidSol & \QwenHighSol\\\bottomrule
+\caption{Projected decode tok/s at each platform's VRAM-matched operating point: experts that fit after dense weights, an 8k-token KV cache and a \SI{1.5}{GB} reserve. Fitted parameters are used. ``\% SoL'' is relative to the concurrent speed-of-light bound. The last row repeats the LRU/static speed-up with $\eta_g=0.6$. Qwen3-30B-A3B fits entirely in VRAM on the 4090 and 5090, so only its 4060 column is an offload case.}\label{tab:matched}
+\setlength\tabcolsep{5pt}
+\begin{tabular}{lccc|c}\toprule
+ & \multicolumn{3}{c|}{gpt-oss-120b} & Qwen3-30B-A3B\\
+Strategy & RTX 4060 8GB & RTX 4090 & RTX 5090 & RTX 4060 8GB\\\midrule
+GPU cache (fraction of experts) & \GptbigFracLow\% & \GptbigFracMid\% & \GptbigFracHigh\% & \QwenFracLow\%\\
+all experts on CPU & \GptbigLowAllCpu & \GptbigMidAllCpu & \GptbigHighAllCpu & \QwenLowAllCpu\\
+static layer split (llama.cpp) & \GptbigLowStatic{} (\GptbigLowStaticOfSol\%) & \GptbigMidStatic{} (\GptbigMidStaticOfSol\%) & \GptbigHighStatic{} (\GptbigHighStaticOfSol\%) & \QwenLowStatic{} (\QwenLowStaticOfSol\%)\\
+LRU, fetch on miss & \GptbigLowLruFetch & \GptbigMidLruFetch & \GptbigHighLruFetch & \QwenLowLruFetch\\
+LRU, CPU misses, serial & \GptbigLowLruSeq & \GptbigMidLruSeq & \GptbigHighLruSeq & \QwenLowLruSeq\\
+LRU, CPU misses, concurrent & \GptbigLowLruCpu{} (\GptbigLowLruOfSol\%) & \GptbigMidLruCpu{} (\GptbigMidLruOfSol\%) & \GptbigHighLruCpu{} (\GptbigHighLruOfSol\%) & \QwenLowLruCpu{} (\QwenLowLruOfSol\%)\\
+MIN-bypass, CPU misses & \GptbigLowBypassCpu{} (\GptbigLowBypassOfSol\%) & \GptbigMidBypassCpu{} (\GptbigMidBypassOfSol\%) & \GptbigHighBypassCpu{} (\GptbigHighBypassOfSol\%) & \QwenLowBypassCpu{} (\QwenLowBypassOfSol\%)\\
+oracle prefetch, CPU misses & \GptbigLowOracle & \GptbigMidOracle & \GptbigHighOracle & \QwenLowOracle\\
+speed of light (serial / concurrent) & \GptbigLowSolSerial{} / \GptbigLowSol & \GptbigMidSolSerial{} / \GptbigMidSol & \GptbigHighSolSerial{} / \GptbigHighSol & \QwenLowSolSerial{} / \QwenLowSol\\\midrule
+LRU-concurrent / static & \GptbigLowLruGain$\times$ & \GptbigMidLruGain$\times$ & \GptbigHighLruGain$\times$ & \QwenLowLruGain$\times$\\
+\quad with $\eta_g=0.6$ & \GptbigLowLruGainSens$\times$ & \GptbigMidLruGainSens$\times$ & \GptbigHighLruGainSens$\times$ & \QwenLowLruGainSens$\times$\\\bottomrule
 \end{tabular}
 \end{table*}
 
-\Cref{fig:toks} and \cref{tab:matched} convert hit rates into throughput with the validated model. Four observations follow.
+\Cref{fig:toks} and \cref{tab:matched} turn hit rates into throughput with the validated model. Dynamic-cache rows are projections: they rest on the structural check in \cref{sec:model}, not on a direct measurement.
 
-\textbf{(i) Where misses execute matters more than the replacement policy.} On PCIe~4 desktops, the same LRU cache is faster with CPU-executed misses than with fetch-on-miss at every cache size (\cref{fig:toks}), because $\eta_pB_p<\eta_cB_c$ (\cref{sec:bound}). This explains why desktop users converge on llama.cpp's CPU offload rather than on fetch-based research systems. On PCIe~5 the two approach parity.
+\textbf{(i) Where misses execute matters more than the replacement policy.} On PCIe~4, the same LRU cache is faster when misses run on the CPU than when they are fetched, because $\eta_pB_p<\eta_cB_c$ (\cref{sec:bound}). This is consistent with desktop users settling on llama.cpp's CPU offload rather than on fetch-based research systems. On PCIe~5 the two strategies move closer, and their order depends on the hand-off latency.
 
-\textbf{(ii) The static layer split leaves throughput unused.} At the VRAM-matched point, llama.cpp-style layer assignment reaches \GptbigMidStaticOfSol\% of the bound for gpt-oss-120b on an RTX~4090 and \GptbigHighStaticOfSol\% on an RTX~5090. Placing the same bytes as a per-layer LRU cache with CPU-executed misses reaches \GptbigMidLruOfSol\% and \GptbigHighLruOfSol\%, a \GptbigMidLruGain$\times$ and \GptbigHighLruGain$\times$ speedup over the static split.
+\textbf{(ii) The static layer split leaves throughput unused when the model does not fit.} For gpt-oss-120b on an RTX~4090, llama.cpp-style layer assignment reaches \GptbigMidStaticOfSol\% of the bound. The same bytes arranged as a per-layer LRU cache with CPU-executed misses reach \GptbigMidLruOfSol\%, which is \GptbigMidLruGain$\times$ the static split (\GptbigMidLruSeqGain$\times$ if CPU and GPU work serialise). The ranking holds with $\eta_g=0.6$.
 
-\textbf{(iii) The headroom left for predictors is bounded.} Once misses run on the CPU, the difference between LRU and Belady-bypass in hit rate translates into a much smaller difference in tok/s. The remaining gap to the bound (\cref{tab:matched}) caps what \emph{any} prefetcher or learned predictor can add on these platforms. Much of that remaining gap comes from CPU--GPU concurrency that the bound allows, not from misses.
+\textbf{(iii) The headroom left for predictors is bounded.} The gap between LRU and the bound (\cref{tab:matched}) caps what \emph{any} prefetcher or learned predictor can add under per-layer capacity. The optimistic oracle prefetcher shows how much of that gap is attainable at all.
 
-\textbf{(iv) Weak GPUs gain little from any policy.} On the RTX~4060 the GPU's expert bandwidth is close to the CPU's ($r^\star$=\QwenRstarLow), so all strategies cluster near CPU-only speed. The lever there is DRAM bandwidth, not caching.
+\textbf{(iv) On the RTX~4060, all strategies gain less.} $r^\star$=\QwenRstarLow{} makes copying unattractive and the GPU is only moderately faster than the CPU, so every strategy stays within a small factor of all-experts-on-CPU speed. On such a machine, DRAM bandwidth matters more than cache policy.
 
 \section{Discussion}
-\paragraph{For engine builders.} The bound says the first-order win on desktops is a \emph{dynamic} expert cache with CPU-executed misses and asynchronous admission, not better static placement or prediction. llama.cpp has no dynamic GPU expert cache today; community prototypes report large gains, consistent with our model. Admission should respect $r^\star$: on PCIe~4 an expert should be copied only if it is expected to be reused a few times.
+\paragraph{For engine builders.} The bound says the first-order win on desktops is a \emph{dynamic} expert cache with CPU-executed misses and asynchronous admission, not better static placement or better prediction. Admission should respect $r^\star$: on PCIe~4, an expert should be copied only if it is likely to be reused a few times. We found no dynamic GPU expert cache in mainline llama.cpp; community forks that add one report gains consistent with the affine model of \cref{sec:model}~\cite{llamacppdisc24528}.
 
-\paragraph{For evaluation.} Hit rate is a poor proxy for speed when misses can execute elsewhere. Policies should be reported as a fraction of a hardware-specific bound, with the hand-off and admission costs stated. Our measurement set and model make that cheap.
+\paragraph{For evaluation.} Hit rate is a poor proxy for speed once misses can run elsewhere. Policies should be reported as a fraction of a hardware-specific bound, with hand-off and admission costs stated. The released measurement set and model make that cheap.
 
-\paragraph{For model design.} \Cref{eq:model} and the traces also run in reverse. Given a target platform ($B_g,B_c,B_p$, VRAM), they predict decode speed as a function of expert count, expert size, top-$k$ and shared-expert size, with locality measured rather than assumed. This points to designing MoE architectures \emph{for} a consumer memory hierarchy: for example, choosing expert granularity so that $r^\star$-worthy reuse is common. We leave this co-design, which requires training models, to future work.
+\paragraph{For model design.} \Cref{eq:model} and the traces also run in reverse. Given a target platform ($B_g,B_c,B_p$ and VRAM), they predict decode speed as a function of expert count, expert size, top-$k$ and shared-expert size, with locality measured rather than assumed. That suggests designing MoE architectures \emph{for} a consumer memory hierarchy. We leave this co-design, which requires training models, to future work.
 
-\section{Limitations}
-\textbf{Off-policy text.} Traces are teacher-forced on dataset responses, not on each model's own samples. Routing is exact for the given text, but self-generated text may be more predictable. \textbf{Batch 1 only}; small-batch serving unions experts across requests and weakens locality. \textbf{The model has no NUMA term} and over-predicts two-socket llama.cpp; it also has no explicit CPU core-count limit, and fitted efficiencies absorb implementation quality. \textbf{Validation is retrodictive}: the author had no hardware, so all measurements are third-party. Some are approximate or from VMs (flagged in the data), and two assume unstated DDR5 speeds. \textbf{Per-layer capacity}: the bound covers policies that partition the cache per layer; a global pool shared across layers could do better. \textbf{Numerics}: traces were computed in fp32 on CPU; GPU inference in bf16 may break near-ties differently.
+\section{Limitations}\label{sec:limits}
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{Off-policy text.} Traces are teacher-forced on dataset responses, not on each model's own samples. Routing is exact for the text, but self-generated text may be more predictable.
+\item \textbf{Batch 1 only.} Small-batch serving takes the union of experts across requests, which weakens locality.
+\item \textbf{Unmodelled platform effects.} The model has no NUMA or cross-socket term, no core-count limit, and no DRAM contention between the CPU expert path and admission copies. Fitted efficiencies absorb implementation quality, and $\eta_g$ is weakly identified.
+\item \textbf{Retrodictive validation only.} The author had no hardware, so every measurement is third-party. Some are approximate or come from VMs, and four assume unstated DDR5 speeds. Dynamic-cache projections are validated in structure only.
+\item \textbf{Scope of the bound.} It covers policies with per-layer capacity; a global pool across layers could do better.
+\item \textbf{Numerics.} Traces were computed in fp32 on the CPU. GPU inference in bf16 can break near-ties differently; re-tracing OLMoE with bf16 compute changes \olmoeBfDiff\% of (token, layer) expert sets and moves the 25\%-cache LRU hit rate by \olmoeBfHitDelta{} points.
+\end{itemize}
 
 \section{Conclusion}
-A causal model's routing is fixed by its prefix, so exact decode traces of large MoEs can be collected on a small CPU machine. A five-parameter bytes-over-bandwidth model, fitted and held out across a dozen independent sources, predicts batch-1 decode within about a sixth. Combined with Belady and Jensen, these give a speed-of-light bound for consumer MoE inference. The bound shows that on today's desktops, where the misses execute matters more than how cleverly they are predicted.
+A causal model's routing is fixed by its prefix, so exact decode traces of large MoEs can be collected on a small CPU machine without storing a single checkpoint. A six-parameter bytes-over-bandwidth model, held out source by source across \nSources{} independent sources, predicts batch-1 decode to within about a sixth. Combined with Belady, load accounting and Jensen, these give a speed-of-light bound for consumer MoE inference. The bound shows that on today's desktops, where a miss executes matters more than how cleverly it is predicted.
 
-\paragraph{Artifact.} Code, traces, the annotated measurement set and scripts that regenerate every number and figure are released with this paper.
+\paragraph{Artifact.} The code, traces and annotated measurement set are released, together with scripts that regenerate every number and figure. The repository also includes a 30-minute protocol for adding a first-party measurement.
 
-\paragraph{Acknowledgments.} Portions of the code, the literature search and the text were drafted with the assistance of an AI system (Claude, Anthropic). The author reviewed the work and takes responsibility for its content.
+\paragraph{Acknowledgments.} Parts of the code, the literature search and the text were drafted with the help of an AI system (Claude, Anthropic). An independent AI review pass found errors in an earlier version of the bound, and these were corrected. The author reviewed the work and takes responsibility for its content.
 
 {\small\bibliographystyle{plain}\bibliography{refs}}
 \end{document}

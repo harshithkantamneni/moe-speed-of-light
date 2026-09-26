@@ -1,0 +1,530 @@
++ B=/opt/runner/work/llama.cpp/build/bin/llama-bench
++ M=/opt/runner/work/models
++ F=(['gpt-oss-20b-mxfp4']='gpt-oss-20b-MXFP4.gguf' ['gpt-oss-120b-mxfp4']='gpt-oss-120b-MXFP4.gguf' ['qwen3-30b-a3b-q4_k_m']='Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf' ['qwen3-30b-a3b-q8_0']='Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf')
++ declare -A F
+++ nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
+++ head -1
++ MAXSM=1695
+++ nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
+++ head -1
++ MAXMEM=6251
++ sudo nvidia-smi -pm 1
+Persistence mode is already Enabled for GPU 00000000:06:00.0.
+All done.
++ sudo nvidia-smi -lgc 1695,1695
+GPU clocks set to "(gpuClkMin 1695, gpuClkMax 1695)" for GPU 00000000:06:00.0
+All done.
++ sudo nvidia-smi -lmc 6251,6251
+Memory clocks set to "(memClkMin 6251, memClkMax 6251)" for GPU 00000000:06:00.0
+All done.
++ MON=4867
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf
++ nvidia-smi --query-gpu=timestamp,clocks.sm,clocks.mem,temperature.gpu,power.draw,clocks_throttle_reasons.active,memory.used --format=csv -l 5
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
++ free -g
+               total        used        free      shared  buff/cache   available
+Mem:             222           1          96           0         123         218
+Swap:              0           0           0
+++ nproc
++ NP=30
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 64 -r 3 -t 8,15,30 -o jsonl
+/opt/runner/repo/jobs/003_sweep.sh: line 26: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
+++ python3 -c '
+import json; rs=[json.loads(l) for l in open('\''/opt/runner/repo/results/003_sweep/threads.jsonl'\'') if l.strip()]
+print(max(rs, key=lambda r: r['\''avg_ts'\''])['\''n_threads'\''])'
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+ValueError: max() arg is an empty sequence
++ T=
++ echo threads=
++ tee /opt/runner/repo/results/003_sweep/threads.txt
+threads=
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 0'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 3'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 6'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 9'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 12'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 15'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 18'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 21'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 24'
++ for n in 0 3 6 9 12 15 18 21 24 cpu
++ echo 'gpt-oss-20b-mxfp4 cpu'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 0'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 6'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 12'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 18'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 24'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 30'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 36'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 42'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m 48'
++ for n in 0 6 12 18 24 30 36 42 48 cpu
++ echo 'qwen3-30b-a3b-q4_k_m cpu'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 18'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 24'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 30'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 36'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 42'
++ for n in 18 24 30 36 42 48
++ echo 'qwen3-30b-a3b-q8_0 48'
++ for n in 25 28 31 34 36
++ echo 'gpt-oss-120b-mxfp4 25'
++ for n in 25 28 31 34 36
++ echo 'gpt-oss-120b-mxfp4 28'
++ for n in 25 28 31 34 36
++ echo 'gpt-oss-120b-mxfp4 31'
++ for n in 25 28 31 34 36
++ echo 'gpt-oss-120b-mxfp4 34'
++ for n in 25 28 31 34 36
++ echo 'gpt-oss-120b-mxfp4 36'
++ SEED=20260926
++ shuf --random-source=/dev/fd/63 configs.txt
+++ yes 20260926
++ cat /opt/runner/repo/results/003_sweep/order.txt
++ echo 'gpt-oss-20b-mxfp4 0'
++ echo 'qwen3-30b-a3b-q4_k_m 24'
++ echo 'gpt-oss-120b-mxfp4 36'
++ i=0
++ read -r model n
++ i=1
++ '[' cpu = cpu ']'
++ args='-ngl 0'
+++ date -u +%T
++ echo '[1] qwen3-30b-a3b-q4_k_m n_cpu_moe=cpu 21:03:54'
+[1] qwen3-30b-a3b-q4_k_m n_cpu_moe=cpu 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m cpu 1 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=2
++ '[' 15 = cpu ']'
++ args='-ngl 99 -ncmoe 15'
+++ date -u +%T
++ echo '[2] gpt-oss-20b-mxfp4 n_cpu_moe=15 21:03:54'
+[2] gpt-oss-20b-mxfp4 n_cpu_moe=15 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 15 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 15 2 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=3
++ '[' 12 = cpu ']'
++ args='-ngl 99 -ncmoe 12'
+++ date -u +%T
++ echo '[3] qwen3-30b-a3b-q4_k_m n_cpu_moe=12 21:03:54'
+[3] qwen3-30b-a3b-q4_k_m n_cpu_moe=12 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 12 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 12 3 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=4
++ '[' 48 = cpu ']'
++ args='-ngl 99 -ncmoe 48'
+++ date -u +%T
++ echo '[4] qwen3-30b-a3b-q8_0 n_cpu_moe=48 21:03:54'
+[4] qwen3-30b-a3b-q8_0 n_cpu_moe=48 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 48 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 48 4 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=5
++ '[' 42 = cpu ']'
++ args='-ngl 99 -ncmoe 42'
+++ date -u +%T
++ echo '[5] qwen3-30b-a3b-q4_k_m n_cpu_moe=42 21:03:54'
+[5] qwen3-30b-a3b-q4_k_m n_cpu_moe=42 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 42 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 42 5 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=6
++ '[' 36 = cpu ']'
++ args='-ngl 99 -ncmoe 36'
+++ date -u +%T
++ echo '[6] qwen3-30b-a3b-q4_k_m n_cpu_moe=36 21:03:54'
+[6] qwen3-30b-a3b-q4_k_m n_cpu_moe=36 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 36 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 36 6 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=7
++ '[' 34 = cpu ']'
++ args='-ngl 99 -ncmoe 34'
+++ date -u +%T
++ echo '[7] gpt-oss-120b-mxfp4 n_cpu_moe=34 21:03:54'
+[7] gpt-oss-120b-mxfp4 n_cpu_moe=34 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 34 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 34 7 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=8
++ '[' 24 = cpu ']'
++ args='-ngl 99 -ncmoe 24'
+++ date -u +%T
++ echo '[8] gpt-oss-20b-mxfp4 n_cpu_moe=24 21:03:54'
+[8] gpt-oss-20b-mxfp4 n_cpu_moe=24 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 24 8 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=9
++ '[' 0 = cpu ']'
++ args='-ngl 99 -ncmoe 0'
+++ date -u +%T
++ echo '[9] gpt-oss-20b-mxfp4 n_cpu_moe=0 21:03:54'
+[9] gpt-oss-20b-mxfp4 n_cpu_moe=0 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 0 9 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=10
++ '[' 6 = cpu ']'
++ args='-ngl 99 -ncmoe 6'
+++ date -u +%T
++ echo '[10] qwen3-30b-a3b-q4_k_m n_cpu_moe=6 21:03:54'
+[10] qwen3-30b-a3b-q4_k_m n_cpu_moe=6 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 6 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 6 10 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=11
++ '[' 48 = cpu ']'
++ args='-ngl 99 -ncmoe 48'
+++ date -u +%T
++ echo '[11] qwen3-30b-a3b-q4_k_m n_cpu_moe=48 21:03:54'
+[11] qwen3-30b-a3b-q4_k_m n_cpu_moe=48 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 48 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 48 11 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=12
++ '[' 12 = cpu ']'
++ args='-ngl 99 -ncmoe 12'
+++ date -u +%T
++ echo '[12] gpt-oss-20b-mxfp4 n_cpu_moe=12 21:03:54'
+[12] gpt-oss-20b-mxfp4 n_cpu_moe=12 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 12 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 12 12 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=13
++ '[' 24 = cpu ']'
++ args='-ngl 99 -ncmoe 24'
+++ date -u +%T
++ echo '[13] qwen3-30b-a3b-q8_0 n_cpu_moe=24 21:03:54'
+[13] qwen3-30b-a3b-q8_0 n_cpu_moe=24 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 24 13 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=14
++ '[' 28 = cpu ']'
++ args='-ngl 99 -ncmoe 28'
+++ date -u +%T
++ echo '[14] gpt-oss-120b-mxfp4 n_cpu_moe=28 21:03:54'
+[14] gpt-oss-120b-mxfp4 n_cpu_moe=28 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 28 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 28 14 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=15
++ '[' 31 = cpu ']'
++ args='-ngl 99 -ncmoe 31'
+++ date -u +%T
++ echo '[15] gpt-oss-120b-mxfp4 n_cpu_moe=31 21:03:54'
+[15] gpt-oss-120b-mxfp4 n_cpu_moe=31 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 31 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 31 15 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=16
++ '[' cpu = cpu ']'
++ args='-ngl 0'
+++ date -u +%T
++ echo '[16] gpt-oss-20b-mxfp4 n_cpu_moe=cpu 21:03:54'
+[16] gpt-oss-20b-mxfp4 n_cpu_moe=cpu 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 cpu 16 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=17
++ '[' 21 = cpu ']'
++ args='-ngl 99 -ncmoe 21'
+++ date -u +%T
++ echo '[17] gpt-oss-20b-mxfp4 n_cpu_moe=21 21:03:54'
+[17] gpt-oss-20b-mxfp4 n_cpu_moe=21 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 21 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 21 17 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=18
++ '[' 36 = cpu ']'
++ args='-ngl 99 -ncmoe 36'
+++ date -u +%T
++ echo '[18] qwen3-30b-a3b-q8_0 n_cpu_moe=36 21:03:54'
+[18] qwen3-30b-a3b-q8_0 n_cpu_moe=36 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 36 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 36 18 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=19
++ '[' 6 = cpu ']'
++ args='-ngl 99 -ncmoe 6'
+++ date -u +%T
++ echo '[19] gpt-oss-20b-mxfp4 n_cpu_moe=6 21:03:54'
+[19] gpt-oss-20b-mxfp4 n_cpu_moe=6 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 6 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 6 19 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=20
++ '[' 0 = cpu ']'
++ args='-ngl 99 -ncmoe 0'
+++ date -u +%T
++ echo '[20] qwen3-30b-a3b-q4_k_m n_cpu_moe=0 21:03:54'
+[20] qwen3-30b-a3b-q4_k_m n_cpu_moe=0 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 0 20 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=21
++ '[' 42 = cpu ']'
++ args='-ngl 99 -ncmoe 42'
+++ date -u +%T
++ echo '[21] qwen3-30b-a3b-q8_0 n_cpu_moe=42 21:03:54'
+[21] qwen3-30b-a3b-q8_0 n_cpu_moe=42 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 42 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 42 21 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=22
++ '[' 3 = cpu ']'
++ args='-ngl 99 -ncmoe 3'
+++ date -u +%T
++ echo '[22] gpt-oss-20b-mxfp4 n_cpu_moe=3 21:03:54'
+[22] gpt-oss-20b-mxfp4 n_cpu_moe=3 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 3 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 3 22 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=23
++ '[' 30 = cpu ']'
++ args='-ngl 99 -ncmoe 30'
+++ date -u +%T
++ echo '[23] qwen3-30b-a3b-q8_0 n_cpu_moe=30 21:03:54'
+[23] qwen3-30b-a3b-q8_0 n_cpu_moe=30 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 30 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 30 23 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=24
++ '[' 18 = cpu ']'
++ args='-ngl 99 -ncmoe 18'
+++ date -u +%T
++ echo '[24] gpt-oss-20b-mxfp4 n_cpu_moe=18 21:03:54'
+[24] gpt-oss-20b-mxfp4 n_cpu_moe=18 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 18 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 18 24 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=25
++ '[' 36 = cpu ']'
++ args='-ngl 99 -ncmoe 36'
+++ date -u +%T
++ echo '[25] gpt-oss-120b-mxfp4 n_cpu_moe=36 21:03:54'
+[25] gpt-oss-120b-mxfp4 n_cpu_moe=36 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 36 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 36 25 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=26
++ '[' 9 = cpu ']'
++ args='-ngl 99 -ncmoe 9'
+++ date -u +%T
++ echo '[26] gpt-oss-20b-mxfp4 n_cpu_moe=9 21:03:54'
+[26] gpt-oss-20b-mxfp4 n_cpu_moe=9 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 9 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 9 26 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=27
++ '[' 18 = cpu ']'
++ args='-ngl 99 -ncmoe 18'
+++ date -u +%T
++ echo '[27] qwen3-30b-a3b-q4_k_m n_cpu_moe=18 21:03:54'
+[27] qwen3-30b-a3b-q4_k_m n_cpu_moe=18 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 18 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 18 27 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=28
++ '[' 24 = cpu ']'
++ args='-ngl 99 -ncmoe 24'
+++ date -u +%T
++ echo '[28] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 21:03:54'
+[28] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 24 28 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=29
++ '[' 18 = cpu ']'
++ args='-ngl 99 -ncmoe 18'
+++ date -u +%T
++ echo '[29] qwen3-30b-a3b-q8_0 n_cpu_moe=18 21:03:54'
+[29] qwen3-30b-a3b-q8_0 n_cpu_moe=18 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf -ngl 99 -ncmoe 18 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q8_0 18 29 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=30
++ '[' 30 = cpu ']'
++ args='-ngl 99 -ncmoe 30'
+++ date -u +%T
++ echo '[30] qwen3-30b-a3b-q4_k_m n_cpu_moe=30 21:03:54'
+[30] qwen3-30b-a3b-q4_k_m n_cpu_moe=30 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 30 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 30 30 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=31
++ '[' 25 = cpu ']'
++ args='-ngl 99 -ncmoe 25'
+++ date -u +%T
++ echo '[31] gpt-oss-120b-mxfp4 n_cpu_moe=25 21:03:54'
+[31] gpt-oss-120b-mxfp4 n_cpu_moe=25 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 25 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 25 31 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=32
++ '[' 0 = cpu ']'
++ args='-ngl 99 -ncmoe 0'
+++ date -u +%T
++ echo '[32] gpt-oss-20b-mxfp4 n_cpu_moe=0 21:03:54'
+[32] gpt-oss-20b-mxfp4 n_cpu_moe=0 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-20b-mxfp4 0 32 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=33
++ '[' 24 = cpu ']'
++ args='-ngl 99 -ncmoe 24'
+++ date -u +%T
++ echo '[33] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 21:03:54'
+[33] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 24 33 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ i=34
++ '[' 36 = cpu ']'
++ args='-ngl 99 -ncmoe 36'
+++ date -u +%T
++ echo '[34] gpt-oss-120b-mxfp4 n_cpu_moe=36 21:03:54'
+[34] gpt-oss-120b-mxfp4 n_cpu_moe=36 21:03:54
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 36 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - gpt-oss-120b-mxfp4 36 34 127
++ tail -3 run.err
+/opt/runner/repo/jobs/003_sweep.sh: line 48: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
++ read -r model n
++ kill 4867
++ nvidia-smi --query-gpu=clocks.sm,clocks.mem --format=csv
+clocks.current.sm [MHz], clocks.current.memory [MHz]
+1695 MHz, 6251 MHz

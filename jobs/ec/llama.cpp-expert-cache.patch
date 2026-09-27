@@ -700,10 +700,10 @@ index b403b09..e38fff9 100644
      ggml_backend_t backend_cpu = nullptr;
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..1dacd7d
+index 0000000..8ea7b74
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,871 @@
+@@ -0,0 +1,920 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -718,6 +718,11 @@ index 0000000..1dacd7d
 +#include <cstring>
 +#include <fstream>
 +#include <sstream>
++#include <chrono>
++#if defined(__linux__)
++#include <pthread.h>
++#include <sched.h>
++#endif
 +
 +#if defined(__x86_64__) || defined(_M_X64)
 +#include <immintrin.h>
@@ -771,6 +776,7 @@ index 0000000..1dacd7d
 +    }
 +    mailbox   = env_int("LLAMA_EC_MAILBOX", 0) != 0;
 +    n_helpers = env_int("LLAMA_EC_HELPERS", std::max(1, (int) std::thread::hardware_concurrency() - 2));
++    pin_helpers = env_int("LLAMA_EC_PIN", 0) != 0;
 +
 +    const auto & hp = model.hparams;
 +
@@ -855,7 +861,10 @@ index 0000000..1dacd7d
 +        L.last.assign(E, 0);
 +        L.stamp.assign(E, -1);
 +        L.count.assign(E, 0);
++        L.miss_hist.assign(L.n_used + 1, 0);
 +    }
++    mb_busy_us.assign(max_used + 1, 0.0);
++    mb_count.assign(max_used + 1, 0);
 +    routing = ggml_new_tensor_2d(ctx, GGML_TYPE_I32, max_used, 3 * (int64_t) layers.size());
 +    ggml_set_name(routing, "ec_routing");
 +    routing_host.assign(3 * max_used * layers.size(), -1);
@@ -1296,6 +1305,14 @@ index 0000000..1dacd7d
 +        const int k = L.n_used;
 +
 +        std::vector<int> missed;
++        int n_miss = 0;
++        for (int j = 0; j < k; ++j) {
++            const int e = sel[j];
++            if (e >= 0 && e < L.n_expert && L.slot_of[e] < 0) {
++                n_miss++;
++            }
++        }
++        L.miss_hist[std::min(n_miss, k)]++;
 +        for (int j = 0; j < k; ++j) {
 +            const int e = sel[j];
 +            if (e < 0 || e >= L.n_expert) {
@@ -1390,13 +1407,27 @@ index 0000000..1dacd7d
 +            (int) mailbox, mailbox ? n_helpers : 0, (long long) step);
 +    fprintf(f, " \"check_steps\": %llu, \"check_bad\": %llu, \"check_gpu_frac\": %.6f,\n", (unsigned long long) check_steps,
 +            (unsigned long long) check_bad, check_total ? (double) check_gpu / check_total : 0.0);
-+    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f,\n \"layers\": [\n",
++    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f,\n",
 +            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0);
++    fprintf(f, " \"mb_busy_us\": [");
++    for (size_t m = 0; m < mb_busy_us.size(); ++m) {
++        fprintf(f, "%s%.1f", m ? "," : "", mb_busy_us[m]);
++    }
++    fprintf(f, "], \"mb_count\": [");
++    for (size_t m = 0; m < mb_count.size(); ++m) {
++        fprintf(f, "%s%llu", m ? "," : "", (unsigned long long) mb_count[m]);
++    }
++    fprintf(f, "],\n \"layers\": [\n");
 +    for (size_t i = 0; i < layers.size(); ++i) {
 +        const auto & L = layers[i];
-+        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, \"count\": [", L.il, L.C,
++        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, ", L.il, L.C,
 +                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits,
 +                (unsigned long long) L.mb_requests, (unsigned long long) L.mb_experts);
++        fprintf(f, "\"miss_hist\": [");
++        for (size_t m = 0; m < L.miss_hist.size(); ++m) {
++            fprintf(f, "%s%llu", m ? "," : "", (unsigned long long) L.miss_hist[m]);
++        }
++        fprintf(f, "], \"count\": [");
 +        for (int e = 0; e < L.n_expert; ++e) {
 +            fprintf(f, "%s%llu", e ? "," : "", (unsigned long long) L.count[e]);
 +        }
@@ -1414,7 +1445,7 @@ index 0000000..1dacd7d
 +    return mailbox && L && L->w_gate && L->w_up && L->w_down && L->act >= 0 && L->C < L->n_expert;
 +}
 +
-+const ggml_ec_op * llama_expert_cache::mailbox_op(int il, int mode) const {
++ggml_ec_op * llama_expert_cache::mailbox_op(int il, int mode) {
 +    return &mb_ops[2 * idx_of.at(il) + mode];
 +}
 +
@@ -1443,7 +1474,20 @@ index 0000000..1dacd7d
 +    }
 +}
 +
++static int64_t now_us() {
++    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++
 +void llama_expert_cache::helper_main(int ith) {
++#if defined(__linux__)
++    if (pin_helpers) {
++        const int ncpu = (int) std::thread::hardware_concurrency();
++        cpu_set_t cs;
++        CPU_ZERO(&cs);
++        CPU_SET((ith + 1) % std::max(1, ncpu), &cs);
++        pthread_setaffinity_np(pthread_self(), sizeof(cs), &cs);
++    }
++#endif
 +    const volatile uint32_t * req = (const volatile uint32_t *) (mb_host + GGML_EC_MB_REQ);
 +    uint32_t seen = 0;
 +    while (true) {
@@ -1483,6 +1527,9 @@ index 0000000..1dacd7d
 +
 +void llama_expert_cache::helper_serve(int ith, uint32_t seq) {
 +    const int nth = n_helpers;
++    if (ith == 0) {
++        t_req_us = now_us();
++    }
 +    const int li = *(const volatile int32_t *) (mb_host + GGML_EC_MB_LAYER);
 +    const int32_t * ids = (const int32_t *) (mb_host + GGML_EC_MB_IDS);
 +    const float * x = (const float *) (mb_host + GGML_EC_MB_X);
@@ -1573,14 +1620,16 @@ index 0000000..1dacd7d
 +        done_count.store(0, std::memory_order_relaxed);
 +        std::atomic_thread_fence(std::memory_order_seq_cst);
 +        *(volatile uint32_t *) (mb_host + GGML_EC_MB_RESP) = seq;
++        mb_busy_us[std::min(m, (int) mb_busy_us.size() - 1)] += (double) (now_us() - t_req_us);
++        mb_count[std::min(m, (int) mb_count.size() - 1)]++;
 +    }
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..b293d0d
+index 0000000..35ff5fd
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,194 @@
+@@ -0,0 +1,201 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -1625,6 +1674,7 @@ index 0000000..b293d0d
 +//                       experts on the helpers.
 +//   LLAMA_EC_HELPERS    helper threads in mailbox mode (default: hardware threads - 2)
 +//   LLAMA_EC_TIMEOUT_MS a GPU wait for the helpers gives up after this long (default 2000; the step then aborts)
++//   LLAMA_EC_PIN       1 = pin helper i to CPU i+1 (CPU 0 is left to the thread driving the GPU)
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
@@ -1669,6 +1719,7 @@ index 0000000..b293d0d
 +        int act = -1;
 +        uint64_t mb_requests = 0;         // requests the helpers served for this layer
 +        uint64_t mb_experts = 0;          // experts they computed
++        std::vector<uint64_t> miss_hist;  // [n_used+1] decode steps with m of the selected experts not resident
 +    };
 +
 +    llama_expert_cache(const llama_model & model, ggml_backend_t gpu_backend, ggml_backend_dev_t gpu_dev);
@@ -1694,7 +1745,7 @@ index 0000000..b293d0d
 +
 +    // mailbox mode
 +    bool use_mailbox(int il) const;                         // the decode graph hands this layer's CPU experts to the helpers
-+    const ggml_ec_op * mailbox_op(int il, int mode) const;  // userdata of the layer's REQUEST / WAIT op
++    ggml_ec_op * mailbox_op(int il, int mode);  // userdata of the layer's REQUEST / WAIT op
 +    void set_act(int il, int act);                          // 0 swiglu, 1 swiglu_oai (set while building the graph)
 +
 +    // decode loop hooks
@@ -1720,6 +1771,10 @@ index 0000000..b293d0d
 +    uint64_t check_steps = 0, check_bad = 0, check_gpu = 0, check_total = 0;
 +    bool mailbox = false;
 +    int  n_helpers = 0;
++    bool pin_helpers = false;
++    // helper service time (first helper sees the request -> answer published), by number of experts computed
++    std::vector<double>   mb_busy_us;     // [n_used+1]
++    std::vector<uint64_t> mb_count;       // [n_used+1]
 +
 +private:
 +    // mailbox mode
@@ -1740,6 +1795,7 @@ index 0000000..b293d0d
 +    std::vector<char>  h_xq;                    // quantized layer input
 +    std::vector<char>  h_aq;                    // [k] quantized activations
 +    size_t aq_stride = 0;
++    int64_t t_req_us = 0;                       // set by helper 0 when it picks up a request
 +    void helper_main(int ith);
 +    void helper_serve(int ith, uint32_t seq);
 +    void helper_barrier();
@@ -1776,7 +1832,7 @@ index 0000000..b293d0d
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index 0b3bab6..c23d5b8 100644
+index 0b3bab6..b00f275 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -1937,13 +1993,13 @@ index 0b3bab6..c23d5b8 100644
 +        ggml_tensor * cid = ggml_reshape_2d(ctx0, selected_experts, n_expert_used, n_tokens);
 +        ggml_tensor * req_args[2] = { x, cid };
 +        ggml_tensor * req = ggml_custom_4d(ctx0, GGML_TYPE_I32, 1, 1, 1, 1, req_args, 2, ggml_ec_op_stub, 1,
-+                (void *) ec->mailbox_op(il, GGML_EC_REQUEST));
++                ec->mailbox_op(il, GGML_EC_REQUEST));
 +        ggml_format_name(req, "ec_req-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, req, be_gpu);
 +        ggml_build_forward_expand(gf, req);
 +        ggml_tensor * wait_args[2] = { cid, req };
 +        ggml_tensor * out = ggml_custom_4d(ctx0, GGML_TYPE_F32, n_embd, n_expert_used, n_tokens, 1, wait_args, 2, ggml_ec_op_stub, 1,
-+                (void *) ec->mailbox_op(il, GGML_EC_WAIT));
++                ec->mailbox_op(il, GGML_EC_WAIT));
 +        ggml_format_name(out, "ec_wait-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, out, be_gpu);
 +        cb(out, "ffn_moe_ec_helpers", il);
@@ -1990,7 +2046,7 @@ index 0b3bab6..c23d5b8 100644
 +        ggml_tensor * x = ggml_reshape_2d(ctx0, cur, n_embd, n_tokens);
 +        ggml_tensor * req_args[2] = { x, cid };
 +        ggml_tensor * req = ggml_custom_4d(ctx0, GGML_TYPE_I32, 1, 1, 1, 1, req_args, 2, ggml_ec_op_stub, 1,
-+                (void *) ec->mailbox_op(il, GGML_EC_REQUEST));
++                ec->mailbox_op(il, GGML_EC_REQUEST));
 +        ggml_format_name(req, "ec_req-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, req, be_gpu);
 +        ggml_build_forward_expand(gf, req);
@@ -1999,7 +2055,7 @@ index 0b3bab6..c23d5b8 100644
 +        ggml_build_forward_expand(gf, out_gpu);
 +        ggml_tensor * wait_args[3] = { cid, req, out_gpu };
 +        ggml_tensor * out = ggml_custom_4d(ctx0, GGML_TYPE_F32, n_embd, n_expert_used, n_tokens, 1, wait_args, 3, ggml_ec_op_stub, 1,
-+                (void *) ec->mailbox_op(il, GGML_EC_WAIT));
++                ec->mailbox_op(il, GGML_EC_WAIT));
 +        ggml_format_name(out, "ec_wait-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, out, be_gpu);
 +        cb(out, "ffn_moe_ec_merged", il);

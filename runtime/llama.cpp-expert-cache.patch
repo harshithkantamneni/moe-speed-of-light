@@ -1167,7 +1167,7 @@ index 3daa425..33681a4 100644
      // inputs
      //
 diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
-index 6527049..9234e56 100644
+index 6527049..3079d34 100644
 --- a/tests/test-backend-ops.cpp
 +++ b/tests/test-backend-ops.cpp
 @@ -3391,6 +3391,8 @@ struct test_bin_bcast : public test_case {
@@ -1234,10 +1234,10 @@ index 6527049..9234e56 100644
  // FP4 W4A8 path on the MoE path (GGML_PREC_Q8 on src1 disallows 4-bit activations)
  struct test_mul_mat_id_w4a8 : public test_mul_mat_id {
      test_mul_mat_id_w4a8(ggml_type type_a = GGML_TYPE_NVFP4, ggml_type type_b = GGML_TYPE_F32,
-@@ -10063,6 +10106,15 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+@@ -10067,6 +10110,16 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 512, 5120, {128, 1}, {1, 1}));
+ #endif
  
-     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_Q8_0, GGML_TYPE_F32, 128, 128, false, 8192, 2, 5120)); // Llama-4-Maverick-17B-128E-PAB-Q8_0
-     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_Q8_0, GGML_TYPE_F32, 128, 128, false, 8192, 1, 5120)); // Llama-4-Maverick-17B-128E-PAB-Q8_0
 +    // expert-cache: negative ids (decode, one token), quantized weights as in the cached models
 +    for (ggml_type t : { GGML_TYPE_Q8_0, GGML_TYPE_Q4_K, GGML_TYPE_Q6_K, GGML_TYPE_MXFP4 }) {
 +        for (bool bc : { true, false }) {
@@ -1247,9 +1247,10 @@ index 6527049..9234e56 100644
 +    }
 +    test_cases.emplace_back(new test_add_id_ec(GGML_TYPE_F32, GGML_TYPE_F32, 2880, 32, 4, 1));
 +    test_cases.emplace_back(new test_add_id_ec(GGML_TYPE_F32, GGML_TYPE_F32, 768, 128, 8, 1));
-     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 1, 5120, {128, 1}, {1, 1}));
-     test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 512, 5120, {128, 1}, {1, 1}));
- #endif
++
+     for (ggml_type type_a : all_types) {
+         for (int i = 1; i < 10; ++i) {
+             test_cases.emplace_back(new test_mul_mat(type_a,    GGML_TYPE_F32, 16,  i, 1*256, { 1,  1}, {1, 1}));
 diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
 index c8ad1db..0ed8d16 100644
 --- a/tools/CMakeLists.txt

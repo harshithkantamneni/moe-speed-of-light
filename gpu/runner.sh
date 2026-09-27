@@ -37,10 +37,12 @@ heartbeat_loop() {
     {
       echo "time: $(date -u +%FT%TZ)"; echo "uptime: $(uptime)"
       echo "current_job: ${cur:-idle}"
-      timeout 10 nvidia-smi --query-gpu=name,utilization.gpu,memory.used,clocks.sm,clocks.mem,power.draw,clocks_throttle_reasons.active --format=csv,noheader 2>&1 || echo "nvidia-smi timed out"
+      # nvidia-smi can block in the driver (uninterruptible), so never wait on it: detach and read what it wrote
+      ( timeout -k 2 8 nvidia-smi --query-gpu=name,utilization.gpu,memory.used,clocks.sm,clocks.mem,power.draw,clocks_throttle_reasons.active --format=csv,noheader > $BASE/nvsmi.txt 2>&1 & )
+      sleep 3; cat $BASE/nvsmi.txt 2>/dev/null; echo "nvidia-smi processes alive: $(pgrep -c -x nvidia-smi)"
       free -g | head -2; df -h / | tail -1
-      echo "--- top processes ---"; timeout 5 ps -eo pid,stat,pcpu,pmem,etime,args --sort=-pcpu | head -8 | cut -c1-200
-      echo "--- dmesg ---"; timeout 5 sudo dmesg 2>/dev/null | tail -5
+      echo "--- top processes ---"; timeout 5 ps -eo pid,stat,wchan:24,pcpu,pmem,etime,args --sort=-pcpu | head -8 | cut -c1-220
+      echo "--- dmesg ---"; timeout 5 sudo dmesg 2>/dev/null | grep -iE "nvrm|xid|oom|hung|blocked" | tail -6
       if [ -n "$cur" ]; then
         echo "--- tail of $cur stdout ---"; tail -n 30 "results/$cur/stdout.log" 2>/dev/null | cut -c1-300
         echo "--- tail of $cur stderr_runs ---"; tail -n 8 "results/$cur/stderr_runs.txt" 2>/dev/null | cut -c1-300

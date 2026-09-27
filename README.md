@@ -18,7 +18,7 @@ Decode speed-up of the expert cache with GPU-signalled CPU helpers ("mailbox") o
 Teacher-forced NLL within 0.6 % of llama.cpp; a step-time model fitted on calibration sequences predicted all 33 test configurations with 2.9 % median error (predictions committed before the run: `prereg/PROTOCOL.md`, phase 3; outcomes: `prereg/a10_mb/scored.md`). Raw runs: `results/firstparty/a10/019_ec_calib`, `020a`–`020c`, `021`. Job scripts: branch `gpu`, `jobs/0*.sh`.
 
 Apply the system: `git checkout 2145525a` of ggml-org/llama.cpp, `git apply runtime/llama.cpp-expert-cache.patch`, build with CUDA, then e.g.
-`LLAMA_EC_SLOTS=8 LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=28` with experts in pinned host memory (see `tools/ec-bench/ec-bench.cpp --host-experts` and the comment block in `src/llama-expert-cache.h`).
+`LLAMA_EC_SLOTS=8 LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=28` and decode threads 1 (`-t 1 -tb <cores>`), with experts in pinned host memory (see `tools/ec-bench/ec-bench.cpp --host-experts` and the comment block in `src/llama-expert-cache.h`).
 
 ## What is here
 

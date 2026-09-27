@@ -28,6 +28,9 @@ REGISTERED = ["olmoe", "gpt-oss-20b", "qwen3-30b-a3b", "gpt-oss-120b"]
 EXTENSION = ["mixtral-8x7b", "deepseek-v2-lite", "qwen1.5-moe", "qwen2-57b", "phi3.5-moe"]
 
 
+ELL, AST = "$^\\ell$", "$^\\ast$"
+
+
 def tex(s):
     s = str(s)
     for a, b in (("\\", "\\textbackslash{}"), ("&", "\\&"), ("%", "\\%"), ("#", "\\#"), ("_", "\\_"), ("$", "\\$"),
@@ -42,6 +45,18 @@ def rate(rows):
 
 def jl(p):
     return [json.loads(l) for l in open(p) if l.strip()]
+
+
+def short_model(m):
+    m = re.sub(r"\s*\(.*?\)", "", m or "")
+    m = re.sub(r"-(Instruct|Chat)(-v0\.1|-2507)?", "", m)
+    m = m.replace(" Q4_K_M", "").replace("-FP8", " FP8").replace("-BF16", " BF16").replace("-MXFP4", "")
+    return m.strip()[:20]
+
+
+def short_gpu(g):
+    g = re.sub(r"\s*\(.*?\)", "", g).replace("NVIDIA ", "").replace("GeForce ", "").replace(" Blackwell", "")
+    return g.replace(" Laptop", " Lap.").replace("Quadro ", "").strip()[:14]
 
 
 def short_system(s):
@@ -121,6 +136,9 @@ def main():
         ms = [d(k, "hit_MIN-bypass_1")[0] for k in ext]
         N["provExtMinDropMin"] = f"{-100 * max(ms):.1f}"
         N["provExtMinDropMax"] = f"{-100 * min(ms):.1f}"
+        f2 = [k for k in ext if PX[k]["flags"].get("F2")]
+        N["provExtFTwo"] = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}[len(f2)]
+        N["provExtFTwoNames"] = " and ".join(PROV_NAMES[k] for k in f2) or "--"
     N["provPTwoFail"] = sum(not P[k]["predictions"].get("P2", True) for k in reg)
     N["provFlags"] = sum(bool(P[k]["flags"].get("F1")) or P[k]["flags"].get("F2") or P[k]["flags"].get("F3_fires", False) for k in reg)
     N["provNArch"] = 7
@@ -132,7 +150,10 @@ def main():
     N["provNTokensM"] = f"{toks / 1e6:.2f}"
     N["provNTraceModels"] = len(set(P) | set(PX))
     # F4: the mailbox cache's fraction of the bound, S vs D arm, same instance
-    solD, solS = (json.load(open(f"prereg/a10_windows_038/sol_{x}.json")) for x in "DS")
+    # the implementation-relative bound needs the model's own measured all-GPU run: gpt-oss-20b and Qwen3 Q4_K_M
+    # (Q8_0 borrows Q4_K_M's GPU efficiency in sol_*.json and is excluded from bound claims)
+    OWN = ("gpt-oss-20b-MXFP4", "Qwen3-30B-A3B-Instruct-2507-Q4_K_M")
+    solD, solS = ({t: v for t, v in json.load(open(f"prereg/a10_windows_038/sol_{x}.json")).items() if t in OWN} for x in "DS")
     f4 = [abs(solS[t]["budgets"][q]["mailbox_of_sol"] - solD[t]["budgets"][q]["mailbox_of_sol"])
           for t in solD for q in solD[t]["budgets"] if t in solS and q in solS[t]["budgets"]]
     N["provFFour"] = f"{100 * max(f4):.1f}"
@@ -237,7 +258,7 @@ def main():
          "Hit rates in points at 12.5\\% / 25\\% of experts; DFA is our deployed admission policy, MIN-bypass the oracle. "
          "$\\Delta M^\\star_{\\mathrm{glob}}$: reduction of MIN-bypass misses (S) when the per-layer budget is pooled over all layers, at 12.5\\%. "
          "Rows below the rule extend the registered study to the audit's models.}\\label{tab:prov}",
-         "\\begin{tabular}{lrrrrrrrl}\\toprule",
+         "\\resizebox{\\textwidth}{!}{\\begin{tabular}{lrrrrrrrl}\\toprule",
          "model & $E$/$k$ & NLL D & NLL S & $\\Delta$DFA 12.5\\% & $\\Delta$DFA 25\\% & $\\Delta$MIN-b. 12.5\\% & $\\Delta M^\\star_{\\mathrm{glob}}$ & F1--F3 \\\\ \\midrule"]
     ci = lambda t: f"{100 * t[0]:+.1f} [{100 * t[1]:+.1f}, {100 * t[2]:+.1f}]"
     for grp in (reg, ext):
@@ -251,7 +272,7 @@ def main():
                      if k in G else "")
         if grp is reg and ext:
             L.append("\\midrule")
-    L += ["\\bottomrule\\end{tabular}\\end{table*}"]
+    L += ["\\bottomrule\\end{tabular}}\\end{table*}"]
     open(os.path.join(a.out, "table_prov.tex"), "w").write("\n".join(x for x in L if x) + "\n")
 
     # ---------------- table: A10 case study ----------------
@@ -259,7 +280,7 @@ def main():
          "\\caption{Our cache (``mailbox'') against llama.cpp \\texttt{--n-cpu-moe} at equal expert memory on one A10 instance, "
          "response windows. tok/s on dataset text (D); speed-ups on D and on the models' own text (S); fractions of the "
          "implementation-relative speed-of-light where an all-GPU run exists.}\\label{tab:a10}",
-         "\\begin{tabular}{llrrrrrr}\\toprule",
+         "\\resizebox{\\columnwidth}{!}{\\begin{tabular}{llrrrrrr}\\toprule",
          "model & budget & llama & cache & $\\times$ D & $\\times$ S & cache/SoL & llama/SoL \\\\ \\midrule"]
     for tag in A10:
         for q, bb in scD["results"][tag]["budgets"].items():
@@ -268,7 +289,7 @@ def main():
             L.append(f"{A10_SHORT[tag]} & {100 * int(q) / 8:.1f}\\% & {bb['llama.cpp static layers']['tok_s']:.1f} & {bb['mailbox cache']['tok_s']:.1f} & "
                      f"{bb['speedup']:.2f} & {bs.get('speedup', float('nan')):.2f} & "
                      + (f"{100 * so['mailbox_of_sol']:.0f}\\% & {100 * so['llama_of_sol']:.0f}\\%" if so else "-- & --") + " \\\\")
-    L += ["\\bottomrule\\end{tabular}\\end{table}"]
+    L += ["\\bottomrule\\end{tabular}}\\end{table}"]
     open(os.path.join(a.out, "table_a10.tex"), "w").write("\n".join(L) + "\n")
 
     # ---------------- tables: audit ----------------
@@ -279,20 +300,22 @@ def main():
     L = ["\\begin{table*}[t]\\centering\\scriptsize\\setlength\\tabcolsep{3.5pt}",
          f"\\caption{{The {N['auditAdj']} adjudicated rows. Claimed: system over its strongest reported baseline (llama.cpp where one is reported, marked $^\\ell$). "
          "Predicted: equal-memory llama.cpp \\texttt{--n-cpu-moe} [band]. $S_n$: system over predicted. SoL: physical speed-of-light, $M^\\star$ from our traces (t) "
-         "or independent routing (i). All rows in \\cref{app:audit}.}\\label{tab:audit}",
-         "\\begin{tabular}{lllrrrrrrl}\\toprule",
-         "system & model & GPU & sys.\\ tok/s & reported base & claimed & predicted [band] & $S_n$ [band] & sys./SoL & label \\\\ \\midrule"]
+         "or independent routing (i). Budget: GPU bytes for routed experts ($^\\ast$ imputed upper bound). All rows in \\cref{app:audit}.}\\label{tab:audit}",
+         "\\resizebox{\\textwidth}{!}{\\begin{tabular}{lllrrrrrrrl}\\toprule",
+         "system & model & GPU & budget GB & sys.\\ tok/s & reported base & claimed & predicted [band] & $S_n$ [band] & sys./SoL & label \\\\ \\midrule"]
     for r in sorted(adj, key=lambda r: (r["system"], r["model"] or "")):
-        L.append(f"{tex(short_system(r['system']))} & {tex((r['model'] or '')[:22])} & {tex(r['gpu'][:16])} & {r['system_tok_s']:.1f} & "
-                 f"{rb(r)}{'$^\\ell$' if islc(r) else ''} & {r['claimed_speedup']:.2f} & "
+        cl = f"{r['claimed_speedup']:.2f}" if r["claimed_speedup"] else "--"
+        L.append(f"{tex(short_system(r['system']))} & {tex(short_model(r['model']))} & {tex(short_gpu(r['gpu']))} & "
+                 f"{r['budget_gb']:.1f}{AST if r['budget_imputed'] else ''} & {r['system_tok_s']:.1f} & "
+                 f"{rb(r)}{ELL if islc(r) else ''} & {cl} & "
                  f"{r['pred_baseline_tok_s'][1]:.1f} [{r['pred_baseline_tok_s'][0]:.1f}, {r['pred_baseline_tok_s'][2]:.1f}] & "
                  f"{r['normalized_speedup'][1]:.2f} [{r['normalized_speedup'][0]:.2f}, {r['normalized_speedup'][2]:.2f}] & "
                  f"{100 * r['system_of_sol']:.0f}\\% ({'t' if 'trace' in r['mstar_source'] else 'i'}) & {lab(r)} \\\\")
-    L += ["\\bottomrule\\end{tabular}\\end{table*}"]
+    L += ["\\bottomrule\\end{tabular}}\\end{table*}"]
     open(os.path.join(a.out, "table_audit.tex"), "w").write("\n".join(L) + "\n")
 
-    L = ["{\\scriptsize\\setlength\\tabcolsep{3pt}",
-         "\\begin{longtable}{p{2.6cm}p{2.3cm}p{1.6cm}rrrrrrrp{2.4cm}}",
+    L = ["{\\scriptsize\\setlength\\tabcolsep{2.6pt}",
+         "\\begin{longtable}{p{2.2cm}p{2.1cm}p{1.5cm}rrrrrrrl}",
          f"\\caption{{All {N['auditModelled']} modelled rows (of {N['auditNormalized']} normalized, after the re-check). Budget: GPU bytes for routed experts "
          "($n_{\\mathrm{cpu}}/L$ MoE layers on the CPU in the predicted baseline; $^\\ast$ imputed upper bound). Other columns as in \\cref{tab:audit}; "
          "SoL$_g$: the global-budget variant.}\\label{tab:auditfull}\\\\",
@@ -302,10 +325,10 @@ def main():
     for r in sorted(A["rows"], key=lambda r: (r["system"], r["model"] or "")):
         cl = f"{r['claimed_speedup']:.2f}" if r["claimed_speedup"] else "--"
         sg = f" ({r['sol_global_tok_s']:.1f})" if r.get("sol_global_tok_s") else ""
-        L.append(f"{tex(short_system(r['system']))} & {tex((r['model'] or '')[:24])} & {tex(r['gpu'][:18])} & "
-                 f"{r['budget_gb']:.1f}{'$^\\ast$' if r['budget_imputed'] else ''} ({r['n_cpu_layers']}/{r['L']}) & {r['system_tok_s']:.1f} & "
-                 f"{rb(r)}{'$^\\ell$' if islc(r) else ''} & {cl} & {r['pred_baseline_tok_s'][1]:.1f} & {r['normalized_speedup'][1]:.2f} & "
-                 f"{r['sol_tok_s']:.1f}{sg} {'t' if 'trace' in r['mstar_source'] else 'i'} & {tex(lab(r).replace('not adjudicated: ', 'n.a.: '))} \\\\")
+        L.append(f"{tex(short_system(r['system']))} & {tex(short_model(r['model']))} & {tex(short_gpu(r['gpu']))} & "
+                 f"{r['budget_gb']:.1f}{AST if r['budget_imputed'] else ''} ({r['n_cpu_layers']}/{r['L']}) & {r['system_tok_s']:.1f} & "
+                 f"{rb(r)}{ELL if islc(r) else ''} & {cl} & {r['pred_baseline_tok_s'][1]:.1f} & {r['normalized_speedup'][1]:.2f} & "
+                 f"{r['sol_tok_s']:.1f}{sg} {'t' if 'trace' in r['mstar_source'] else 'i'} & {tex(lab(r).replace('not adjudicated: band wider than +-40 %', 'n.a. (band)').replace('not adjudicated: claimed speed-up < 1.2x', 'n.a. (claim)'))} \\\\")
     L += ["\\end{longtable}}", "Not modelled: " + "; ".join(f"\\texttt{{{tex(x['id'])}}} ({tex(x['reason'])})" for x in A["skipped"]) + "."]
     open(os.path.join(a.out, "table_audit_full.tex"), "w").write("\n".join(L) + "\n")
 
@@ -324,7 +347,7 @@ def main():
          ("Result", "Decode tok/s (single request), repeats and spread, and the fraction of the speed-of-light it implies", "$\\bar T$")]
     L = ["\\begin{table}[t]\\centering\\footnotesize",
          "\\caption{A reporting contract in seconds: the fields that make a batch-1 offloading result checkable against the bound and a strong baseline.}\\label{tab:contract}",
-         "\\begin{tabular}{p{1.6cm}p{5.0cm}l}\\toprule field & report & feeds \\\\ \\midrule"]
+         "\\begin{tabular}{p{1.45cm}p{4.9cm}l}\\toprule field & report & feeds \\\\ \\midrule"]
     L += [f"{x} & {y} & {z} \\\\" for x, y, z in C]
     L += ["\\bottomrule\\end{tabular}\\end{table}"]
     open(os.path.join(a.out, "table_contract.tex"), "w").write("\n".join(L) + "\n")

@@ -74,3 +74,29 @@ ec build: 7fb52dc86f0c262c
 ++ set -- ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
 ++ '[' -f gpt-oss-120b-MXFP4.gguf ']'
 ++ timeout 20m hf download ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf --local-dir .
+++ wc -l
+++ ls Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf gpt-oss-120b-MXFP4.gguf gpt-oss-20b-MXFP4.gguf
+++ grep -q 4
+++ touch .done
+++ ls -la /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
+++ awk '{print $5, $9}'
+18556686752 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+32483932576 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf
+63387346208 /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf
+12109566624 /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
++ nvidia-smi --query-gpu=name,clocks.sm,clocks.mem,ecc.mode.current --format=csv
++ tee /opt/runner/repo/results/011_optests/gpu.csv
+name, clocks.current.sm [MHz], clocks.current.memory [MHz], ecc.mode.current
+NVIDIA A10, 1695 MHz, 6251 MHz, Enabled
++ timeout 20m /opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID_EC,ADD_ID_EC
++ echo rc=0
+rc=0
++ grep -E 'tests passed|FAIL' /opt/runner/repo/results/011_optests/test_ec.txt
+  18/18 tests passed
++ grep -c ' OK' /opt/runner/repo/results/011_optests/test_ec.txt
+0
++ timeout 30m /opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID,ADD_ID
++ echo rc=0
+rc=0
++ grep -E 'tests passed' /opt/runner/repo/results/011_optests/test_regular.txt
+  965/965 tests passed

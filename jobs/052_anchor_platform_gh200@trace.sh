@@ -46,7 +46,7 @@ cd $WORK; [ -d llama.cpp ] || git clone -q https://github.com/ggml-org/llama.cpp
 cd llama.cpp && git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c && git checkout -q 2145525a4081d66ff1a87cf43ef809f95a85ac0c
 cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF > "$OUT/cmake.txt" 2>&1
 cmake --build build -j$(nproc) --target llama-bench > "$OUT/build.txt" 2>&1; echo "build rc=$?"; tail -3 "$OUT/build.txt"
-export PATH=$WORK/uvbin:$PATH; [ -x $WORK/av/bin/python ] || uv venv -q --python 3.12 $WORK/av
+export HOME=${HOME:-/root} UV_CACHE_DIR=$WORK/uvcache UV_PYTHON_INSTALL_DIR=$WORK/uvpy HF_HOME=$WORK/hf PATH=$WORK/uvbin:$PATH; [ -x $WORK/av/bin/python ] || uv venv -q --python 3.12 $WORK/av
 uv pip install -q --python $WORK/av/bin/python "huggingface_hub[hf_transfer]" numpy scipy requests 2>&1 | tail -1
 export PATH=$WORK/av/bin:$PATH
 export HF_HUB_ENABLE_HF_TRANSFER=1

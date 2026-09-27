@@ -43,7 +43,8 @@ nvcc -O3 -arch=native bw.cu -o bw && ./bw | tee "$OUT/bw.txt"
 # stock llama.cpp at the pinned commit
 cd $WORK; [ -d llama.cpp ] || git clone -q https://github.com/ggml-org/llama.cpp
 cd llama.cpp && git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c && git checkout -q 2145525a4081d66ff1a87cf43ef809f95a85ac0c
-cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=native -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF > "$OUT/cmake.txt" 2>&1
+CC=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1 | tr -d .)   # cmake 3.22 has no 'native'
+cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$CC -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF > "$OUT/cmake.txt" 2>&1
 cmake --build build -j$(nproc) --target llama-bench > "$OUT/build.txt" 2>&1; echo "build rc=$?"; tail -3 "$OUT/build.txt"
 pip install -q -U "huggingface_hub[hf_transfer]" numpy scipy requests 2>&1 | tail -1
 export HF_HUB_ENABLE_HF_TRANSFER=1

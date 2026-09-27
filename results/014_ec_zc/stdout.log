@@ -27,3 +27,19 @@
 ++ cd /opt/runner/work
 ++ '[' -d llama.cpp ']'
 ++ git clone -q https://github.com/ggml-org/llama.cpp
+++ cd llama.cpp
+++ git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+++ rm -rf /opt/runner/work/llama.cpp-ec
+++ git worktree prune
+++ git worktree add -f /opt/runner/work/llama.cpp-ec 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+Preparing worktree (detached HEAD 2145525a4)
+HEAD is now at 2145525a4 Revert "Change max context length for auto-fitting with unified KV (#28849)" (#29437)
+++ cd /opt/runner/work/llama.cpp-ec
+++ git apply /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=86
+++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
++++ nproc
+++ cmake --build build -j30 --target llama-ec-bench test-backend-ops

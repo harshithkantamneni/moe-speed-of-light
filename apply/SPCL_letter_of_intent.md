@@ -1,28 +1,52 @@
 # Letter of intent: SPCL, ETH Zurich (≤500 words)
 
-*Draft. Change anything that doesn't sound like you. Numbers match the paper as of this draft; re-check them against `paper/numbers.tex` before sending.*
+*Draft for you to rewrite in your own voice. Every number matches `paper/numbers4.json` as generated on 27 Sep 2026;
+re-check after any rerun. Word count from the salutation to the signature: under 500.*
 
 ---
 
 Dear Prof. Hoefler,
 
-I am applying for a PhD position at SPCL. I want to work on performance models that treat data movement as the primary cost of large-model inference, and to use those models to design sparse models for the hardware that ordinary people own.
+I am applying for a PhD position at SPCL. I want to build performance models that treat data movement as the first
+cost of large-model inference, use them as yardsticks for the systems we publish, and then use them to design sparse
+models for the hardware people actually own.
 
-My background is GPU performance engineering. I completed an MS in ECE at UW-Madison in December 2025, with coursework in computer architecture and parallel computing and projects on CUDA/Triton kernels and LLM serving benchmarks. Since then I have worked as an agentic-systems engineer and continued research independently.
+I have an MS in ECE from UW-Madison (December 2025) and work in GPU performance engineering: CUDA/Triton kernels,
+computer architecture, LLM serving. Since graduating I have done research independently.
 
-My most important result is a paper, *Where Do the Experts Go? A Validated Speed-of-Light Model for MoE Decode on Memory-Constrained Consumer Hardware* (code and data public). More than thirty systems propose expert-caching or offloading policies for MoE models on desktops, yet there was no ceiling to measure them against. I built three pieces:
+My most important result is a paper and open artifact, *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded
+Mixture-of-Experts Decode, and What It Says About Published Speed-Ups*. Dozens of systems claim to decode large MoE
+models several times faster than llama.cpp on one consumer GPU, but none states how fast the hardware could go, and
+baselines are rarely configured the way users run them. I built the missing yardstick and applied it:
 
-1. **Exact routing traces without a GPU.** A causal model's routing is fixed by its prefix. Teacher-forced prefill, streamed one layer at a time with tensors read over HTTP, therefore reproduces decode routing exactly. I verified this against KV-cache decode on four architectures and traced Qwen3-30B-A3B (61 GB of weights) on a 2-vCPU, 7 GB VM.
-2. **A bytes-over-bandwidth decode model.** It has six fitted parameters. Holding out one source at a time, it predicts 52 published measurements from 9 independent sources with a 16% median error, covering 0.6–128 tok/s, eight models, and CPU-only, static-offload and PCIe-fetch execution. The main residual is cross-socket synchronisation, which the model deliberately does not fit.
-3. **A speed-of-light bound for any per-layer expert-placement policy, including prefetchers.** It combines Belady's MIN-with-bypass, load accounting and Jensen's inequality. It comes with a closed-form reuse threshold r\* for when copying an expert to the GPU can pay off. An independent review caught a flaw in my first version of the bound (it ignored prefetching); the corrected bound has a regression test against an oracle prefetcher.
+1. **A lower bound in seconds** for any exact-routing expert-placement policy under a GPU memory budget (Belady's
+   MIN with bypass, load accounting, Jensen), computed from exact routing traces that I collect by streaming one
+   decoder layer at a time, verified token-for-token against reference decode.
+2. **A bytes-over-bandwidth decode model** with 16% median error leave-one-source-out on 52 third-party measurements,
+   and pre-registered first-party runs on an A10 (5.0% median error on 33 configurations).
+3. **An audit of 147 published measurements from 42 systems**, re-checked field by field by independent readers.
+   On the 23 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the predicted equal-memory
+   baseline, 8 claimed gains survive, and the median system reaches 19% of its hardware's physical speed-of-light.
+4. **Trace provenance.** Teacher-forced dataset text, the norm in this literature, overstates cache hit rates on all
+   nine models I traced; for gpt-oss-120b it is off-distribution unless the model's own reasoning is inserted.
 
-The findings are that short-range expert reuse is strong, that cross-domain popularity is weak and model-dependent, and that on PCIe 4 desktops a cache miss is better executed on the CPU than fetched.
+I pre-registered every first-party hypothesis in the repository before measuring, following your rules for
+scientific benchmarking, and the paper reports the ones that failed. The process also caught my own mistakes: an
+evaluation window that ran partly through user prompts, and a system I built before checking novelty, which seven
+groups had already converged on.
 
-SPCL is the natural place to continue this work because the paper is, at its core, applied *Data Movement Is All You Need* and applied sparsity. For a PhD I would like to push in three directions:
+SPCL is where this work fits: it is data-movement modelling and scientific benchmarking applied to sparse inference.
+For a PhD I would pursue three directions:
 
-- **(a) Serving and batching.** Extend the model and bound to multi-request serving and to new memory tiers (CXL, high-bandwidth flash), and validate them on real clusters such as Alps.
-- **(b) Kernels.** Build offloaded-expert kernels in the spirit of MARLIN that reach the bound.
-- **(c) Architecture co-design.** Invert the model to design MoE architectures under hardware constraints: choose expert count, expert size and top-k so that a given memory hierarchy decodes at a target speed, and connect this to scaling laws. My long-term goal is to make frontier-level models run well on consumer hardware.
+- **(a) Bounds beyond one request:** batched and speculative decoding, unified-memory machines and CXL tiers,
+  validated on systems such as Alps' GH200 nodes (my anchors already include one GH200).
+- **(b) Kernels and runtimes that reach the bound:** CPU+GPU bandwidth aggregation, where my bound says the optimum
+  often lies, is left unused by current engines.
+- **(c) Model co-design:** invert the model to choose expert count, size, top-k and routing locality so that a given
+  memory hierarchy decodes at a target speed, and connect this to scaling laws. My long-term goal is frontier-level
+  intelligence on consumer hardware.
+
+Code, traces, audit set and pre-registrations: github.com/harshithkantamneni/moe-speed-of-light
 
 Sincerely,
 Harshith Kantamneni

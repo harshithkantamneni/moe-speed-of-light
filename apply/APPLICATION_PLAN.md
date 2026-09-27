@@ -9,13 +9,34 @@
 | SAFARI (Mutlu) | Online "apply with us" form, reviewed monthly. Frame the project as consumer-scale capacity tiering (links to their FLINT/HBF and PAPI work). | Rolling |
 | D-INFK central doctoral pool | Central application, visible to all faculty for 4 months. | Rolling |
 
-## Before applying
+## Before applying (in order)
 
-1. Push the repo, then post the paper to arXiv (cs.DC, cross-list cs.LG or cs.PF). As an Independent Researcher you may need an endorser for cs.DC. Ask Prof. Sinclair or Prof. Venkataraman, which is also a natural way to start the conversation you already planned with them.
-2. **Read the paper line by line until you can derive Eq. 1, the bound and r\* on a whiteboard without notes.** An interview will test this. Rerun `tests/` and `scripts/` yourself.
-3. Referees: Prof. Matt Sinclair (ECE 752) and Prof. Shivaram Venkataraman are the obvious academic names. Ask them now: 4 weeks' notice is the minimum.
-4. Decide on the AI-disclosure line in the paper's acknowledgments (see the note in the final message).
+1. **Read the paper line by line** (`paper/paper.pdf`) until you can derive Eq. 1, Proposition 1 and the audit's band
+   without notes; rerun `tests/` and `scripts/paper_numbers4.py` yourself. About 6 hours.
+2. **arXiv.** Post to cs.DC (cross-list cs.LG, cs.PF). As an Independent Researcher you likely need a cs.DC endorser:
+   ask Prof. Matt Sinclair or Prof. Shivaram Venkataraman, which also opens the referee conversation. Post before
+   27 Oct so the fellowship form can link it.
+3. **Referees** (letters due 2 Nov for the fellowship): ask now; four weeks' notice is the minimum. Send each the PDF,
+   the repo link and a 5-line summary.
+4. **Audited teams.** The protocol commits to sending every audited team its rows before a second version. Draft one
+   short, neutral email per system (rows + how to reproduce with `mosl/calc.py`). About 3 hours for 42 systems.
+5. **AI disclosure.** The paper's acknowledgments state that parts of the code, experiments and text were drafted with
+   an AI system. Keep, edit or remove it according to the venue's policy; do not leave it inconsistent with how you
+   describe the work in interviews.
+6. **MLSys 2027** (30 Oct): the paper is two-column, 9 pages including appendix; check the MLSys template and page
+   limit, and move the appendix tables to supplementary material if needed.
 
 ## Short "most important achievement" text (for the SPCL email)
 
-> Independent paper plus open artifact: *Where Do the Experts Go? A Validated Speed-of-Light Model for MoE Decode on Memory-Constrained Consumer Hardware*. It shows that exact MoE routing traces can be collected without a GPU. It gives a 6-parameter bytes-over-bandwidth decode model that predicts 52 published measurements from 9 independent sources with 16% median held-out error, and a Belady/Jensen speed-of-light bound for any expert-placement policy. Code, traces, measurement set: github.com/harshithkantamneni/moe-speed-of-light
+> *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded Mixture-of-Experts Decode, and What It Says About
+> Published Speed-Ups* (independent paper, open artifact). A lower bound on MoE decode time for any expert-placement
+> policy, computed from exact routing traces; a decode model validated on third-party data (16% median error,
+> leave-one-source-out), on pre-registered first-party runs and on pre-registered anchors; and an audit of 147
+> published measurements from 42 systems: 16 of 20 adjudicable llama.cpp baselines are weak, 8 of 23 claimed gains
+> survive, and the median system reaches 19% of the physical speed-of-light. github.com/harshithkantamneni/moe-speed-of-light
+
+## Documents in this folder
+
+- `SPCL_letter_of_intent.md`: the ≤500-word letter for spcl-hiring@spcl.inf.ethz.ch.
+- `research_proposal.md`: the fellowship research proposal (aims: bounds beyond one request; offload-aware MoE
+  design; scientific benchmarking for sparse inference).

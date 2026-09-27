@@ -166,6 +166,9 @@ def main():
     N["boundTightGlobal"] = re.search(r"global bound holds; tightest policy reaches ([\d.]+)%", txt).group(1)
     ex = [float(x) for x in re.findall(r"differing selections ([\d.]+)%", open("prereg/provenance/exactness_gpu_vs_cpu.txt").read())]
     N["gpuCpuMaxPct"] = f"{max(ex):.2f}"
+    rc = json.load(open("prereg/ref_check/ref_check.json"))
+    N["refCheckMaxPct"] = f"{100 * max(v['summary']['tokens_layers_differing'] for v in rc.values()):.2f}"
+    N["refCheckTokens"] = f"{sum(p['tokens'] for v in rc.values() for p in v['per_conversation']):,}"
 
     # ---------------- 120b ----------------
     H = json.load(open("prereg/harmony/harmony.json"))["summary"]

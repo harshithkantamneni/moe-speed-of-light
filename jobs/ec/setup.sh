@@ -3,6 +3,7 @@
 # changes), downloads the four GGUFs if missing. Exports EC_BIN, EC_TESTS, M, J.
 J=${J:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 export J M=$WORK/models
+export GGML_NO_BACKTRACE=1   # a failed assert must exit, not attach gdb to a process holding the GPU (the likely 010 hang)
 MAXSM=$(timeout 10 nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits | head -1)
 MAXMEM=$(timeout 10 nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits | head -1)
 sudo timeout 20 nvidia-smi -pm 1 >/dev/null; sudo timeout 20 nvidia-smi -lgc $MAXSM,$MAXSM >/dev/null; sudo timeout 20 nvidia-smi -lmc $MAXMEM,$MAXMEM >/dev/null

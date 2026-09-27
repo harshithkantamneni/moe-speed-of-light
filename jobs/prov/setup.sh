@@ -20,11 +20,19 @@ if ! vllm_ok; then
     V=$($WORK/vv/bin/python -c "import importlib.metadata as m; print(m.version('vllm').split('+')[0])")
     for cu in 129 128; do
       timeout 20m uv pip install --python $WORK/vv/bin/python --reinstall-package vllm --reinstall-package torch \
-        "https://github.com/vllm-project/vllm/releases/download/v${V}/vllm-${V}+cu${cu}-cp38-abi3-manylinux_2_28_x86_64.whl" \
+        "https://github.com/vllm-project/vllm/releases/download/v${V}/vllm-${V}+cu${cu}-cp38-abi3-manylinux_2_28_$(uname -m).whl" \
         --torch-backend=cu${cu} >> $WORK/vv_install.log 2>&1 && vllm_ok && break
     done
   fi
-  vllm_ok || timeout 20m uv pip install --python $WORK/vv/bin/python "vllm==0.11.0" --torch-backend=cu128 >> $WORK/vv_install.log 2>&1
+  if ! vllm_ok; then   # start over in a fresh venv (a failed reinstall can leave vllm half-removed: job 040 on GH200)
+    rm -rf $WORK/vv && uv venv -q --python 3.12 $WORK/vv >> $WORK/vv_install.log 2>&1
+    V=${V:-$(uv pip index versions vllm 2>/dev/null | head -1 | grep -o "[0-9][0-9.]*" | head -1)}
+    for cu in 129 128; do
+      timeout 20m uv pip install --python $WORK/vv/bin/python \
+        "https://github.com/vllm-project/vllm/releases/download/v${V}/vllm-${V}+cu${cu}-cp38-abi3-manylinux_2_28_$(uname -m).whl" \
+        "huggingface_hub[hf_xet]" --torch-backend=cu${cu} >> $WORK/vv_install.log 2>&1 && vllm_ok && break
+    done
+  fi
   tail -3 $WORK/vv_install.log
 fi
 vllm_ok; cat $WORK/vv_check.log | tail -3

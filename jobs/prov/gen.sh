@@ -15,7 +15,8 @@ audit_model() {
   run_gen $key $gck "--arms G,S,D" 60m
   wait
   trace_arms $tck $OUT $key D G S
-  rm -rf $MD/$gck $MD/$tck
+  # keep checkpoints unless the disk runs short (the 40 GB A100 has 512 GB; the GH200 has 3.9 TB)
+  [ $(df --output=avail -BG / | tail -1 | tr -dc 0-9) -lt 300 ] && rm -rf $MD/$gck $MD/$tck
   df -h / | tail -1
 }
 # vLLM's FlashInfer top-k/top-p sampler JIT-compiles (needs ninja and nvcc; job 027 failed on it): use PyTorch's

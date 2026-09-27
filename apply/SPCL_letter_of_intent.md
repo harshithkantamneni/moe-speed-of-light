@@ -27,7 +27,7 @@ way users run them. I built the missing yardstick and applied it:
    median error, as pre-registered.
 3. **An audit of 147 published measurements from 41 systems**, extracted and re-checked in separate AI-agent passes,
    every value with a verbatim quote. On the 22 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the
-   predicted equal-memory baseline, 8 claimed gains survive, and the median system reaches 24% of its hardware's
+   predicted equal-memory baseline, 8 claimed gains survive (4–10 across the model's error), and the median system reaches 24% of its hardware's
    physical speed-of-light.
 4. **Trace provenance.** Teacher-forced dataset text, the norm in this literature, overstates cache hit rates on all
    nine models I traced; for gpt-oss-120b it is off-distribution unless the model's own reasoning is inserted.

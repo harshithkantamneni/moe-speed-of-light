@@ -19,7 +19,7 @@ The systems literature answers it with mechanisms (expert caches, CPU execution 
 speed-ups over baselines. My preliminary work shows that this evidence is weaker than it looks. In an audit of 147
 published measurements from 41 systems against a validated decode model and a new lower bound on decode time, 16 of
 20 adjudicable llama.cpp baselines fell below the band of the predicted equal-memory llama.cpp configuration, only 8
-of 22 claimed gains survived against that prediction, and the median system reached 24% of its hardware's physical
+of 22 claimed gains survived against that prediction (4–10 across the predictor's error on our own hardware), and the median system reached 24% of its hardware's physical
 speed-of-light. Routing
 traces taken on dataset text, the standard input of these studies, overstated cache locality on all nine models I
 traced. We lack a trustworthy yardstick, and without one we cannot tell which model or system designs actually help.

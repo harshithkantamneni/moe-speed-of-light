@@ -36,13 +36,16 @@ def main():
         P = json.load(open(os.path.join(pdir, "anchor_predictions.json")))
         plat = dict(pr.platform(pdir), bw_cpu=peak)
         a = json.load(open(f"prereg/anchors/{name}.json"))
-        rat = []
+        rat, by = [], {}
         for c in a["configs"]:
             if c["n_cpu_moe"] == 0:
                 continue
             g = account(*GGUFS[c["model"]]); g.file_key = c["model"]
-            rat.append(c["measured"] * pr.step_time(g, c["moe_layers_on_cpu"], plat, P["params"]["M4"]))
+            x = c["measured"] * pr.step_time(g, c["moe_layers_on_cpu"], plat, P["params"]["M4"])
+            rat.append(x)
+            by.setdefault(c["model"], []).append(x)
         out[name] = dict(n=len(rat), median=float(np.median(rat)), min=float(min(rat)), max=float(max(rat)),
+                         by_model={m: [float(min(v)), float(max(v))] for m, v in by.items()},
                          basis=f"datasheet peaks: GPU {plat['bw_gpu']} GB/s, host {peak} GB/s ({dram})")
     json.dump(out, open("prereg/anchors/basis.json", "w"), indent=1)
     for k, v in out.items():

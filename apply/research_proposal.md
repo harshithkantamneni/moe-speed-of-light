@@ -19,7 +19,7 @@ The systems literature answers it with mechanisms (expert caches, CPU execution 
 speed-ups over baselines. My preliminary work shows that this evidence is weaker than it looks. In an audit of 147
 published measurements from 41 systems against a validated decode model and a new lower bound on decode time, 16 of
 20 adjudicable llama.cpp baselines fell below the band of the predicted equal-memory llama.cpp configuration, only 8
-of 22 claimed gains survived against that prediction (4–10 across the predictor's error on our own hardware), and the median system reached 24% of its hardware's physical
+of 22 claimed gains survived against that prediction (4–10 under a sensitivity analysis of the predictor's error), and the median system reached 24% of its hardware's physical
 speed-of-light. Routing
 traces taken on dataset text, the standard input of these studies, overstated cache locality on all nine models I
 traced. We lack a trustworthy yardstick, and without one we cannot tell which model or system designs actually help.
@@ -29,7 +29,8 @@ traced. We lack a trustworthy yardstick, and without one we cannot tell which mo
 *Seconds, Not Blocks* (paper, code, traces and audit set released): (i) exact MoE routing traces collected by
 streaming one decoder layer at a time, verified token-for-token against reference decode on seven architectures;
 (ii) a bytes-over-bandwidth decode model with 16% cross-validated median error on third-party data from nine
-sources, tested on pre-registered first-party and anchor runs; (iii) a lower bound on
+sources, tested on pre-registered first-party and anchor runs (a registered two-run calibration predicted a new platform with
+6.7% median error; uncalibrated constants failed two registered accuracy tests); (iii) a lower bound on
 decode time for any exact-routing placement policy, per layer or pooled; (iv) a pre-registered audit and a
 trace-provenance study.
 

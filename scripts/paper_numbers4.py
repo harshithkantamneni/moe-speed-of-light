@@ -29,6 +29,8 @@ EXTENSION = ["mixtral-8x7b", "deepseek-v2-lite", "qwen1.5-moe", "qwen2-57b", "ph
 
 
 ELL, AST = "$^\\ell$", "$^\\ast$"
+ANCHOR_DIRS = {"a100": ("/home/claude/gpu-branch/results/050_anchor_platform@anchor", "/home/claude/gpu-branch/results/051_anchor_sweep@anchor"),
+               "gh200": ("/home/claude/gpu-branch/results/052_anchor_platform_gh200@trace", "/home/claude/gpu-branch/results/054_anchor_sweep_gh200_retry@trace")}
 SYSTEM_ALIASES = {"llama.cpp MoE expert cache (leloch moe-cache-pr, HEAD 8853f0535)": "llama.cpp MoE expert cache (leloch, branch moe-cache-pr)"}
 
 
@@ -304,6 +306,10 @@ def main():
         dsw = sorted(r["reported_baseline"]["tok_s"] / r["pred_baseline_tok_s"][1] for r in adj
                      if "weak baseline" in r["labels"] and "DeepSeek-V2-Lite" in (r["repo"] or ""))
         N["dsAnchorMin"] = f"{min(dsa):.2f}"
+        Bb = json.load(open("prereg/anchors/basis.json"))
+        dsb = min(Bb[k]["by_model"]["dsv2lite-q8_0"][0] for k in ("a100", "gh200") if "by_model" in Bb.get(k, {}))
+        N["dsBasisMin"] = f"{dsb:.2f}"
+        N["dsWeakCorrected"] = " and ".join(f"{x / dsb:.2f}" for x in dsw)
         N["dsWeakRatios"] = " and ".join(f"{x:.2f}" for x in dsw)
         N["dsWeakN"] = {1: "one", 2: "two", 3: "three"}.get(len(dsw), str(len(dsw)))
     for nm, x in anc.items():
@@ -450,6 +456,9 @@ def anchor_paragraph(anc):
     if "a100" in anc:
         s, st = anc["a100"]["summary"], anchor_stats(anc["a100"])
         offr = sorted(r["ratio_m4"] for r in anc["a100"]["configs"] if r["n_cpu_moe"] > 0)
+        st_txt = open(os.path.join(ANCHOR_DIRS["a100"][0], "stream.txt")).read()
+        cp = {int(t): float(v) / 1000 for t, v in re.findall(r"== OMP_NUM_THREADS=(\d+)\nCopy:\s+([\d.]+)", st_txt)}
+        copy15, copy30 = cp.get(15, float("nan")), cp.get(30, float("nan"))
         parts.append(
             f"The instance Lambda provided for the A100 test was the 80\\,GB SXM4 card (host: 30 vCPUs of an EPYC 7J13, Triad "
             f"{s['platform']['bw_cpu']:.0f}\\,GB/s). On {s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files "
@@ -458,10 +467,12 @@ def anchor_paragraph(anc):
             f"under-predicts {s['under_predicted']} of {s['n']}, and with experts offloaded llama.cpp runs a median {np.median(offr):.2f}$\\times$ "
             f"(up to {max(offr):.2f}$\\times$) faster than predicted. "
             + (f"A1 fails as registered: {s['floor_violations']} configurations beat the floor computed with STREAM Triad, by up to "
-               f"{100 * (s['max_of_floor'] - 1):.0f}\\%, so llama.cpp's expert kernels read host memory faster than Triad's read-write mix reports; "
+               f"{100 * (s['max_of_floor'] - 1):.0f}\\% (all Mixtral runs), consistent with STREAM Copy on the same host ({copy15:.0f}\\,GB/s at the 15 threads "
+               f"llama.cpp used, {copy30:.0f} at 30): Triad understates the read bandwidth available, so a floor built on it is not a floor; "
                f"against datasheet peaks ({s['dram_peak']:.0f}\\,GB/s DRAM), the basis of the audit's speed-of-light, every configuration stays "
                f"below {100 * s['max_of_datasheet_floor']:.0f}\\%. " if not s["A1"] else "A1 holds. ")
-            + f"Time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$).")
+            + f"Time per token is close to affine in the CPU layers ($R^2\\ge{s['min_r2']:.2f}$, less so than on the A10), and repeated "
+            f"configurations drifted by up to {100 * s['max_drift']:.1f}\\%.")
     if "gh200" in anc:
         s, st = anc["gh200"]["summary"], anchor_stats(anc["gh200"])
         parts.append(

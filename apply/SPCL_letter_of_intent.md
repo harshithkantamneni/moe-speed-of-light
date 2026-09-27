@@ -14,20 +14,19 @@ models for the hardware people actually own.
 I have an MS in ECE from UW-Madison (December 2025) and work in GPU performance engineering: CUDA/Triton kernels,
 computer architecture, LLM serving.
 
-My most important result is a paper and open artifact, *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded
+My main result is a paper and open artifact, *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded
 Mixture-of-Experts Decode, and What It Says About Published Speed-Ups*. Dozens of systems claim faster decoding of large
 MoE models on one consumer GPU, but none states how fast the hardware could go, and baselines are rarely configured the
 way users run them. I built the missing yardstick and applied it:
 
-1. **A lower bound in seconds** for any exact-routing expert-placement policy under a GPU memory budget (Belady's
-   MIN with bypass, load accounting, Jensen), computed from exact routing traces that I collect by streaming one
-   decoder layer at a time, verified token-for-token against reference decode.
+1. **A lower bound in seconds** for any exact-routing expert-placement policy under a GPU memory budget,
+   computed from exact routing traces that I collect by streaming one decoder layer at a time, verified token-for-token against reference decode.
 2. **A bytes-over-bandwidth decode model** with 16% median error, cross-validated, on 52 third-party measurements
    from 9 sources; calibrated with two runs, it predicted 29 configurations on a new platform (GH200) with 6.7%
-   median error, as pre-registered.
+   median error, as pre-registered, though uncalibrated it failed two registered accuracy tests.
 3. **An audit of 147 published measurements from 41 systems**, extracted and re-checked in separate AI-agent passes,
    every value with a verbatim quote. On the 22 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the
-   predicted equal-memory baseline, 8 claimed gains survive (4–10 across the model's error), and the median system reaches 24% of its hardware's
+   predicted equal-memory baseline, 8 claimed gains survive (4–10 under our sensitivity analysis), and the median system reaches 24% of its hardware's
    physical speed-of-light.
 4. **Trace provenance.** Teacher-forced dataset text, the norm in this literature, overstates cache hit rates on all
    nine models I traced; for gpt-oss-120b it is off-distribution unless the model's own reasoning is inserted.

@@ -23,8 +23,8 @@ decode speed-ups over llama.cpp for this setting. This repository provides the y
    llama.cpp per platform.
 3. **An audit.** 147 published measurements from 41 systems, re-checked field by field against every source. 22 rows
    are adjudicable: 16 of 20 llama.cpp baselines fall below the band of the predicted equal-memory `--n-cpu-moe`
-   baseline, 8 of 22 claimed gains survive against it (13–19 weak and 4–10 surviving across the predictor's error on
-   our own hardware), and the median system reaches 24 % of the physical speed-of-light. None of the 15 papers with a llama.cpp baseline configured its partial expert offload.
+   baseline, 8 of 22 claimed gains survive against it (13–19 weak and 4–10 surviving across platform-median corrections
+   of the predictor), and the median system reaches 24 % of the physical speed-of-light. None of the 15 papers with a llama.cpp baseline configured its partial expert offload.
 4. **Trace provenance.** Teacher-forcing dataset text (the norm in trace studies) overstates cache hit rates against
    the models' own generations on all nine models traced (3.3–5.4 points on the four pre-registered models at 12.5 % of
    experts, up to 8.8 on the audit's models); for gpt-oss-120b, dataset text without its own reasoning is

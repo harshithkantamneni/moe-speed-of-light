@@ -34,7 +34,7 @@
 > policy, computed from exact routing traces; a decode model validated on third-party data (16% median error,
 > cross-validated over 9 sources) and tested on pre-registered first-party and anchor runs; and an audit of 147
 > published measurements from 41 systems: 16 of 20 adjudicable llama.cpp baselines are weak, 8 of 22 claimed gains
-> survive (4–10 across the model's error on our hardware), and the median system reaches 24% of the physical speed-of-light. github.com/harshithkantamneni/moe-speed-of-light
+> survive (4–10 under a sensitivity analysis), and the median system reaches 24% of the physical speed-of-light. github.com/harshithkantamneni/moe-speed-of-light
 
 ## Documents in this folder
 

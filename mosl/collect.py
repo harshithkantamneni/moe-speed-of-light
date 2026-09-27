@@ -39,11 +39,14 @@ class ShardStore:
 
     def __init__(self, repo: str, cache_dir: str, keep: bool = False):
         self.repo, self.cache_dir, self.keep = repo, cache_dir, keep
+        self.local = os.path.isdir(repo)   # a local checkpoint directory: read in place, never delete
+        if self.local:
+            self.keep = True
         try:
-            idx_path = hf_hub_download(repo, "model.safetensors.index.json", cache_dir=cache_dir)
+            idx_path = self._file("model.safetensors.index.json")
             self.weight_map = json.load(open(idx_path))["weight_map"]
         except Exception:
-            p = hf_hub_download(repo, "model.safetensors", cache_dir=cache_dir)
+            p = self._file("model.safetensors")
             with safe_open(p, "pt") as f:
                 self.weight_map = {k: "model.safetensors" for k in f.keys()}
         self.paths: dict[str, str] = {}
@@ -51,13 +54,21 @@ class ShardStore:
         for k, s in self.weight_map.items():
             self.remaining[s].add(k)
 
+    def _file(self, f):
+        if self.local:
+            p = os.path.join(self.repo, f)
+            if not os.path.exists(p):
+                raise FileNotFoundError(p)
+            return p
+        return hf_hub_download(self.repo, f, cache_dir=self.cache_dir)
+
     def names(self, prefix: str):
         return [k for k in self.weight_map if k.startswith(prefix)]
 
     def get(self, name: str) -> torch.Tensor:
         shard = self.weight_map[name]
         if shard not in self.paths:
-            self.paths[shard] = hf_hub_download(self.repo, shard, cache_dir=self.cache_dir)
+            self.paths[shard] = self._file(shard)
         with safe_open(self.paths[shard], "pt") as f:
             t = f.get_tensor(name)
         self.remaining[shard].discard(name)
@@ -79,7 +90,7 @@ class PackedExperts(torch.nn.Module):
     def __init__(self, gu_blocks, gu_scales, gu_bias, dn_blocks, dn_scales, dn_bias, dtype):
         super().__init__()
         self.t = dict(gu_blocks=gu_blocks, gu_scales=gu_scales, dn_blocks=dn_blocks, dn_scales=dn_scales)
-        self.gu_bias, self.dn_bias = gu_bias.to(dtype), dn_bias.to(dtype)
+        self.gu_bias, self.dn_bias = gu_bias.to(dtype=dtype), dn_bias.to(dtype=dtype)
         self.num_experts = gu_blocks.shape[0]
         self.dtype = dtype
         self.alpha, self.limit = 1.702, 7.0
@@ -198,6 +209,8 @@ def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.fl
         seen.add(key)
         del t
     if packed:
+        dev = next(layer.parameters()).device
+        packed = {k: v.to(dev) for k, v in packed.items()}
         layer.mlp.experts = PackedExperts(packed["gate_up_proj_blocks"], packed["gate_up_proj_scales"],
                                           packed["gate_up_proj_bias"], packed["down_proj_blocks"],
                                           packed["down_proj_scales"], packed["down_proj_bias"], dtype)
@@ -206,15 +219,21 @@ def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.fl
         raise RuntimeError(f"layer {i}: parameters not found in checkpoint: {missing}")
 
 
-def causal_mask(T: int, dtype, window: int = 0) -> torch.Tensor:
-    m = torch.full((T, T), float("-inf"), dtype=dtype).triu(1)
+def causal_mask(T: int, dtype, window: int = 0, device="cpu") -> torch.Tensor:
+    m = torch.full((T, T), float("-inf"), dtype=dtype, device=device).triu(1)
     if window:  # sliding-window attention: query i sees keys (i-window, i]
-        m = m + torch.full((T, T), float("-inf"), dtype=dtype).tril(-window)
+        m = m + torch.full((T, T), float("-inf"), dtype=dtype, device=device).tril(-window)
     return m[None, None]
 
 
-def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print, remote=False):
+def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print, remote=False,
+            device="cpu"):
+    """device="cuda" runs every layer on the GPU in the same precision (TF32 disabled); selections can then differ
+    from the CPU's only at floating-point near-ties."""
     os.makedirs(out_dir, exist_ok=True)
+    if str(device).startswith("cuda"):
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
     cfg = AutoConfig.from_pretrained(repo)
     cfg._attn_implementation = "eager" if cfg.model_type == "gpt_oss" else "sdpa"
     with torch.device("meta"):
@@ -224,11 +243,11 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
 
     # embeddings
     emb = store.get("model.embed_tokens.weight").to(dtype)
-    hs = [emb[torch.tensor(s)].unsqueeze(0) for s in sequences]
+    hs = [emb[torch.tensor(s)].unsqueeze(0).to(device) for s in sequences]
     tied_head = emb if getattr(cfg, "tie_word_embeddings", False) else None
     del emb
-    rotary = type(base.rotary_emb)(config=cfg)  # real (non-meta) instance
-    pos = [rotary(h, torch.arange(h.shape[1])[None]) for h in hs]
+    rotary = type(base.rotary_emb)(config=cfg).to(device)  # real (non-meta) instance
+    pos = [rotary(h, torch.arange(h.shape[1], device=device)[None]) for h in hs]
     masks = {}
 
     lens = np.array([len(s) for s in sequences])
@@ -239,7 +258,7 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
         t0 = time.time()
         if is_packed(store, i):
             layer.mlp.experts = torch.nn.Module()  # replaced by PackedExperts in load_layer
-        layer = layer.to_empty(device="cpu")
+        layer = layer.to_empty(device=device)
         load_layer(layer, store, i, dtype)
         rec = []
         gate = getattr(layer.mlp, "gate", None) or getattr(layer.mlp, "router", None)
@@ -255,9 +274,9 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
         for j, h in enumerate(hs):
             T = h.shape[1]
             if (T, window) not in masks:
-                masks[(T, window)] = causal_mask(T, dtype, window)
+                masks[(T, window)] = causal_mask(T, dtype, window, device)
             a = layer.self_attn(hidden_states=layer.input_layernorm(h), attention_mask=masks[(T, window)],
-                                position_embeddings=pos[j], position_ids=torch.arange(T)[None])[0]
+                                position_embeddings=pos[j], position_ids=torch.arange(T, device=device)[None])[0]
             hs[j] = h + a
             normed.append(layer.post_attention_layernorm(hs[j]))
             lens_j.append(T)
@@ -268,30 +287,38 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
         del normed, y
         if hook is not None:
             hook.remove()
-            idx = torch.cat(rec, 0).numpy()
+            idx = torch.cat(rec, 0).cpu().numpy()
             idx.sort(axis=1)
             np.save(os.path.join(out_dir, f"layer{i:03d}.npy"), idx)
             meta["layers"][i] = {"top_k": int(idx.shape[1]), "num_experts": int(gate.num_experts)}
         base.layers[i] = torch.nn.Module()  # drop weights
         del layer
         gc.collect()
+        if str(device).startswith("cuda"):
+            torch.cuda.empty_cache()
         log(f"layer {i:3d} done in {time.time()-t0:6.1f}s  moe={hook is not None}")
         json.dump(meta, open(os.path.join(out_dir, "meta.json"), "w"), indent=1)
 
     # final-norm + lm_head -> teacher-forced NLL as a correctness check
-    norm = type(base.norm)(cfg.hidden_size, eps=cfg.rms_norm_eps)
-    norm.weight.data = store.get("model.norm.weight").to(dtype)
+    masks.clear()
+    norm = type(base.norm)(cfg.hidden_size, eps=cfg.rms_norm_eps).to(device)
+    norm.weight.data = store.get("model.norm.weight").to(device=device, dtype=dtype)
     W = tied_head if tied_head is not None else (
         store.get("lm_head.weight").to(dtype) if "lm_head.weight" in store.weight_map else None)
     nll, cnt = 0.0, 0
     if W is not None:
+        W = W.to(device)
+        pers = []
         for j, h in enumerate(hs):
             logits = norm(h)[0, :-1] @ W.T
-            tgt = torch.tensor(sequences[j][1:])
-            per = torch.nn.functional.cross_entropy(logits.float(), tgt, reduction="none")
-            np.save(os.path.join(out_dir, f"nll_seq{j:03d}.npy"), per.numpy().astype(np.float32))
+            tgt = torch.tensor(sequences[j][1:], device=device)
+            per = torch.nn.functional.cross_entropy(logits.float(), tgt, reduction="none").cpu()
+            pers.append(per.numpy().astype(np.float32))
             nll += per.sum().item()
             cnt += len(tgt)
+            del logits
+        # nll[i] = -log p(token i+1 | tokens <= i) within its sequence, sequences concatenated (len - 1 each)
+        np.save(os.path.join(out_dir, "nll.npy"), np.concatenate(pers) if pers else np.zeros(0, np.float32))
         meta["teacher_forced_ppl"] = float(np.exp(nll / cnt))
         log(f"teacher-forced perplexity: {meta['teacher_forced_ppl']:.3f}")
     json.dump(meta, open(os.path.join(out_dir, "meta.json"), "w"), indent=1)
@@ -306,6 +333,8 @@ if __name__ == "__main__":
     ap.add_argument("--dtype", default="float32")
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--remote", action="store_true", help="read tensors via HTTP range requests (no disk)")
+    ap.add_argument("--device", default="cpu")
+    ap.add_argument("--cache-dir", default=None, help="HF cache for downloaded shards (default: <out>/_hf)")
     a = ap.parse_args()
     seqs, doms = [], []
     for line in open(a.corpus):
@@ -314,5 +343,5 @@ if __name__ == "__main__":
         doms.append(r["domain"])
     os.makedirs(a.out, exist_ok=True)
     json.dump(doms, open(os.path.join(a.out, "domains.json"), "w"))
-    collect(a.repo, seqs, a.out, dtype=getattr(torch, a.dtype), keep=a.keep, remote=a.remote,
-            log=lambda s: print(s, flush=True))
+    collect(a.repo, seqs, a.out, dtype=getattr(torch, a.dtype), keep=a.keep, remote=a.remote, device=a.device,
+            cache_dir=a.cache_dir, log=lambda s: print(s, flush=True))

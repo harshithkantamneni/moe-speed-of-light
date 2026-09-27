@@ -84,3 +84,15 @@ def locality_stats(tr: Trace, windows=(1, 16, 64)):
     out["domain_top25_jaccard"] = float(np.mean(jac))
     out["random_top25_jaccard"] = (c / E) / (2 - c / E)
     return out
+
+
+def load_pack(path):
+    """Read a pack written by scripts/trace_corpus.py: dict with routes [L, T, k] (int64), seq_lens, prompt_lens,
+    corpus_idx, user_start, domains, nll, layers, E and meta."""
+    z = np.load(path, allow_pickle=False)
+    out = {k: z[k] for k in z.files if k not in ("meta", "num_experts")}
+    out["routes"] = out["routes"].astype(np.int64)
+    out["E"] = int(z["num_experts"])
+    out["meta"] = json.loads(str(z["meta"]))
+    out["starts"] = np.concatenate([[0], np.cumsum(out["seq_lens"])[:-1]])
+    return out

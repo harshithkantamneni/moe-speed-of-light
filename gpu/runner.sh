@@ -14,6 +14,10 @@ URL="${RUNNER_URL:-https://x-access-token:${TOKEN}@github.com/harshithkantamneni
 BASE=${RUNNER_BASE:-/opt/runner}; REPO=$BASE/repo; HB=$BASE/hb; export WORK=$BASE/work
 CUR=$BASE/current_job
 mkdir -p "$BASE" "$WORK"
+# A job named NNN_name@tag.sh runs only on an instance whose GPU name has `tag` as a word (h100, a10, ...), so
+# several instances can share the branch. Each instance heartbeats to its own branch, gpu-heartbeat-<gpu word>.
+GPU_WORDS=" $(timeout 30 nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' ' ') "
+HB_BRANCH=${HB_BRANCH:-gpu-heartbeat-$(echo $GPU_WORDS | awk '{print ($1=="nvidia" ? $2 : $1)}')}
 until git clone -q --branch gpu --single-branch "$URL" "$REPO"; do sleep 20; done
 until git clone -q --branch gpu --single-branch "$URL" "$HB"; do sleep 20; done
 for d in "$REPO" "$HB"; do
@@ -67,7 +71,7 @@ heartbeat_loop() {
     ls -d "$REPO"/results/*/ 2>/dev/null | xargs -n1 basename > "$HB/done_jobs.txt" 2>/dev/null
     git add -A . >/dev/null 2>&1
     if [ $first = 1 ]; then git commit -q -m heartbeat && first=0; else git commit -q --amend -m heartbeat; fi
-    timeout 90 git push -q -f origin HEAD:gpu-heartbeat >/dev/null 2>&1
+    timeout 90 git push -q -f origin HEAD:$HB_BRANCH >/dev/null 2>&1
     sleep "${HB_INTERVAL:-120}"
   done
 }
@@ -79,6 +83,8 @@ while true; do
   for job in $(ls jobs/*.sh 2>/dev/null | sort); do
     name=$(basename "$job" .sh); out="$REPO/results/$name"
     [ -f "$out/DONE" ] && continue
+    tag=${name#*@}; [ "$tag" = "$name" ] && tag=""
+    [ -n "$tag" ] && [[ "$GPU_WORDS" != *" $tag "* ]] && continue
     mkdir -p "$out"; echo "$name" > "$CUR"
     start=$(date +%s)
     ( cd "$WORK" && OUT="$out" timeout "${JOB_TIMEOUT:-100m}" bash "$REPO/$job" > "$out/stdout.log" 2> "$out/stderr.log" )

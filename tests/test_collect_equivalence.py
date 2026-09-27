@@ -63,7 +63,7 @@ def check(repo):
     seqs = [rng.integers(0, V, n).tolist() for n in (17, 300, 5)]  # 300 > gpt-oss window (128)
     ref = reference(repo, seqs)
     with tempfile.TemporaryDirectory() as d:
-        meta = collect(repo, seqs, d, keep=True, log=lambda s: None)
+        meta = collect(repo, seqs, d, keep=True, log=lambda s: None, device=os.environ.get("MOSL_DEVICE", "cpu"))
         assert set(int(k) for k in meta["layers"]) == set(ref), (meta["layers"].keys(), ref.keys())
         for i, r in ref.items():
             got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
@@ -74,7 +74,7 @@ def check(repo):
             got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
             agree = (got == r).all(1).mean()
             assert agree == 1.0, f"{repo} layer {i}: decode-vs-streamed agreement {agree:.4f}"
-    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match vs reference prefill AND KV-cache decode")
+    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match vs reference prefill AND KV-cache decode (collector on {os.environ.get('MOSL_DEVICE', 'cpu')})")
 
 
 if __name__ == "__main__":

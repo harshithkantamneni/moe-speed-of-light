@@ -37,6 +37,7 @@ def main():
     ap.add_argument("--out-dir", default="data/prompts")
     ap.add_argument("--max-len", type=int, default=1024)
     ap.add_argument("--tokens-per-domain", type=int, default=6000)
+    ap.add_argument("--data-len", type=int, default=2048)
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
     corpus = [json.loads(l) for l in open(a.corpus)]
@@ -59,8 +60,14 @@ def main():
                 assert ids == old[row]["ids"], f"{key}: corpus item {ci} does not reproduce token row {row}"
                 budget[d] += len(ids)
                 tok_row, row = row, row + 1
-            out.append({"corpus_idx": ci, "domain": d, "tok_row": tok_row, "prompt_ids": pids,
-                        "response_text": it["messages"][1]["content"]})
+            # off-policy arm D: the full dataset conversation (<= --data-len tokens); its response starts where the
+            # prompt and the conversation diverge (BPE may merge across the boundary, as in mosl.tokenize_corpus)
+            plen = next((j for j, (x, y) in enumerate(zip(full, pids)) if x != y), min(len(full), len(pids)))
+            assert len(pids) - plen <= 2, f"{key}: prompt diverges from conversation {ci}"
+            empty = render(tok, [{"role": "user", "content": ""}], True, date)
+            ustart = next((j for j, (x, y) in enumerate(zip(empty, pids)) if x != y), min(len(empty), len(pids)))
+            out.append({"corpus_idx": ci, "domain": d, "tok_row": tok_row, "prompt_ids": pids, "user_start": ustart,
+                        "data_ids": full[: a.data_len], "data_prompt_len": min(plen, a.data_len)})
         assert row == len(old), f"{key}: matched {row} of {len(old)} token rows"
         with open(os.path.join(a.out_dir, f"{key}.jsonl"), "w") as f:
             for r in out:

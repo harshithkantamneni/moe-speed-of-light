@@ -2516,10 +2516,10 @@ index 0000000..2e52e6a
 +target_compile_features(llama-ec-cpubench PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..4afc67e
+index 0000000..8f1e5f3
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,341 @@
+@@ -0,0 +1,402 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -2536,6 +2536,7 @@ index 0000000..4afc67e
 +#include <algorithm>
 +#include <chrono>
 +#include <cmath>
++#include <random>
 +#include <cstdio>
 +#include <cstdlib>
 +#include <cstring>
@@ -2593,7 +2594,9 @@ index 0000000..4afc67e
 +}
 +
 +int main(int argc, char ** argv) {
-+    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs;
++    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path;
++    float gen_temp = 0.8f;
++    int gen_seed = 42;
 +    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
 +    bool host_experts = false;
 +    for (int i = 1; i < argc; ++i) {
@@ -2612,6 +2615,9 @@ index 0000000..4afc67e
 +        else if (a == "--dump") dump_path = next();
 +        else if (a == "--seqs") seqs_arg = next();
 +        else if (a == "--ec") ec_configs = next();
++        else if (a == "--gen-out") gen_path = next();       // sample continuations instead of timing (see below)
++        else if (a == "--gen-temp") gen_temp = std::stof(next());
++        else if (a == "--gen-seed") gen_seed = std::stoi(next());
 +        else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 1; }
 +    }
 +    auto corpus = read_corpus(corpus_path);
@@ -2788,6 +2794,61 @@ index 0000000..4afc67e
 +                return 1;
 +            }
 +            llama_synchronize(ctx);
++
++            if (!gen_path.empty()) {
++                // generation mode: after the prompt, sample n_decode + 1 tokens (top-k 40, top-p 0.95, temperature
++                // gen_temp; end-of-generation tokens banned so every sequence is n_decode long) and write the prompt
++                // plus the sample as a corpus line, for teacher-forced runs on the model's own text
++                static FILE * gf = fopen(gen_path.c_str(), "w");
++                std::mt19937 rng((uint32_t) (gen_seed + si));
++                std::vector<int> out(s.ids.begin(), s.ids.begin() + P);
++                const float * lg = llama_get_logits_ith(ctx, -1);
++                std::vector<std::pair<float, int>> cand;
++                for (int j = 0; j <= n_decode; ++j) {
++                    cand.clear();
++                    for (int v = 0; v < n_vocab; ++v) {
++                        if (!llama_vocab_is_eog(vocab, v)) {
++                            cand.emplace_back(lg[v], v);
++                        }
++                    }
++                    const size_t K = std::min<size_t>(40, cand.size());
++                    std::partial_sort(cand.begin(), cand.begin() + K, cand.end(), [](auto & x, auto & y) { return x.first > y.first; });
++                    std::vector<double> pr(K);
++                    double z = 0.0;
++                    for (size_t i = 0; i < K; ++i) {
++                        pr[i] = std::exp((cand[i].first - cand[0].first) / gen_temp);
++                        z += pr[i];
++                    }
++                    size_t keep = 0;
++                    for (double c = 0.0; keep < K && c < 0.95 * z; ++keep) {
++                        c += pr[keep];
++                    }
++                    std::discrete_distribution<size_t> dd(pr.begin(), pr.begin() + std::max<size_t>(1, keep));
++                    const int tok = cand[dd(rng)].second;
++                    out.push_back(tok);
++                    if (j == n_decode) {
++                        break;
++                    }
++                    batch.n_tokens = 1;
++                    batch.token[0] = tok;
++                    batch.pos[0] = P + j;
++                    batch.n_seq_id[0] = 1;
++                    batch.seq_id[0][0] = 0;
++                    batch.logits[0] = 1;
++                    if (llama_decode(ctx, batch) != 0) {
++                        fprintf(stderr, "generation failed on seq %d step %d\n", si, j);
++                        return 1;
++                    }
++                    lg = llama_get_logits_ith(ctx, -1);
++                }
++                fprintf(gf, "{\"domain\": \"%s\", \"src_seq\": %d, \"prompt_len\": %d, \"ids\": [", s.domain.c_str(), si, P);
++                for (size_t i = 0; i < out.size(); ++i) {
++                    fprintf(gf, "%s%d", i ? ", " : "", out[i]);
++                }
++                fprintf(gf, "]}\n");
++                fflush(gf);
++                continue;
++            }
 +
 +            std::vector<double> step_ms;
 +            step_ms.reserve(N);

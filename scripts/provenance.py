@@ -205,15 +205,18 @@ def main():
             if nll["D"] and nll[arm]:
                 d["nll"] = boot_diff(nll_f("D"), nll_f(arm), S["D"]["corpus_idx"], S[arm]["corpus_idx"], rng)
             # within-arm policy gaps (for F1): CI of hit(p1) - hit(p2) in each arm separately
-            for arm2 in ("D", arm):
-                g = rep.setdefault("gaps", {}).setdefault(arm2, {})
+            # (D restricted to the conversations this arm also has, so both arms cover the same prompts)
+            shared = set(S["D"]["corpus_idx"]) & set(S[arm]["corpus_idx"])
+            for arm2, label in (("D", f"D|{arm}"), (arm, arm)):
+                g = rep.setdefault("gaps", {}).setdefault(label, {})
                 ids = S[arm2]["corpus_idx"]
+                sel = np.array([i for i, c in enumerate(ids) if c in shared])
                 for m in [m for m in mets if m.startswith("gap_")]:
                     if m in g:
                         continue
                     f = mets[m](S[arm2])
-                    bs = [f(rng.integers(0, len(ids), len(ids))) for _ in range(2000)]
-                    g[m] = (float(f(np.arange(len(ids)))), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5)))
+                    bs = [f(sel[rng.integers(0, len(sel), len(sel))]) for _ in range(2000)]
+                    g[m] = (float(f(sel)), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5)))
         # F1-F3 and P1-P4 (S vs D); F4 needs the A10 S-arm run
         F = rep["flags"] = {}
         if "S" in S:
@@ -221,7 +224,7 @@ def main():
             flips = []
             for q in BUDGETS:
                 for p1, p2 in (("DFA", "LRU"), ("DFA", "LFU"), ("LFU", "LRU")):
-                    gd, gs = rep["gaps"]["D"][f"gap_{p1}-{p2}_{q}"], rep["gaps"]["S"][f"gap_{p1}-{p2}_{q}"]
+                    gd, gs = rep["gaps"]["D|S"][f"gap_{p1}-{p2}_{q}"], rep["gaps"]["S"][f"gap_{p1}-{p2}_{q}"]
                     sig = lambda g: 1 if g[1] > 0 else (-1 if g[2] < 0 else 0)
                     if sig(gd) * sig(gs) == -1:
                         flips.append(f"{p1} vs {p2} at {q}/8")

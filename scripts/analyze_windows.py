@@ -16,7 +16,8 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from mosl.ecsim import load_steps, simulate  # noqa: E402
+from mosl import ecsim_fast  # noqa: E402
+from mosl.ecsim import load_steps  # noqa: E402
 from scripts.mb_model import MODELS  # noqa: E402
 
 N_PREFILL = 640          # >= every test prompt: the window starts at the response
@@ -62,6 +63,7 @@ def main():
     ap.add_argument("--phase3", default="prereg/a10_mb/scored.json")
     ap.add_argument("--fits", default="prereg/a10_mb/predictions.json")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--packs", default=None, help="results dir with phase-4 trace packs (routing for H17)")
     a = ap.parse_args()
     fits = json.load(open(a.fits))["fits"]
     p3 = json.load(open(a.phase3))["results"] if os.path.exists(a.phase3) else {}
@@ -74,11 +76,24 @@ def main():
         if "all-GPU" in runs:
             r["all_gpu"] = dict(tok_s=rate(runs["all-GPU"]))
         counts = {}
-        if tdir is not None and a.arm == "D":
+        R = None
+        if a.packs:   # routing of the same windows from the phase-4 trace packs (D: dataset token files; S: own samples)
+            from mosl.traces import load_pack
+            from scripts.sol_windows import TEST, find, windows
+            pk = {"gpt-oss-20b-MXFP4": "gpt-oss-20b", "gpt-oss-120b-MXFP4": "gpt-oss-120b"}.get(tag, "qwen3-30b-a3b")
+            name = {"D": f"{pk}_tok.npz", "S": f"{pk}_S.npz" if "gpt" in pk else "qwen3-30b-a3b_fp8_S.npz"}[a.arm]
+            pp = find(a.packs, name)
+            if pp:
+                Rw = windows(load_pack(pp), f"data/prompts/{pk}.jsonl", TEST["gpt-oss" if "gpt" in pk else "qwen"])
+                R, E2 = [Rw[l] for l in range(Rw.shape[0])], E
+                r["routing_from"] = os.path.relpath(pp, a.packs)
+        elif tdir is not None and a.arm == "D":
             R, E2, win = load_steps(tdir, corp, test, N_PREFILL, N_DECODE)
-            r["decode_steps_traced"] = int(sum(b - s for _, s, b in win))
+            r["routing_from"] = tdir
+        if R is not None:
+            r["decode_steps_traced"] = int(R[0].shape[0])
             for q in FR:
-                h, m, adm = simulate(R, E2, E * q // 8, "dfa", kappa=float(K))
+                h, m, adm = ecsim_fast.simulate(R, E2, E * q // 8, "dfa", kappa=float(K))
                 counts[q] = (float((m > 0).sum(1).mean()), float(m.sum(1).mean()), float(adm.sum(1).mean()),
                              float(h.sum() / (h.sum() + m.sum())))
         f = fits.get(tag)

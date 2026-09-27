@@ -58,7 +58,9 @@ def main():
     ap.add_argument("--arm", required=True)
     ap.add_argument("--prompts", default="data/prompts")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--bc", type=float, default=B_C / 1e9, help="host read bandwidth of the measured instance, GB/s")
     a = ap.parse_args()
+    bc = a.bc * 1e9
     sc = json.load(open(a.scored))["results"]
     out = {}
     for tag, (pk, packs, E, k, K, s, D, ref, FR) in MODELS.items():
@@ -70,7 +72,7 @@ def main():
         L = R.shape[0]
         Lr, sr, Dr = L, MODELS[ref][5], MODELS[ref][6]
         eta = (Dr + Lr * k * sr) * sc[ref]["all_gpu"]["tok_s"] / B_G
-        a_, b_, p_ = s / (eta * B_G), s / B_C, s / B_P
+        a_, b_, p_ = s / (eta * B_G), s / bc, s / B_P
         TD = D / (eta * B_G)
         rows = {}
         for q in FR:
@@ -87,7 +89,7 @@ def main():
                            mailbox_of_sol=mb * t_sol if mb else None, llama_of_sol=st * t_sol if st else None,
                            mailbox_of_dfa_ideal=mb * t_dfa if mb else None,
                            minbypass_miss_per_layer_step=Mstar, dfa_hit=float(1 - m.mean() / k), steps=int(R.shape[1]))
-        out[tag] = dict(eta_g=eta, pack=os.path.relpath(p, a.results), budgets=rows)
+        out[tag] = dict(eta_g=eta, B_C=bc, pack=os.path.relpath(p, a.results), budgets=rows)
         for q, r in rows.items():
             f = lambda v: "–" if v is None else f"{v:.0%}"
             print(f"{tag} {a.arm} {q}/8: SoL {r['sol_tok_s']:.1f} DFA-ideal {r['dfa_ideal_tok_s']:.1f} | mailbox {r['mailbox_tok_s']} "

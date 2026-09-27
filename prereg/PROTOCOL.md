@@ -567,3 +567,91 @@ only). Under class 1 or 4 it stays out.
   - **P6.** The median system fraction of the bound is ≤ 60 %.
 - **Headline form:** "X of Y adjudicated batch-1 speed-ups survive against the
   predicted equal-VRAM baseline; Z of Y reported baselines are weak."
+
+## Phase 4 outcomes (27 Sep 2026)
+
+**Runs.** GPU jobs 025–039b, on the `gpu` branch.
+
+- **Corpora and scores.** vLLM 0.30.0 (CUDA 12.9 build) on a 40 GB A100.
+- **Deviations from 4.1.**
+  - Lambda had no 80 GB GPU. Qwen3-30B-A3B's G and S were generated, and D scored, with the vendor FP8 checkpoint.
+  - gpt-oss-120b ran with weight offload. Its G and S cover only the 35 traced prompts.
+- **Traces.** The fp32 collector ran on the GPU. The MoE sub-block was chunked for long corpora; this is exact on the equivalence models.
+- **A10 runs (4.5).** Jobs 038 (control and arm D) and 039a/b (arm S) ran on one instance. Job 025 (arm D) ran on another instance. Job 026 is void: its corpora did not exist yet.
+
+**Exactness of GPU traces (registered: below 0.1 %).** Holds. Selections that differ from the committed CPU traces:
+
+| model | differing selections |
+|---|---|
+| gpt-oss-20b | 0 % |
+| OLMoE | 0.040 % |
+| Qwen3 | 0.057 % |
+| gpt-oss-120b | 0.071 % |
+
+**Provenance, S vs D (`prereg/provenance/`; 159–160 conversations, 35 for gpt-oss-120b).**
+
+- **F1–F4:** none fires on any model, so the registered wording applies: "provenance is benign at this resolution".
+- **Direction is consistent.** Dataset text overstates cache hit rates on every model. S − D, DFA hit rate:
+
+| model | 12.5 % | 25 % |
+|---|---|---|
+| OLMoE | −3.7 pp | −3.7 pp |
+| gpt-oss-20b | −5.4 pp | −3.3 pp |
+| Qwen3 | −3.3 pp | −1.4 pp |
+| gpt-oss-120b | −5.3 pp | −3.4 pp |
+
+  MIN-bypass hit rates fall by −1.3 to −2.9 pp. All 95 % CIs exclude 0. At 50 % the difference is ≤ 2.1 pp.
+- **The bound does not move.** On the A10 constants the speed-of-light is the CPU+GPU bandwidth-aggregation optimum at every capacity, so it is unchanged (F3). The mailbox cache's fraction of it moves ≤ 1.4 pp between arms (F4).
+- **F1 clarification.** F1 is computed on the conversations both arms share (paired by prompt, as 4.2 specifies). With all 160 D conversations against gpt-oss-120b's 35 S conversations, DFA − LFU at 25 % reverses sign: +0.12 pp vs −0.36 pp.
+
+**Registered predictions.**
+
+- **P1 holds on every model.** On-policy response NLL is lower.
+- **P2 fails on OLMoE, gpt-oss-20b and Qwen3.** Greedy text is *less* reused step to step than dataset text (−0.018 to −0.046). On gpt-oss-120b, +0.002 with a CI that includes 0.
+- **P3 holds.** |Δ DFA at 25 %| is 3.3 pp on gpt-oss-20b and 3.4 pp on gpt-oss-120b.
+- **P4 holds on OLMoE, gpt-oss-20b and gpt-oss-120b.** It fails on Qwen3: LRU ≥ DFA at 50 % in both arms, so this is not a provenance effect.
+
+**4.4: gpt-oss-120b is class 3, format (`prereg/harmony/`).**
+
+- **Class 1 does not apply.** vLLM reproduces the anomaly: response NLL on the 35 traced conversations is 6.40 nats, against 6.39 in the fp32 collector (5.8 in llama.cpp on the test windows). The mean per-token difference between vLLM and the collector is 0.54 nats, below the 1-nat rule.
+- **Class 2 does not apply.** The response NLL is 3.00× gpt-oss-20b's, above 1.5×.
+- **Class 3 applies.** Inserting the model's own greedy analysis message before the final channel (V1) lowers it to 3.00 nats, 1.48× gpt-oss-20b's V1 value. That is just inside the registered 1.5×.
+- **V2 has no effect.** "Reasoning: low" gives 6.56 nats.
+- **Reading.** gpt-oss-120b, forced into the final channel without its reasoning, assigns human-written answers far lower probability than gpt-oss-20b does. Per 4.4, its trace re-enters the paper (response region only).
+
+**4.5: A10 with correct windows (`prereg/a10_windows_038/`).**
+
+- **H16 holds on both arms.** Speed-ups at 25 %:
+
+| arm | gpt-oss-20b | Qwen3 Q4_K_M | Qwen3 Q8_0 | gpt-oss-120b |
+|---|---|---|---|---|
+| D | 1.52× | 1.45× | 1.66× | 1.60× |
+| S | 1.43× | 1.40× | 1.52× | 1.61× |
+
+  Over all budgets, 1.31–1.66×.
+- **H17 holds on both arms.** Median APE 5.0 % (n = 33 per arm); the maximum is 13.2 % on D and 15.0 % on S.
+- **Same-machine control (phase-3 windows, 25 %).**
+
+| model | this instance | phase-3 instance |
+|---|---|---|
+| gpt-oss-20b | 1.47× | 1.63× |
+| Qwen3 Q4_K_M | 1.45× | 1.52× |
+| Qwen3 Q8_0 | 1.51× | 1.50× |
+| gpt-oss-120b | 1.65× | 1.81× |
+
+  The window defect therefore moves speed-ups little. The instance moves them more: this instance reads host memory at 166 GB/s against 151 GB/s, and llama.cpp's static layers run up to 14 % faster on it. The phase-3 headline speed-ups were at the favourable end.
+- **Fraction of the bound on this instance (gpt-oss-20b, Qwen3 Q4_K_M).**
+
+| system | arm D | arm S |
+|---|---|---|
+| mailbox cache | 48–63 % | 47–64 % |
+| llama.cpp | 33–44 % | 35–45 % |
+
+**4.6: audit (`prereg/audit/`, first pass, not yet reviewed row by row).**
+
+- **Rows.** 147 extracted; 58 normalized; 53 modelled; 28 adjudicated.
+- **No `--n-cpu-moe` baseline anywhere.** None of the 42 systems measured llama.cpp's partial expert offload at equal VRAM.
+- **Weak baselines.** 18 of the 24 adjudicated llama.cpp baselines fall below the band of the predicted equal-VRAM baseline. P5 holds.
+- **Gains.** 10 of 28 gains survive against the predicted baseline. The median system reaches 27 % of the physical speed-of-light. P6 holds.
+- **Caveat: the model is conservative.** It under-predicts first-party llama.cpp static offload on the A10 by 2–57 %: τ_e is fitted on older engines. Refitting with the 11 A10 runs (a sensitivity analysis, not registered) gives 9 surviving gains and 20 weak baselines.
+- **What is still needed.** Row-by-row review, and anchor runs, before any row is reported.

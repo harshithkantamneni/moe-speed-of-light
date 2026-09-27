@@ -270,3 +270,36 @@ the paper).
     no CPU experts never involves the host. Correctness gate first (top-5
     logits against the split-graph cache and against stock CPU experts),
     then speed on four models.
+  - **016 (mailbox mode, exploratory, 4 sequences × 128 steps).** Top-5
+    logits of the mailbox cache and of the split-graph cache are identical
+    (64 steps, max top-1 logit difference 0.0000), as are those of all-CPU
+    experts on the helpers and on the stock CPU path; every GPU/CPU id was
+    consistent. Against llama.cpp static layers on the same instance:
+
+    | model | 12.5 % | 25 % | 50 % |
+    |---|---|---|---|
+    | gpt-oss-20b | 77.3 / 56.7 = 1.36× | 92.2 / 62.1 = 1.48× | 108.9 / 76.8 = 1.42× |
+    | Qwen3-30B-A3B Q4_K_M | 87.5 / 64.4 = 1.36× | 100.0 / 71.1 = 1.41× | 111.1 / 85.9 = 1.29× |
+    | Qwen3-30B-A3B Q8_0 | 66.8 / 48.4 = 1.38× | 76.6 / 52.3 = 1.46× | – |
+    | gpt-oss-120b | 59.3 / 41.4 = 1.43× | 66.1 / 45.8 = 1.44× | – |
+
+    The static-layer layout on the helpers (no caching) is 1.08–1.15×
+    llama.cpp: the hand-off alone.
+  - **017.** Knob sweep at 25 %. Run-to-run variation of the same
+    configuration was up to 12 %; helper service times showed rare
+    multi-millisecond requests. Cause: the helpers split each request
+    statically, so one descheduled helper (29 spinning threads on 30 vCPUs)
+    stalls the request. Per-layer slot allocation (trace simulation, DP over
+    per-layer DFA hit curves) removes at most 5 % of misses and was dropped.
+    DFA half-life 8 raises hits by < 1 point at 1.5× the copies.
+  - **018.** Helpers v2: every phase is cut into chunks claimed through a
+    counter tagged with the request's sequence number (a descheduled helper
+    delays only a chunk it holds), and an AVX-512 VNNI MXFP4 kernel.
+    Correctness gate passed (top-1 agreement 0.969 over 64 steps against the
+    split-graph cache on both models; the AVX-512 kernel sums in a different
+    order, so logits are no longer bit-identical; ids all consistent). Repeats
+    now agree within 2 %. CPU microbenchmark on this VM (28 threads): read
+    143 GB/s; MXFP4 rows 98 GB/s (ggml) and 107 GB/s (AVX-512); Q4_K 118;
+    Q8_0 122. The AVX-512 kernel adds 1.5 % end to end; pinning adds nothing.
+    At 25 %: gpt-oss-20b 92.2 vs 60.9 (1.51×), Qwen3 Q4_K_M 99.4 vs 70.1
+    (1.42×), gpt-oss-120b 65.9 vs 40.9 (1.61×).

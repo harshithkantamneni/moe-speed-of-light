@@ -56,6 +56,7 @@ def main():
                     help="generate for all prompts, or only the traced conversations (tok_row >= 0)")
     ap.add_argument("--cpu-offload-gb", type=float, default=0.0, help="vLLM weight offload for GPUs that are too small")
     ap.add_argument("--tag", default="", help="suffix for output files (e.g. the checkpoint variant)")
+    ap.add_argument("--quantization", default=None, help="vLLM on-the-fly weight quantization (e.g. fp8)")
     a = ap.parse_args()
     from vllm import LLM, SamplingParams
     from vllm.inputs import TokensPrompt
@@ -68,6 +69,8 @@ def main():
     t0 = time.time()
     arms = set(a.arms.split(","))
     kw = dict(cpu_offload_gb=a.cpu_offload_gb) if a.cpu_offload_gb > 0 else {}
+    if a.quantization:
+        kw["quantization"] = a.quantization
     llm = LLM(model=a.model_dir or repo, max_model_len=a.max_model_len, gpu_memory_utilization=a.gpu_mem, seed=0,
               enable_prefix_caching=False, max_num_batched_tokens=a.batched_tokens, enforce_eager=True,
               max_logprobs=1, **kw)

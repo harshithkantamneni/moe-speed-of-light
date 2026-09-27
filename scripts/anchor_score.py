@@ -20,7 +20,21 @@ def main():
     ap.add_argument("--meas", required=True)
     ap.add_argument("--name", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--dram-peak", type=float, default=None,
+                    help="host DRAM datasheet peak, GB/s: also report measured / floor at datasheet peaks (the audit's basis)")
     a = ap.parse_args()
+    ds_floor = {}
+    if a.dram_peak:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        import scripts.preregister as pr
+        from scripts.anchor_predict import FIRST_MOE  # noqa: F401  (also registers the anchor repos in pr.HF_REPO)
+        from mosl.gguf_bytes import GGUFS, account
+        plat = pr.platform(a.pred)
+        q = dict(plat, bw_cpu=a.dram_peak)
+        for r in json.load(open(os.path.join(a.pred, "anchor_predictions.json")))["sweep"]:
+            g = account(*GGUFS[r["model"]]); g.file_key = r["model"]
+            ds_floor[(r["model"], int(r["n_cpu_moe"]))] = 1 / pr.step_time(g, r["moe_layers_on_cpu"], q, dict(eta_g=1.0, eta_c=1.0))
     P = json.load(open(os.path.join(a.pred, "anchor_predictions.json")))
     pred = {(r["model"], int(r["n_cpu_moe"])): r for r in P["sweep"]}
     rows = [json.loads(l) for l in open(os.path.join(a.meas, "sweep.jsonl")) if l.strip()]
@@ -41,7 +55,7 @@ def main():
                         measured_sd=float(r.get("stddev_ts", 0)), threads=r.get("n_threads"),
                         pred_m4=p["pred_tok_s"], pred_a10=p["pred_tok_s_a10refit"], floor=p["roofline_tok_s"],
                         ape_m4=abs(p["pred_tok_s"] - m) / m, ape_a10=abs(p["pred_tok_s_a10refit"] - m) / m,
-                        ratio_m4=m / p["pred_tok_s"]))
+                        ratio_m4=m / p["pred_tok_s"], floor_datasheet=ds_floor.get(key)))
     drift = [dict(model=k[0], n_cpu_moe=k[1], first=float(first[k]["avg_ts"]), repeat=float(v["avg_ts"]),
                   change=float(v["avg_ts"]) / float(first[k]["avg_ts"]) - 1) for k, v in repeat.items()]
     aff = {}
@@ -64,7 +78,9 @@ def main():
              floor_violations=sum(c["measured"] > c["floor"] for c in cfg),
              max_of_floor=max(c["measured"] / c["floor"] for c in cfg) if cfg else None,
              min_r2=min(v["r2"] for v in aff.values()) if aff else None,
-             max_drift=max(abs(d["change"]) for d in drift) if drift else None)
+             max_drift=max(abs(d["change"]) for d in drift) if drift else None,
+             dram_peak=a.dram_peak,
+             max_of_datasheet_floor=max(c["measured"] / c["floor_datasheet"] for c in cfg) if ds_floor else None)
     s["A1"] = s["floor_violations"] == 0
     if a.name != "gh200":
         s["A2"] = s["median_ape_m4"] is not None and s["median_ape_m4"] <= 0.25

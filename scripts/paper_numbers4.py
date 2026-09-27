@@ -117,6 +117,14 @@ def main():
     N["auditSensAdj"] = sens["n_adjudicated"]
     N["auditSensLlama"] = sens["llama_rows"]
     N["auditSkipped"] = S_["n_skipped"]
+    B = json.load(open("prereg/anchors/basis.json"))
+    meds = {k: v["median"] for k, v in B.items()}
+    N["basisLo"], N["basisHi"] = f"{min(meds.values()):.2f}", f"{max(meds.values()):.2f}"
+    N["basisMin"], N["basisMax"] = f"{min(v['min'] for v in B.values()):.2f}", f"{max(v['max'] for v in B.values()):.2f}"
+    N["basisAten"], N["basisAhundred"], N["basisGh"] = (f"{B[k]['median']:.2f}" for k in ("a10", "a100", "gh200"))
+    lo, hi = (json.load(open(f"prereg/audit_sens_scale_{x}/audit.json"))["summary"] for x in ("lo", "hi"))
+    N["sensSurviveMin"], N["sensSurviveMax"] = min(lo["gain_survives"], hi["gain_survives"]), max(lo["gain_survives"], hi["gain_survives"])
+    N["sensWeakMin"], N["sensWeakMax"] = min(lo["weak_baselines"], hi["weak_baselines"]), max(lo["weak_baselines"], hi["weak_baselines"])
     sol_sorted = sorted(r["system_of_sol"] for r in adj)
     if len(sol_sorted) % 2 == 0:
         N["auditMidLo"] = round(100 * sol_sorted[len(sol_sorted) // 2 - 1])
@@ -435,18 +443,25 @@ def anchor_stats(x):
 
 
 def anchor_paragraph(anc):
-    parts = ["We registered anchor criteria before any anchor run (protocol 4.7): no configuration may beat the physical floor (A1); "
+    parts = ["We registered anchor criteria before any anchor run (protocol 4.7): no configuration may beat the physical floor computed with STREAM Triad (A1); "
              "on an A100 x86 host the median error must be at most 25\\% (A2) and the model must under-predict at least two thirds of the "
              "configurations, as on the A10 (A3). The predictor is the third-party fit with each machine's STREAM Triad and datasheet GPU bandwidth; "
              "each prediction file was committed by the job before the one that measured."]
     if "a100" in anc:
         s, st = anc["a100"]["summary"], anchor_stats(anc["a100"])
+        offr = sorted(r["ratio_m4"] for r in anc["a100"]["configs"] if r["n_cpu_moe"] > 0)
         parts.append(
-            f"On the A100-SXM4-40GB (Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), {s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files "
-            f"(Mixtral-8x7B at Q4\\_K\\_M and Q8\\_0; Phi-3.5-MoE, Qwen2-57B-A14B and Qwen3-30B-A3B at Q4\\_K\\_M; DeepSeek-V2-Lite at Q8\\_0) give a median error of "
-            f"{100 * s['median_ape_m4']:.0f}\\% (A2 {'holds' if s['A2'] else 'fails'}); the model under-predicts {s['under_predicted']} of {s['n']} "
-            f"(A3 {'holds' if s['A3'] else 'fails'}), measured/predicted {s['ratio_range'][0]:.2f}--{s['ratio_range'][1]:.2f}; "
-            f"A1 {'holds' if s['A1'] else 'fails'}; time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$).")
+            f"The instance Lambda provided for the A100 test was the 80\\,GB SXM4 card (host: 30 vCPUs of an EPYC 7J13, Triad "
+            f"{s['platform']['bw_cpu']:.0f}\\,GB/s). On {s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files "
+            f"(Mixtral-8x7B at Q4\\_K\\_M and Q8\\_0; Phi-3.5-MoE, Qwen2-57B-A14B and Qwen3-30B-A3B at Q4\\_K\\_M; DeepSeek-V2-Lite at Q8\\_0), "
+            f"A2 {'holds' if s['A2'] else 'fails'} (median error {100 * s['median_ape_m4']:.0f}\\%) and A3 {'holds' if s['A3'] else 'fails'}: the model "
+            f"under-predicts {s['under_predicted']} of {s['n']}, and with experts offloaded llama.cpp runs a median {np.median(offr):.2f}$\\times$ "
+            f"(up to {max(offr):.2f}$\\times$) faster than predicted. "
+            + (f"A1 fails as registered: {s['floor_violations']} configurations beat the floor computed with STREAM Triad, by up to "
+               f"{100 * (s['max_of_floor'] - 1):.0f}\\%, so llama.cpp's expert kernels read host memory faster than Triad's read-write mix reports; "
+               f"against datasheet peaks ({s['dram_peak']:.0f}\\,GB/s DRAM), the basis of the audit's speed-of-light, every configuration stays "
+               f"below {100 * s['max_of_datasheet_floor']:.0f}\\%. " if not s["A1"] else "A1 holds. ")
+            + f"Time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$).")
     if "gh200" in anc:
         s, st = anc["gh200"]["summary"], anchor_stats(anc["gh200"])
         parts.append(
@@ -460,9 +475,9 @@ def anchor_paragraph(anc):
             f"the conservative direction seen on the A10; the exceptions are every DeepSeek-V2-Lite configuration and one Qwen3 one "
             f"({st['over_n']} in all). All-GPU runs ({st['n0']}) are over-predicted, measured/predicted "
             f"{st['r0'][0]:.2f}--{st['r0'][1]:.2f}: at 4\\,TB/s a small model's decode step is dominated by per-layer fixed costs that Eq.~(1) omits. "
-            f"Over all {s['n']}, the median error is {100 * s['median_ape_m4']:.0f}\\%; no configuration exceeds the physical floor (the closest reaches "
-            f"{100 * s['max_of_floor']:.0f}\\% of it), and time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$). "
-            "The audited rows sit in the offloaded regime, where the model mostly errs on the side of calling baselines strong.")
+            f"Over all {s['n']}, the median error is {100 * s['median_ape_m4']:.0f}\\%; no configuration exceeds the Triad-based floor (the closest reaches "
+            f"{100 * s['max_of_floor']:.0f}\\% of it, and {100 * s['max_of_datasheet_floor']:.0f}\\% of the datasheet-peak one), and time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$). "
+            "These statistics use the registered STREAM-based inputs; \\cref{sec:audit} compares the same runs with the audit's datasheet-based predictions.")
     return " ".join(parts)
 
 
@@ -499,7 +514,11 @@ def prereg_log(N, anc):
     ]
     if "a100" in anc:
         s = anc["a100"]["summary"]
-        rows += [("A1", "4.7", "no anchor beats the floor", "holds" if s["A1"] else "fails"),
+        g1 = anc.get("gh200", {}).get("summary", {}).get("A1")
+        rows += [("A1", "4.7", "no anchor beats the floor (STREAM Triad)",
+                  ("holds" if s["A1"] else f"fails on the A100 ({s['floor_violations']} of {s['n']}, up to +{100 * (s['max_of_floor'] - 1):.0f}\\%; "
+                   f"all below {100 * s['max_of_datasheet_floor']:.0f}\\% of the datasheet floor)")
+                  + ("" if g1 is None else ("; holds on the GH200" if g1 else "; fails on the GH200"))),
                  ("A2", "4.7", "A100 anchor median APE $\\le$25\\%", ("holds" if s["A2"] else "fails") + f", {100 * s['median_ape_m4']:.0f}\\%"),
                  ("A3", "4.7", "model under-predicts $\\ge$2/3 of anchors", ("holds" if s["A3"] else "fails") + f", {s['under_predicted']} of {s['n']}")]
     elif "gh200" in anc:

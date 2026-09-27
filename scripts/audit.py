@@ -57,6 +57,7 @@ def loso_band():
 _fits = {}
 from scripts.a10_rows import A10_ROWS  # noqa: E402
 WITH_A10 = False
+SCALE = 1.0
 
 
 def params_without(system):
@@ -128,9 +129,13 @@ def main():
     ap.add_argument("--results", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--with-a10", action="store_true", help="sensitivity: add first-party A10 static runs to the fit")
+    ap.add_argument("--baseline-scale", type=float, default=1.0,
+                    help="sensitivity: multiply every predicted baseline (and its band) by this factor, e.g. the median "
+                         "measured/predicted ratio of the offloaded anchor configurations")
     a = ap.parse_args()
-    global WITH_A10
+    global WITH_A10, SCALE
     WITH_A10 = a.with_a10
+    SCALE = a.baseline_scale
     q10, q90 = loso_band()
     rng = np.random.default_rng(0)
     out, skipped = [], []
@@ -154,6 +159,7 @@ def main():
         t_hi_bw, _ = static_offload_time(w, HW(row["bw_gpu"], bw_hi, bw_p), p, L - n_gpu)
         base_mid = 2 / (t_lo_bw + t_hi_bw)
         base_lo, base_hi = (1 / t_lo_bw) * q10, (1 / t_hi_bw) * q90
+        base_mid, base_lo, base_hi = base_mid * SCALE, base_lo * SCALE, base_hi * SCALE
         m, msrc = mstar(repo, E, k, C, a.results, rng)
         t_sol = speed_of_light_time(w, HW(row["bw_gpu"], bw_hi, bw_p), PHYS, m)
         t_sol_g = None

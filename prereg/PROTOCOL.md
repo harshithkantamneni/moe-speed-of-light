@@ -729,3 +729,12 @@ job 051/053 measures, so git history orders them.
 - **Deviation: A100 anchors (added while job 050 runs, before job 051 measures).** The instance Lambda provided is an
   A100-SXM4-80GB (x86), not the 40 GB variant; the sweep is unchanged (every configuration fits either card) and the
   predictions use its own datasheet bandwidth (2,039 GB/s) and STREAM Triad. A2 and A3 are scored on it as registered.
+- **A100 anchors (jobs 050–051, A100-SXM4-80GB, 30-vCPU EPYC 7J13 host, `prereg/anchors/a100.json`).**
+  **A1 fails**: 7 of 29 configurations beat the STREAM-Triad floor, by up to 16 % (all stay
+  below 54 % of the floor at datasheet peaks, 204.8 GB/s DRAM). **A2 fails**: median APE
+  34 %. **A3 holds**: the model under-predicts 25 of 29. Affine R² ≥ 0.970; drift ≤ 6.6 %.
+  The registered anchor predictor multiplies η_c by STREAM Triad, the audit multiplies it by the datasheet peak.
+- **Audit-basis comparison and sensitivity (unregistered, `scripts/anchor_basis.py`, `prereg/audit_sens_scale_*`).**
+  On the audit's datasheet basis, measured/predicted llama.cpp with experts offloaded has median 1.22 (A10),
+  0.83 (A100 host) and 0.86 (GH200); single configurations 0.44–1.35.
+  Scaling every predicted baseline by 0.83 / 1.22: 13 / 19 of 20 weak, 10 / 4 of 22 survive.

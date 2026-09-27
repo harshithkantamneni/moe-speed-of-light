@@ -17,13 +17,14 @@ decode speed-ups over llama.cpp for this setting. This repository provides the y
    policy, including an oracle prefetcher, in `tests/test_bound.py`).
 2. **A validated decode model.** Bytes over bandwidth with measured efficiencies: 16 % median error on 52 third-party
    measurements from 9 sources (cross-validated, one of 12 groups held out at a time); tested on pre-registered
-   first-party runs (A10) and anchor runs (GH200), where its transferred constants are mostly conservative with experts
-   offloaded; calibrated with two runs, it predicted 29 held-out configurations on the GH200 with 6.7 % median
-   error (registered as H5).
+   first-party runs (A10) and anchor runs (A100, GH200): calibrated with two runs, it predicted 29 held-out
+   configurations on the GH200 with 6.7 % median error (registered as H5); uncalibrated, it missed the registered
+   accuracy thresholds, and on the audit's datasheet basis it is within a median factor of 0.83–1.22 of measured
+   llama.cpp per platform.
 3. **An audit.** 147 published measurements from 41 systems, re-checked field by field against every source. 22 rows
    are adjudicable: 16 of 20 llama.cpp baselines fall below the band of the predicted equal-memory `--n-cpu-moe`
-   baseline, 8 of 22 claimed gains survive against it, and the median system reaches 24 % of the physical
-   speed-of-light. None of the 15 papers with a llama.cpp baseline configured its partial expert offload.
+   baseline, 8 of 22 claimed gains survive against it (13–19 weak and 4–10 surviving across the predictor's error on
+   our own hardware), and the median system reaches 24 % of the physical speed-of-light. None of the 15 papers with a llama.cpp baseline configured its partial expert offload.
 4. **Trace provenance.** Teacher-forcing dataset text (the norm in trace studies) overstates cache hit rates against
    the models' own generations on all nine models traced (3.3–5.4 points on the four pre-registered models at 12.5 % of
    experts, up to 8.8 on the audit's models); for gpt-oss-120b, dataset text without its own reasoning is

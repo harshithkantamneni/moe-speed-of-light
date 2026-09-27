@@ -2,7 +2,22 @@
 # background in the given order; each model runs in its own process.
 declare -A HUB=([olmoe]=allenai/OLMoE-1B-7B-0125-Instruct [gpt-oss-20b]=openai/gpt-oss-20b
                 [qwen3-30b-a3b]=Qwen/Qwen3-30B-A3B-Instruct-2507 [gpt-oss-120b]=openai/gpt-oss-120b
-                [qwen3-30b-a3b-fp8]=Qwen/Qwen3-30B-A3B-Instruct-2507-FP8)
+                [qwen3-30b-a3b-fp8]=Qwen/Qwen3-30B-A3B-Instruct-2507-FP8
+                [mixtral-8x7b]=mistralai/Mixtral-8x7B-Instruct-v0.1 [mixtral-8x7b-awq]=hugging-quants/Mixtral-8x7B-Instruct-v0.1-AWQ-INT4
+                [deepseek-v2-lite]=deepseek-ai/DeepSeek-V2-Lite-Chat [qwen1.5-moe]=Qwen/Qwen1.5-MoE-A2.7B-Chat
+                [qwen2-57b]=Qwen/Qwen2-57B-A14B-Instruct [qwen2-57b-gptq]=Qwen/Qwen2-57B-A14B-Instruct-GPTQ-Int4
+                [phi3.5-moe]=microsoft/Phi-3.5-MoE-instruct [phi3.5-moe-awq]=danieldk/Phi-3.5-MoE-instruct-AWQ-INT4)
+# audit_model KEY GEN-CHECKPOINT TRACE-CHECKPOINT: on-policy corpora (vLLM on GEN, which fits 40 GB), then GPU traces
+# of D, G, S with the bf16 TRACE checkpoint; both checkpoints are deleted afterwards (disk)
+audit_model() {
+  local key=$1 gck=$2 tck=$3
+  ( dl $gck ${HUB[$gck]}; [ $tck != $gck ] && dl $tck ${HUB[$tck]} ) &
+  run_gen $key $gck "--arms G,S,D" 60m
+  wait
+  trace_arms $tck $OUT $key D G S
+  rm -rf $MD/$gck $MD/$tck
+  df -h / | tail -1
+}
 # vLLM's FlashInfer top-k/top-p sampler JIT-compiles (needs ninja and nvcc; job 027 failed on it): use PyTorch's
 export VLLM_USE_FLASHINFER_SAMPLER=0 PATH=$WORK/vv/bin:$PATH
 [ -x $WORK/vv/bin/ninja ] || uv pip install -q --python $WORK/vv/bin/python ninja > /dev/null 2>&1

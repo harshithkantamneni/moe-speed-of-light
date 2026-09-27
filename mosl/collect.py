@@ -227,7 +227,7 @@ def causal_mask(T: int, dtype, window: int = 0, device="cpu") -> torch.Tensor:
 
 
 def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=False, log=print, remote=False,
-            device="cpu"):
+            device="cpu", moe_chunk=None):
     """device="cuda" runs every layer on the GPU in the same precision (TF32 disabled); selections can then differ
     from the CPU's only at floating-point near-ties."""
     os.makedirs(out_dir, exist_ok=True)
@@ -280,11 +280,19 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
             hs[j] = h + a
             normed.append(layer.post_attention_layernorm(hs[j]))
             lens_j.append(T)
-        y = layer.mlp(torch.cat(normed, dim=1))
-        y = y[0] if isinstance(y, tuple) else y
+        x_all = torch.cat(normed, dim=1)
+        del normed
+        n_tok = x_all.shape[1]
+        step = moe_chunk or n_tok       # the MoE sub-block is token-wise: chunking bounds its peak memory
+        ys = []
+        for c0 in range(0, n_tok, step):
+            yc = layer.mlp(x_all[:, c0:c0 + step])
+            ys.append(yc[0] if isinstance(yc, tuple) else yc)
+        y = torch.cat(ys, dim=1) if len(ys) > 1 else ys[0]
+        del ys, x_all
         for j, part in enumerate(torch.split(y, lens_j, dim=1)):
             hs[j] = hs[j] + part
-        del normed, y
+        del y
         if hook is not None:
             hook.remove()
             idx = torch.cat(rec, 0).cpu().numpy()

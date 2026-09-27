@@ -29,6 +29,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--dtype", default="float32")
+    ap.add_argument("--moe-chunk", type=int, default=0, help="tokens per MoE sub-block call (0: all at once)")
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.corpus) if l.strip()]
     seqs = [r["ids"] for r in rows]
@@ -36,13 +37,13 @@ def main():
     shutil.rmtree(tmp, ignore_errors=True)
     t0 = time.time()
     meta = collect(a.repo, seqs, tmp, dtype=getattr(torch, a.dtype), keep=True, device=a.device,
-                   log=lambda s: print(s, flush=True))
+                   moe_chunk=a.moe_chunk or None, log=lambda s: print(s, flush=True))
     layers = sorted(int(k) for k in meta["layers"])
     E = max(int(v["num_experts"]) for v in meta["layers"].values())
     R = np.stack([np.load(os.path.join(tmp, f"layer{l:03d}.npy")) for l in layers])
     R = R.astype(np.uint8 if E <= 256 else np.int16)
     meta.update(hub_id=a.hub_id or a.repo, corpus=os.path.basename(a.corpus), device=a.device, seconds=time.time() - t0,
-                torch=torch.__version__, dtype=a.dtype)
+                torch=torch.__version__, dtype=a.dtype, moe_chunk=a.moe_chunk)
     np.savez_compressed(a.out, routes=R, layers=np.array(layers), num_experts=E,
                         seq_lens=np.array([len(s) for s in seqs]),
                         prompt_lens=np.array([r.get("prompt_len", 0) for r in rows]),

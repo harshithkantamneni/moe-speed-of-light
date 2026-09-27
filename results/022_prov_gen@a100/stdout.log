@@ -1,0 +1,227 @@
++++ dirname /opt/runner/repo/jobs/022_prov_gen@a100.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ . /opt/runner/repo/jobs/prov/setup.sh
+++++ dirname /opt/runner/repo/jobs/prov/setup.sh
++++ cd /opt/runner/repo/jobs/prov
++++ pwd
+++ P=/opt/runner/repo/jobs/prov
+++ export P MD=/opt/runner/work/hfmodels HF_HOME=/opt/runner/work/hf
+++ MD=/opt/runner/work/hfmodels
+++ HF_HOME=/opt/runner/work/hf
+++ export HOME=/root UV_INSTALL_DIR=/opt/runner/work/uvbin UV_PYTHON_INSTALL_DIR=/opt/runner/work/uvpy UV_CACHE_DIR=/opt/runner/work/uvcache UV_NO_MODIFY_PATH=1
+++ HOME=/root
+++ UV_INSTALL_DIR=/opt/runner/work/uvbin
+++ UV_PYTHON_INSTALL_DIR=/opt/runner/work/uvpy
+++ UV_CACHE_DIR=/opt/runner/work/uvcache
+++ UV_NO_MODIFY_PATH=1
+++ export PATH=/opt/runner/work/uvbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+++ PATH=/opt/runner/work/uvbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+++ mkdir -p /opt/runner/work/hfmodels /opt/runner/work/hf
+++ command -v uv
+++ curl -LsSf https://astral.sh/uv/install.sh
+++ sh
+++ tail -2 /opt/runner/work/uv_install.log
+  uvx
+everything's installed!
+++ uv --version
+uv 0.12.19 (x86_64-unknown-linux-gnu)
+++ /opt/runner/work/vv/bin/python -c 'import vllm'
+++ uv venv -q --python 3.12 /opt/runner/work/vv
+++ timeout 20m uv pip install --python /opt/runner/work/vv/bin/python vllm 'huggingface_hub[hf_xet]' --torch-backend=auto
+++ tail -3 /opt/runner/work/vv_install.log
+ + xgrammar==0.2.8
+ + yarl==1.25.1
+ + z3-solver==4.15.4.0
+++ /opt/runner/work/tv/bin/python -c 'import torch, transformers; assert torch.cuda.is_available()'
+++ uv venv -q --python 3.12 /opt/runner/work/tv
+++ timeout 20m uv pip install --python /opt/runner/work/tv/bin/python torch transformers==5.17.0 safetensors numpy huggingface_hub requests --torch-backend=auto
+++ tail -3 /opt/runner/work/tv_install.log
+ + typer==0.27.2
+ + typing-extensions==4.16.0
+ + urllib3==2.8.0
+++ /opt/runner/work/vv/bin/python -c 'import vllm, torch; print('\''vllm'\'', vllm.__version__, '\''torch'\'', torch.__version__, '\''cuda'\'', torch.cuda.is_available())'
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/__init__.py", line 14, in <module>
+    import vllm.env_override  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/env_override.py", line 153, in <module>
+    from vllm.utils.torch_utils import is_torch_equal, is_torch_equal_or_newer
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/utils/torch_utils.py", line 75, in <module>
+    PIN_MEMORY = is_pin_memory_available()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/utils/platform_utils.py", line 45, in is_pin_memory_available
+    from vllm.platforms import current_platform
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/platforms/__init__.py", line 312, in __getattr__
+    _current_platform = resolve_obj_by_qualname(platform_cls_qualname)()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/utils/import_utils.py", line 130, in resolve_obj_by_qualname
+    module = importlib.import_module(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/uvpy/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/vv/lib/python3.12/site-packages/vllm/platforms/cuda.py", line 23, in <module>
+    import vllm._C_stable_libtorch  # noqa
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: libcudart.so.13: cannot open shared object file: No such file or directory
+++ /opt/runner/work/tv/bin/python -c 'import transformers, torch; print('\''tracer: transformers'\'', transformers.__version__, '\''torch'\'', torch.__version__, '\''cuda'\'', torch.cuda.is_available())'
+tracer: transformers 5.17.0 torch 2.13.0+cu129 cuda True
++ nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+name, memory.total [MiB], driver_version
+NVIDIA A100-SXM4-40GB, 40960 MiB, 570.148.08
++ for key in olmoe gpt-oss-20b qwen3-30b-a3b gpt-oss-120b
++ wait_dl olmoe
++ for spec in "olmoe allenai/OLMoE-1B-7B-0125-Instruct" "gpt-oss-20b openai/gpt-oss-20b" "qwen3-30b-a3b Qwen/Qwen3-30B-A3B-Instruct-2507" "gpt-oss-120b openai/gpt-oss-120b"
++ dl olmoe allenai/OLMoE-1B-7B-0125-Instruct
++ '[' -f /opt/runner/work/hfmodels/olmoe/.done ']'
++ HF_XET_HIGH_PERFORMANCE=1
++ timeout 45m /opt/runner/work/vv/bin/hf download allenai/OLMoE-1B-7B-0125-Instruct --local-dir /opt/runner/work/hfmodels/olmoe --include 'model*.safetensors' '*.json' 'tokenizer*' '*.jinja' '*.txt' '*.model' '*.tiktoken' --exclude 'original/*' 'metal/*'
+++ seq 1 600
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/olmoe/.done ']'
++ sleep 5
++ touch /opt/runner/work/hfmodels/olmoe/.done
++ for spec in "olmoe allenai/OLMoE-1B-7B-0125-Instruct" "gpt-oss-20b openai/gpt-oss-20b" "qwen3-30b-a3b Qwen/Qwen3-30B-A3B-Instruct-2507" "gpt-oss-120b openai/gpt-oss-120b"
++ dl gpt-oss-20b openai/gpt-oss-20b
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-20b/.done ']'
++ HF_XET_HIGH_PERFORMANCE=1
++ timeout 45m /opt/runner/work/vv/bin/hf download openai/gpt-oss-20b --local-dir /opt/runner/work/hfmodels/gpt-oss-20b --include 'model*.safetensors' '*.json' 'tokenizer*' '*.jinja' '*.txt' '*.model' '*.tiktoken' --exclude 'original/*' 'metal/*'
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/olmoe/.done ']'
++ return 0
++ du -sh /opt/runner/work/hfmodels/olmoe
+3.8M	/opt/runner/work/hfmodels/olmoe
++ X=
++ '[' olmoe = gpt-oss-120b ']'
++ echo 'olmoe rc=1'
+olmoe rc=1
++ grep -E '^(G|S|D|V1|V2) |S params|Error|Traceback' /opt/runner/repo/results/022_prov_gen@a100/gen_olmoe.log
++ tail -8
+Traceback (most recent call last):
+ImportError: libcudart.so.13: cannot open shared object file: No such file or directory
++ for key in olmoe gpt-oss-20b qwen3-30b-a3b gpt-oss-120b
++ wait_dl gpt-oss-20b
+++ seq 1 600
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-20b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-20b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-20b/.done ']'
++ sleep 5
++ touch /opt/runner/work/hfmodels/gpt-oss-20b/.done
++ for spec in "olmoe allenai/OLMoE-1B-7B-0125-Instruct" "gpt-oss-20b openai/gpt-oss-20b" "qwen3-30b-a3b Qwen/Qwen3-30B-A3B-Instruct-2507" "gpt-oss-120b openai/gpt-oss-120b"
++ dl qwen3-30b-a3b Qwen/Qwen3-30B-A3B-Instruct-2507
++ '[' -f /opt/runner/work/hfmodels/qwen3-30b-a3b/.done ']'
++ HF_XET_HIGH_PERFORMANCE=1
++ timeout 45m /opt/runner/work/vv/bin/hf download Qwen/Qwen3-30B-A3B-Instruct-2507 --local-dir /opt/runner/work/hfmodels/qwen3-30b-a3b --include 'model*.safetensors' '*.json' 'tokenizer*' '*.jinja' '*.txt' '*.model' '*.tiktoken' --exclude 'original/*' 'metal/*'
++ touch /opt/runner/work/hfmodels/qwen3-30b-a3b/.done
++ for spec in "olmoe allenai/OLMoE-1B-7B-0125-Instruct" "gpt-oss-20b openai/gpt-oss-20b" "qwen3-30b-a3b Qwen/Qwen3-30B-A3B-Instruct-2507" "gpt-oss-120b openai/gpt-oss-120b"
++ dl gpt-oss-120b openai/gpt-oss-120b
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ HF_XET_HIGH_PERFORMANCE=1
++ timeout 45m /opt/runner/work/vv/bin/hf download openai/gpt-oss-120b --local-dir /opt/runner/work/hfmodels/gpt-oss-120b --include 'model*.safetensors' '*.json' 'tokenizer*' '*.jinja' '*.txt' '*.model' '*.tiktoken' --exclude 'original/*' 'metal/*'
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-20b/.done ']'
++ return 0
++ du -sh /opt/runner/work/hfmodels/gpt-oss-20b
+13G	/opt/runner/work/hfmodels/gpt-oss-20b
++ X=
++ '[' gpt-oss-20b = gpt-oss-120b ']'
++ echo 'gpt-oss-20b rc=1'
+gpt-oss-20b rc=1
++ grep -E '^(G|S|D|V1|V2) |S params|Error|Traceback' /opt/runner/repo/results/022_prov_gen@a100/gen_gpt-oss-20b.log
++ tail -8
+Traceback (most recent call last):
+ImportError: libcudart.so.13: cannot open shared object file: No such file or directory
++ for key in olmoe gpt-oss-20b qwen3-30b-a3b gpt-oss-120b
++ wait_dl qwen3-30b-a3b
+++ seq 1 600
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/qwen3-30b-a3b/.done ']'
++ return 0
++ du -sh /opt/runner/work/hfmodels/qwen3-30b-a3b
+17M	/opt/runner/work/hfmodels/qwen3-30b-a3b
++ X=
++ '[' qwen3-30b-a3b = gpt-oss-120b ']'
++ echo 'qwen3-30b-a3b rc=1'
+qwen3-30b-a3b rc=1
++ grep -E '^(G|S|D|V1|V2) |S params|Error|Traceback' /opt/runner/repo/results/022_prov_gen@a100/gen_qwen3-30b-a3b.log
++ tail -8
+Traceback (most recent call last):
+ImportError: libcudart.so.13: cannot open shared object file: No such file or directory
++ for key in olmoe gpt-oss-20b qwen3-30b-a3b gpt-oss-120b
++ wait_dl gpt-oss-120b
+++ seq 1 600
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ sleep 5
++ touch /opt/runner/work/hfmodels/gpt-oss-120b/.done
++ for i in $(seq 1 600)
++ '[' -f /opt/runner/work/hfmodels/gpt-oss-120b/.done ']'
++ return 0
++ du -sh /opt/runner/work/hfmodels/gpt-oss-120b
+61G	/opt/runner/work/hfmodels/gpt-oss-120b
++ X=
++ '[' gpt-oss-120b = gpt-oss-120b ']'
++ X='--gpu-mem 0.86 --batched-tokens 2048'
++ echo 'gpt-oss-120b rc=1'
+gpt-oss-120b rc=1
++ grep -E '^(G|S|D|V1|V2) |S params|Error|Traceback' /opt/runner/repo/results/022_prov_gen@a100/gen_gpt-oss-120b.log
++ tail -8
+Traceback (most recent call last):
+ImportError: libcudart.so.13: cannot open shared object file: No such file or directory
++ wait
++ ls -la /opt/runner/repo/results/022_prov_gen@a100
+total 40
+drwx------  2 root root  4096 Sep 27 11:16 .
+drwx------ 26 root root  4096 Sep 27 11:14 ..
+-rw-------  1 root root  2224 Sep 27 11:16 gen_gpt-oss-120b.log
+-rw-------  1 root root  2185 Sep 27 11:15 gen_gpt-oss-20b.log
+-rw-------  1 root root  2173 Sep 27 11:15 gen_olmoe.log
+-rw-------  1 root root  2189 Sep 27 11:15 gen_qwen3-30b-a3b.log
+-rw-------  1 root root     7 Sep 27 11:14 stderr.log
+-rw-------  1 root root 10869 Sep 27 11:16 stdout.log

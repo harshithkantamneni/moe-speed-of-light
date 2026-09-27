@@ -15,13 +15,14 @@ decode speed-ups over llama.cpp for this setting. This repository provides the y
    per-layer or shared GPU expert budget (static or dynamic, demand or prefetching, misses fetched or executed on the
    CPU), computed from exact routing traces (`mosl/perfmodel.py: speed_of_light_time`; tested against every simulated
    policy, including an oracle prefetcher, in `tests/test_bound.py`).
-2. **A validated decode model.** Bytes over bandwidth with measured efficiencies: 16 % median error leave-one-source-out
-   on 52 third-party measurements; pre-registered first-party runs on an A10 (step-time model: 5.0 % median error on
-   33 configurations per arm); pre-registered anchor runs.
-3. **An audit.** 147 published measurements from 42 systems, re-checked field by field against every source. 23 rows
+2. **A validated decode model.** Bytes over bandwidth with measured efficiencies: 16 % median error on 52 third-party
+   measurements from 9 sources (cross-validated, one of 12 groups held out at a time); tested on pre-registered
+   first-party runs (A10) and anchor runs (GH200), where its transferred constants are conservative with experts
+   offloaded.
+3. **An audit.** 147 published measurements from 41 systems, re-checked field by field against every source. 22 rows
    are adjudicable: 16 of 20 llama.cpp baselines fall below the band of the predicted equal-memory `--n-cpu-moe`
-   baseline, 8 of 23 claimed gains survive against it, and the median system reaches 19 % of the physical
-   speed-of-light. No paper configured llama.cpp's partial expert offload as its baseline.
+   baseline, 8 of 22 claimed gains survive against it, and the median system reaches 24 % of the physical
+   speed-of-light. None of the 15 papers with a llama.cpp baseline configured its partial expert offload.
 4. **Trace provenance.** Teacher-forcing dataset text (the norm in trace studies) overstates cache hit rates against
    the models' own generations on all nine models traced (3.3–5.4 points on the four pre-registered models at 12.5 % of
    experts, up to 8.8 on the audit's models); for gpt-oss-120b, dataset text without its own reasoning is
@@ -70,7 +71,7 @@ answer; **S** its own sampled answer (generation-config defaults, seed = prompt 
 ```bash
 pip install torch transformers==5.17.0 safetensors huggingface_hub numba scipy numpy matplotlib
 python tests/test_cachesim.py && python tests/test_collect_equivalence.py && python -m pytest tests/test_bound.py -s
-python scripts/validate.py                                  # model fit and leave-one-source-out CV
+python scripts/validate.py                                  # model fit and grouped (leave-one-group-out) CV
 python scripts/audit.py --results <gpu-branch>/results --out prereg/audit
 python scripts/provenance.py --results <gpu-branch>/results --out prereg/provenance
 python scripts/paper_numbers4.py --results <gpu-branch>/results --out paper && cd paper && latexmk -pdf paper.tex

@@ -29,6 +29,7 @@ EXTENSION = ["mixtral-8x7b", "deepseek-v2-lite", "qwen1.5-moe", "qwen2-57b", "ph
 
 
 ELL, AST = "$^\\ell$", "$^\\ast$"
+SYSTEM_ALIASES = {"llama.cpp MoE expert cache (leloch moe-cache-pr, HEAD 8853f0535)": "llama.cpp MoE expert cache (leloch, branch moe-cache-pr)"}
 
 
 def tex(s):
@@ -75,11 +76,18 @@ def main():
     # ---------------- audit ----------------
     raw = [r for f in sorted(glob.glob("data/audit/rows_group*.jsonl")) for r in jl(f)]
     community = lambda r: r.get("venue", "").startswith("llama.cpp PR")
+    sysname = lambda r: SYSTEM_ALIASES.get(r["system"], r["system"])
     N["auditRows"] = len(raw)
-    N["auditSystems"] = len({r["system"] for r in raw})
-    N["auditPaperSystems"] = len({r["system"] for r in raw if not community(r)})
-    N["auditCommunitySystems"] = len({r["system"] for r in raw if community(r)})
+    N["auditSystems"] = len({sysname(r) for r in raw})
+    N["auditPaperSystems"] = len({sysname(r) for r in raw if not community(r)})
+    N["auditCommunitySystems"] = len({sysname(r) for r in raw if community(r)})
+    llama_b = lambda b: bool(re.search(r"llama\.cpp|ollama", (b.get("name", "") + " " + b.get("config", "")).lower()))
+    N["auditLlamaPapers"] = len({sysname(r) for r in raw if not community(r) and any(llama_b(b) for b in r.get("baselines", []))})
     N["auditNormalized"] = len(jl("data/audit/normalized.jsonl"))
+    N["auditNormalizedVtwo"] = len(jl("data/audit/normalized_v2.jsonl"))
+    v1 = {r["id"]: r for r in jl("data/audit/normalized.jsonl")}
+    strip = lambda r: {k: v for k, v in r.items() if k != "verification"}
+    N["auditChanged"] = sum(1 for r in jl("data/audit/normalized_v2.jsonl") if strip(r) != strip(v1[r["id"]]))
     ver = [r for b in (1, 2, 3) for r in jl(f"data/audit/verify_batch{b}.jsonl")]
     N["auditChecked"] = len(ver)
     N["auditCorrected"] = sum(v["verdict"] == "corrections" for v in ver)
@@ -109,6 +117,10 @@ def main():
     N["auditSensAdj"] = sens["n_adjudicated"]
     N["auditSensLlama"] = sens["llama_rows"]
     N["auditSkipped"] = S_["n_skipped"]
+    cl = sorted(r["claimed_speedup"] for r in A["rows"] if r["claimed_speedup"])
+    N["auditClaimMedian"] = f"{np.median(cl):.1f}"
+    N["auditClaimMax"] = f"{max(cl):.1f}"
+    N["auditNoBaseline"] = sum(any("no reported baseline" in l for l in r["labels"]) for r in A["rows"])
 
     # ---------------- provenance ----------------
     P = json.load(open("prereg/provenance/provenance.json"))
@@ -136,6 +148,7 @@ def main():
         ms = [d(k, "hit_MIN-bypass_1")[0] for k in ext]
         N["provExtMinDropMin"] = f"{-100 * max(ms):.1f}"
         N["provExtMinDropMax"] = f"{-100 * min(ms):.1f}"
+        N["provExtHalfMax"] = f"{100 * max(abs(d(k, 'hit_DFA_4')[0]) for k in ext):.1f}"
         f2 = [k for k in ext if PX[k]["flags"].get("F2")]
         N["provExtFTwo"] = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}[len(f2)]
         N["provExtFTwoNames"] = " and ".join(PROV_NAMES[k] for k in f2) or "--"
@@ -181,6 +194,17 @@ def main():
     N["oneTwentyRatioVz"] = f"{H['ratios']['resp_V0']:.2f}"
     N["oneTwentyRatioVone"] = f"{H['ratios']['resp_V1_same']:.2f}"
     N["oneTwentyN"] = b["n_conv"]
+    N["oneTwentyImplAff"] = f"{H['affected']['impl_absdiff_mean']:.2f}"
+    Hp = json.load(open("prereg/harmony/harmony.json"))["per_conversation"]
+    ha, hb = Hp["gpt-oss-20b"], Hp["gpt-oss-120b"]
+    sh = [c for c in ha if c in hb and ha[c].get("has_analysis") and hb[c].get("has_analysis")]
+    mean = lambda dd, cs, key: sum(dd[c][key][0] for c in cs) / sum(dd[c][key][1] for c in cs)
+    N["oneTwentyVoneShared"] = f"{mean(hb, sh, 'v1_resp') / mean(ha, sh, 'v1_resp'):.2f}"
+    N["oneTwentyVzShared"] = f"{mean(hb, sh, 'resp') / mean(ha, sh, 'resp'):.2f}"
+    N["oneTwentyShared"] = len(sh)
+    N["oneTwentyHasAnalysis"] = sum(bool(v.get("has_analysis")) for v in hb.values())
+    N["twentyHasAnalysis"] = sum(bool(v.get("has_analysis")) for v in ha.values())
+    N["oneTwentyNllDAll"] = f"{P['gpt-oss-120b']['arms']['D']['nll']:.2f}"
     scD = json.load(open("prereg/a10_windows_038/scored_D.json"))
     scS = json.load(open("prereg/a10_windows_038/scored_S.json"))
     N["oneTwentyLlama"] = f"{scD['results']['gpt-oss-120b-MXFP4']['budgets']['1']['llama.cpp static layers']['nll']:.2f}"
@@ -225,6 +249,9 @@ def main():
     N["bwThis"], N["bwPhase"] = f"{bw[0]:.0f}", f"{B_C / 1e9:.0f}"
     N["bwDiffPct"] = round(100 * (bw[0] / (B_C / 1e9) - 1))
     win = {tag: scD["results"][tag]["budgets"]["2"]["speedup"] - ctrl[tag][0] for tag in A10}
+    own = lambda sysn: [scS["results"][t]["budgets"]["1"][sysn]["tok_s"] / scD["results"][t]["budgets"]["1"][sysn]["tok_s"] - 1 for t in A10]
+    N["caseOwnCacheMin"], N["caseOwnCacheMax"] = round(100 * min(own("mailbox cache"))), round(100 * max(own("mailbox cache")))
+    N["caseOwnLlamaMin"], N["caseOwnLlamaMax"] = round(100 * min(own("llama.cpp static layers"))), round(100 * max(own("llama.cpp static layers")))
     N["winEffectMax"] = f"{max(abs(v) for v in win.values()):.2f}"
     # share of phase-2/3 "decode" steps inside the user prompt (prefill capped at 128, 192 steps)
     from mosl.ecsim import decode_windows
@@ -243,9 +270,11 @@ def main():
     N["anchorParagraph"] = anchor_paragraph(anc)
     for nm, x in anc.items():
         s = x["summary"]
-        up = nm.capitalize()
+        up = {"a100": "Ahundred", "gh200": "Gh"}[nm]
         N[f"anchor{up}N"] = s["n"]
         N[f"anchor{up}Med"] = f"{100 * s['median_ape_m4']:.0f}"
+        N[f"anchor{up}Under"] = s["under_predicted"]
+        N[f"anchor{up}MinRtwo"] = f"{s['min_r2']:.3f}"
 
     # ---------------- write macros ----------------
     os.makedirs(a.out, exist_ok=True)
@@ -260,7 +289,9 @@ def main():
          "\\caption{Trace provenance: own sampled text (S) against dataset text (D), response tokens only, paired bootstrap 95\\% CIs over prompts. "
          "Hit rates in points at 12.5\\% / 25\\% of experts; DFA is our deployed admission policy, MIN-bypass the oracle. "
          "$\\Delta M^\\star_{\\mathrm{glob}}$: reduction of MIN-bypass misses (S) when the per-layer budget is pooled over all layers, at 12.5\\%. "
-         "Rows below the rule extend the registered study to the audit's models.}\\label{tab:prov}",
+         "Rows below the rule extend the registered study to the audit's models. NLL (nats per answer token) from vLLM on the generation checkpoint "
+         "(FP8 for Qwen3, Mixtral, Qwen2-57B and Phi-3.5; bf16 otherwise); gpt-oss-120b's D value covers all 160 conversations, its G and S arms 35. "
+         "$^\\dagger$F3 needs a measured all-GPU run and was computed for gpt-oss-20b and Qwen3 only.}\\label{tab:prov}",
          "\\resizebox{\\textwidth}{!}{\\begin{tabular}{lrrrrrrrl}\\toprule",
          "model & $E$/$k$ & NLL D & NLL S & $\\Delta$DFA 12.5\\% & $\\Delta$DFA 25\\% & $\\Delta$MIN-b. 12.5\\% & $\\Delta M^\\star_{\\mathrm{glob}}$ & F1--F3 \\\\ \\midrule"]
     ci = lambda t: f"{100 * t[0]:+.1f} [{100 * t[1]:+.1f}, {100 * t[2]:+.1f}]"
@@ -269,9 +300,11 @@ def main():
             r = allp[k]
             fl = r.get("flags", {})
             fires = [n for n, v in (("F1", bool(fl.get("F1"))), ("F2", fl.get("F2")), ("F3", fl.get("F3_fires", False))) if v]
+            if not fires:
+                fires = ["none" if "F3" in fl else "none$^\\dagger$"]
             nd, ns = r["arms"]["D"].get("nll"), r["arms"]["S"].get("nll")
             L.append(f"{PROV_NAMES[k]} & {r['E']}/{r['k']} & {nd:.2f} & {ns:.2f} & {ci(d(k, 'hit_DFA_1'))} & {ci(d(k, 'hit_DFA_2'))} & "
-                     f"{ci(d(k, 'hit_MIN-bypass_1'))} & {100 * G[k]['q1']['reduction']:.1f}\\% & {', '.join(fires) or 'none'} \\\\"
+                     f"{ci(d(k, 'hit_MIN-bypass_1'))} & {100 * G[k]['q1']['reduction']:.1f}\\% & {', '.join(fires)} \\\\"
                      if k in G else "")
         if grp is reg and ext:
             L.append("\\midrule")
@@ -301,7 +334,7 @@ def main():
     rb = lambda r: f"{r['reported_baseline']['tok_s']:.1f}" if r["reported_baseline"] else "--"
     islc = lambda r: bool(r["reported_baseline"]) and r["reported_baseline"].get("class", "").startswith("llama.cpp")
     L = ["\\begin{table*}[t]\\centering\\scriptsize\\setlength\\tabcolsep{3.5pt}",
-         f"\\caption{{The {N['auditAdj']} adjudicated rows. Claimed: system over its strongest reported baseline (llama.cpp where one is reported, marked $^\\ell$). "
+         f"\\caption{{The {N['auditAdj']} adjudicated rows. Claimed: system over its strongest reported llama.cpp baseline (marked $^\\ell$), else over its strongest reported baseline. "
          "Predicted: equal-memory llama.cpp \\texttt{--n-cpu-moe} [band]. $S_n$: system over predicted. SoL: physical speed-of-light, $M^\\star$ from our traces (t) "
          "or independent routing (i). Budget: GPU bytes for routed experts ($^\\ast$ imputed upper bound). All rows in \\cref{app:audit}.}\\label{tab:audit}",
          "\\resizebox{\\textwidth}{!}{\\begin{tabular}{lllrrrrrrrl}\\toprule",
@@ -319,7 +352,7 @@ def main():
 
     L = ["{\\scriptsize\\setlength\\tabcolsep{2.6pt}",
          "\\begin{longtable}{p{2.2cm}p{2.1cm}p{1.5cm}rrrrrrrl}",
-         f"\\caption{{All {N['auditModelled']} modelled rows (of {N['auditNormalized']} normalized, after the re-check). Budget: GPU bytes for routed experts "
+         f"\\caption{{All {N['auditModelled']} modelled rows (of the {N['auditNormalizedVtwo']} left after the re-check). Budget: GPU bytes for routed experts "
          "($n_{\\mathrm{cpu}}/L$ MoE layers on the CPU in the predicted baseline; $^\\ast$ imputed upper bound). Other columns as in \\cref{tab:audit}; "
          "SoL$_g$: the global-budget variant.}\\label{tab:auditfull}\\\\",
          "\\toprule system & model & GPU & budget GB ($n/L$) & sys. & base & claim & pred. & $S_n$ & SoL (SoL$_g$) & label \\\\ \\midrule\\endfirsthead",
@@ -331,7 +364,7 @@ def main():
         L.append(f"{tex(short_system(r['system']))} & {tex(short_model(r['model']))} & {tex(short_gpu(r['gpu']))} & "
                  f"{r['budget_gb']:.1f}{AST if r['budget_imputed'] else ''} ({r['n_cpu_layers']}/{r['L']}) & {r['system_tok_s']:.1f} & "
                  f"{rb(r)}{ELL if islc(r) else ''} & {cl} & {r['pred_baseline_tok_s'][1]:.1f} & {r['normalized_speedup'][1]:.2f} & "
-                 f"{r['sol_tok_s']:.1f}{sg} {'t' if 'trace' in r['mstar_source'] else 'i'} & {tex(lab(r).replace('not adjudicated: band wider than +-40 %', 'n.a. (band)').replace('not adjudicated: claimed speed-up < 1.2x', 'n.a. (claim)'))} \\\\")
+                 f"{r['sol_tok_s']:.1f}{sg} {'t' if 'trace' in r['mstar_source'] else 'i'} & {tex(lab(r).replace('not adjudicated: band wider than +-40 %', 'n.a. (band)').replace('not adjudicated: claimed speed-up < 1.2x', 'n.a. (claim)').replace('not adjudicated: no reported baseline', 'n.a. (no base)'))} \\\\")
     L += ["\\end{longtable}}", "Not modelled: " + "; ".join(f"\\texttt{{{tex(x['id'])}}} ({tex(x['reason'])})" for x in A["skipped"]) + "."]
     open(os.path.join(a.out, "table_audit_full.tex"), "w").write("\n".join(L) + "\n")
 
@@ -360,30 +393,43 @@ def main():
     print(json.dumps(N, indent=1, default=str))
 
 
+def anchor_stats(x):
+    c = x["configs"]
+    g0 = [r for r in c if r["n_cpu_moe"] == 0]
+    off = [r for r in c if r["n_cpu_moe"] > 0]
+    return dict(n0=len(g0), r0=[min(r["ratio_m4"] for r in g0), max(r["ratio_m4"] for r in g0)] if g0 else None,
+                noff=len(off), roff=[min(r["ratio_m4"] for r in off), max(r["ratio_m4"] for r in off)],
+                ape_off=float(np.median([r["ape_m4"] for r in off])), under_off=sum(r["measured"] > r["pred_m4"] for r in off))
+
+
 def anchor_paragraph(anc):
-    if not anc:
-        return "Anchor runs are pending."
-    parts = []
+    parts = ["We registered anchor criteria before any anchor run (protocol 4.7): no configuration may beat the physical floor (A1); "
+             "on an A100 x86 host the median error must be at most 25\\% (A2) and the model must under-predict at least two thirds of the "
+             "configurations, as on the A10 (A3). The predictor is the third-party fit with each machine's STREAM Triad and datasheet GPU bandwidth; "
+             "each prediction file was committed by the job before the one that measured."]
     if "a100" in anc:
-        s = anc["a100"]["summary"]
+        s, st = anc["a100"]["summary"], anchor_stats(anc["a100"])
         parts.append(
-            f"On an A100-SXM4-40GB x86 VM (STREAM Triad {s['platform']['bw_cpu']:.0f}\\,GB/s) we registered predictions for "
-            f"{s['n']} llama.cpp \\texttt{{--n-cpu-moe}} configurations of six GGUF models (Mixtral-8x7B Q4\\_K\\_M and Q8\\_0, Phi-3.5-MoE, "
-            f"Qwen2-57B-A14B, DeepSeek-V2-Lite, Qwen3-30B-A3B), committed them, then measured. The model's median error is "
-            f"{100 * s['median_ape_m4']:.0f}\\% (registered: $\\le$25\\%; {'holds' if s['A2'] else 'fails'}), it under-predicts "
-            f"{s['under_predicted']} of {s['n']} ({'as registered' if s['A3'] else 'fewer than the registered two thirds'}), measured/predicted "
-            f"{s['ratio_range'][0]:.2f}--{s['ratio_range'][1]:.2f}; no configuration exceeds the physical floor"
-            + (f" (the closest reaches {100 * s['max_of_floor']:.0f}\\%)" if s['A1'] else " (A1 fails)")
-            + (f"; time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$)" if s.get("min_r2") else "") + ".")
+            f"On the A100-SXM4-40GB (Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), {s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files "
+            f"(Mixtral-8x7B at Q4\\_K\\_M and Q8\\_0; Phi-3.5-MoE, Qwen2-57B-A14B and Qwen3-30B-A3B at Q4\\_K\\_M; DeepSeek-V2-Lite at Q8\\_0) give a median error of "
+            f"{100 * s['median_ape_m4']:.0f}\\% (A2 {'holds' if s['A2'] else 'fails'}); the model under-predicts {s['under_predicted']} of {s['n']} "
+            f"(A3 {'holds' if s['A3'] else 'fails'}), measured/predicted {s['ratio_range'][0]:.2f}--{s['ratio_range'][1]:.2f}; "
+            f"A1 {'holds' if s['A1'] else 'fails'}; time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$).")
     if "gh200" in anc:
-        s = anc["gh200"]["summary"]
+        s, st = anc["gh200"]["summary"], anchor_stats(anc["gh200"])
         parts.append(
-            f"On a GH200 (72-core Grace, LPDDR5X, NVLink-C2C; Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), outside the fitted envelope, "
-            f"the same predictions for {s['n']} configurations have {100 * s['median_ape_m4']:.0f}\\% median error "
-            f"(measured/predicted {s['ratio_range'][0]:.2f}--{s['ratio_range'][1]:.2f}), "
-            + ("and none exceeds the floor" if s["A1"] else f"and {s['floor_violations']} exceed the floor") + ".")
-    if "a100" not in anc:
-        parts.append("No A100 had capacity during the study; the registered A100 anchors remain to be run.")
+            ("No A100 had capacity during the study, so the registered A100 test is still open. " if "a100" not in anc else "")
+            + f"On a GH200 (72-core Grace, LPDDR5X, NVLink-C2C; Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), a platform outside the fitted envelope, "
+            + (f"the same {s['n']} configurations" if "a100" in anc else
+               f"{s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files (Mixtral-8x7B at Q4\\_K\\_M and Q8\\_0; Phi-3.5-MoE, "
+               "Qwen2-57B-A14B and Qwen3-30B-A3B at Q4\\_K\\_M; DeepSeek-V2-Lite at Q8\\_0)")
+            + f" show two regimes. With experts on the CPU ({st['noff']} configurations) the model under-predicts "
+            f"{st['under_off']} of them, measured/predicted {st['roff'][0]:.2f}--{st['roff'][1]:.2f} (median error {100 * st['ape_off']:.0f}\\%), "
+            f"the conservative direction seen on the A10. All-GPU runs ({st['n0']}) are over-predicted, measured/predicted "
+            f"{st['r0'][0]:.2f}--{st['r0'][1]:.2f}: at 4\\,TB/s a small model's decode step is dominated by per-layer fixed costs that Eq.~(1) omits. "
+            f"Over all {s['n']}, the median error is {100 * s['median_ape_m4']:.0f}\\%; no configuration exceeds the physical floor (the closest reaches "
+            f"{100 * s['max_of_floor']:.0f}\\% of it), and time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$). "
+            "The audited rows sit in the offloaded regime, where the model errs on the side of calling baselines strong.")
     return " ".join(parts)
 
 

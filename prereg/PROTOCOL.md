@@ -690,3 +690,31 @@ job 051/053 measures, so git history orders them.
   unregistered extension, separately from the four registered models.
 - vLLM 0.30's per-request `watermarking` flag prints as True in every generation log; it has no effect without
   an engine-level watermark configuration, which was never set.
+
+## 4.7 outcomes and deviations (27 Sep 2026)
+
+- **Deviation: GH200 anchors.** Job 052 committed the predictions (`results/052_*/anchor_predictions.json`) but its
+  llama.cpp build failed (cmake 3.22 does not accept `CMAKE_CUDA_ARCHITECTURES=native`), so job 053 measured nothing.
+  Job 054 rebuilt the same commit for sm_90 and ran the sweep unchanged; the predictions are job 052's. nvidia-smi
+  reports no usable PCIe link for the C2C-attached GPU; B_p does not enter `--n-cpu-moe` predictions. Job 050's
+  build line is fixed the same way for the A100.
+- **A1 holds on the GH200** (29 configurations, the closest at 86 % of the floor). Exploratory
+  statistics: median APE 24 %; the model under-predicts 20 of 29; all-GPU
+  configurations (n = 0) are over-predicted (measured/predicted 0.28–0.92), the offloaded ones mostly under-predicted
+  (0.55–1.50); time per token is affine in the CPU layers (R² ≥ 0.997); drift of the repeated
+  configurations ≤ 3.1 %.
+- **A2, A3 not run.** No A100 had capacity on Lambda during the study (poller from 13:38 UTC); jobs 050–051 remain
+  ready.
+- **Audit clarification (before the final run).** A row that reports no baseline has no claimed speed-up; it is
+  "not adjudicated" (one row: pipelined sharding, Qwen3-30B-A3B, RTX 5070 Ti).
+- **Final audit** (`prereg/audit/`): 52 rows modelled, 22 adjudicated, 8 gains survive,
+  16 of 20 llama.cpp baselines weak, median system 24 % of the physical
+  speed-of-light. P5 and P6 hold. Sensitivity with the A10 runs in the fit: 8 survive,
+  17 of 20 weak.
+- **Provenance extension** (`prereg/provenance_ext/`, unregistered): own text is less local on all five audit models;
+  F2 would fire on DeepSeek-V2-Lite (−7.9 pp at 25 %) and Phi-3.5-MoE (−6.9 pp).
+- **Reference check** (job 049, `prereg/ref_check/`): stock transformers on the real Mixtral, Phi-3.5-MoE and
+  Qwen2-57B checkpoints selects the same experts as the collector on ≥ 99.65 % of (token, layer) pairs. The collector's
+  NLL check had omitted PhiMoE's final LayerNorm and lm_head biases (fixed; routing unaffected).
+- **Errata to the phase-4 outcomes above.** The A10 under-prediction range is 2–35 % when recomputed with the
+  third-party M4 fit (the "2–57 %" above could not be reproduced); the F4 maximum is 1.4–1.5 pp depending on rounding.

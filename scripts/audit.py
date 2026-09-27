@@ -169,8 +169,9 @@ def main():
         sn = (sys_tok / base_hi, sys_tok / base_mid, sys_tok / base_lo)
         wide = base_hi / base_mid > 1.4 or base_lo / base_mid < 0.6
         labels = []
-        if wide or (claimed is not None and claimed < 1.2):
-            labels.append("not adjudicated: " + ("band wider than +-40 %" if wide else "claimed speed-up < 1.2x"))
+        if wide or claimed is None or claimed < 1.2:
+            labels.append("not adjudicated: " + ("band wider than +-40 %" if wide else
+                                                 "no reported baseline" if claimed is None else "claimed speed-up < 1.2x"))
         else:
             if rep_base and lc:
                 v = rep_base["tok_s"]

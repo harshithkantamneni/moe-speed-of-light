@@ -17,9 +17,9 @@ models become usable on such hardware is therefore a data-movement question as m
 
 The systems literature answers it with mechanisms (expert caches, CPU execution of misses, prefetching), and reports
 speed-ups over baselines. My preliminary work shows that this evidence is weaker than it looks. In an audit of 147
-published measurements from 42 systems against a validated decode model and a new lower bound on decode time, 16 of
-20 adjudicable llama.cpp baselines were weaker than llama.cpp's own equal-memory configuration, only 8 of 23 claimed
-gains survived against it, and the median system reached 19% of its hardware's physical speed-of-light. Routing
+published measurements from 41 systems against a validated decode model and a new lower bound on decode time, 16 of
+20 adjudicable llama.cpp baselines were weaker than llama.cpp's own equal-memory configuration, only 8 of 22 claimed
+gains survived against it, and the median system reached 24% of its hardware's physical speed-of-light. Routing
 traces taken on dataset text, the standard input of these studies, overstated cache locality on all nine models I
 traced. We lack a trustworthy yardstick, and without one we cannot tell which model or system designs actually help.
 
@@ -27,8 +27,8 @@ traced. We lack a trustworthy yardstick, and without one we cannot tell which mo
 
 *Seconds, Not Blocks* (paper, code, traces and audit set released): (i) exact MoE routing traces collected by
 streaming one decoder layer at a time, verified token-for-token against reference decode on seven architectures;
-(ii) a bytes-over-bandwidth decode model with 16% median error leave-one-source-out on third-party data, and
-pre-registered first-party validation (5.0% median error on 33 configurations of a new system); (iii) a lower bound on
+(ii) a bytes-over-bandwidth decode model with 16% cross-validated median error on third-party data from nine
+sources, tested on pre-registered first-party and anchor runs; (iii) a lower bound on
 decode time for any exact-routing placement policy, per layer or pooled; (iv) a pre-registered audit and a
 trace-provenance study.
 

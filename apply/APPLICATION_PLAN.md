@@ -19,7 +19,7 @@
 3. **Referees** (letters due 2 Nov for the fellowship): ask now; four weeks' notice is the minimum. Send each the PDF,
    the repo link and a 5-line summary.
 4. **Audited teams.** The protocol commits to sending every audited team its rows before a second version. Draft one
-   short, neutral email per system (rows + how to reproduce with `mosl/calc.py`). About 3 hours for 42 systems.
+   short, neutral email per system (rows + how to reproduce with `mosl/calc.py`). About 3 hours for 41 systems.
 5. **AI disclosure.** The paper's acknowledgments state that parts of the code, experiments and text were drafted with
    an AI system. Keep, edit or remove it according to the venue's policy; do not leave it inconsistent with how you
    describe the work in interviews.
@@ -31,9 +31,9 @@
 > *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded Mixture-of-Experts Decode, and What It Says About
 > Published Speed-Ups* (independent paper, open artifact). A lower bound on MoE decode time for any expert-placement
 > policy, computed from exact routing traces; a decode model validated on third-party data (16% median error,
-> leave-one-source-out), on pre-registered first-party runs and on pre-registered anchors; and an audit of 147
-> published measurements from 42 systems: 16 of 20 adjudicable llama.cpp baselines are weak, 8 of 23 claimed gains
-> survive, and the median system reaches 19% of the physical speed-of-light. github.com/harshithkantamneni/moe-speed-of-light
+> cross-validated over 9 sources) and tested on pre-registered first-party and anchor runs; and an audit of 147
+> published measurements from 41 systems: 16 of 20 adjudicable llama.cpp baselines are weak, 8 of 22 claimed gains
+> survive, and the median system reaches 24% of the physical speed-of-light. github.com/harshithkantamneni/moe-speed-of-light
 
 ## Documents in this folder
 

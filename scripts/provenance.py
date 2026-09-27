@@ -32,7 +32,14 @@ MODELS = {  # key -> (corpus key in the gen job, kappa, A10 constants: (expert b
     "gpt-oss-20b": ("gpt-oss-20b", 1.0, (13253760, 687012096, "gpt-oss-20b-MXFP4")),
     "qwen3-30b-a3b": ("qwen3-30b-a3b_fp8", 2.0, (2800000, 567271424, "Qwen3-30B-A3B-Instruct-2507-Q4_K_M")),
     "gpt-oss-120b": ("gpt-oss-120b", 1.0, None),
+    # extension to the audit's models (not in the phase-4 registration; reported separately, DFA kappa = k/4 as above)
+    "mixtral-8x7b": ("mixtral-8x7b", 0.5, None),
+    "deepseek-v2-lite": ("deepseek-v2-lite", 1.5, None),
+    "qwen1.5-moe": ("qwen1.5-moe", 1.0, None),
+    "qwen2-57b": ("qwen2-57b", 2.0, None),
+    "phi3.5-moe": ("phi3.5-moe", 0.5, None),
 }
+REGISTERED = ("olmoe", "gpt-oss-20b", "qwen3-30b-a3b", "gpt-oss-120b")
 NBOOT = 10000
 
 
@@ -149,7 +156,7 @@ def main():
     ap.add_argument("--results", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--allgpu", default="prereg/a10_windows/scored_D.json")
-    ap.add_argument("--models", default=",".join(MODELS))
+    ap.add_argument("--models", default=",".join(REGISTERED))
     a = ap.parse_args()
     allgpu = json.load(open(a.allgpu))["results"] if os.path.exists(a.allgpu) else {}
     report, lines = {}, []

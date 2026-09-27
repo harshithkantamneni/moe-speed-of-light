@@ -32,9 +32,15 @@ from scripts.validate import VARIANTS, fit, group_of  # noqa: E402
 
 NAMES = VARIANTS["M4 M1 + per-CPU-expert latency"]
 PHYS = Params(eta_g=1.0, eta_c=1.0, eta_p=1.0, tau_us=0.0, tau_x_us=0.0, tau_e_us=0.0)
-TRACED = {  # repo -> S-arm pack (our on-policy traces)
+TRACED = {  # repo -> S-arm pack (our on-policy traces). Base-model rows use the traces of the chat/instruct variant
+    # the audited papers' prompts were run on (same weights family, same router shapes); flagged in the output.
     "Qwen/Qwen3-30B-A3B": "qwen3-30b-a3b_fp8_S.npz", "Qwen/Qwen3-30B-A3B-Instruct-2507": "qwen3-30b-a3b_fp8_S.npz",
     "openai/gpt-oss-120b": "gpt-oss-120b_S.npz", "openai/gpt-oss-20b": "gpt-oss-20b_S.npz",
+    "mistralai/Mixtral-8x7B-v0.1": "mixtral-8x7b_S.npz", "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b_S.npz",
+    "deepseek-ai/DeepSeek-V2-Lite": "deepseek-v2-lite_S.npz", "deepseek-ai/DeepSeek-V2-Lite-Chat": "deepseek-v2-lite_S.npz",
+    "Qwen/Qwen1.5-MoE-A2.7B": "qwen1.5-moe_S.npz", "Qwen/Qwen1.5-MoE-A2.7B-Chat": "qwen1.5-moe_S.npz",
+    "Qwen/Qwen2-57B-A14B": "qwen2-57b_S.npz", "Qwen/Qwen2-57B-A14B-Instruct": "qwen2-57b_S.npz",
+    "microsoft/Phi-3.5-MoE-instruct": "phi3.5-moe_S.npz",
 }
 UNMODELABLE = {"deepseek-ai/deepseek-moe-16b-base": "architecture needs remote code (not in transformers)",
                "Qwen/Qwen3.8-Flash-Next": "per-layer n-gram lookup table is not a routed expert or dense weight in the model"}
@@ -65,23 +71,37 @@ def params_without(system):
     return _fits[key], sorted(held)
 
 
-def mstar(repo, E, k, C, results, rng):
-    """MIN-bypass misses per layer-step at per-layer capacity C, and where the routing came from"""
+_mcache = {}
+
+
+def mstar(repo, E, k, C, results, rng, glob_cap=False):
+    """MIN-bypass misses per layer-step at per-layer capacity C (glob_cap: one cache of L*C experts shared by all
+    layers), and where the routing came from"""
     if C <= 0:
         return float(k), "no GPU expert capacity"
     if C >= E:
         return 0.0, "all experts fit"
     p = TRACED.get(repo)
     hits = sorted(glob.glob(os.path.join(results, "*", p))) if p else []
+    key = (repo, C, glob_cap, bool(hits))
+    if key in _mcache:
+        return _mcache[key]
     if hits:
         pk = load_pack(hits[-1])
         idx = np.concatenate([np.arange(s + P, s + L) for s, L, P in zip(pk["starts"], pk["seq_lens"], pk["prompt_lens"]) if L - P > 1])
         R = pk["routes"][:, idx]
-        m = np.mean([cachesim.simulate(R[l], E, C, "min", bypass=True)[0].mean() for l in range(R.shape[0])])
-        return float(m), f"on-policy trace ({p})"
-    T = 20000
-    R = np.stack([rng.choice(E, k, replace=False) for _ in range(T)])
-    return float(cachesim.simulate(R, E, C, "min", bypass=True)[0].mean()), "independent uniform routing (approximation)"
+        if glob_cap:
+            m = cachesim.simulate_global([R[l] for l in range(R.shape[0])], E, C, "min", bypass=True)[0].mean()
+        else:
+            m = np.mean([cachesim.simulate(R[l], E, C, "min", bypass=True)[0].mean() for l in range(R.shape[0])])
+        base = "" if "Instruct" in repo or "instruct" in repo or "Chat" in repo or "gpt-oss" in repo else ", chat-variant routing"
+        res = (float(m), f"on-policy trace ({p}{base})")
+    else:
+        T = 20000
+        R = np.stack([rng.choice(E, k, replace=False) for _ in range(T)])
+        res = (float(cachesim.simulate(R, E, C, "min", bypass=True)[0].mean()), "independent uniform routing (approximation)")
+    _mcache[key] = res
+    return res
 
 
 def budget_bytes(row, s, w, card_gb):
@@ -136,9 +156,15 @@ def main():
         base_lo, base_hi = (1 / t_lo_bw) * q10, (1 / t_hi_bw) * q90
         m, msrc = mstar(repo, E, k, C, a.results, rng)
         t_sol = speed_of_light_time(w, HW(row["bw_gpu"], bw_hi, bw_p), PHYS, m)
+        t_sol_g = None
+        if "trace" in msrc and 0 < C < E:   # global-capacity variant (a shared all-layer pool can only lower M*)
+            mg, _ = mstar(repo, E, k, C, a.results, rng, glob_cap=True)
+            t_sol_g = speed_of_light_time(w, HW(row["bw_gpu"], bw_hi, bw_p), PHYS, mg)
         sys_tok = row["system_tok_s"]
         lc = [b for b in row.get("baselines", []) if b.get("class", "").startswith("llama.cpp") and b.get("tok_s")]
-        rep_base = lc[0] if lc else next((b for b in row.get("baselines", []) if b.get("tok_s")), None)
+        # the strongest reported llama.cpp baseline (else the strongest reported baseline of any kind)
+        anyb = [b for b in row.get("baselines", []) if b.get("tok_s")]
+        rep_base = max(lc, key=lambda b: b["tok_s"]) if lc else (max(anyb, key=lambda b: b["tok_s"]) if anyb else None)
         claimed = sys_tok / rep_base["tok_s"] if rep_base else None
         sn = (sys_tok / base_hi, sys_tok / base_mid, sys_tok / base_lo)
         wide = base_hi / base_mid > 1.4 or base_lo / base_mid < 0.6
@@ -156,6 +182,7 @@ def main():
                         reported_baseline=rep_base, claimed_speedup=claimed,
                         pred_baseline_tok_s=[base_lo, base_mid, base_hi], normalized_speedup=list(sn),
                         sol_tok_s=1 / t_sol, mstar=m, mstar_source=msrc,
+                        sol_global_tok_s=(1 / t_sol_g) if t_sol_g else None,
                         system_of_sol=sys_tok * t_sol, reported_baseline_of_sol=(rep_base["tok_s"] * t_sol) if rep_base else None,
                         pred_baseline_of_sol=base_mid * t_sol, labels=labels, held_out_groups=held,
                         routing_exact=row.get("routing_exact"), lossy=row.get("lossy"), speculative=row.get("speculative"),

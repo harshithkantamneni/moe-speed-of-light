@@ -655,3 +655,38 @@ only). Under class 1 or 4 it stays out.
 - **Gains.** 10 of 28 gains survive against the predicted baseline. The median system reaches 27 % of the physical speed-of-light. P6 holds.
 - **Caveat: the model is conservative.** It under-predicts first-party llama.cpp static offload on the A10 by 2–57 %: τ_e is fitted on older engines. Refitting with the 11 A10 runs (a sensitivity analysis, not registered) gives 9 surviving gains and 20 weak baselines.
 - **What is still needed.** Row-by-row review, and anchor runs, before any row is reported.
+
+## 4.7 Anchors and audit clarifications (added 27 Sep 2026, before any anchor measurement)
+
+No anchor job (050–053) has run when this section is committed; job 050/052 commits the predictions before
+job 051/053 measures, so git history orders them.
+
+- **Anchor platforms.** An A100-SXM4-40GB x86 VM (jobs 050–051, tag `anchor`), the GPU several audited rows
+  used; and, because Lambda had no A100 capacity for five hours, also a GH200 (jobs 052–053: Grace Arm CPU,
+  LPDDR5X, NVLink-C2C), which lies outside the model's fitted envelope (x86 hosts, PCIe).
+- **Configurations.** `scripts/anchor_predict.py` SWEEP: Mixtral-8x7B Q4_K_M and Q8_0, Phi-3.5-MoE Q4_K_M,
+  Qwen2-57B-A14B Q4_K_M, DeepSeek-V2-Lite Q8_0, Qwen3-30B-A3B Q4_K_M; stock llama.cpp 2145525a, `llama-bench
+  -fa 1 -p 0 -n 128 -r 5`, clocks locked, one randomized order, two repeats at the end for drift.
+- **Predictor.** M4 fitted on third-party rows only, bytes from GGUF headers, B_g datasheet, B_c best STREAM
+  Triad of the machine; the M4+A10 refit and the physical floor are reported alongside.
+- **A1 (floor).** No measured configuration exceeds the physical floor (all η = 1, τ = 0, measured bandwidths).
+- **A2 (A100, x86).** Median APE of the M4 prediction ≤ 25 % (its leave-one-source-out median on static
+  rows is 20 %).
+- **A3 (direction).** On the A100, M4 under-predicts (measured > predicted) on at least two thirds of the
+  configurations, as on the A10 (the constants are conservative for current llama.cpp).
+- **GH200.** Exploratory, no pass criterion: the same statistics are reported as an out-of-envelope test.
+- **Use in the audit.** Anchors validate the predictor; they do not replace any audit row's prediction.
+
+**Audit clarifications (analysis choices fixed before the final audit run).**
+- Where a row reports several llama.cpp baselines, the *strongest* is the one labelled (weak / at strength);
+  the first pass used the first listed. This can only reduce the number of weak baselines.
+- Rows whose model we have traced use our S-arm trace of that model family (for base-model rows, the
+  chat/instruct variant's trace, flagged); Mixtral-8x7B, DeepSeek-V2-Lite, Qwen1.5-MoE-A2.7B, Qwen2-57B-A14B
+  and Phi-3.5-MoE were traced for this (jobs 044–048), generated with vLLM (FP8 weights where bf16 did not fit)
+  and traced in bf16/fp32.
+- The global-capacity bound (shared all-layer budget) is reported next to the per-layer one; labels use the
+  per-layer bound, as registered.
+- Provenance statistics for the five audit models are computed with the phase-4 script and reported as an
+  unregistered extension, separately from the four registered models.
+- vLLM 0.30's per-request `watermarking` flag prints as True in every generation log; it has no effect without
+  an engine-level watermark configuration, which was never set.

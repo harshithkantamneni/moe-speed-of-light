@@ -1,0 +1,101 @@
++++ dirname /opt/runner/repo/jobs/008_ec_build.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ J=/opt/runner/repo/jobs/ec
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.width.max,ecc.mode.current,driver_version --format=csv
++ tee /opt/runner/repo/results/008_ec_build/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.width.max, ecc.mode.current, driver_version
+NVIDIA A10, 23028 MiB, 1695 MHz, 6251 MHz, 4, 16, Enabled, 570.148.08
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|NUMA|L3'
++ tee /opt/runner/repo/results/008_ec_build/lscpu.txt
+CPU(s):                               30
+Model name:                           Intel(R) Xeon(R) Platinum 8358 CPU @ 2.60GHz
+L3 cache:                             480 MiB (30 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-29
++ tee -a /opt/runner/repo/results/008_ec_build/lscpu.txt
++ free -g
+               total        used        free      shared  buff/cache   available
+Mem:             222           1         219           0           1         219
+Swap:              0           0           0
+++ head -1
+++ nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
++ MAXSM=1695
+++ nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
+++ head -1
++ MAXMEM=6251
++ sudo nvidia-smi -pm 1
+Persistence mode is already Enabled for GPU 00000000:06:00.0.
+All done.
++ sudo nvidia-smi -lgc 1695,1695
+GPU clocks set to "(gpuClkMin 1695, gpuClkMax 1695)" for GPU 00000000:06:00.0
+All done.
++ sudo nvidia-smi -lmc 6251,6251
+Memory clocks set to "(memClkMin 6251, memClkMax 6251)" for GPU 00000000:06:00.0
+All done.
++ mkdir -p /opt/runner/work/bench
++ cd /opt/runner/work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=400000000 -DNTIMES=10 -mcmodel=medium stream.c -o stream
++ tee /opt/runner/repo/results/008_ec_build/stream.txt
+++ nproc
+++ nproc
++ for t in 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=8'
+== OMP_NUM_THREADS=8
++ OMP_NUM_THREADS=8
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E Triad
+Triad:          90041.9     0.106853     0.106617     0.107055
++ for t in 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=15'
+== OMP_NUM_THREADS=15
++ OMP_NUM_THREADS=15
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E Triad
+Triad:         121161.4     0.084418     0.079233     0.089677
++ for t in 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=30'
+== OMP_NUM_THREADS=30
++ OMP_NUM_THREADS=30
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E Triad
+Triad:         152785.8     0.063696     0.062833     0.065673
++ export DEBIAN_FRONTEND=noninteractive
++ DEBIAN_FRONTEND=noninteractive
++ command -v ncu
++ curl -fsSLO https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
++ sudo dpkg -i cuda-keyring_1.1-1_all.deb
+Selecting previously unselected package cuda-keyring.
+(Reading database ... 214077 files and directories currently installed.)
+Preparing to unpack cuda-keyring_1.1-1_all.deb ...
+Unpacking cuda-keyring (1.1-1) ...
+Setting up cuda-keyring (1.1-1) ...
++ sudo apt-get update -qq
++ sudo apt-get install -y -qq cuda-nsight-compute-12-8 cuda-nsight-systems-12-8
++ cd /opt/runner/work
++ '[' -d llama.cpp ']'
++ git clone -q https://github.com/ggml-org/llama.cpp
++ cd llama.cpp
++ git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c
++ rm -rf /opt/runner/work/llama.cpp-ec
++ git worktree prune
++ git worktree add -f /opt/runner/work/llama.cpp-ec 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+Preparing worktree (detached HEAD 2145525a4)
+HEAD is now at 2145525a4 Revert "Change max context length for auto-fitting with unified KV (#28849)" (#29437)
++ cd /opt/runner/work/llama.cpp-ec
++ git apply /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
+++ sha256sum /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++ echo 'patch applied: d3c839a90f18e52d9547b7b3c10a6848832ce953c96b4e3c0e3807752cc0ed1d  /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch'
+patch applied: d3c839a90f18e52d9547b7b3c10a6848832ce953c96b4e3c0e3807752cc0ed1d  /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
+++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+++ head -1
+++ tr -d .
++ SM=86
++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ nproc
++ cmake --build build -j30 --target llama-ec-bench test-backend-ops llama-bench

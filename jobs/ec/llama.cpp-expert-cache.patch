@@ -392,10 +392,10 @@ index b403b09..e38fff9 100644
      ggml_backend_t backend_cpu = nullptr;
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..5671902
+index 0000000..26ab379
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,572 @@
+@@ -0,0 +1,602 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -495,7 +495,17 @@ index 0000000..5671902
 +    size_t n_tensors = 1;
 +    for (auto & L : layers) {
 +        n_tensors += L.src.size();
-+        n_slots = std::min(n_slots, L.n_expert);
++        L.C = std::min(n_slots, L.n_expert);
++    }
++    if (const char * af = getenv("LLAMA_EC_ALLOC")) {
++        std::ifstream f(af);
++        int il, c;
++        while (f >> il >> c) {
++            if (idx_of.count(il)) {
++                layer & L = layers[idx_of[il]];
++                L.C = std::max(0, std::min(c, L.n_expert));
++            }
++        }
 +    }
 +    ggml_init_params ip = { ggml_tensor_overhead() * (n_tensors + 1), nullptr, true };
 +    ctx = ggml_init(ip);
@@ -503,8 +513,8 @@ index 0000000..5671902
 +    for (auto & L : layers) {
 +        for (auto * t : L.src) {
 +            ggml_tensor * s = expert_dim(t) == 2
-+                ? ggml_new_tensor_3d(ctx, t->type, t->ne[0], t->ne[1], n_slots)
-+                : ggml_new_tensor_2d(ctx, t->type, t->ne[0], n_slots);
++                ? ggml_new_tensor_3d(ctx, t->type, t->ne[0], t->ne[1], std::max(1, L.C))
++                : ggml_new_tensor_2d(ctx, t->type, t->ne[0], std::max(1, L.C));
 +            ggml_format_name(s, "ec_slot.%s", t->name);
 +            GGML_ASSERT(s->nb[expert_dim(t)] == expert_stride(t));
 +            L.slot.push_back(s);
@@ -515,9 +525,9 @@ index 0000000..5671902
 +        for (int e = 0; e < E; ++e) {
 +            L.cpu_of[e] = e;
 +        }
-+        L.resident.assign(n_slots, -1);
-+        L.loading.assign(n_slots, -1);
-+        L.load_batch.assign(n_slots, 0);
++        L.resident.assign(L.C, -1);
++        L.loading.assign(L.C, -1);
++        L.load_batch.assign(L.C, 0);
 +        L.score.assign(E, 0.0);
 +        L.last.assign(E, 0);
 +        L.stamp.assign(E, -1);
@@ -552,8 +562,8 @@ index 0000000..5671902
 +        }
 +    }
 +    for (size_t i = 0; i < layers.size(); ++i) {
-+        done.emplace_back(new std::atomic<int>[n_slots]);
-+        for (int s = 0; s < n_slots; ++s) {
++        done.emplace_back(new std::atomic<int>[std::max(1, layers[i].C)]);
++        for (int s = 0; s < std::max(1, layers[i].C); ++s) {
 +            done.back()[s].store(0);
 +        }
 +    }
@@ -606,7 +616,7 @@ index 0000000..5671902
 +            }
 +            layer & L = layers[idx_of[il]];
 +            int e, s = 0;
-+            while (s < n_slots && (ss >> e)) {
++            while (s < L.C && (ss >> e)) {
 +                if (e < 0 || e >= L.n_expert || L.slot_of[e] >= 0) {
 +                    continue;
 +                }
@@ -622,6 +632,20 @@ index 0000000..5671902
 +            }
 +        }
 +        LLAMA_LOG_INFO("%s: loaded %d experts from %s\n", __func__, n_loaded, init);
++    }
++    // whole-layer residency: expert e lives in slot e, never evicted
++    for (auto & L : layers) {
++        if (L.C == L.n_expert) {
++            for (auto * t : L.slot) { (void) t; }
++            for (size_t k = 0; k < L.src.size(); ++k) {
++                ggml_backend_tensor_set(L.slot[k], L.src[k]->data, 0, ggml_nbytes(L.src[k]));
++            }
++            for (int e = 0; e < L.n_expert; ++e) {
++                L.resident[e] = e;
++                L.slot_of[e] = e;
++                L.cpu_of[e] = -1;
++            }
++        }
 +    }
 +
 +    LLAMA_LOG_INFO("%s: %d MoE layers, %d slots/layer, policy %s, overlap %d, paced %d, zero-copy %d, %.2f MiB of slots\n", __func__,
@@ -783,7 +807,7 @@ index 0000000..5671902
 +        // publish every copy that has completed; never wait
 +        for (size_t li = 0; li < layers.size(); ++li) {
 +            layer & L = layers[li];
-+            for (int s = 0; s < n_slots; ++s) {
++            for (int s = 0; s < L.C; ++s) {
 +                if (L.loading[s] >= 0 && done[li][s].load(std::memory_order_acquire) == L.loading[s] + 1) {
 +                    done[li][s].store(0);
 +                    const int e = L.loading[s];
@@ -807,7 +831,7 @@ index 0000000..5671902
 +        issued[b] = false;
 +    }
 +    for (auto & L : layers) {
-+        for (int s = 0; s < n_slots; ++s) {
++        for (int s = 0; s < L.C; ++s) {
 +            if (L.loading[s] >= 0 && L.load_batch[s] == b) {
 +                const int e = L.loading[s];
 +                L.loading[s]  = -1;
@@ -830,6 +854,9 @@ index 0000000..5671902
 +        check_steps++;
 +        for (size_t li = 0; li < layers.size(); ++li) {
 +            const layer & L = layers[li];
++            if (L.C == 0 || L.C == L.n_expert) {
++                continue;
++            }
 +            const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
 +            const int32_t * gid = routing_host.data() + (3 * li + 1) * max_used;
 +            const int32_t * cid = routing_host.data() + (3 * li + 2) * max_used;
@@ -857,6 +884,9 @@ index 0000000..5671902
 +    for (size_t r = 0; r < nl; ++r) {
 +        const size_t li = (first + r) % nl;
 +        layer & L = layers[li];
++        if (L.C == 0) {
++            continue; // CPU-only layer: stock path, not observed
++        }
 +        const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
 +        const int k = L.n_used;
 +
@@ -877,7 +907,7 @@ index 0000000..5671902
 +                missed.push_back(e);
 +            }
 +        }
-+        if (policy == STATIC) {
++        if (policy == STATIC || L.C == 0 || L.C == L.n_expert) {
 +            continue;
 +        }
 +        for (int e : missed) {
@@ -888,7 +918,7 @@ index 0000000..5671902
 +                continue; // already on its way
 +            }
 +            int free_slot = -1;
-+            for (int s = 0; s < n_slots; ++s) {
++            for (int s = 0; s < L.C; ++s) {
 +                if (L.resident[s] < 0 && L.loading[s] < 0) {
 +                    free_slot = s;
 +                    break;
@@ -903,7 +933,7 @@ index 0000000..5671902
 +            // victim: resident, not being replaced, not requested this step
 +            int victim = -1;
 +            double best = 0.0;
-+            for (int s = 0; s < n_slots; ++s) {
++            for (int s = 0; s < L.C; ++s) {
 +                const int c = L.resident[s];
 +                if (c < 0 || L.loading[s] >= 0 || std::find(sel, sel + k, c) != sel + k) {
 +                    continue;
@@ -958,7 +988,7 @@ index 0000000..5671902
 +            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0);
 +    for (size_t i = 0; i < layers.size(); ++i) {
 +        const auto & L = layers[i];
-+        fprintf(f, "  {\"il\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"count\": [", L.il,
++        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"count\": [", L.il, L.C,
 +                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits);
 +        for (int e = 0; e < L.n_expert; ++e) {
 +            fprintf(f, "%s%llu", e ? "," : "", (unsigned long long) L.count[e]);
@@ -970,10 +1000,10 @@ index 0000000..5671902
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..e86f80e
+index 0000000..439b958
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,150 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -987,6 +1017,10 @@ index 0000000..e86f80e
 +//
 +// Configured through environment variables (research prototype):
 +//   LLAMA_EC_SLOTS      slots per MoE layer (0 or unset = off)
++//   LLAMA_EC_ALLOC      file of "<layer> <slots>" lines overriding LLAMA_EC_SLOTS per layer: 0 = the layer's experts
++//                       stay on the CPU as in llama.cpp's layer offload (no GPU path, no hand-off added);
++//                       n_expert = the whole layer is resident on the GPU (no CPU path, no hand-off);
++//                       anything between = a cached layer (both paths)
 +//   LLAMA_EC_POLICY     static | lru | dfa           (default dfa)
 +//   LLAMA_EC_HALF_LIFE  dfa decay half-life in decode steps (default 16)
 +//   LLAMA_EC_KAPPA      dfa admission margin (default 0)
@@ -1031,6 +1065,7 @@ index 0000000..e86f80e
 +        int il = -1;
 +        int n_expert = 0;
 +        int n_used = 0;
++        int C = 0;                        // slots of this layer (0 = CPU only, n_expert = GPU only)
 +        std::vector<ggml_tensor *> src;   // host-resident expert tensors (weights and per-expert biases)
 +        std::vector<ggml_tensor *> slot;  // GPU slot tensors, same order as src
 +        std::vector<int32_t> slot_of;     // [E]  expert -> slot, or -1
@@ -1049,6 +1084,7 @@ index 0000000..e86f80e
 +    ~llama_expert_cache();
 +
 +    bool enabled() const { return n_slots > 0 && !layers.empty(); }
++    int slots(int il) const { const layer * L = get_layer(il); return L ? L->C : 0; }
 +    bool overlap() const { return overlap_cpu; }
 +
 +    // graph building
@@ -1119,7 +1155,7 @@ index 0000000..e86f80e
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index 0b3bab6..6ddcea8 100644
+index 0b3bab6..e0b1600 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,4 +1,5 @@
@@ -1177,7 +1213,7 @@ index 0b3bab6..6ddcea8 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2389,139 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2389,153 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -1211,43 +1247,14 @@ index 0b3bab6..6ddcea8 100644
 +        }
 +    }
 +
++    const int C = ec->slots(il);
++    if (C == 0) {
++        return nullptr; // CPU-only layer: stock path, experts in host memory (llama.cpp layer offload)
++    }
++    const bool gpu_only = C == ec->get_layer(il)->n_expert; // whole layer resident, expert e in slot e
++
 +    ggml_backend_t be_gpu = ggml_backend_sched_get_backend(sched, 0);
 +    ggml_backend_t be_cpu = backend_cpu ? backend_cpu : ggml_backend_sched_get_backend(sched, ggml_backend_sched_get_n_backends(sched) - 1);
-+
-+    if (!inp_ec) {
-+        auto inp = std::make_unique<llm_graph_input_expert_cache>(ec);
-+        inp_ec = inp.get();
-+        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 2 * ec->n_layers());
-+        ggml_set_input(inp_ec->maps);
-+        ggml_set_name(inp_ec->maps, "ec_maps");
-+        res->add_input(std::move(inp));
-+    }
-+    GGML_ASSERT(n_expert <= ec->n_expert_max());
-+    const int li = ec->layer_index(il);
-+    ggml_tensor * maps = inp_ec->maps;
-+    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 0) * maps->nb[1]);
-+    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 1) * maps->nb[1]);
-+
-+    // record this step's selection for the cache policy
-+    {
-+        ggml_tensor * sel = ggml_reshape_1d(ctx0, selected_experts, n_expert_used);
-+        ggml_build_forward_expand(gf, ggml_cpy(ctx0, sel, ec->routing_view(ctx0, il, (int) n_expert_used)));
-+    }
-+
-+    ggml_tensor * gr_g = ggml_get_rows(ctx0, map_g, selected_experts); // [1, n_expert_used, n_tokens]
-+    ggml_tensor * gr_c = ggml_get_rows(ctx0, map_c, selected_experts);
-+    ggml_format_name(gr_g, "ec_gid-%d", il);
-+    ggml_format_name(gr_c, "ec_cid-%d", il);
-+    ggml_backend_sched_set_tensor_backend(sched, gr_g, be_gpu);
-+    ggml_backend_sched_set_tensor_backend(sched, gr_c, be_gpu);
-+    ggml_tensor * gid = ggml_reshape_2d(ctx0, gr_g, n_expert_used, n_tokens);
-+    ggml_tensor * cid = ggml_reshape_2d(ctx0, gr_c, n_expert_used, n_tokens);
-+    ggml_build_forward_expand(gf, gid);
-+    ggml_build_forward_expand(gf, cid);
-+    if (ec->check()) {
-+        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_g, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 1)));
-+        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_c, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 2)));
-+    }
 +
 +    // one expert FFN over the entries `ids` selects; entries with id < 0 produce zeros
 +    auto path = [&](ggml_tensor * ids, bool on_gpu) -> ggml_tensor * {
@@ -1289,6 +1296,49 @@ index 0b3bab6..6ddcea8 100644
 +        }
 +        return d;
 +    };
++
++    if (gpu_only) {
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, selected_experts, n_expert_used),
++                ec->routing_view(ctx0, il, (int) n_expert_used)));
++        ggml_tensor * out = path(selected_experts, true);
++        cb(out, "ffn_moe_ec_gpu_only", il);
++        return out;
++    }
++
++    if (!inp_ec) {
++        auto inp = std::make_unique<llm_graph_input_expert_cache>(ec);
++        inp_ec = inp.get();
++        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 2 * ec->n_layers());
++        ggml_set_input(inp_ec->maps);
++        ggml_set_name(inp_ec->maps, "ec_maps");
++        res->add_input(std::move(inp));
++    }
++    GGML_ASSERT(n_expert <= ec->n_expert_max());
++    const int li = ec->layer_index(il);
++    ggml_tensor * maps = inp_ec->maps;
++    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 0) * maps->nb[1]);
++    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 1) * maps->nb[1]);
++
++    // record this step's selection for the cache policy
++    {
++        ggml_tensor * sel = ggml_reshape_1d(ctx0, selected_experts, n_expert_used);
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, sel, ec->routing_view(ctx0, il, (int) n_expert_used)));
++    }
++
++    ggml_tensor * gr_g = ggml_get_rows(ctx0, map_g, selected_experts); // [1, n_expert_used, n_tokens]
++    ggml_tensor * gr_c = ggml_get_rows(ctx0, map_c, selected_experts);
++    ggml_format_name(gr_g, "ec_gid-%d", il);
++    ggml_format_name(gr_c, "ec_cid-%d", il);
++    ggml_backend_sched_set_tensor_backend(sched, gr_g, be_gpu);
++    ggml_backend_sched_set_tensor_backend(sched, gr_c, be_gpu);
++    ggml_tensor * gid = ggml_reshape_2d(ctx0, gr_g, n_expert_used, n_tokens);
++    ggml_tensor * cid = ggml_reshape_2d(ctx0, gr_c, n_expert_used, n_tokens);
++    ggml_build_forward_expand(gf, gid);
++    ggml_build_forward_expand(gf, cid);
++    if (ec->check()) {
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_g, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 1)));
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_c, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 2)));
++    }
 +
 +    const int n_before = ggml_graph_n_nodes(gf);
 +    ggml_tensor * out_gpu = path(gid, true);

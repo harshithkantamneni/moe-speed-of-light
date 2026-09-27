@@ -4,9 +4,12 @@
 # original/ and metal/ copies). Exports P, MD, HF_HOME; defines dl KEY REPO and wait_dl KEY.
 P=${P:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 export P MD=$WORK/hfmodels HF_HOME=$WORK/hf
-export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH
+# the runner starts from cloud-init with no HOME: keep uv, its pythons and caches under $WORK
+export HOME=${HOME:-/root} UV_INSTALL_DIR=$WORK/uvbin UV_PYTHON_INSTALL_DIR=$WORK/uvpy UV_CACHE_DIR=$WORK/uvcache UV_NO_MODIFY_PATH=1
+export PATH=$WORK/uvbin:$PATH
 mkdir -p $MD $HF_HOME
-command -v uv >/dev/null || { curl -LsSf https://astral.sh/uv/install.sh | sh > $WORK/uv_install.log 2>&1; export PATH=$HOME/.local/bin:$PATH; }
+command -v uv >/dev/null || { curl -LsSf https://astral.sh/uv/install.sh | sh > $WORK/uv_install.log 2>&1; tail -2 $WORK/uv_install.log; }
+uv --version || { echo "uv unavailable"; exit 1; }
 if ! $WORK/vv/bin/python -c "import vllm" 2>/dev/null; then
   uv venv -q --python 3.12 $WORK/vv > $WORK/vv_install.log 2>&1
   timeout 20m uv pip install --python $WORK/vv/bin/python vllm "huggingface_hub[hf_xet]" --torch-backend=auto >> $WORK/vv_install.log 2>&1

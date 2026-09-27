@@ -15,9 +15,9 @@ I have an MS in ECE from UW-Madison (December 2025) and work in GPU performance 
 computer architecture, LLM serving.
 
 My most important result is a paper and open artifact, *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded
-Mixture-of-Experts Decode, and What It Says About Published Speed-Ups*. Dozens of systems claim to decode large MoE
-models several times faster than llama.cpp on one consumer GPU, but none states how fast the hardware could go, and
-baselines are rarely configured the way users run them. I built the missing yardstick and applied it:
+Mixture-of-Experts Decode, and What It Says About Published Speed-Ups*. Dozens of systems claim faster decoding of large
+MoE models on one consumer GPU, but none states how fast the hardware could go, and baselines are rarely configured the
+way users run them. I built the missing yardstick and applied it:
 
 1. **A lower bound in seconds** for any exact-routing expert-placement policy under a GPU memory budget (Belady's
    MIN with bypass, load accounting, Jensen), computed from exact routing traces that I collect by streaming one
@@ -25,8 +25,8 @@ baselines are rarely configured the way users run them. I built the missing yard
 2. **A bytes-over-bandwidth decode model** with 16% median error, cross-validated, on 52 third-party measurements
    from 9 sources; calibrated with two runs, it predicted 29 configurations on a new platform (GH200) with 6.7%
    median error, as pre-registered.
-3. **An audit of 147 published measurements from 41 systems**, each value with a verbatim quote, re-checked field by
-   field in independent passes. On the 22 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the
+3. **An audit of 147 published measurements from 41 systems**, extracted and re-checked in separate AI-agent passes,
+   every value with a verbatim quote. On the 22 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the
    predicted equal-memory baseline, 8 claimed gains survive, and the median system reaches 24% of its hardware's
    physical speed-of-light.
 4. **Trace provenance.** Teacher-forced dataset text, the norm in this literature, overstates cache hit rates on all
@@ -40,7 +40,7 @@ SPCL is where this work fits: it is data-movement modelling and scientific bench
 For a PhD I would pursue three directions:
 
 - **(a) Bounds beyond one request:** batched and speculative decoding, unified-memory machines and CXL tiers,
-  validated on systems such as Alps' GH200 nodes (my anchors already include one GH200).
+  validated on systems such as Alps' GH200 nodes.
 - **(b) Kernels and runtimes that reach the bound:** CPU+GPU bandwidth aggregation, where my bound says the optimum
   often lies, is only partly exploited by current engines.
 - **(c) Model co-design:** invert the model to choose expert count, size, top-k and routing locality so that a given

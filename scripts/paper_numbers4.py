@@ -117,7 +117,12 @@ def main():
     N["auditSensAdj"] = sens["n_adjudicated"]
     N["auditSensLlama"] = sens["llama_rows"]
     N["auditSkipped"] = S_["n_skipped"]
+    sol_sorted = sorted(r["system_of_sol"] for r in adj)
+    if len(sol_sorted) % 2 == 0:
+        N["auditMidLo"] = round(100 * sol_sorted[len(sol_sorted) // 2 - 1])
+        N["auditMidHi"] = round(100 * sol_sorted[len(sol_sorted) // 2])
     cl = sorted(r["claimed_speedup"] for r in A["rows"] if r["claimed_speedup"])
+    N["auditClaimN"] = len(cl)
     N["auditClaimMedian"] = f"{np.median(cl):.1f}"
     N["auditClaimMax"] = f"{max(cl):.1f}"
     N["auditNoBaseline"] = sum(any("no reported baseline" in l for l in r["labels"]) for r in A["rows"])
@@ -270,6 +275,12 @@ def main():
         N["hFiveVerdict"] = "holds" if h5["pass_"] else "fails"
         N["hFiveEtaG"] = f"{h5['params']['eta_g']:.2f}"
         N["hFiveEtaC"] = f"{h5['params']['eta_c']:.2f}"
+        N["hFiveMape"] = f"{100 * h5['mape']:.1f}"
+        go = [x["ape"] for x in h5["rows"] if x["model"].startswith("gpt-oss")]
+        qw = [x["ape"] for x in h5["rows"] if x["model"].startswith("qwen3")]
+        N["hFiveGptMin"], N["hFiveGptMax"] = f"{100 * min(go):.1f}", f"{100 * max(go):.1f}"
+        N["hFiveQwenMin"], N["hFiveQwenMax"] = f"{100 * min(qw):.0f}", f"{100 * max(qw):.0f}"
+        N["hFiveGptN"], N["hFiveQwenN"] = len(go), len(qw)
         qo = [x for x in h5["rows"] if x["model"].startswith("qwen3") and x["n_cpu_moe"] not in ("0", "cpu") and x["meas"] > x["pred"]]
         N["hFiveQwenUnder"] = f"{100 * max(x['ape'] for x in qo):.0f}"
 
@@ -280,6 +291,13 @@ def main():
         if os.path.exists(pth):
             anc[nm] = json.load(open(pth))
     N["anchorParagraph"] = anchor_paragraph(anc)
+    if "gh200" in anc:
+        dsa = [r["ratio_m4"] for r in anc["gh200"]["configs"] if r["model"].startswith("dsv2lite") and r["n_cpu_moe"] > 0]
+        dsw = sorted(r["reported_baseline"]["tok_s"] / r["pred_baseline_tok_s"][1] for r in adj
+                     if "weak baseline" in r["labels"] and "DeepSeek-V2-Lite" in (r["repo"] or ""))
+        N["dsAnchorMin"] = f"{min(dsa):.2f}"
+        N["dsWeakRatios"] = " and ".join(f"{x:.2f}" for x in dsw)
+        N["dsWeakN"] = {1: "one", 2: "two", 3: "three"}.get(len(dsw), str(len(dsw)))
     for nm, x in anc.items():
         s = x["summary"]
         up = {"a100": "Ahundred", "gh200": "Gh"}[nm]
@@ -302,7 +320,7 @@ def main():
          "Hit rates in points at 12.5\\% / 25\\% of experts; DFA is our deployed admission policy, MIN-bypass the oracle. "
          "$\\Delta M^\\star_{\\mathrm{glob}}$: reduction of MIN-bypass misses (S) when the per-layer budget is pooled over all layers, at 12.5\\%. "
          "Rows below the rule extend the registered study to the audit's models. NLL (nats per answer token) from vLLM on the generation checkpoint "
-         "(FP8 for Qwen3, Mixtral, Qwen2-57B and Phi-3.5; bf16 otherwise); gpt-oss-120b's D value covers all 160 conversations, its G and S arms 35. "
+         "(FP8 for Qwen3, Mixtral, Qwen2-57B and Phi-3.5; MXFP4 experts for gpt-oss; bf16 for OLMoE, DeepSeek-V2-Lite and Qwen1.5-MoE); gpt-oss-120b's D value covers all 160 conversations, its G and S arms 35. "
          "$^\\dagger$F3 needs a measured all-GPU run and was computed for gpt-oss-20b and Qwen3 only.}\\label{tab:prov}",
          "\\resizebox{\\textwidth}{!}{\\begin{tabular}{lrrrrrrrl}\\toprule",
          "model & $E$/$k$ & NLL D & NLL S & $\\Delta$DFA 12.5\\% & $\\Delta$DFA 25\\% & $\\Delta$MIN-b. 12.5\\% & $\\Delta M^\\star_{\\mathrm{glob}}$ & F1--F3 \\\\ \\midrule"]
@@ -411,6 +429,8 @@ def anchor_stats(x):
     off = [r for r in c if r["n_cpu_moe"] > 0]
     return dict(n0=len(g0), r0=[min(r["ratio_m4"] for r in g0), max(r["ratio_m4"] for r in g0)] if g0 else None,
                 noff=len(off), roff=[min(r["ratio_m4"] for r in off), max(r["ratio_m4"] for r in off)],
+                over_models=sorted({r["model"] for r in off if r["measured"] < r["pred_m4"]}),
+                over_n=sum(r["measured"] < r["pred_m4"] for r in off),
                 ape_off=float(np.median([r["ape_m4"] for r in off])), under_off=sum(r["measured"] > r["pred_m4"] for r in off))
 
 
@@ -431,17 +451,18 @@ def anchor_paragraph(anc):
         s, st = anc["gh200"]["summary"], anchor_stats(anc["gh200"])
         parts.append(
             ("No A100 had capacity during the study, so the registered A100 test is still open. " if "a100" not in anc else "")
-            + f"On a GH200 (72-core Grace, LPDDR5X, NVLink-C2C; Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), a platform outside the fitted envelope, "
+            + f"On a GH200 VM (64 Grace cores, LPDDR5X, NVLink-C2C; Triad {s['platform']['bw_cpu']:.0f}\\,GB/s), a platform outside the fitted envelope, "
             + (f"the same {s['n']} configurations" if "a100" in anc else
                f"{s['n']} \\texttt{{--n-cpu-moe}} configurations of six GGUF files (Mixtral-8x7B at Q4\\_K\\_M and Q8\\_0; Phi-3.5-MoE, "
                "Qwen2-57B-A14B and Qwen3-30B-A3B at Q4\\_K\\_M; DeepSeek-V2-Lite at Q8\\_0)")
             + f" show two regimes. With experts on the CPU ({st['noff']} configurations) the model under-predicts "
-            f"{st['under_off']} of them, measured/predicted {st['roff'][0]:.2f}--{st['roff'][1]:.2f} (median error {100 * st['ape_off']:.0f}\\%), "
-            f"the conservative direction seen on the A10. All-GPU runs ({st['n0']}) are over-predicted, measured/predicted "
+            f"{st['under_off']} of them (measured/predicted {st['roff'][0]:.2f}--{st['roff'][1]:.2f}, median error {100 * st['ape_off']:.0f}\\%), "
+            f"the conservative direction seen on the A10; the exceptions are every DeepSeek-V2-Lite configuration and one Qwen3 one "
+            f"({st['over_n']} in all). All-GPU runs ({st['n0']}) are over-predicted, measured/predicted "
             f"{st['r0'][0]:.2f}--{st['r0'][1]:.2f}: at 4\\,TB/s a small model's decode step is dominated by per-layer fixed costs that Eq.~(1) omits. "
             f"Over all {s['n']}, the median error is {100 * s['median_ape_m4']:.0f}\\%; no configuration exceeds the physical floor (the closest reaches "
             f"{100 * s['max_of_floor']:.0f}\\% of it), and time per token is affine in the CPU layers ($R^2\\ge{s['min_r2']:.3f}$). "
-            "The audited rows sit in the offloaded regime, where the model errs on the side of calling baselines strong.")
+            "The audited rows sit in the offloaded regime, where the model mostly errs on the side of calling baselines strong.")
     return " ".join(parts)
 
 
@@ -465,7 +486,7 @@ def prereg_log(N, anc):
         ("H13", "3", "NLL within 1\\%, top-1 $\\ge$95\\%", "fails on gpt-oss-120b (89.5--90.1\\%)"),
         ("H14", "3", "step-time model median APE $\\le$10\\%", "holds, 2.9\\%"),
         ("H15", "3", "own text: $\\ge$1.30$\\times$", "holds, 1.54--1.94$\\times$"),
-        ("F1--F4", "4", "provenance changes a conclusion", "none fires on any model"),
+        ("F1--F4", "4", "provenance changes a conclusion", "none fires on any registered model (F3, F4 computable for two)"),
         ("P1", "4", "own text has lower NLL", "holds on every model"),
         ("P2", "4", "greedy text is more reused", f"fails on {N['provPTwoFail']} of {N['provNModels']}"),
         ("P3", "4", "$|\\Delta$DFA$|\\ge$2 points on gpt-oss", "holds"),

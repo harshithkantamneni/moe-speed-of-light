@@ -17,7 +17,7 @@ decode speed-ups over llama.cpp for this setting. This repository provides the y
    policy, including an oracle prefetcher, in `tests/test_bound.py`).
 2. **A validated decode model.** Bytes over bandwidth with measured efficiencies: 16 % median error on 52 third-party
    measurements from 9 sources (cross-validated, one of 12 groups held out at a time); tested on pre-registered
-   first-party runs (A10) and anchor runs (GH200), where its transferred constants are conservative with experts
+   first-party runs (A10) and anchor runs (GH200), where its transferred constants are mostly conservative with experts
    offloaded; calibrated with two runs, it predicted 29 held-out configurations on the GH200 with 6.7 % median
    error (registered as H5).
 3. **An audit.** 147 published measurements from 41 systems, re-checked field by field against every source. 22 rows

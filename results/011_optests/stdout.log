@@ -1,0 +1,45 @@
++++ dirname /opt/runner/repo/jobs/011_optests.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ . /opt/runner/repo/jobs/ec/setup.sh
+++++ dirname /opt/runner/repo/jobs/ec/setup.sh
++++ cd /opt/runner/repo/jobs/ec
++++ pwd
+++ J=/opt/runner/repo/jobs/ec
+++ export J M=/opt/runner/work/models
+++ M=/opt/runner/work/models
+++ export GGML_NO_BACKTRACE=1
+++ GGML_NO_BACKTRACE=1
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
++++ head -1
+++ MAXSM=1695
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
++++ head -1
+++ MAXMEM=6251
+++ sudo timeout 20 nvidia-smi -pm 1
+++ sudo timeout 20 nvidia-smi -lgc 1695,1695
+++ sudo timeout 20 nvidia-smi -lmc 6251,6251
++++ cut -c1-16
++++ sha256sum /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
+++ PATCH_SHA=7fb52dc86f0c262c
++++ cat /opt/runner/work/llama.cpp-ec/.patch_sha
+++ '[' '' '!=' 7fb52dc86f0c262c ']'
+++ cd /opt/runner/work
+++ '[' -d llama.cpp ']'
+++ git clone -q https://github.com/ggml-org/llama.cpp
+++ cd llama.cpp
+++ git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+++ rm -rf /opt/runner/work/llama.cpp-ec
+++ git worktree prune
+++ git worktree add -f /opt/runner/work/llama.cpp-ec 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+Preparing worktree (detached HEAD 2145525a4)
+HEAD is now at 2145525a4 Revert "Change max context length for auto-fitting with unified KV (#28849)" (#29437)
+++ cd /opt/runner/work/llama.cpp-ec
+++ git apply /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=86
+++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
++++ nproc
+++ cmake --build build -j30 --target llama-ec-bench test-backend-ops

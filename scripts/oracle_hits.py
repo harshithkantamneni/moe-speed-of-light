@@ -37,19 +37,20 @@ def fixed_best(R, E, C):
     cnt = np.bincount(R.ravel(), minlength=E)
     return np.sort(cnt)[::-1][:C].sum() / R.size
 
-MODELS = {"gpt-oss-20b": ("data/traces/gpt-oss-20b", "data/tok_gpt-oss-20b.jsonl", [4, 8, 16]),
-          "qwen3-30b-a3b": ("data/traces/qwen3-30b-a3b", "data/tok_qwen3_30b.jsonl", [16, 32, 64])}
-SEQ = [4, 8, 11, 14]
-out = {}
-for m, (td, corp, Cs) in MODELS.items():
-    R, E, _ = load_steps(td, corp, SEQ, 128, 128)
-    for C in Cs:
-        bel = np.mean([belady_layer(r, E, C) for r in R])
-        fix = np.mean([fixed_best(r, E, C) for r in R])
-        h, mi, a = simulate(R, E, C, "dfa", kappa=1.0 if "gpt" in m else 2.0)
-        dfa = h.sum() / (h.sum() + mi.sum())
-        h2, mi2, _ = simulate(R, E, C, "lru")
-        lru = h2.sum() / (h2.sum() + mi2.sum())
-        print(f"{m:14s} C={C:3d}: fixed-hindsight {fix:.3f}  LRU {lru:.3f}  DFA+k {dfa:.3f} ({a.sum()/len(R[0]):.1f} adm/step)  Belady {bel:.3f}")
-        out[f"{m}/C{C}"] = dict(fixed=fix, lru=lru, dfa=dfa, belady=bel)
-json.dump(out, open("results/oracle_hits.json", "w"), indent=1)
+if __name__ == "__main__":
+    MODELS = {"gpt-oss-20b": ("data/traces/gpt-oss-20b", "data/tok_gpt-oss-20b.jsonl", [4, 8, 16]),
+              "qwen3-30b-a3b": ("data/traces/qwen3-30b-a3b", "data/tok_qwen3_30b.jsonl", [16, 32, 64])}
+    SEQ = [4, 8, 11, 14]
+    out = {}
+    for m, (td, corp, Cs) in MODELS.items():
+        R, E, _ = load_steps(td, corp, SEQ, 128, 128)
+        for C in Cs:
+            bel = np.mean([belady_layer(r, E, C) for r in R])
+            fix = np.mean([fixed_best(r, E, C) for r in R])
+            h, mi, a = simulate(R, E, C, "dfa", kappa=1.0 if "gpt" in m else 2.0)
+            dfa = h.sum() / (h.sum() + mi.sum())
+            h2, mi2, _ = simulate(R, E, C, "lru")
+            lru = h2.sum() / (h2.sum() + mi2.sum())
+            print(f"{m:14s} C={C:3d}: fixed-hindsight {fix:.3f}  LRU {lru:.3f}  DFA+k {dfa:.3f} ({a.sum()/len(R[0]):.1f} adm/step)  Belady {bel:.3f}")
+            out[f"{m}/C{C}"] = dict(fixed=fix, lru=lru, dfa=dfa, belady=bel)
+    json.dump(out, open("results/oracle_hits.json", "w"), indent=1)

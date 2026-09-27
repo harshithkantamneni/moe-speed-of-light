@@ -303,3 +303,80 @@ the paper).
     Q8_0 122. The AVX-512 kernel adds 1.5 % end to end; pinning adds nothing.
     At 25 %: gpt-oss-20b 92.2 vs 60.9 (1.51×), Qwen3 Q4_K_M 99.4 vs 70.1
     (1.42×), gpt-oss-120b 65.9 vs 40.9 (1.61×).
+
+## Phase 3 (pre-registered 2026-09-27, before job 020 runs)
+
+The system evaluated here is the one that phase-2 diagnosis led to (log
+above, 011–019). It is not the system pre-registered for phase 2; the phase-2
+hypotheses keep their recorded outcomes.
+
+### System
+
+llama.cpp 2145525a + `runtime/llama.cpp-expert-cache.patch` (sha256 prefix
+9410e3a4fc22f633). Experts in pinned host memory; per MoE layer, C
+GPU slots managed by DFA (half-life 16, κ = 1 for gpt-oss, 2 for Qwen3);
+admissions copied by a kernel reading pinned memory; published two steps
+later. **Mailbox mode**: in decode, a layer whose selected experts are not
+all resident hands the layer input and the CPU expert ids to 28 helper
+threads through pinned memory and waits on the GPU; the helpers claim
+chunks of four phases (quantize input, gate/up/activation, quantize
+activation, down) and publish the result; MXFP4 rows use an AVX-512 VNNI
+kernel. A layer whose selected experts are all resident never involves the
+CPU. Decode graph CPU threads: 1; prefill: 30.
+
+### Protocol
+
+- **Jobs.** 019 (calibration, profile sequences only), 020a/020b (test)
+  and 020c (robustness, H15).
+  Same A10 instance, clocks locked.
+- **Sequences.** Test: the 12 test sequences not used in any exploratory
+  run (gpt-oss: 7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 31; Qwen3: the
+  same with 32 for 31), each ≤ 128 prefill tokens (untimed) then 192
+  teacher-forced decode steps (timed); run back to back in that order, cache
+  state carried over.
+- **Budgets.** 12.5, 25, 50 % of each layer's experts (C = E·q/8) against
+  llama.cpp `--n-cpu-moe n` with n = L − L·q/8 (equal expert VRAM). gpt-oss-120b:
+  12.5 and 25 % only (50 % does not fit in 24 GB).
+- **Systems per budget.** (a) llama.cpp static layers; (b) the same layer
+  layout with CPU layers on the helpers (hand-off only); (c) split-graph
+  cache (phase-2 design, overlap fixed); (d) mailbox cache. Reference: all
+  experts on the GPU where the model fits (gpt-oss-20b, Qwen3 Q4_K_M).
+- **Metrics.** tok/s = decode tokens / decode time over all 12 sequences.
+  Teacher-forced NLL of the next corpus token at every decode step (untimed).
+  Greedy top-1 per step from the dumped top-5 logits.
+- **Predictions.** `prereg/a10_mb/predictions.{json,md}`, from
+  `scripts/mb_model.py` fitted on job 019 only. For gpt-oss-20b and Qwen3 the
+  cache's per-step hand-offs, CPU experts and admissions on the test
+  sequences come from the HF routing traces through the exact policy
+  simulator; gpt-oss-120b has no trace, so its counts are those of its
+  calibration run.
+
+### Hypotheses
+
+- **H11 (speed).** At the 25 % budget the mailbox cache is ≥ 1.30× llama.cpp
+  static layers on each of gpt-oss-20b, Qwen3-30B-A3B Q4_K_M, Qwen3-30B-A3B
+  Q8_0 and gpt-oss-120b.
+- **H12 (hand-off alone).** At every budget and on every model, the
+  static-layer layout on the helpers is ≥ 1.05× llama.cpp static layers.
+- **H13 (fidelity).** At every budget and on every model: (i) the mailbox
+  cache's mean teacher-forced NLL is within 1 % (relative) of llama.cpp static
+  layers'; (ii) its greedy top-1 agrees with llama.cpp static layers' on
+  ≥ 95 % of steps. Reported alongside: the same two numbers for all-GPU vs
+  llama.cpp, which bound what GPU/CPU numeric differences alone produce.
+- **H14 (prediction).** Over all predicted configurations (models ×
+  budgets × {mailbox cache, helper static layers, llama.cpp static layers}),
+  the median absolute percentage error of predicted tok/s is ≤ 10 % and the
+  largest is ≤ 20 %.
+- **H15 (the models' own text).** On sampled continuations of the 12 test
+  prompts (job 020c; sampled once per model, then teacher-forced for every
+  system), the mailbox cache at 25 % is ≥ 1.30× llama.cpp static layers on
+  each model. Reported alongside: teacher-forced NLL on this text (a sanity
+  check for gpt-oss-120b, whose NLL on the dataset text is 4–12 nats in
+  llama.cpp too, see the paper's trace section).
+
+### Calibration (job 019, profile sequences) and predictions
+
+`prereg/a10_mb/predictions.md`. The fitted model reproduces every
+calibration configuration within 2.5 %. It predicts, for the test run,
+speed-ups at 25 % of 1.62× (gpt-oss-20b), 1.56× (Qwen3 Q4_K_M), 1.62×
+(Q8_0) and 1.73× (gpt-oss-120b).

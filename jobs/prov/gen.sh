@@ -27,9 +27,11 @@ gen() {
   done
   wait
 }
-trc() {  # key corpus name
+trc() {  # key corpus name (skipped when an earlier job already produced name.npz)
   [ -f "$2" ] || { echo "missing $2"; return; }
-  ( cd $P && timeout 40m $WORK/tv/bin/python scripts/trace_corpus.py --repo $MD/$1 --hub-id ${HUB[$1]} --corpus "$2" --out $OUT/$3.npz --device cuda ) > $OUT/$3.log 2>&1
+  ls "$(dirname "$OUT")"/*/"$3.npz" > /dev/null 2>&1 && { echo "$3 exists: $(ls "$(dirname "$OUT")"/*/"$3.npz")"; return; }
+  # MoE sub-block in chunks of MOE_CHUNK tokens (job 032 ran out of memory on 190k tokens at once; exact, see tests)
+  ( cd $P && timeout 40m $WORK/tv/bin/python scripts/trace_corpus.py --repo $MD/$1 --hub-id ${HUB[$1]} --corpus "$2" --out $OUT/$3.npz --device cuda --moe-chunk ${MOE_CHUNK:-16384} ) > $OUT/$3.log 2>&1
   echo "$3 rc=$?"; tail -1 $OUT/$3.log
 }
 trace_arms() {  # checkpoint-key gen-dir corpus-key arms...: trace the gen job's corpora

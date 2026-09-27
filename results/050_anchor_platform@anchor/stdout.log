@@ -1,0 +1,267 @@
++++ dirname /opt/runner/repo/jobs/050_anchor_platform@anchor.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ A=/opt/runner/repo/jobs/anchor
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version --format=csv
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version
+NVIDIA A100-SXM4-80GB, 81920 MiB, 1410 MHz, 1593 MHz, 4, 4, 16, 16, 570.148.08
++ lscpu
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/lscpu.txt
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        48 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               30
+On-line CPU(s) list:                  0-29
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD EPYC 7J13 64-Core Processor
+CPU family:                           25
+Model:                                1
+Thread(s) per core:                   1
+Core(s) per socket:                   1
+Socket(s):                            30
+Stepping:                             1
+BogoMIPS:                             4899.99
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm rep_good nopl cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw perfctr_core ssbd ibrs ibpb stibp vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves clzero xsaveerptr wbnoinvd arat npt nrip_save umip pku ospke vaes vpclmulqdq rdpid fsrm arch_capabilities
+Virtualization:                       AMD-V
+Hypervisor vendor:                    KVM
+Virtualization type:                  full
+L1d cache:                            1.9 MiB (30 instances)
+L1i cache:                            1.9 MiB (30 instances)
+L2 cache:                             15 MiB (30 instances)
+L3 cache:                             480 MiB (30 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-29
+Vulnerability Gather data sampling:   Not affected
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Not affected
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Not affected
+Vulnerability Spec rstack overflow:   Vulnerable: Safe RET, no microcode
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Not affected
++ free -g
+               total        used        free      shared  buff/cache   available
+Mem:             216           1         210           0           3         212
+Swap:              0           0           0
++ nproc
+30
+++ nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
+++ head -1
++ MAXSM=1410
+++ nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
+++ head -1
++ MAXMEM=1593
++ mkdir -p /opt/runner/work/bench
++ cd /opt/runner/work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=400000000 -DNTIMES=10 -mcmodel=medium stream.c -o stream
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/stream.txt
+++ nproc
+++ nproc
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=1'
+== OMP_NUM_THREADS=1
++ OMP_NUM_THREADS=1
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:           39798.3     0.161155     0.160811     0.161679
+Scale:          24940.0     0.257134     0.256616     0.257548
+Add:            28168.3     0.341713     0.340809     0.343167
+Triad:          28471.3     0.338299     0.337182     0.339817
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=4'
+== OMP_NUM_THREADS=4
++ grep -E 'Copy|Scale|Add|Triad'
++ OMP_NUM_THREADS=4
++ OMP_PROC_BIND=spread
++ ./stream
+Copy:           89635.9     0.071629     0.071400     0.071968
+Scale:          63174.4     0.101921     0.101307     0.104311
+Add:            68839.4     0.139732     0.139455     0.140493
+Triad:          68396.1     0.141074     0.140359     0.142627
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=8'
+== OMP_NUM_THREADS=8
++ OMP_NUM_THREADS=8
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          113420.9     0.056631     0.056427     0.056962
+Scale:          75394.3     0.088100     0.084887     0.106144
+Add:            80313.1     0.120567     0.119532     0.122144
+Triad:          80697.4     0.119657     0.118963     0.121008
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=15'
+== OMP_NUM_THREADS=15
++ OMP_NUM_THREADS=15
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          110596.5     0.058195     0.057868     0.058396
+Scale:          76373.3     0.084131     0.083799     0.085132
+Add:            83578.6     0.116973     0.114862     0.117947
+Triad:          83165.1     0.117207     0.115433     0.118589
++ for t in 1 4 8 $(( $(nproc)/2 )) $(nproc)
++ echo '== OMP_NUM_THREADS=30'
+== OMP_NUM_THREADS=30
++ OMP_NUM_THREADS=30
++ OMP_PROC_BIND=spread
++ ./stream
++ grep -E 'Copy|Scale|Add|Triad'
+Copy:          127933.6     0.050524     0.050026     0.053188
+Scale:          85224.1     0.076330     0.075096     0.083571
+Add:            93232.0     0.105266     0.102969     0.112452
+Triad:          93696.9     0.104694     0.102458     0.111395
++ cat
++ nvcc -O3 -arch=native bw.cu -o bw
++ ./bw
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/bw.txt
+H2D pinned      1.0 MB    22.34 GB/s     46.9 us/copy
+D2H pinned      1.0 MB    24.94 GB/s     42.0 us/copy
+H2D pinned      4.2 MB    24.24 GB/s    173.0 us/copy
+D2H pinned      4.2 MB    26.02 GB/s    161.2 us/copy
+H2D pinned     16.8 MB    25.85 GB/s    649.1 us/copy
+D2H pinned     16.8 MB    26.29 GB/s    638.2 us/copy
+H2D pinned     67.1 MB    26.00 GB/s   2581.3 us/copy
+D2H pinned     67.1 MB    26.34 GB/s   2547.8 us/copy
+H2D pinned    268.4 MB    26.08 GB/s  10293.2 us/copy
+D2H pinned    268.4 MB    26.36 GB/s  10183.9 us/copy
+device read 1 GiB:  1762.2 GB/s
++ cd /opt/runner/work
++ '[' -d llama.cpp ']'
++ git clone -q https://github.com/ggml-org/llama.cpp
++ cd llama.cpp
++ git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c
++ git checkout -q 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+++ tr -d .
+++ head -1
++ CC=80
++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=80 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF
+++ nproc
++ cmake --build build -j30 --target llama-bench
++ echo 'build rc=0'
+build rc=0
++ tail -3 /opt/runner/repo/results/050_anchor_platform@anchor/build.txt
+[100%] Building CXX object tools/llama-bench/CMakeFiles/llama-bench.dir/main.cpp.o
+[100%] Linking CXX executable ../../bin/llama-bench
+[100%] Built target llama-bench
++ pip install -q -U 'huggingface_hub[hf_transfer]' numpy scipy requests
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ export HF_HUB_ENABLE_HF_TRANSFER=1
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ mkdir -p /opt/runner/work/models
++ cd /opt/runner/work/models
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/models.txt
++ set -- mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf
+++ date +%s
++ t0=1790548835
++ '[' -f Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf ']'
++ timeout 30m hf download mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf --local-dir .
+++ du -h Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf
+++ cut -f1
+++ date +%s
++ echo 'Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf 27G in 40s'
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ set -- mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf
+Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf 27G in 40s
+++ date +%s
++ t0=1790548875
++ '[' -f Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf ']'
++ timeout 30m hf download mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf --local-dir .
+++ du -h Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf
+++ cut -f1
+++ date +%s
++ echo 'Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf 47G in 64s'
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ set -- bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf
+Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf 47G in 64s
+++ date +%s
++ t0=1790548939
++ '[' -f Phi-3.5-MoE-instruct-Q4_K_M.gguf ']'
++ timeout 30m hf download bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf --local-dir .
+++ du -h Phi-3.5-MoE-instruct-Q4_K_M.gguf
+++ cut -f1
+++ date +%s
++ echo 'Phi-3.5-MoE-instruct-Q4_K_M.gguf 24G in 34s'
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ set -- Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf
+Phi-3.5-MoE-instruct-Q4_K_M.gguf 24G in 34s
+++ date +%s
++ t0=1790548973
++ '[' -f qwen2-57b-a14b-instruct-q4_k_m.gguf ']'
++ timeout 30m hf download Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf --local-dir .
+++ cut -f1
+++ du -h qwen2-57b-a14b-instruct-q4_k_m.gguf
+++ date +%s
++ echo 'qwen2-57b-a14b-instruct-q4_k_m.gguf 33G in 43s'
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ set -- mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf
+qwen2-57b-a14b-instruct-q4_k_m.gguf 33G in 43s
+++ date +%s
++ t0=1790549016
++ '[' -f DeepSeek-V2-Lite-Chat.Q8_0.gguf ']'
++ timeout 30m hf download mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf --local-dir .
+++ du -h DeepSeek-V2-Lite-Chat.Q8_0.gguf
+++ cut -f1
+++ date +%s
++ echo 'DeepSeek-V2-Lite-Chat.Q8_0.gguf 16G in 25s'
++ for spec in "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf" "mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf" "bartowski/Phi-3.5-MoE-instruct-GGUF Phi-3.5-MoE-instruct-Q4_K_M.gguf" "Qwen/Qwen2-57B-A14B-Instruct-GGUF qwen2-57b-a14b-instruct-q4_k_m.gguf" "mradermacher/DeepSeek-V2-Lite-Chat-GGUF DeepSeek-V2-Lite-Chat.Q8_0.gguf" "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
++ set -- unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+DeepSeek-V2-Lite-Chat.Q8_0.gguf 16G in 25s
+++ date +%s
++ t0=1790549041
++ '[' -f Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf ']'
++ timeout 30m hf download unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --local-dir .
+++ du -h Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+++ cut -f1
+++ date +%s
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf 18G in 26s'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf 18G in 26s
++ cd /opt/runner/repo/jobs/anchor
++ python3 scripts/anchor_predict.py /opt/runner/repo/results/050_anchor_platform@anchor /opt/runner/repo/results/050_anchor_platform@anchor
++ tee /opt/runner/repo/results/050_anchor_platform@anchor/predict.log
+# Anchor predictions: NVIDIA A100-SXM4-80GB, B_c 93.7 GB/s (STREAM Triad), B_p 31.5 GB/s
+
+| model | --n-cpu-moe | M4 tok/s | M4+A10 tok/s | floor tok/s |
+|---|---|---|---|---|
+| mixtral-8x7b-q4_k_m | 0 | 98.7 | 101.6 | 223.0 |
+| mixtral-8x7b-q4_k_m | 8 | 25.5 | 24.7 | 45.4 |
+| mixtral-8x7b-q4_k_m | 16 | 14.9 | 14.3 | 25.7 |
+| mixtral-8x7b-q4_k_m | 24 | 10.5 | 10.1 | 18.0 |
+| mixtral-8x7b-q4_k_m | 32 | 8.0 | 7.7 | 13.6 |
+| mixtral-8x7b-q8_0 | 10 | 12.5 | 12.1 | 22.0 |
+| mixtral-8x7b-q8_0 | 16 | 8.5 | 8.2 | 14.7 |
+| mixtral-8x7b-q8_0 | 24 | 6.0 | 5.7 | 10.2 |
+| mixtral-8x7b-q8_0 | 32 | 4.6 | 4.4 | 7.8 |
+| phi3.5-moe-q4_k_m | 0 | 197.5 | 203.4 | 446.4 |
+| phi3.5-moe-q4_k_m | 8 | 54.9 | 53.6 | 99.2 |
+| phi3.5-moe-q4_k_m | 16 | 32.3 | 31.3 | 56.7 |
+| phi3.5-moe-q4_k_m | 24 | 23.0 | 22.2 | 39.9 |
+| phi3.5-moe-q4_k_m | 32 | 17.6 | 17.0 | 30.3 |
+| qwen2-57b-q4_k_m | 4 | 48.6 | 48.8 | 96.6 |
+| qwen2-57b-q4_k_m | 10 | 29.0 | 28.8 | 54.8 |
+| qwen2-57b-q4_k_m | 16 | 20.7 | 20.4 | 38.3 |
+| qwen2-57b-q4_k_m | 22 | 16.0 | 15.8 | 29.4 |
+| qwen2-57b-q4_k_m | 28 | 13.0 | 12.8 | 23.5 |
+| dsv2lite-q8_0 | 0 | 298.0 | 306.8 | 673.4 |
+| dsv2lite-q8_0 | 7 | 104.4 | 105.7 | 207.1 |
+| dsv2lite-q8_0 | 14 | 59.4 | 59.9 | 114.5 |
+| dsv2lite-q8_0 | 20 | 43.4 | 43.7 | 82.8 |
+| dsv2lite-q8_0 | 27 | 33.0 | 33.2 | 62.6 |
+| qwen3-30b-a3b-q4_k_m | 0 | 404.9 | 416.9 | 915.0 |
+| qwen3-30b-a3b-q4_k_m | 12 | 109.9 | 118.9 | 254.5 |
+| qwen3-30b-a3b-q4_k_m | 24 | 64.4 | 70.4 | 150.7 |
+| qwen3-30b-a3b-q4_k_m | 36 | 45.6 | 50.0 | 107.0 |
+| qwen3-30b-a3b-q4_k_m | 48 | 35.0 | 38.5 | 82.1 |

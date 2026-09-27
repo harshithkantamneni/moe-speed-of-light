@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 os.chdir(ROOT)
 from mosl.archs import shape
-from mosl.cachesim import simulate, simulate_rstar
+from mosl.cachesim import simulate, simulate_global, simulate_rstar
 from mosl.perfmodel import HW, Params, Workload, dynamic_time, speed_of_light_time
 from mosl.traces import Trace
 
@@ -53,5 +53,34 @@ def test_bound_holds(model="qwen3-30b-a3b", tok="data/tok_qwen3_30b.jsonl", repo
     print(f"bound holds; tightest policy reaches {100*worst:.1f}% of the bound")
 
 
+def test_global_bound(model="qwen3-30b-a3b", tok="data/tok_qwen3_30b.jsonl", repo="Qwen/Qwen3-30B-A3B-Instruct-2507", layers=12):
+    """Global-capacity variant: one cache of L*C experts shared by all layers. Its MIN-bypass misses (on the
+    interleaved stream) never exceed the per-layer ones, and no global policy beats the bound computed from them."""
+    tr = Trace(f"data/traces/{model}", tok)
+    R = [r[:4000] for r in tr.R[:layers]]
+    s = shape(repo)
+    w = Workload(s, 4.5, 8.5, ctx=1024)
+    worst = 0.0
+    for frac in (0.0625, 0.125, 0.25, 0.5):
+        cap = max(1, int(frac * tr.E))
+        mg = simulate_global(R, tr.E, cap, "min", True)[0]
+        ml = np.stack([simulate(r, tr.E, cap, "min", bypass=True)[0] for r in R], 1)
+        assert mg.sum() <= ml.sum(), (frac, mg.sum(), ml.sum())
+        M = mg.mean()
+        rep = int(np.ceil(s.n_moe_layers / layers))
+        runs = [simulate_global(R, tr.E, cap, pol, byp) for pol, byp in (("lru", False), ("lfu", False), ("min", False), ("min", True))]
+        runs += [(ml, np.stack([simulate(r, tr.E, cap, "min", bypass=True)[1] for r in R], 1))]  # per-layer is a special case
+        for hw in PLATS:
+            for p in PARAMS:
+                lb = speed_of_light_time(w, hw, p, M)
+                for mm, aa in runs:
+                    m2, a2 = np.tile(mm, rep)[:, : s.n_moe_layers], np.tile(aa, rep)[:, : s.n_moe_layers]
+                    for t in (dynamic_time(w, hw, p, m2, a2, "cpu")[0], dynamic_time(w, hw, p, m2, a2, "fetch")[0]):
+                        assert t >= lb * (1 - 1e-9), (frac, hw, p, t, lb)
+                        worst = max(worst, lb / t)
+    print(f"global bound holds; tightest policy reaches {100*worst:.1f}% of it")
+
+
 if __name__ == "__main__":
     test_bound_holds()
+    test_global_bound()

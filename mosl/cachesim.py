@@ -224,3 +224,22 @@ def _sim_rstar(R, E, cap, half_life, theta, evict_lfu):
 
 def simulate_rstar(R, E, cap, half_life=16.0, theta=1.0, evict_lfu=True):
     return _sim_rstar(np.ascontiguousarray(R, dtype=np.int64), E, int(cap), float(half_life), float(theta), bool(evict_lfu))
+
+
+def interleave(R_layers, E):
+    """One request stream over all layers: row t*L + l holds layer l's experts at step t, as ids l*E + e."""
+    L = len(R_layers)
+    T, k = R_layers[0].shape
+    out = np.empty((T * L, k), dtype=np.int64)
+    for l, R in enumerate(R_layers):
+        out[l::L] = np.asarray(R, np.int64) + l * E
+    return out
+
+
+def simulate_global(R_layers, E, cap_per_layer, policy="min", bypass=True):
+    """A single cache of L*cap experts shared by all layers (FreeToken-style), on the interleaved stream.
+    Returns miss[T, L], adm[T, L]."""
+    L = len(R_layers)
+    T = R_layers[0].shape[0]
+    m, a = simulate(interleave(R_layers, E), E * L, L * int(cap_per_layer), policy, bypass=bypass)
+    return m.reshape(T, L), a.reshape(T, L)

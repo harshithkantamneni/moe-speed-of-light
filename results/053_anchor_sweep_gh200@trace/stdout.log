@@ -1,0 +1,411 @@
++ export PATH=/opt/runner/work/av/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
++ PATH=/opt/runner/work/av/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
++ B=/opt/runner/work/llama.cpp/build/bin/llama-bench
++ M=/opt/runner/work/models
++ F=(['mixtral-8x7b-q4_k_m']='Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf' ['mixtral-8x7b-q8_0']='Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf' ['phi3.5-moe-q4_k_m']='Phi-3.5-MoE-instruct-Q4_K_M.gguf' ['qwen2-57b-q4_k_m']='qwen2-57b-a14b-instruct-q4_k_m.gguf' ['dsv2lite-q8_0']='DeepSeek-V2-Lite-Chat.Q8_0.gguf' ['qwen3-30b-a3b-q4_k_m']='Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf')
++ declare -A F
+++ nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
+++ head -1
++ MAXSM=1980
+++ nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
+++ head -1
++ MAXMEM=2619
++ sudo nvidia-smi -pm 1
+Persistence mode is already Enabled for GPU 00000000:DD:00.0.
+All done.
++ sudo nvidia-smi -lgc 1980,1980
+GPU clocks set to "(gpuClkMin 1980, gpuClkMax 1980)" for GPU 00000000:DD:00.0
+All done.
++ sudo nvidia-smi -lmc 2619,2619
+This option is not supported. Please use --lock-memory-clocks-deferred instead.
+All done.
++ MON=30475
++ nvidia-smi --query-gpu=timestamp,clocks.sm,clocks.mem,temperature.gpu,power.draw,clocks_throttle_reasons.active,memory.used --format=csv -l 5
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
++ for f in "${F[@]}"
++ cat /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf
++ free -g
+               total        used        free      shared  buff/cache   available
+Mem:             525           7         113           0         405         479
+Swap:              0           0           0
+++ nproc
++ NP=64
++ /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 32 -fa 1 -p 0 -n 64 -r 3 -t 8,32,64 -o jsonl
+/opt/runner/repo/jobs/053_anchor_sweep_gh200@trace.sh: line 20: /opt/runner/work/llama.cpp/build/bin/llama-bench: No such file or directory
+++ python3 -c '
+import json; rs=[json.loads(l) for l in open('\''/opt/runner/repo/results/053_anchor_sweep_gh200@trace/threads.jsonl'\'') if l.strip()]
+print(max(rs, key=lambda r: r['\''avg_ts'\''])['\''n_threads'\''])'
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+ValueError: max() iterable argument is empty
++ T=
++ echo threads=
++ tee /opt/runner/repo/results/053_anchor_sweep_gh200@trace/threads.txt
+threads=
++++ dirname /opt/runner/repo/jobs/053_anchor_sweep_gh200@trace.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ python3 -c '
+import sys; sys.path.insert(0, '\''/opt/runner/repo/jobs/anchor'\'')
+from scripts.anchor_predict import SWEEP
+for m, ns in SWEEP.items():
+    for n in ns: print(m, n)'
++ shuf --random-source=/dev/fd/63 configs.txt
+++ yes 20260927
++ cat /opt/runner/repo/results/053_anchor_sweep_gh200@trace/order.txt
++ echo 'qwen3-30b-a3b-q4_k_m 24'
++ echo 'mixtral-8x7b-q4_k_m 16'
++ i=0
++ read -r model n
++ i=1
+++ date -u +%T
++ echo '[1] dsv2lite-q8_0 n_cpu_moe=14 19:21:35'
+[1] dsv2lite-q8_0 n_cpu_moe=14 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf -ngl 99 -ncmoe 14 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - dsv2lite-q8_0 14 1 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=2
+++ date -u +%T
++ echo '[2] qwen3-30b-a3b-q4_k_m n_cpu_moe=12 19:21:35'
+[2] qwen3-30b-a3b-q4_k_m n_cpu_moe=12 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 12 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 12 2 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=3
+++ date -u +%T
++ echo '[3] phi3.5-moe-q4_k_m n_cpu_moe=24 19:21:35'
+[3] phi3.5-moe-q4_k_m n_cpu_moe=24 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - phi3.5-moe-q4_k_m 24 3 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=4
+++ date -u +%T
++ echo '[4] qwen3-30b-a3b-q4_k_m n_cpu_moe=36 19:21:35'
+[4] qwen3-30b-a3b-q4_k_m n_cpu_moe=36 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 36 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 36 4 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=5
+++ date -u +%T
++ echo '[5] qwen2-57b-q4_k_m n_cpu_moe=4 19:21:35'
+[5] qwen2-57b-q4_k_m n_cpu_moe=4 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf -ngl 99 -ncmoe 4 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen2-57b-q4_k_m 4 5 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=6
+++ date -u +%T
++ echo '[6] qwen2-57b-q4_k_m n_cpu_moe=22 19:21:35'
+[6] qwen2-57b-q4_k_m n_cpu_moe=22 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf -ngl 99 -ncmoe 22 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen2-57b-q4_k_m 22 6 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=7
+++ date -u +%T
++ echo '[7] mixtral-8x7b-q8_0 n_cpu_moe=32 19:21:35'
+[7] mixtral-8x7b-q8_0 n_cpu_moe=32 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf -ngl 99 -ncmoe 32 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q8_0 32 7 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=8
+++ date -u +%T
++ echo '[8] phi3.5-moe-q4_k_m n_cpu_moe=0 19:21:35'
+[8] phi3.5-moe-q4_k_m n_cpu_moe=0 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - phi3.5-moe-q4_k_m 0 8 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=9
+++ date -u +%T
++ echo '[9] dsv2lite-q8_0 n_cpu_moe=27 19:21:35'
+[9] dsv2lite-q8_0 n_cpu_moe=27 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf -ngl 99 -ncmoe 27 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - dsv2lite-q8_0 27 9 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=10
+++ date -u +%T
++ echo '[10] phi3.5-moe-q4_k_m n_cpu_moe=16 19:21:35'
+[10] phi3.5-moe-q4_k_m n_cpu_moe=16 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf -ngl 99 -ncmoe 16 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - phi3.5-moe-q4_k_m 16 10 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=11
+++ date -u +%T
++ echo '[11] dsv2lite-q8_0 n_cpu_moe=20 19:21:35'
+[11] dsv2lite-q8_0 n_cpu_moe=20 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf -ngl 99 -ncmoe 20 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - dsv2lite-q8_0 20 11 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=12
+++ date -u +%T
++ echo '[12] phi3.5-moe-q4_k_m n_cpu_moe=32 19:21:35'
+[12] phi3.5-moe-q4_k_m n_cpu_moe=32 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf -ngl 99 -ncmoe 32 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - phi3.5-moe-q4_k_m 32 12 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=13
+++ date -u +%T
++ echo '[13] qwen2-57b-q4_k_m n_cpu_moe=16 19:21:35'
+[13] qwen2-57b-q4_k_m n_cpu_moe=16 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf -ngl 99 -ncmoe 16 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen2-57b-q4_k_m 16 13 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=14
+++ date -u +%T
++ echo '[14] mixtral-8x7b-q8_0 n_cpu_moe=16 19:21:35'
+[14] mixtral-8x7b-q8_0 n_cpu_moe=16 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf -ngl 99 -ncmoe 16 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q8_0 16 14 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=15
+++ date -u +%T
++ echo '[15] mixtral-8x7b-q8_0 n_cpu_moe=10 19:21:35'
+[15] mixtral-8x7b-q8_0 n_cpu_moe=10 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf -ngl 99 -ncmoe 10 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q8_0 10 15 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=16
+++ date -u +%T
++ echo '[16] qwen2-57b-q4_k_m n_cpu_moe=28 19:21:35'
+[16] qwen2-57b-q4_k_m n_cpu_moe=28 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf -ngl 99 -ncmoe 28 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen2-57b-q4_k_m 28 16 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=17
+++ date -u +%T
++ echo '[17] mixtral-8x7b-q4_k_m n_cpu_moe=24 19:21:35'
+[17] mixtral-8x7b-q4_k_m n_cpu_moe=24 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 24 17 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=18
+++ date -u +%T
++ echo '[18] dsv2lite-q8_0 n_cpu_moe=7 19:21:35'
+[18] dsv2lite-q8_0 n_cpu_moe=7 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf -ngl 99 -ncmoe 7 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - dsv2lite-q8_0 7 18 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=19
+++ date -u +%T
++ echo '[19] phi3.5-moe-q4_k_m n_cpu_moe=8 19:21:35'
+[19] phi3.5-moe-q4_k_m n_cpu_moe=8 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Phi-3.5-MoE-instruct-Q4_K_M.gguf -ngl 99 -ncmoe 8 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - phi3.5-moe-q4_k_m 8 19 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=20
+++ date -u +%T
++ echo '[20] mixtral-8x7b-q8_0 n_cpu_moe=24 19:21:35'
+[20] mixtral-8x7b-q8_0 n_cpu_moe=24 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q8_0 24 20 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=21
+++ date -u +%T
++ echo '[21] mixtral-8x7b-q4_k_m n_cpu_moe=8 19:21:35'
+[21] mixtral-8x7b-q4_k_m n_cpu_moe=8 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 8 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 8 21 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=22
+++ date -u +%T
++ echo '[22] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 19:21:35'
+[22] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 24 22 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=23
+++ date -u +%T
++ echo '[23] qwen2-57b-q4_k_m n_cpu_moe=10 19:21:35'
+[23] qwen2-57b-q4_k_m n_cpu_moe=10 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/qwen2-57b-a14b-instruct-q4_k_m.gguf -ngl 99 -ncmoe 10 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen2-57b-q4_k_m 10 23 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=24
+++ date -u +%T
++ echo '[24] dsv2lite-q8_0 n_cpu_moe=0 19:21:35'
+[24] dsv2lite-q8_0 n_cpu_moe=0 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/DeepSeek-V2-Lite-Chat.Q8_0.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - dsv2lite-q8_0 0 24 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=25
+++ date -u +%T
++ echo '[25] qwen3-30b-a3b-q4_k_m n_cpu_moe=48 19:21:35'
+[25] qwen3-30b-a3b-q4_k_m n_cpu_moe=48 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 48 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 48 25 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=26
+++ date -u +%T
++ echo '[26] mixtral-8x7b-q4_k_m n_cpu_moe=0 19:21:35'
+[26] mixtral-8x7b-q4_k_m n_cpu_moe=0 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 0 26 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=27
+++ date -u +%T
++ echo '[27] mixtral-8x7b-q4_k_m n_cpu_moe=32 19:21:35'
+[27] mixtral-8x7b-q4_k_m n_cpu_moe=32 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 32 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 32 27 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=28
+++ date -u +%T
++ echo '[28] mixtral-8x7b-q4_k_m n_cpu_moe=16 19:21:35'
+[28] mixtral-8x7b-q4_k_m n_cpu_moe=16 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 16 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 16 28 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=29
+++ date -u +%T
++ echo '[29] qwen3-30b-a3b-q4_k_m n_cpu_moe=0 19:21:35'
+[29] qwen3-30b-a3b-q4_k_m n_cpu_moe=0 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 0 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 0 29 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=30
+++ date -u +%T
++ echo '[30] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 19:21:35'
+[30] qwen3-30b-a3b-q4_k_m n_cpu_moe=24 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf -ngl 99 -ncmoe 24 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - qwen3-30b-a3b-q4_k_m 24 30 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ i=31
+++ date -u +%T
++ echo '[31] mixtral-8x7b-q4_k_m n_cpu_moe=16 19:21:35'
+[31] mixtral-8x7b-q4_k_m n_cpu_moe=16 19:21:35
++ timeout 15m /opt/runner/work/llama.cpp/build/bin/llama-bench -m /opt/runner/work/models/Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf -ngl 99 -ncmoe 16 -fa 1 -p 0 -n 128 -r 5 -t -o jsonl
++ rc=127
++ python3 - mixtral-8x7b-q4_k_m 16 31 127
++ tail -2 run.err
+timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory
++ read -r model n
++ kill 30475
++ python3 - /opt/runner/repo/results/053_anchor_sweep_gh200@trace
+dsv2lite-q8_0 14 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 12 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+phi3.5-moe-q4_k_m 24 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 36 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen2-57b-q4_k_m 4 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen2-57b-q4_k_m 22 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q8_0 32 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+phi3.5-moe-q4_k_m 0 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+dsv2lite-q8_0 27 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+phi3.5-moe-q4_k_m 16 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+dsv2lite-q8_0 20 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+phi3.5-moe-q4_k_m 32 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen2-57b-q4_k_m 16 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q8_0 16 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q8_0 10 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen2-57b-q4_k_m 28 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 24 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+dsv2lite-q8_0 7 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+phi3.5-moe-q4_k_m 8 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q8_0 24 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 8 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 24 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen2-57b-q4_k_m 10 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+dsv2lite-q8_0 0 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 48 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 0 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 32 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 16 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 0 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+qwen3-30b-a3b-q4_k_m 24 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 
+mixtral-8x7b-q4_k_m 16 0 127 timeout: failed to run command ‘/opt/runner/work/llama.cpp/build/bin/llama-bench’: No such file or directory 

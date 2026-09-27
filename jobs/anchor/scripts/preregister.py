@@ -53,7 +53,10 @@ def platform(d):
     g = next(csv.DictReader(open(os.path.join(d, "gpu.csv")), skipinitialspace=True))
     g = {k.strip(): v.strip() for k, v in g.items()}
     name = g["name"]
-    gen = int(g["pcie.link.gen.max"]); width = int(g["pcie.link.width.max"])
+    try:
+        gen = int(g["pcie.link.gen.max"]); width = int(g["pcie.link.width.max"])
+    except ValueError:   # GH200: the GPU hangs off NVLink-C2C, nvidia-smi reports no PCIe link; unused by --n-cpu-moe
+        gen, width = 5, 16
     triad = {}
     t = None
     for line in open(os.path.join(d, "stream.txt")):

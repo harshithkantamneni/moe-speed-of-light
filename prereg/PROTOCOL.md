@@ -380,3 +380,28 @@ CPU. Decode graph CPU threads: 1; prefill: 30.
 calibration configuration within 2.5 %. It predicts, for the test run,
 speed-ups at 25 % of 1.62× (gpt-oss-20b), 1.56× (Qwen3 Q4_K_M), 1.62×
 (Q8_0) and 1.73× (gpt-oss-120b).
+
+### Phase 3 outcomes (jobs 020a–c, scored by `scripts/analyze_phase3.py`; `prereg/a10_mb/scored.md`)
+
+- **H11 holds.** At 25 %: gpt-oss-20b 1.63×, Qwen3 Q4_K_M 1.52×, Q8_0
+  1.50×, gpt-oss-120b 1.81× (72.1 vs 39.8 tok/s). Over all budgets
+  1.41–1.81×.
+- **H12 does not hold.** The helpers with llama.cpp's layer layout are
+  1.02–1.32× llama.cpp, but Q8_0 gains only 1.022× (12.5 %) and 1.047×
+  (25 %), below the registered 1.05×.
+- **H13 does not hold.** NLL within 0.6 % everywhere and top-1 agreement
+  95.6–98.7 % on gpt-oss-20b and Qwen3 (all-GPU vs llama.cpp: 95.4–98.4 %),
+  but 89.5–90.1 % on gpt-oss-120b, whose NLL on this text is 7.36 nats.
+- **H14 holds.** Median APE 2.9 %, maximum 14.7 % over 33 configurations.
+- **H15 holds.** On sampled continuations: 1.64× (gpt-oss-20b), 1.54×
+  (Q4_K_M), 1.57× (Q8_0), 1.94× (gpt-oss-120b) at 25 %; gpt-oss-120b's NLL
+  on its own text is 0.65 nats.
+- **Deviation: baseline check (job 021, after the test run).** llama.cpp
+  with `--load-mode none` (its advice for CPU overrides; experts then sit in
+  pinned host memory, not repacked) changed its speed by −13.4 % to +1.7 %;
+  speed-ups against the faster of the two llama.cpp runs are unchanged at
+  1.41–1.81×.
+- **Bound** (`scripts/sol_a10.py`, gpt-oss-20b and Qwen3 Q4_K_M, which have a
+  measured all-GPU step): llama.cpp reaches 30–42 % of it, the mailbox cache
+  46–63 %; the mailbox cache reaches 58–80 % of an overhead-free execution
+  of DFA's own misses.

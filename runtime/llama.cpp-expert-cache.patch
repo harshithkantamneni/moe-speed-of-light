@@ -2516,10 +2516,10 @@ index 0000000..2e52e6a
 +target_compile_features(llama-ec-cpubench PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..8f1e5f3
+index 0000000..2d51f72
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,402 @@
+@@ -0,0 +1,404 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -2599,6 +2599,7 @@ index 0000000..8f1e5f3
 +    int gen_seed = 42;
 +    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
 +    bool host_experts = false;
++    bool no_mmap = false;
 +    for (int i = 1; i < argc; ++i) {
 +        std::string a = argv[i];
 +        auto next = [&]() { return std::string(argv[++i]); };
@@ -2607,6 +2608,7 @@ index 0000000..8f1e5f3
 +        else if (a == "-ngl") ngl = std::stoi(next());
 +        else if (a == "--ncmoe") ncmoe = std::stoi(next());
 +        else if (a == "--host-experts") host_experts = true;
++        else if (a == "--no-mmap") no_mmap = true;          // read weights into their buffers (llama.cpp's advice with CPU overrides)
 +        else if (a == "--n-seq") n_seq = std::stoi(next());
 +        else if (a == "--seq0") seq0 = std::stoi(next());
 +        else if (a == "--n-prefill") n_prefill = std::stoi(next());
@@ -2656,7 +2658,7 @@ index 0000000..8f1e5f3
 +
 +    llama_model_params mp = llama_model_default_params();
 +    mp.n_gpu_layers = ngl;
-+    if (host_experts) {
++    if (host_experts || no_mmap) {
 +        mp.load_mode = LLAMA_LOAD_MODE_NONE; // read weights into their (pinned) buffers instead of mapping the file
 +    }
 +    if (ov.size() > 1) {

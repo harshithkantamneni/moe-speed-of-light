@@ -1,0 +1,211 @@
++++ dirname /opt/runner/repo/jobs/021_llama_nommap.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ . /opt/runner/repo/jobs/ec/setup.sh
+++++ dirname /opt/runner/repo/jobs/ec/setup.sh
++++ cd /opt/runner/repo/jobs/ec
++++ pwd
+++ J=/opt/runner/repo/jobs/ec
+++ export J M=/opt/runner/work/models
+++ M=/opt/runner/work/models
+++ export GGML_NO_BACKTRACE=1
+++ GGML_NO_BACKTRACE=1
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
++++ head -1
+++ MAXSM=1695
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
++++ head -1
+++ MAXMEM=6251
+++ sudo timeout 20 nvidia-smi -pm 1
+++ sudo timeout 20 nvidia-smi -lgc 1695,1695
+++ sudo timeout 20 nvidia-smi -lmc 6251,6251
++++ sha256sum /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++++ cut -c1-16
+++ PATCH_SHA=465361ad9ad3ad82
++++ cat /opt/runner/work/llama.cpp-ec/.patch_sha
+++ '[' 9410e3a4fc22f633 '!=' 465361ad9ad3ad82 ']'
+++ cd /opt/runner/work
+++ '[' -d llama.cpp ']'
+++ cd llama.cpp
+++ git fetch -q origin 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+++ rm -rf /opt/runner/work/llama.cpp-ec
+++ git worktree prune
+++ git worktree add -f /opt/runner/work/llama.cpp-ec 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+Preparing worktree (detached HEAD 2145525a4)
+HEAD is now at 2145525a4 Revert "Change max context length for auto-fitting with unified KV (#28849)" (#29437)
+++ cd /opt/runner/work/llama.cpp-ec
+++ git apply /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ tr -d .
++++ head -1
+++ SM=86
+++ cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
++++ nproc
+++ cmake --build build -j30 --target llama-ec-bench llama-ec-cpubench test-backend-ops
+++ echo 465361ad9ad3ad82
++++ cat /opt/runner/work/llama.cpp-ec/.patch_sha
+++ echo 'ec build: 465361ad9ad3ad82'
+ec build: 465361ad9ad3ad82
+++ head
+++ grep -E error: /opt/runner/work/ec_build.txt
+++ export EC_BIN=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench EC_TESTS=/opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops EC_CPUBENCH=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-cpubench
+++ EC_BIN=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-cpubench
+++ '[' '!' -f /opt/runner/work/models/.done ']'
+++ ls -la /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
+++ awk '{print $5, $9}'
+18556686752 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+32483932576 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf
+63387346208 /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf
+12109566624 /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
++ run gpt-oss-20b-MXFP4.gguf tok_gpt-oss-20b.jsonl 24 '1 2 4' 7,10,12,15,16,18,19,20,25,26,27,31
++ local f=gpt-oss-20b-MXFP4.gguf corp=/opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl L=24 'FR=1 2 4' SEQ=7,10,12,15,16,18,19,20,25,26,27,31 tag=gpt-oss-20b-MXFP4
++ for q in $FR
++ local n=21
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 21 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n21.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 21 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n21.bin
++ echo 'gpt-oss-20b-MXFP4 no-mmap n=21 rc=0'
+gpt-oss-20b-MXFP4 no-mmap n=21 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  2455.45 MiB
+load_tensors:    CUDA_Host model buffer size =  9080.75 MiB
++ for q in $FR
++ local n=18
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 18 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n18.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 18 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n18.bin
++ echo 'gpt-oss-20b-MXFP4 no-mmap n=18 rc=0'
+gpt-oss-20b-MXFP4 no-mmap n=18 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  2455.45 MiB
+load_tensors:    CUDA_Host model buffer size =  9080.75 MiB
+load_tensors:        CUDA0 model buffer size =  3668.87 MiB
+load_tensors:    CUDA_Host model buffer size =  7867.33 MiB
++ for q in $FR
++ local n=12
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 12 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n12.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 12 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-20b-MXFP4_nommap_n12.bin
++ echo 'gpt-oss-20b-MXFP4 no-mmap n=12 rc=0'
+gpt-oss-20b-MXFP4 no-mmap n=12 rc=0
++ tail -4
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
+load_tensors:        CUDA0 model buffer size =  3668.87 MiB
+load_tensors:    CUDA_Host model buffer size =  7867.33 MiB
+load_tensors:        CUDA0 model buffer size =  6095.70 MiB
+load_tensors:    CUDA_Host model buffer size =  5440.50 MiB
++ run Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf tok_qwen3_30b.jsonl 48 '1 2 4' 7,10,12,15,16,18,19,20,25,26,27,32
++ local f=Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf corp=/opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl L=48 'FR=1 2 4' SEQ=7,10,12,15,16,18,19,20,25,26,27,32 tag=Qwen3-30B-A3B-Instruct-2507-Q4_K_M
++ for q in $FR
++ local n=42
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 42 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n42.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 42 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n42.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=42 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=42 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  6095.70 MiB
+load_tensors:    CUDA_Host model buffer size =  5440.50 MiB
+load_tensors:        CUDA0 model buffer size =  3025.42 MiB
+load_tensors:    CUDA_Host model buffer size = 14665.92 MiB
++ for q in $FR
++ local n=36
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n36.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n36.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=36 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=36 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  3025.42 MiB
+load_tensors:    CUDA_Host model buffer size = 14665.92 MiB
+load_tensors:        CUDA0 model buffer size =  5068.42 MiB
+load_tensors:    CUDA_Host model buffer size = 12622.92 MiB
++ for q in $FR
++ local n=24
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 24 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n24.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 24 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n24.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=24 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M no-mmap n=24 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  5068.42 MiB
+load_tensors:    CUDA_Host model buffer size = 12622.92 MiB
+load_tensors:        CUDA0 model buffer size =  9154.43 MiB
+load_tensors:    CUDA_Host model buffer size =  8536.92 MiB
++ run Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf tok_qwen3_30b.jsonl 48 '1 2 4' 7,10,12,15,16,18,19,20,25,26,27,32
++ local f=Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf corp=/opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl L=48 'FR=1 2 4' SEQ=7,10,12,15,16,18,19,20,25,26,27,32 tag=Qwen3-30B-A3B-Instruct-2507-Q8_0
++ for q in $FR
++ local n=42
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 42 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n42.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 42 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n42.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=42 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=42 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  9154.43 MiB
+load_tensors:    CUDA_Host model buffer size =  8536.92 MiB
+load_tensors:        CUDA0 model buffer size =  4954.10 MiB
+load_tensors:    CUDA_Host model buffer size = 26019.30 MiB
++ for q in $FR
++ local n=36
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n36.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n36.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=36 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=36 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  4954.10 MiB
+load_tensors:    CUDA_Host model buffer size = 26019.30 MiB
+load_tensors:        CUDA0 model buffer size =  8626.11 MiB
+load_tensors:    CUDA_Host model buffer size = 22347.30 MiB
++ for q in $FR
++ local n=24
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 24 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n24.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 24 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n24.bin
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=24 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 no-mmap n=24 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  8626.11 MiB
+load_tensors:    CUDA_Host model buffer size = 22347.30 MiB
+load_tensors:        CUDA0 model buffer size = 15970.11 MiB
+load_tensors:    CUDA_Host model buffer size = 15003.30 MiB
++ run gpt-oss-120b-MXFP4.gguf tok_gpt-oss-120b.jsonl 36 '1 2' 7,10,12,15,16,18,19,20,25,26,27,31
++ local f=gpt-oss-120b-MXFP4.gguf corp=/opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl L=36 'FR=1 2' SEQ=7,10,12,15,16,18,19,20,25,26,27,31 tag=gpt-oss-120b-MXFP4
++ for q in $FR
++ local n=32
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 32 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-120b-MXFP4_nommap_n32.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 32 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-120b-MXFP4_nommap_n32.bin
++ echo 'gpt-oss-120b-MXFP4 no-mmap n=32 rc=0'
+gpt-oss-120b-MXFP4 no-mmap n=32 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size = 15970.11 MiB
+load_tensors:    CUDA_Host model buffer size = 15003.30 MiB
+load_tensors:        CUDA0 model buffer size =  8079.17 MiB
+load_tensors:    CUDA_Host model buffer size = 52359.32 MiB
++ for q in $FR
++ local n=27
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 27 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-120b-MXFP4_nommap_n27.bin
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 27 --no-mmap -t 30 --n-prefill 128 --n-decode 192 --dump /opt/runner/repo/results/021_llama_nommap/gpt-oss-120b-MXFP4_nommap_n27.bin
++ echo 'gpt-oss-120b-MXFP4 no-mmap n=27 rc=0'
+gpt-oss-120b-MXFP4 no-mmap n=27 rc=0
++ grep -iE 'repack|model buffer size' /opt/runner/repo/results/021_llama_nommap/stderr_runs.txt
++ tail -4
+load_tensors:        CUDA0 model buffer size =  8079.17 MiB
+load_tensors:    CUDA_Host model buffer size = 52359.32 MiB
+load_tensors:        CUDA0 model buffer size = 16168.62 MiB
+load_tensors:    CUDA_Host model buffer size = 44269.87 MiB
++ python3 - /opt/runner/repo/results/021_llama_nommap
+   80.7 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n24.jsonl
+   67.2 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n36.jsonl
+   62.4 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q4_K_M_nommap_n42.jsonl
+   56.6 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n24.jsonl
+   48.0 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n36.jsonl
+   43.5 tok/s n_seq 12 Qwen3-30B-A3B-Instruct-2507-Q8_0_nommap_n42.jsonl
+   39.4 tok/s n_seq 12 gpt-oss-120b-MXFP4_nommap_n27.jsonl
+   35.9 tok/s n_seq 12 gpt-oss-120b-MXFP4_nommap_n32.jsonl
+   72.6 tok/s n_seq 12 gpt-oss-20b-MXFP4_nommap_n12.jsonl
+   58.4 tok/s n_seq 12 gpt-oss-20b-MXFP4_nommap_n18.jsonl
+   54.3 tok/s n_seq 12 gpt-oss-20b-MXFP4_nommap_n21.jsonl

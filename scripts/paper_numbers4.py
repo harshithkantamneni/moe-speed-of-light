@@ -270,6 +270,8 @@ def main():
         N["hFiveVerdict"] = "holds" if h5["pass_"] else "fails"
         N["hFiveEtaG"] = f"{h5['params']['eta_g']:.2f}"
         N["hFiveEtaC"] = f"{h5['params']['eta_c']:.2f}"
+        qo = [x for x in h5["rows"] if x["model"].startswith("qwen3") and x["n_cpu_moe"] not in ("0", "cpu") and x["meas"] > x["pred"]]
+        N["hFiveQwenUnder"] = f"{100 * max(x['ape'] for x in qo):.0f}"
 
     # ---------------- anchors ----------------
     anc = {}

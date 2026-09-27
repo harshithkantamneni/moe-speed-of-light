@@ -722,3 +722,7 @@ job 051/053 measures, so git history orders them.
   two-run calibration (H5) is run there as registered: job 056 repeats job 006's phase-1 sweep unchanged and
   `scripts/calibrate2.py` scores it with job 052's platform microbenchmarks (pass: median APE ≤ 10 %). H1′ (ncu) is
   not run.
+- **H5 outcome (GH200, job 056, scored by `scripts/calibrate2.py` into `prereg/h5/`).** Holds: η_g = 0.20 and
+  η_c/STREAM = 0.75 from the two gpt-oss-20b runs; 29 held-out configurations, median APE 6.7 %, MAPE 12.6 %,
+  maximum 44.9 % (Qwen3-30B-A3B Q4_K_M all-GPU). Qwen3 with experts offloaded is under-predicted by up to 28 %
+  (τ_e = 20.7 µs is too large for this CPU, as on the A10).

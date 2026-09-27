@@ -12,7 +12,7 @@ cost of large-model inference, use them as yardsticks for the systems we publish
 models for the hardware people actually own.
 
 I have an MS in ECE from UW-Madison (December 2025) and work in GPU performance engineering: CUDA/Triton kernels,
-computer architecture, LLM serving. Since graduating I have done research independently.
+computer architecture, LLM serving.
 
 My most important result is a paper and open artifact, *Seconds, Not Blocks: A Validated Speed-of-Light for Offloaded
 Mixture-of-Experts Decode, and What It Says About Published Speed-Ups*. Dozens of systems claim to decode large MoE
@@ -23,7 +23,8 @@ baselines are rarely configured the way users run them. I built the missing yard
    MIN with bypass, load accounting, Jensen), computed from exact routing traces that I collect by streaming one
    decoder layer at a time, verified token-for-token against reference decode.
 2. **A bytes-over-bandwidth decode model** with 16% median error, cross-validated, on 52 third-party measurements
-   from 9 sources, and tested on pre-registered first-party and anchor runs (A10, GH200).
+   from 9 sources; calibrated with two runs, it predicted 29 configurations on a new platform (GH200) with 6.7%
+   median error, as pre-registered.
 3. **An audit of 147 published measurements from 41 systems**, each value with a verbatim quote, re-checked field by
    field in independent passes. On the 22 adjudicable rows, 16 of 20 llama.cpp baselines fall below the band of the
    predicted equal-memory baseline, 8 claimed gains survive, and the median system reaches 24% of its hardware's

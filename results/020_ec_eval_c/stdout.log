@@ -1,0 +1,167 @@
++++ dirname /opt/runner/repo/jobs/020_ec_eval_c.sh
+++ cd /opt/runner/repo/jobs
+++ pwd
++ . /opt/runner/repo/jobs/ec/setup.sh
+++++ dirname /opt/runner/repo/jobs/ec/setup.sh
++++ cd /opt/runner/repo/jobs/ec
++++ pwd
+++ J=/opt/runner/repo/jobs/ec
+++ export J M=/opt/runner/work/models
+++ M=/opt/runner/work/models
+++ export GGML_NO_BACKTRACE=1
+++ GGML_NO_BACKTRACE=1
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.sm --format=csv,noheader,nounits
++++ head -1
+++ MAXSM=1695
++++ timeout 10 nvidia-smi --query-gpu=clocks.max.mem --format=csv,noheader,nounits
++++ head -1
+++ MAXMEM=6251
+++ sudo timeout 20 nvidia-smi -pm 1
+++ sudo timeout 20 nvidia-smi -lgc 1695,1695
+++ sudo timeout 20 nvidia-smi -lmc 6251,6251
++++ sha256sum /opt/runner/repo/jobs/ec/llama.cpp-expert-cache.patch
++++ cut -c1-16
+++ PATCH_SHA=9410e3a4fc22f633
++++ cat /opt/runner/work/llama.cpp-ec/.patch_sha
+++ '[' 9410e3a4fc22f633 '!=' 9410e3a4fc22f633 ']'
+++ export EC_BIN=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench EC_TESTS=/opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops EC_CPUBENCH=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-cpubench
+++ EC_BIN=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/opt/runner/work/llama.cpp-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/opt/runner/work/llama.cpp-ec/build/bin/llama-ec-cpubench
+++ '[' '!' -f /opt/runner/work/models/.done ']'
+++ ls -la /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
+++ awk '{print $5, $9}'
+18556686752 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf
+32483932576 /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf
+63387346208 /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf
+12109566624 /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf
++ MB=mailbox=1:tdec=1:helpers=28
++ run_model gpt-oss-20b-MXFP4.gguf tok_gpt-oss-20b.jsonl 24 32 1 7,10,12,15,16,18,19,20,25,26,27,31 0
++ local f=gpt-oss-20b-MXFP4.gguf corp=/opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl L=24 E=32 K=1 SEQ=7,10,12,15,16,18,19,20,25,26,27,31 NG=0 tag=gpt-oss-20b-MXFP4
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 0 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-20b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 0 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl
+++ wc -l
++ echo 'gpt-oss-20b-MXFP4 gen rc=0 lines=12'
+gpt-oss-20b-MXFP4 gen rc=0 lines=12
++++ wc -l
+++ python3 -c 'print('\'','\''.join(str(i) for i in range(12)))'
++ local GS=0,1,2,3,4,5,6,7,8,9,10,11
++ local cfg=
++ for q in 1 2
++ cfg=';slots=4:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C4.json'
++ for q in 1 2
++ cfg=';slots=4:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C4.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C8.json'
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=4:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C4.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C8.json' -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=4:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C4.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen_mb_C8.json' -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-20b-MXFP4 gen ec rc=0'
+gpt-oss-20b-MXFP4 gen ec rc=0
++ for q in 1 2
++ local n=21
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 21 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 21 -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-20b-MXFP4 gen static n=21 rc=0'
+gpt-oss-20b-MXFP4 gen static n=21 rc=0
++ for q in 1 2
++ local n=18
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 18 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-20b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-20b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 18 -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-20b-MXFP4 gen static n=18 rc=0'
+gpt-oss-20b-MXFP4 gen static n=18 rc=0
++ run_model Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf tok_qwen3_30b.jsonl 48 128 2 7,10,12,15,16,18,19,20,25,26,27,32 0
++ local f=Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf corp=/opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl L=48 E=128 K=2 SEQ=7,10,12,15,16,18,19,20,25,26,27,32 NG=0 tag=Qwen3-30B-A3B-Instruct-2507-Q4_K_M
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 0 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 0 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl
+++ wc -l
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen rc=0 lines=12'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen rc=0 lines=12
++++ wc -l
+++ python3 -c 'print('\'','\''.join(str(i) for i in range(12)))'
++ local GS=0,1,2,3,4,5,6,7,8,9,10,11
++ local cfg=
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C16.json'
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C32.json'
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen ec rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen ec rc=0
++ for q in 1 2
++ local n=42
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 42 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 42 -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen static n=42 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen static n=42 rc=0
++ for q in 1 2
++ local n=36
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q4_K_M_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen static n=36 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q4_K_M gen static n=36 rc=0
++ run_model Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf tok_qwen3_30b.jsonl 48 128 2 7,10,12,15,16,18,19,20,25,26,27,32 36
++ local f=Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf corp=/opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl L=48 E=128 K=2 SEQ=7,10,12,15,16,18,19,20,25,26,27,32 NG=36 tag=Qwen3-30B-A3B-Instruct-2507-Q8_0
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/jobs/ec/tok_qwen3_30b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,32 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl
+++ wc -l
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 gen rc=0 lines=12'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 gen rc=0 lines=12
++++ wc -l
+++ python3 -c 'print('\'','\''.join(str(i) for i in range(12)))'
++ local GS=0,1,2,3,4,5,6,7,8,9,10,11
++ local cfg=
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C16.json'
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C32.json'
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C16.json;slots=32:policy=dfa:kappa=2:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 gen ec rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 gen ec rc=0
++ for q in 1 2
++ local n=42
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 42 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 42 -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 gen static n=42 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 gen static n=42 rc=0
++ for q in 1 2
++ local n=36
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/Qwen3-30B-A3B-Instruct-2507-Q8_0_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 36 -t 30 --n-prefill 128 --n-decode 192
++ echo 'Qwen3-30B-A3B-Instruct-2507-Q8_0 gen static n=36 rc=0'
+Qwen3-30B-A3B-Instruct-2507-Q8_0 gen static n=36 rc=0
++ run_model gpt-oss-120b-MXFP4.gguf tok_gpt-oss-120b.jsonl 36 128 1 7,10,12,15,16,18,19,20,25,26,27,31 27
++ local f=gpt-oss-120b-MXFP4.gguf corp=/opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl L=36 E=128 K=1 SEQ=7,10,12,15,16,18,19,20,25,26,27,31 NG=27 tag=gpt-oss-120b-MXFP4
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 27 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/jobs/ec/tok_gpt-oss-120b.jsonl --seqs 7,10,12,15,16,18,19,20,25,26,27,31 --ncmoe 27 -t 30 --n-prefill 128 --n-decode 192 --gen-out /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl
+++ wc -l
++ echo 'gpt-oss-120b-MXFP4 gen rc=0 lines=12'
+gpt-oss-120b-MXFP4 gen rc=0 lines=12
++++ wc -l
+++ python3 -c 'print('\'','\''.join(str(i) for i in range(12)))'
++ local GS=0,1,2,3,4,5,6,7,8,9,10,11
++ local cfg=
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C16.json'
++ for q in 1 2
++ cfg=';slots=16:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C16.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C32.json'
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C16.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --host-experts --ec 'slots=16:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C16.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=28:stats=/opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen_mb_C32.json' -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-120b-MXFP4 gen ec rc=0'
+gpt-oss-120b-MXFP4 gen ec rc=0
++ for q in 1 2
++ local n=32
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 32 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 32 -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-120b-MXFP4 gen static n=32 rc=0'
+gpt-oss-120b-MXFP4 gen static n=32 rc=0
++ for q in 1 2
++ local n=27
++ R /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 27 -t 30 --n-prefill 128 --n-decode 192
++ timeout 40m /opt/runner/work/llama.cpp-ec/build/bin/llama-ec-bench -m /opt/runner/work/models/gpt-oss-120b-MXFP4.gguf --corpus /opt/runner/repo/results/020_ec_eval_c/gpt-oss-120b-MXFP4_gen.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 --ncmoe 27 -t 30 --n-prefill 128 --n-decode 192
++ echo 'gpt-oss-120b-MXFP4 gen static n=27 rc=0'
+gpt-oss-120b-MXFP4 gen static n=27 rc=0
++ python3 - /opt/runner/repo/results/020_ec_eval_c
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "<stdin>", line 12, in <genexpr>
+KeyError: 'nll_sum'

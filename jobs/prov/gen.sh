@@ -9,10 +9,10 @@ declare -A HUB=([olmoe]=allenai/OLMoE-1B-7B-0125-Instruct [gpt-oss-20b]=openai/g
                 [phi3.5-moe]=microsoft/Phi-3.5-MoE-instruct [phi3.5-moe-awq]=danieldk/Phi-3.5-MoE-instruct-AWQ-INT4)
 # audit_model KEY GEN-CHECKPOINT TRACE-CHECKPOINT: on-policy corpora (vLLM on GEN, which fits 40 GB), then GPU traces
 # of D, G, S with the bf16 TRACE checkpoint; both checkpoints are deleted afterwards (disk)
-audit_model() {
-  local key=$1 gck=$2 tck=$3
+audit_model() {  # KEY GEN-CHECKPOINT TRACE-CHECKPOINT [extra generation args, e.g. --quantization fp8]
+  local key=$1 gck=$2 tck=$3 extra=$4
   ( dl $gck ${HUB[$gck]}; [ $tck != $gck ] && dl $tck ${HUB[$tck]} ) &
-  run_gen $key $gck "--arms G,S,D" 60m
+  run_gen $key $gck "--arms G,S,D $extra" 60m
   wait
   trace_arms $tck $OUT $key D G S
   # keep checkpoints unless the disk runs short (the 40 GB A100 has 512 GB; the GH200 has 3.9 TB)

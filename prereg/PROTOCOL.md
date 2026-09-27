@@ -405,3 +405,165 @@ speed-ups at 25 % of 1.62× (gpt-oss-20b), 1.56× (Qwen3 Q4_K_M), 1.62×
   measured all-GPU step): llama.cpp reaches 30–42 % of it, the mailbox cache
   46–63 %; the mailbox cache reaches 58–80 % of an overhead-free execution
   of DFA's own misses.
+
+---
+
+# Phase 4: trace provenance and the bound-normalized audit
+
+Written on 27 Sep 2026, before any on-policy trace, any vLLM score or any
+audit row exists. The commit that adds this section precedes every
+`results/022_*` and later commit on `gpu`.
+
+## A defect in phases 2–3, found before any new data
+
+ec-bench prefills at most 128 prompt tokens (`--n-prefill 128`) and then
+teacher-forces the next 192 tokens of the stored sequence as "decode" steps.
+When a prompt is longer than 128 tokens, those steps run through the user's
+own text, not the assistant's answer (`mosl/ecsim.py: decode_windows`).
+Share of decode steps inside the user prompt:
+
+| model | test (12 seqs) | profile (8 seqs) |
+|---|---|---|
+| gpt-oss-20b / -120b | 42 % (9 of 12 seqs) | 31 % (6 of 8) |
+| Qwen3-30B-A3B | 32 % (5 of 12) | 18 % (2 of 8) |
+
+The "own text" of job 020c inherits it: for 9 of 12 gpt-oss prompts the
+sample begins mid-way through the user message. All systems saw the same
+token stream, so the phase-3 comparisons between systems stand. The size of
+the speed-ups on real answers, H13 on gpt-oss-120b and the 7.36-vs-0.65 NLL
+contrast do not stand until 4.4 and 4.5 re-measure them. The paper will say
+so.
+
+## 4.1 Corpora (fixed now)
+
+- **Models.** OLMoE-1B-7B-0125-Instruct, Qwen3-30B-A3B-Instruct-2507,
+  gpt-oss-20b, gpt-oss-120b.
+- **Prompts.** All 160 conversations of `data/corpus.jsonl`, as token ids in
+  `data/prompts/<model>.jsonl`, produced by `mosl/prompts.py`. They reproduce
+  the prompts of every traced row exactly (asserted).
+- **Arms, per model and prompt:**
+  - **D (off-policy):** the dataset response, teacher-forced; the full
+    conversation, at most 2048 tokens.
+  - **G (on-policy, greedy):** vLLM, temperature 0, at most 1024 new tokens.
+  - **S (on-policy, sampled):** vLLM with the model's own
+    generation-config defaults (`LLM.get_default_sampling_params()`, recorded
+    in the output), seed = corpus index, at most 1024 new tokens.
+- **Decode stream.** Response tokens only (positions ≥ prompt length), with
+  sequences replayed back to back as before.
+- **Traces.** Collected by `mosl/collect.py` (fp32), run on the GPU.
+  Exactness check: re-trace the four existing dataset corpora on the GPU and
+  compare them with the CPU traces. Report the fraction of (token, layer)
+  selections that differ; it is expected below 0.1 %, and is reported
+  whatever it is.
+
+## 4.2 Metrics (per model × arm)
+
+- **m1.** Teacher-forced NLL from vLLM, split into prompt and response
+  regions.
+- **m2.** Temporal reuse: mean over layers and steps of |S_t ∩ S_{t−1}| / k.
+- **m3.** Regime ratio as 2608.07911 defines it: distinct experts per layer
+  over 16-step windows, divided by C.
+- **m4.** Hit rates at C = 12.5 / 25 / 50 % of E for LRU, LFU, DFA (as
+  deployed: half-life 16, κ 1 for gpt-oss, 2 otherwise) and MIN-bypass.
+- **m5.** Speed-of-light and DFA-ideal tok/s on the A10 constants
+  (`scripts/sol_a10.py`), for gpt-oss-20b and Qwen3-30B-A3B Q4_K_M.
+- **m6.** Fraction of the bound reached by the measured systems, once 4.5
+  exists.
+- **Statistics.** Paired by prompt. 95 % bootstrap CIs over prompts (10 000
+  resamples, seed 0) for the differences G − D and S − D. No averaged ratios.
+
+## 4.3 What counts as a changed conclusion (S vs D, per model)
+
+- **F1.** The order of two policies at some capacity reverses, and the CI of
+  their hit-rate difference excludes 0 in both arms.
+- **F2.** DFA's hit rate at 25 % moves by ≥ 5 pp, with a CI excluding 0.
+- **F3.** Speed-of-light tok/s moves by ≥ 5 %.
+- **F4.** The mailbox cache's fraction of the bound moves by ≥ 5 pp.
+
+If any of F1–F4 fires on at least one model, the paper reports "provenance
+changes conclusions". Otherwise it reports "provenance is benign at this
+resolution".
+
+**Registered predictions** (scored either way):
+
+- **P1.** Response NLL is lower on G and on S than on D, for every model.
+- **P2.** m2 is higher on G than on D, for every model.
+- **P3.** For gpt-oss (reasoning channel), |Δ DFA hit rate at 25 %| between
+  S and D is ≥ 2 pp.
+- **P4.** DFA > LRU at every capacity survives on S for every model (no F1
+  on that pair).
+
+## 4.4 Classifying the gpt-oss-120b anomaly (vLLM as a third implementation)
+
+Score the 35 traced dataset conversations with vLLM `prompt_logprobs`, for
+gpt-oss-20b and -120b, in three formats:
+
+- **V0:** as traced (final channel straight after `<|start|>assistant`).
+- **V1:** the model's own greedy analysis message inserted before the final
+  channel.
+- **V2:** V0 with "Reasoning: low" in the system message.
+
+NLL is taken separately over the user region and over the final-channel
+response tokens. Classes, applied in order:
+
+1. **Implementation:** the per-token NLL of vLLM and of the fp32 collector
+   (V0) differ by > 1 nat on average over the affected sequences.
+2. **User-text:** on V0, 120b's response-region NLL is ≤ 1.5× 20b's, while
+   its user-region NLL is ≥ 2× 20b's.
+3. **Format:** 120b's V0 response NLL is > 1.5× 20b's, but V1 or V2 brings
+   it to ≤ 1.5×.
+4. **Genuine:** 120b's response NLL stays > 1.5× 20b's in every format.
+
+The 120b trace re-enters the paper under classes 2 and 3 (response region
+only). Under class 1 or 4 it stays out.
+
+## 4.5 A10 re-run with correct windows
+
+- **Setup.** The 12 test prompts. Prefill the whole prompt, then decode the
+  first ≤ 192 response tokens, on arms D and S. Same systems and budgets as
+  phase 3.
+- **H16.** At 25 %, the mailbox cache is ≥ 1.30× llama.cpp static layers on
+  each model, on both arms.
+- **H17.** The phase-3 step-time model, unchanged (fitted on job 019), with
+  per-step counts from the 4.1 traces, predicts these runs within 10 %
+  median APE.
+
+## 4.6 Audit decision rules
+
+- **Inclusion.** MoE-offloading systems (2023–Sep 2026) that report
+  single-request decode speed with experts partly in host memory, on one
+  named GPU and host. llama.cpp community PRs with reproducible numbers form
+  a separate tier.
+- **Tiers.**
+  - *Directly modelable:* model, quantization, GPU, host and VRAM budget are
+    all stated.
+  - *Imputable:* at most two of the host DRAM configuration, PCIe
+    generation and budget are missing, and are imputed as a band.
+  - *Weak:* the rest. Listed, not adjudicated.
+- **Per row:**
+  - The speed-of-light for the row's model and budget. Routing comes from S
+    traces where we have them, else from the independent-routing
+    approximation, flagged.
+  - The predicted equal-VRAM `--n-cpu-moe` baseline, from the model with that
+    row's source left out.
+  - Band = the model's leave-one-source-out 10th–90th percentile error
+    combined with any imputation band.
+- **Reported per row:** the system's, the reported baseline's and the
+  predicted baseline's fractions of the bound. Also the normalized speed-up
+  S_n = system tok/s ÷ predicted baseline tok/s.
+- **Labels:**
+  - *weak baseline:* the reported baseline is below the lower edge of the
+    predicted baseline's band.
+  - *at strength:* the reported baseline is inside the band.
+  - *gain survives:* S_n's lower edge is > 1.
+  - *not established:* S_n's band contains 1 or lies below it.
+  - *not adjudicated:* the band spans more than ±40 %, or the claimed
+    speed-up is < 1.2×.
+- **Wording.** No row is called wrong. Every audited team gets its row before
+  v2.
+- **Registered predictions.**
+  - **P5.** At least a third of the adjudicated rows with a llama.cpp
+    baseline get "weak baseline".
+  - **P6.** The median system fraction of the bound is ≤ 60 %.
+- **Headline form:** "X of Y adjudicated batch-1 speed-ups survive against the
+  predicted equal-VRAM baseline; Z of Y reported baselines are weak."

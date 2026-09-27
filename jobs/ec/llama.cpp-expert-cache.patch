@@ -2516,10 +2516,10 @@ index 0000000..2e52e6a
 +target_compile_features(llama-ec-cpubench PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..45dad2a
+index 0000000..4afc67e
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,341 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -2535,6 +2535,7 @@ index 0000000..45dad2a
 +
 +#include <algorithm>
 +#include <chrono>
++#include <cmath>
 +#include <cstdio>
 +#include <cstdlib>
 +#include <cstring>
@@ -2790,6 +2791,8 @@ index 0000000..45dad2a
 +
 +            std::vector<double> step_ms;
 +            step_ms.reserve(N);
++            double nll_sum = 0.0;
++            int nll_n = 0;
 +            for (int j = 0; j < N; ++j) {
 +                batch.n_tokens = 1;
 +                batch.token[0] = s.ids[P + j];
@@ -2805,6 +2808,18 @@ index 0000000..45dad2a
 +                const float * lg = llama_get_logits_ith(ctx, -1);   // synchronizes
 +                const auto t1 = std::chrono::steady_clock::now();
 +                step_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
++                if (P + j + 1 < (int) s.ids.size()) {   // teacher-forced NLL of the next corpus token (untimed)
++                    double mx = -1e30;
++                    for (int v = 0; v < n_vocab; ++v) {
++                        mx = std::max(mx, (double) lg[v]);
++                    }
++                    double se = 0.0;
++                    for (int v = 0; v < n_vocab; ++v) {
++                        se += std::exp((double) lg[v] - mx);
++                    }
++                    nll_sum += mx + std::log(se) - (double) lg[s.ids[P + j + 1]];
++                    nll_n++;
++                }
 +                if (dump) {
 +                    int32_t top[5] = { 0, 0, 0, 0, 0 };
 +                    float val[5] = { -1e30f, -1e30f, -1e30f, -1e30f, -1e30f };
@@ -2828,8 +2843,8 @@ index 0000000..45dad2a
 +            for (double x : step_ms) {
 +                tot += x;
 +            }
-+            printf("{\"config\": \"%s\", \"seq\": %d, \"domain\": \"%s\", \"n_prefill\": %d, \"n_decode\": %d, \"decode_ms\": %.3f, \"tok_s\": %.3f, \"step_ms\": [",
-+                   label.c_str(), si, s.domain.c_str(), P, N, tot, 1000.0 * N / tot);
++            printf("{\"config\": \"%s\", \"seq\": %d, \"domain\": \"%s\", \"n_prefill\": %d, \"n_decode\": %d, \"decode_ms\": %.3f, \"tok_s\": %.3f, \"nll_sum\": %.6f, \"nll_n\": %d, \"step_ms\": [",
++                   label.c_str(), si, s.domain.c_str(), P, N, tot, 1000.0 * N / tot, nll_sum, nll_n);
 +            for (size_t j = 0; j < step_ms.size(); ++j) {
 +                printf("%s%.3f", j ? "," : "", step_ms[j]);
 +            }

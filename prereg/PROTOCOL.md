@@ -181,3 +181,64 @@ The per-CPU-expert latency τ_e = 20.7 µs over-predicts Qwen3's slope (k = 8).
 
 gpt-oss-120b is measured but not predicted: its HF traces are excluded (see
 the paper).
+
+## Phase 2 deviations log
+
+- **2026-09-27, first phase-2 instance (00:09–00:49 UTC).**
+  - **008.** The build passed. The op tests reported 0/0, because the new
+    cases sat inside an `#if 0` block of `test-backend-ops.cpp`.
+  - **009 (correctness).** Greedy top-1 agreement with all experts on the
+    CPU was 97.4 % (DFA) and 97.9 % (LRU) on both models. The all-GPU run
+    reached 99.0 % (gpt-oss) and 97.9 % (Qwen3). The largest top-1 logit
+    difference was the same size as the all-GPU run's (≈ 1.4, i.e. 2.8 %
+    relative).
+    - H6 therefore **fails narrowly** on its 98 % line and on the
+      all-GPU-minus-1-point line for gpt-oss.
+    - The GPU kernels and the CPU kernels quantize activations differently
+      (q8_1 vs q8_K), which explains the disagreement.
+  - **009 (speed and hits).** The cache ran at all-CPU speed. Its hit rates
+    matched the simulator: 0.679 vs 0.677 and 0.787 vs 0.791.
+  - **010 (evaluation).** The runner stopped reporting ~2 min into the job,
+    and the instance was terminated with no 010 data.
+    - Root cause, found offline: the first 010 configuration used 1 slot.
+      The slot tensor then has a trailing dimension of 1, so
+      `ggml_n_dims` misjudged its expert stride and tripped a
+      `GGML_ASSERT`.
+    - ggml's abort handler attaches gdb to the process, which still holds
+      the GPU. The runner's heartbeat call to `nvidia-smi` then blocks.
+  - **Fixes.**
+    - The expert dimension is now taken from the source tensor.
+    - `GGML_NO_BACKTRACE=1` is set for all jobs.
+    - The runner has an independent heartbeat, timeouts on every command,
+      and flock-serialized git access.
+- **2026-09-27, second instance (from 04:20 UTC).**
+  - **011.** The op tests now run: 18/18 negative-id cases and 965/965
+    existing MUL_MAT_ID/ADD_ID cases pass on CUDA against CPU.
+  - **012 (diagnosis).** gpt-oss-20b, 25 % budget, 4 sequences × 128
+    steps, with every id checked on-device (0 inconsistencies).
+
+    | configuration | tok/s |
+    |---|---|
+    | cache, all experts resident (no misses, no copies) | 106.4 |
+    | stock all-GPU | 135.6 |
+    | cache, static hot set (hit 0.40) | 65.7 |
+    | llama.cpp static layers, equal VRAM | 70.1 |
+    | cache, DFA batched (hit 0.62, 8.3 copies per step) | 58.6 |
+
+    A regression over the configurations gives three costs:
+    - each admitted copy costs its whole PCIe time on the critical path
+      (0.48 ms for 13.25 MB);
+    - each CPU-executed expert costs ~100 µs;
+    - the cache's fixed overhead is 2.0 ms per token (84 µs per layer).
+
+    Overlap on vs off made no measurable difference. Paced copies (a new,
+    exploratory mode that keeps one piece in flight) did not help: 54.7
+    tok/s.
+  - **013.** Runs the pre-registered protocol unchanged on two models
+    (gpt-oss-20b and Qwen3-30B-A3B Q4_K_M). Q8_0 and 120b are dropped to
+    stay within budget. Exploratory arms, labelled as such:
+    - overhead decomposition;
+    - admission margin κ ≈ r*;
+    - a per-step copy budget;
+    - an LRU queue cap;
+    - 8 vs 30 CPU threads.

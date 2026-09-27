@@ -18,8 +18,9 @@
    27 Oct so the fellowship form can link it.
 3. **Referees** (letters due 2 Nov for the fellowship): ask now; four weeks' notice is the minimum. Send each the PDF,
    the repo link and a 5-line summary.
-4. **Audited teams.** The protocol commits to sending every audited team its rows before a second version. Draft one
-   short, neutral email per system (rows + how to reproduce with `mosl/calc.py`). About 3 hours for 41 systems.
+4. **Audited teams.** The protocol commits to sending every audited team its rows before a second version. Drafts for
+   the 13 systems with modelled rows are in `audit_emails/README.md` (template + each system's rows); check every row
+   against its source first. About 2 hours.
 5. **AI disclosure.** The paper's acknowledgments state that parts of the code, experiments and text were drafted with
    an AI system. Keep, edit or remove it according to the venue's policy; do not leave it inconsistent with how you
    describe the work in interviews.

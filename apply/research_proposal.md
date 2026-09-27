@@ -48,10 +48,10 @@ increasing cost: (a) *analysis* of released models: which architectural choices 
 count) predict decode speed under a memory budget, using exact traces and the validated model; (b) *training-free
 interventions* (expert reordering, merging, router temperature, cross-layer placement) evaluated by bound and by
 quality; (c) *small-scale training* of MoE models with locality- or placement-aware routing objectives, with scaling
-laws fitted to both loss and bound-predicted speed. A recent pre-registered negative result on training routers for
-locality ("Cacheable by Design?") shows that naive locality objectives do not transfer to speed; the bound gives a
-sharper target than hit rate, because it prices CPU and GPU bandwidth jointly and shows when aggregation, not caching,
-is optimal.
+laws fitted to both loss and bound-predicted speed. A recent pre-registered study ("Cacheable by Design?") found that locality losses on
+the router of 137M-parameter MoE models could not cut misses within a 1% perplexity budget. The bound gives a sharper
+target than miss counts, because it prices CPU and GPU bandwidth jointly and shows when aggregation, not caching, is
+optimal, so a design can trade a little locality for a lot of speed, or the reverse.
 *Question:* at equal quality and memory, how much faster can a model designed for a consumer hierarchy decode than one
 designed for a datacenter?
 

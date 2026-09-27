@@ -37,7 +37,7 @@ def main(src, out):
     ax.set_xticks(ticks); ax.set_xticklabels([f"{t}×" for t in ticks])
     ax.set_yticks([0.125, 0.25, 0.5, 1, 2, 4, 8]); ax.set_yticklabels(["0.125×", "0.25×", "0.5×", "1×", "2×", "4×", "8×"])
     ax.minorticks_off()
-    ax.set_xlabel("claimed speed-up (over the paper's baseline)")
+    ax.set_xlabel("claimed speed-up (over the reported llama.cpp baseline)")
     ax.set_ylabel("normalized speed-up $S_n$")
     from matplotlib.lines import Line2D
     h = [Line2D([], [], marker="o", ls="", color="#c0392b", ms=3.8, label="weak baseline, not established"),

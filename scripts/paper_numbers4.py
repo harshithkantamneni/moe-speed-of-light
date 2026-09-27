@@ -261,6 +261,16 @@ def main():
         inside = sum(max(0, min(b_, rows[si]["prompt_len"]) - a_) for si, a_, b_ in w)
         N[key] = round(100 * inside / sum(b_ - a_ for _, a_, b_ in w))
 
+    # ---------------- H5 (two-run calibration on the GH200) ----------------
+    if os.path.exists("prereg/h5/calibrate2.json"):
+        h5 = json.load(open("prereg/h5/calibrate2.json"))
+        N["hFiveMed"] = f"{100 * h5['median_ape']:.1f}"
+        N["hFiveMax"] = f"{100 * h5['max_ape']:.1f}"
+        N["hFiveN"] = h5["n"]
+        N["hFiveVerdict"] = "holds" if h5["pass_"] else "fails"
+        N["hFiveEtaG"] = f"{h5['params']['eta_g']:.2f}"
+        N["hFiveEtaC"] = f"{h5['params']['eta_c']:.2f}"
+
     # ---------------- anchors ----------------
     anc = {}
     for nm in ("a100", "gh200"):
@@ -440,7 +450,10 @@ def prereg_log(N, anc):
         ("H2", "1", "M4 median APE $\\le$20\\%", "fails: 27.4\\% (every prediction too slow)"),
         ("H3", "1", "1/tok\\_s affine in \\texttt{--n-cpu-moe}, $R^2\\ge$0.98", "holds, 0.9965--0.9987"),
         ("H4", "1", "intercept/slope decomposition", "intercept over-predicted 25--55\\%"),
-        ("H5, H1$'$", "1b", "two-run calibration; counter calibration", "not run (no second ncu platform)"),
+        (("H5", "1b", "two-run calibration: median APE $\\le$10\\% on the next platform",
+          f"{N['hFiveVerdict']} on the GH200, {N['hFiveMed']}\\% (n = {N['hFiveN']})") if "hFiveMed" in N else
+         ("H5", "1b", "two-run calibration", "not run")),
+        ("H1$'$", "1b", "counter calibration with ncu", "not run"),
         ("H6", "2", "cache top-1 agreement $\\ge$98\\% vs all-CPU", "fails narrowly: 97.4--97.9\\%"),
         ("H7", "2", "cache $\\ge$1.2$\\times$ llama.cpp at 25\\%", "fails: cache ran at all-CPU speed"),
         ("H9", "2", "measured hit rates within $\\pm$5 points of simulated", "holds on job 009 (0.679 vs 0.677)"),

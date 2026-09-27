@@ -1,0 +1,152 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,xcolor,hyperref,microtype,siunitx}
+\usepackage[capitalise]{cleveref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\input{numbers}
+\input{numbers3}
+
+\title{Where Do the Experts Go?\\[2pt]\large Bounding, Measuring and Closing the Gap for Mixture-of-Experts Decode with Experts in Host Memory}
+\author{Harshith Kantamneni\\Independent Researcher}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A large Mixture-of-Experts (MoE) model runs on a desktop GPU only if most of its experts stay in host memory. Many systems propose where those experts should execute; few are measured against a ceiling, and the most widely used engine, llama.cpp, simply assigns whole layers' experts to the CPU. We contribute four things.
+\textbf{(1)} Exact decode-time routing traces recorded on a CPU-only machine, by streaming teacher-forced prefill one decoder layer at a time.
+\textbf{(2)} A bytes-over-bandwidth decode model, validated on \nRows{} published measurements, and a speed-of-light bound for any placement policy with a per-layer GPU budget.
+\textbf{(3)} A pre-registered first-party study on an NVIDIA A10 that separates what the model gets right (decode time is affine in the number of CPU layers, $R^2\ge0.996$) from what it does not (constants transferred from third-party data), and that finds three costs hidden in hybrid CPU--GPU decode: expert copies that queue behind the step's own transfers on the copy engine, a host-driven hand-off of \handoffUs\,\si{\micro s} per layer paid even when the CPU has nothing to do, and a scheduler that never actually overlapped CPU and GPU work.
+\textbf{(4)} A system in llama.cpp that removes them: a per-layer GPU expert cache with decayed-frequency admission, copies by a kernel that reads pinned memory, and a \emph{mailbox} hand-off in which the GPU itself signals CPU helper threads through pinned memory and waits for them on the device, so that a layer whose experts are all resident never involves the host.
+In a pre-registered test on fresh sequences, on gpt-oss-20b, gpt-oss-120b and Qwen3-30B-A3B at two quantisations, it decodes \spdMin--\spdMax$\times$ faster than llama.cpp's layer offload at equal GPU memory, including gpt-oss-120b at \bigTokS{} tok/s on a 24\,GB GPU, with teacher-forced NLL within \nllMaxRel\%. The mailbox alone makes llama.cpp's own layer offload \handoffMin--\handoffMax$\times$ faster. A step-time model fitted only on calibration sequences predicted the test throughput with \predMedAPE\% median error.
+\end{abstract}
+
+\section{Introduction}
+A 120B-parameter MoE with 4-bit experts needs \SI{61}{GB} for its experts alone, while a consumer GPU has 8--\SI{32}{GB}. Running such a model locally means splitting the experts between GPU memory and host DRAM, and batch-1 decode speed is then set largely by where each routed expert's weights are when the router selects it.
+
+The literature offers many mechanisms: demand-fetching into a GPU cache~\cite{eliseev2023offloading}, activation-aware caching and prefetching~\cite{xue2024moeinfinity,song2024promoe,hwang2024pregated,zhu2025preattention,wang2026seqmoe}, running misses on the CPU~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu,zhong2025hybrimoe}, and substitute or lower-precision experts~\cite{tang2024hobbit,zhao2025mobile}. In practice, desktop users run llama.cpp~\cite{llamacpp}, which places whole layers' experts on the CPU (\texttt{--n-cpu-moe}). Trace studies disagree on basic questions, such as whether prediction beats LRU~\cite{zhang2026reproducible,si2026expertcache,wang2026seqmoe}, and hit rates are a poor proxy for speed once misses can run elsewhere~\cite{zhang2026reproducible}.
+
+This paper asks three questions in order. \emph{How fast could batch-1 decode be} for a given model, GPU budget and platform? \emph{Where does the time actually go} in the engine people use? And \emph{how much of the gap can a practical system close}, without changing the model's outputs? We answer the first with traces, a validated model and a bound; the second with a pre-registered study on real hardware; and the third with a system built into llama.cpp and evaluated under a second pre-registration.
+
+\paragraph{Contributions.}
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{Exact traces without a GPU} (\cref{sec:traces}); \textbf{a validated decode model and a speed-of-light bound} (\cref{sec:model}), held out source by source on third-party data.
+\item \textbf{A pre-registered first-party study} (\cref{sec:firstparty}): the model's structure holds on an A10, its transferred constants do not; and a diagnosis of hybrid decode (\cref{sec:anatomy}) that attributes the missing speed to three implementation costs rather than to bandwidth.
+\item \textbf{A system} (\cref{sec:system}): an expert cache with CPU-executed misses and a GPU-signalled \emph{mailbox} hand-off, in about 2,000 lines of C++ and CUDA on top of llama.cpp (plus 600 of benchmarks and tests), with logits identical to llama.cpp's own CPU path when the same CPU kernels are used.
+\item \textbf{A pre-registered evaluation} (\cref{sec:eval}): \spdMin--\spdMax$\times$ over llama.cpp at equal GPU memory on four models, fidelity, prediction accuracy of the model, and the fraction of the bound reached. Three of the five registered hypotheses held as registered; the two that did not (the hand-off-only gain on one model, top-1 agreement on gpt-oss-120b) are reported with their causes.
+\end{itemize}
+Code, traces, job scripts, raw measurements and both pre-registrations are released; git history orders every prediction before the measurement it predicts.
+
+\section{Background and Related Work}\label{sec:related}
+\paragraph{MoE decode moves data.} At batch 1 a routed expert is a pair of matrix--vector products whose cost is its weight bytes over the bandwidth of the memory they are read from. The data-movement view of transformers~\cite{ivanov2021datamovement} and sparsity as an efficiency lever~\cite{hoefler2021sparsity} frame placement as: which bytes cross which link, and how often.
+
+\paragraph{Offloading systems.} Demand-paging systems keep a per-layer GPU cache and copy misses over PCIe~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit}; prefetchers predict upcoming experts~\cite{hwang2024pregated,zhu2025preattention,wang2026seqmoe}. CPU-execution systems run non-resident experts on the host~\cite{kamahori2024fiddler,ktransformers,wang2026cloudgrade,huang2025cpugpu,zhong2025hybrimoe}. MoE-Lightning~\cite{cao2024moelightning} and MoE-Lens~\cite{yuan2025moelens} target batched throughput; we target single-user latency. Most of these systems are evaluated against naive offloading or against each other; we compare against llama.cpp's layer offload, the configuration desktop users actually run, at equal GPU memory and on the same machine.
+
+\paragraph{Caching theory and methodology.} Belady's MIN~\cite{belady1966study} minimises misses under demand paging, and prefetching interacts with caching~\cite{cao1995prefetching}. Our admission policy is in the spirit of TinyLFU~\cite{einziger2017tinylfu}. We follow Hoefler and Belli's guidelines~\cite{hoefler2015benchmarking}: pre-registered hypotheses, stated statistics, fitted parameters named, and held-out data.
+
+\section{Exact Routing Traces Without a GPU}\label{sec:traces}
+In a causal decoder the hidden state of token $t$ at every layer depends on tokens $1..t$ only, so the experts that decode selects for token $t$ are the experts that teacher-forced prefill selects at position $t$, up to floating-point ties. Prefill lets us invert the loop order: load \emph{one} decoder layer (tensors read from the model hub with HTTP range requests, never stored), push the whole corpus through it, record the router's top-$k$, free the layer, move on. Weights are read once per corpus and peak memory is one layer. Against the reference \texttt{transformers} implementations of Qwen3-MoE, OLMoE, DeepSeek-V2 and gpt-oss (run both as prefill and as token-by-token decode with a KV cache) all selections match exactly on tiny random checkpoints. The corpus is two-turn conversations from four public datasets (chat, math, code, multilingual), about 6k tokens per domain, each formatted with the model's own chat template; prompt tokens are prefill and assistant tokens are decode steps, replayed back to back as one user's session. Everything ran on a 2-vCPU, \SI{7}{GB} VM. We trace gpt-oss-120b too but do not use its routing: on some conversations its per-token loss climbs to near-uniform partway through the assistant turn, in our fp32 CPU implementation \emph{and}, as \cref{sec:eval} shows, in llama.cpp; we therefore also evaluate on each model's own sampled text.
+
+\section{A Decode Model and a Speed-of-Light Bound}\label{sec:model}
+\paragraph{Model.} For one decode step,
+\begin{equation}
+T = \frac{D + X_{g}}{\eta_g B_g} + \frac{X_{c}}{\eta_c B_c} + n_c\tau_e + \frac{X_{f}}{\eta_p B_p} + n_f\tau_x + n_h\tau_h,
+\label{eq:model}
+\end{equation}
+with $D$ the dense per-token bytes (attention, routers, norms, LM head, KV reads), $X_g,X_c,X_f$ the routed-expert bytes executed from GPU memory, executed on the CPU ($n_c$ executions) and fetched over PCIe ($n_f$ transfers), $B$ the datasheet bandwidths, and $\tau$ fixed latencies per CPU expert, transfer and hand-off. Byte counts are exact (every parameter classified on PyTorch's \texttt{meta} device, or read from GGUF headers).
+
+\paragraph{Third-party validation.} On \nRows{} published measurements from \nSources{} independent sources (CPU-only, static offload in four engines, all-in-VRAM, and demand fetch; \nModelsVal{} models), leave-one-source-out cross-validation gives \cvMedian\% median error (MAPE \cvMape\%). A per-CPU-expert latency is the one term beyond bytes over bandwidth that the data support (\cref{tab:ablation}).
+
+\begin{table}[t]\centering\small
+\caption{Model-term ablation, leave-one-source-out on published measurements.}\label{tab:ablation}
+\setlength\tabcolsep{4pt}\begin{tabular}{lccc}\toprule
+Variant & params & median & MAPE\\\midrule
+M0 bytes/BW + hand-off & 4 & \cvMZero\% & \cvMapeMZero\%\\
+M1 + per-transfer latency & 5 & \cvMOne\% & \cvMapeMOne\%\\
+M4 M1 + CPU per-expert lat. & 6 & \cvMFour\% & \cvMapeMFour\%\\\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Bound.} Consider any policy that keeps at most $c$ of each layer's experts on the GPU at any time, static or dynamic, demand-driven or prefetching. Each routed-expert execution runs on the GPU from a resident copy (cost $a$) or on the CPU (cost $b$); each resident copy needs one PCIe load (cost $p$), overlappable with anything. Grouping each expert's requests into maximal runs served by one copy, a run of $r$ requests needs one load and bridges $r{-}1$ reuse gaps; MIN with bypass maximises bridged gaps under the capacity limit, and a prefetching schedule bridges no more gaps than some demand schedule with bypass. Hence CPU executions $\ge M^\star-\text{loads}$, with $M^\star$ the MIN-bypass misses. With $x$ loads and $m_c$ CPU executions per layer step, a step costs at least $\max((k-m_c)a,m_cb)$ per layer when CPU and GPU run concurrently, convex in $m_c$, so by Jensen's inequality
+\begin{equation}
+T \ge \min_{x\ge 0}\max\Big(T_D + L\min_{m_c\ge (M^\star/N-x)^+} \ell(m_c),\; L\,x\,p\Big).
+\end{equation}
+Hand-offs, per-transfer latencies and the capacity cost of prefetching are dropped, so the bound stays valid. A copy pays off only if the expert is then reused $r^\star=p/(b-a)$ times while resident.
+
+\section{First-Party Measurements: What the Model Gets Right}\label{sec:firstparty}
+We pre-registered predictions for an NVIDIA A10 (\SI{24}{GB}, PCIe~4, a 30-vCPU Xeon~8358 VM) before measuring it, using only constants fitted on third-party data, and swept llama.cpp's layer offload on gpt-oss-20b and -120b (MXFP4) and Qwen3-30B-A3B (Q4\_K\_M and Q8\_0) with clocks locked. The platform measured \SI{514}{GB/s} device reads, \SI{151}{GB/s} host reads with 30 threads and \SI{25.2}{GB/s} pinned host-to-device copies.
+
+\emph{The structure holds.} For every model, time per token is affine in the number of CPU layers ($R^2$ from 0.9965 to 0.9987), as the model requires for uniform layers, and no configuration beats the roofline. For gpt-oss the slope per CPU layer was predicted within 1\% and 10\%.
+
+\emph{The transferred constants do not.} The median error of the pre-registered throughput predictions was 27\% (threshold 20\%): GPU efficiency on the A10 is higher than on the third-party rigs (intercepts under-predicted by 25--55\%), and Qwen3's small experts run on this CPU at twice the predicted speed (slopes over-predicted by 72\%). Counted DRAM bytes exceeded the GGUF-exact prediction by 12--15\%, consistent with ECC and read granularity. Two calibration runs per model suffice to fix the constants (4.9\% median error on the rest of the sweep, exploratory). We therefore fit constants on-platform from here on, and pre-register only what is then predicted.
+
+\section{Where the Time Goes in Hybrid Decode}\label{sec:anatomy}
+We built the obvious design into llama.cpp (details in \cref{sec:system}): per layer, $C$ GPU slots hold experts; the graph splits each layer's selected experts into resident ones, run on the GPU from their slots, and the rest, run on the CPU from pinned host memory, and adds the two results; after each step a policy copies promising misses into slots. The simulator predicted its hit rates to within 0.4 points, yet it decoded no faster than all experts on the CPU. A per-configuration regression over a diagnostic job (gpt-oss-20b, 25\% budget) and targeted ablations located three costs, none of which is bandwidth.
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{Copies queue on the copy engine.} Slot copies issued with \texttt{cudaMemcpyAsync} on a side stream share the copy engine with the step's own small host$\leftrightarrow$device transfers, which then wait behind \SI{13}{MB} expert copies: each admission cost its full PCIe time (\SI{0.48}{ms}) on the critical path. A copy kernel that reads pinned memory through the SMs leaves the copy engine to the step: 57.5$\to$67.4 tok/s, identical logits.
+\item \textbf{The hand-off costs \handoffUs\,\si{\micro s} per layer.} With every expert resident (no CPU work at all) the split-graph cache ran at 106 tok/s against 136 for stock all-GPU: each layer that \emph{might} need the CPU pays a stream synchronisation, two device-to-host and one host-to-device copy, a CPU graph launch over empty inputs and extra GPU launches.
+\item \textbf{Overlap never happened.} llama.cpp's scheduler can run a CPU split beside a GPU split only if the former reads nothing the latter produces. Views of the layer input placed in the GPU split made every CPU split look dependent; after ignoring view nodes, 24\,576 of 24\,627 CPU splits ran concurrently, worth 8--13\%.
+\end{itemize}
+With the first and third fixed, the split-graph cache was 1.11--1.39$\times$ llama.cpp at equal memory (exploratory, four models). The second cost motivates the mailbox.
+
+\section{System}\label{sec:system}
+\paragraph{Placement and cache.} Experts live in pinned host memory. Each MoE layer has $C$ GPU slots (optionally $0$ or $E$ per layer, which reproduces llama.cpp's layer layout). Per decode step the router's selection is mapped, on the GPU, through two small tables (expert$\to$slot, expert$\to$CPU) into GPU and CPU expert ids; a negative id yields a zero row in both paths, and the results are summed. The tables are a graph input rewritten every step, so the CUDA graph is reused.
+
+\paragraph{Admission.} Decayed-frequency admission (DFA) keeps an exponentially decayed request count per expert (half-life 16 steps); the victim is the resident expert with the lowest count not selected this step, and a miss is admitted only if its count exceeds the victim's by a margin $\kappa$ (1 for gpt-oss, 2 for Qwen3, set on exploratory runs; it cuts copies 2--3$\times$). Copies are issued after a step by a kernel reading pinned memory, overlap the next step and are published two steps after issue, so a slot is never read while being written.
+
+\paragraph{Mailbox hand-off.} In decode, a layer whose selection is not wholly resident is bracketed by two GPU operations. \textsc{Request} checks the CPU ids on the device; if any is set, it writes the layer input and ids into a mailbox in pinned memory and publishes a sequence number (per-writer \texttt{\_\_threadfence\_system}, then the flag). The GPU then computes the resident experts. \textsc{Wait} spins \emph{on the GPU} until the helpers have answered that sequence number and merges their rows (read with cache-bypassing loads) with the GPU's. If no expert of the layer is on the CPU, both operations return immediately: no host synchronisation, copy or launch happens for that layer. Both are ordinary graph nodes, so the whole decode step remains one CUDA graph; a device-side counter makes the sequence numbers correct under graph replay, and a timeout turns a lost answer into an error rather than a hang.
+
+\paragraph{Helpers.} 28 threads spin on the mailbox during decode and sleep during prefill. A request runs in four phases (quantise the input, gate/up rows with bias and activation, quantise the activations, down rows written straight into the mailbox), using ggml's own CPU kernels. Each phase is cut into chunks that helpers claim through a counter tagged with the request's sequence number. This matters: a static split let one descheduled helper stall every request (12\% run-to-run variation on a 30-vCPU VM); with claimed chunks a stalled helper delays only a chunk it holds, and repeats agree within 2\%. For MXFP4 we add an AVX-512 VNNI row kernel on ggml's block layout (1.09$\times$ ggml's AVX2 kernel at 28 threads; the machine's helpers then reach 107 of \SI{143}{GB/s} of read bandwidth).
+
+\paragraph{Exactness.} With ggml's kernels the helpers compute exactly what llama.cpp's CPU path computes: top-5 logits of the mailbox and split-graph caches, and of all experts on the helpers and on llama.cpp's CPU path, were bit-identical (exploratory job 016). The AVX-512 kernel changes only the float summation order. Every GPU/CPU id the graph used was checked against the host tables on-device (0 inconsistencies).
+
+\section{Pre-Registered Evaluation}\label{sec:eval}
+\paragraph{Protocol.} Before the test run we committed the system, the protocol, five hypotheses and quantitative predictions. Calibration used only profile sequences (2 per domain); the test uses the 12 test sequences that no exploratory run touched, each $\le$128 prompt tokens (untimed prefill) then 192 teacher-forced decode steps, run back to back on one A10 instance with locked clocks. At each budget (12.5, 25 and 50\% of each layer's experts; gpt-oss-120b only 12.5 and 25\%, as 50\% does not fit) we run, at equal expert memory: llama.cpp with \texttt{--n-cpu-moe}~$n=L-Lq$; the same layer layout on the mailbox helpers (hand-off only); the split-graph cache; and the mailbox cache.
+
+\begin{table*}[t]\centering\small
+\caption{Test run (12 fresh sequences $\times$ 192 decode steps per configuration, A10). Decode tok/s at equal GPU expert memory. ``helpers'' is llama.cpp's layer layout with CPU layers on the mailbox helpers. Speed-up and predicted are for the mailbox cache; predicted is the pre-registered value. NLL~$\Delta$ and top-1 compare the mailbox cache with llama.cpp at the same budget.}\label{tab:eval}
+\setlength\tabcolsep{4pt}
+\input{table_eval}
+\end{table*}
+
+\paragraph{Speed (H11, H12).} \Cref{tab:eval,fig:eval} show the result. The mailbox cache is \spdMin--\spdMax$\times$ faster than llama.cpp at every budget on every model; at the pre-registered 25\% budget it is \spdQuarterGptSmall$\times$ (gpt-oss-20b), \spdQuarterQwenQ$\times$ (Qwen3 Q4\_K\_M), \spdQuarterQwenE$\times$ (Q8\_0) and \spdQuarterGptBig$\times$ (gpt-oss-120b, \bigTokS{} vs \bigLlamaTokS{} tok/s on a 24\,GB GPU). H11 (${\ge}1.30\times$ on each model) \hElevenVerdict. With no cache at all, moving llama.cpp's CPU layers onto the mailbox helpers is \handoffMin--\handoffMax$\times$ faster than llama.cpp. H12 (${\ge}1.05\times$ everywhere) \hTwelveVerdict: \hTwelveDetail. The split-graph cache, i.e.\ the same cache and policy behind llama.cpp's scheduler, sits between the two; at identical hit rates the mailbox cache is \mbOverSplitMin--\mbOverSplitMax$\times$ faster, which is the hand-off's share of the gain.
+
+\paragraph{Baseline check (deviation).} llama.cpp warns that CPU tensor overrides are slow with a memory-mapped model and advises loading weights into buffers. Re-running every llama.cpp configuration that way (job 021, after the test run) changed its speed by \noMmapMin\% to \noMmapMax\%; the speed-ups against the faster of the two llama.cpp runs are \spdBestMin--\spdBestMax$\times$.
+
+\paragraph{Fidelity (H13).} Teacher-forced NLL of the mailbox cache differs from llama.cpp's by at most \nllMaxRel\% (relative). Its greedy top-1 agrees with llama.cpp's on \agreeSmallMin--\agreeSmallMax\% of steps for gpt-oss-20b and Qwen3, the same level at which llama.cpp with all experts on the GPU agrees with llama.cpp's own layer offload (\agAgreeMin--\agAgreeMax\%): GPU and CPU kernels quantise activations differently (q8\_1 vs q8\_0/q8\_K), and layer offload already mixes the two. For gpt-oss-120b the agreement is only \agreeBigMin--\agreeBigMax\%, below the registered 95\%, so H13 \hThirteenVerdict. On this text gpt-oss-120b's NLL is \dataBigNll{} nats (near-flat predictions, where small numeric differences flip the argmax); on its own text (below) its NLL is \genBigNll.
+
+\paragraph{Prediction (H14).} The step-time model $T=T_0+a_0r+a_1\mu+\beta\alpha$ (hand-offs $r$, CPU experts $\mu$ and admissions $\alpha$ per step; llama.cpp affine in $n$), fitted on the calibration run and fed with per-step counts that the policy simulator produced from the routing traces of the test sequences, predicted the \nPred{} test configurations with \predMedAPE\% median and \predMaxAPE\% maximum error. H14 (${\le}10\%$ and ${\le}20\%$) \hFourteenVerdict. The fitted $a_1$ is \aOneGpt\,\si{\micro s} per gpt-oss expert (\SI{13.25}{MB}, i.e.\ \aOneGptBw\,GB/s on the helpers, 72\% of the host's read bandwidth) and \aOneQwen\,\si{\micro s} per Qwen3 Q4\_K\_M expert.
+
+\paragraph{Against the bound.} For the two models whose all-GPU step we measured, we evaluate the bound with first-party constants: GPU efficiency set so that the model reproduces the measured all-GPU step, CPU experts at the \SI{151}{GB/s} read bandwidth with no latency, copies at \SI{25.2}{GB/s}, and MIN-bypass misses from the test traces. It is \solLo{} and \solHi{} tok/s and barely depends on the budget: when CPU and GPU run concurrently, the optimum gives the CPU a share of every layer's experts, so the bound exceeds all-GPU speed (\agGptSmall{} and \agQwen{} tok/s). llama.cpp reaches \llamaSolMin--\llamaSolMax\% of it and the mailbox cache \mbSolMin--\mbSolMax\%. The same accounting applied to the misses DFA actually incurs, with no overheads, gives the speed an ideal implementation of this policy would reach; the mailbox cache achieves \mbIdealMin--\mbIdealMax\% of it. The remaining gap therefore has two parts of similar size: implementation (helpers at 72\% of read bandwidth, per-request synchronisation, copy interference) and policy (MIN-bypass incurs \minFewerMin--\minFewerMax\% fewer misses than DFA at 25\%).
+
+\paragraph{The models' own text (H15).} Teacher forcing on dataset responses is off-policy. We therefore sampled 193-token continuations of the 12 test prompts from each model (top-$k$ 40, top-$p$ 0.95, temperature 0.8, fixed seeds, generated by llama.cpp at the 25\% layout), then teacher-forced every system on that text. At 25\% the mailbox cache is \genSpdMin--\genSpdMax$\times$ llama.cpp (H15, ${\ge}1.30\times$: \hFifteenVerdict), and gpt-oss-120b's NLL on its own text is \genBigNll{} nats against \dataBigNll{} on the dataset text: its routing there is that of a model predicting well.
+
+\begin{figure*}[t]\centering
+\includegraphics[width=\linewidth]{figs/eval.pdf}
+\caption{Test run: decode tok/s against the share of each layer's experts held on the GPU (equal expert memory for all systems). Dotted: speed-of-light bound (models with a measured all-GPU step); grey line: all experts on the GPU.}\label{fig:eval}
+\end{figure*}
+
+\section{Discussion}\label{sec:discussion}
+\paragraph{For engine builders.} The largest single cost we found was not bandwidth but coordination: a host round trip per layer. A GPU-signalled hand-off is independent of caching and would speed up llama.cpp's existing layer offload by itself (H12). CPU helpers must tolerate preemption; on a VM with every vCPU busy, static work splits do not.
+
+\paragraph{Where the rest of the gap is.} At 25\% the mailbox cache's step is the all-GPU step plus, per layer with CPU experts, the helpers' time for those experts minus the GPU work they replace; the fitted $a_1$ corresponds to 72\% of the host read bandwidth. The remaining levers are fewer misses (the MIN-bypass gap, which needs prediction of the next token's routing, not only of the next layer's), and PCIe as a third concurrent source: streaming a predicted miss costs $p\approx\SI{0.53}{ms}$ for a gpt-oss expert, so on this platform the link could carry about half of today's CPU experts per step. Per-layer slot allocation, in contrast, removed at most 5\% of misses in simulation.
+
+\paragraph{For evaluation.} Hit rate did not predict speed (the first cache matched the simulator's hit rates and was no faster than no cache); per-step counts of hand-offs, CPU experts and copies did. Reporting speed as a fraction of a platform-specific bound, with the baseline users actually run at equal memory, makes such claims comparable.
+
+\section{Limitations}\label{sec:limits}
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{One platform.} All first-party results are from one A10 VM (PCIe~4, one socket). The mailbox relies on pinned host memory mapped into the GPU's address space and on the GPU observing host writes, which CUDA supports on x86 hosts; other interconnects and multi-socket hosts are untested.
+\item \textbf{Batch 1, decode only.} Prefill uses llama.cpp's existing path. Multi-request serving takes the union of experts and weakens locality.
+\item \textbf{Busy CPU.} The helpers spin on 28 of 30 vCPUs during decode, which suits a dedicated inference box but not a shared desktop; parking them costs wake-up latency.
+\item \textbf{Off-policy traces.} The simulator's inputs are dataset text; H15 checks the speed-up on the models' own text, but prediction there is not evaluated.
+\item \textbf{Scope of the bound.} It covers per-layer capacity; a cross-layer pool could do better.
+\end{itemize}
+
+\section{Conclusion}
+Exact routing traces, a validated bytes-over-bandwidth model and a speed-of-light bound say how fast MoE decode with experts in host memory could be. Measuring the engine people use showed that most of the gap was coordination, not bandwidth. An expert cache whose misses run on CPU helpers that the GPU signals directly closes much of it: \spdMin--\spdMax$\times$ over llama.cpp at equal memory on four models in a pre-registered test, with unchanged outputs, predicted in advance by the model.
+
+\paragraph{Acknowledgments.} Parts of the code, the experiments and the text were drafted with the help of an AI system (Claude, Anthropic). The author reviewed the work and takes responsibility for its content.
+
+{\small\bibliographystyle{plain}\bibliography{refs}}
+\end{document}

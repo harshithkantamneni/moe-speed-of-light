@@ -160,6 +160,12 @@ GGUFS = {
     "gpt-oss-120b-mxfp4": ("ggml-org/gpt-oss-120b-GGUF", "gpt-oss-120b-MXFP4.gguf"),
     "qwen3-30b-a3b-q4_k_m": ("unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF", "Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"),
     "qwen3-30b-a3b-q8_0": ("unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF", "Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"),
+    # anchors for the audit (A100 40 GB)
+    "mixtral-8x7b-q4_k_m": ("mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF", "Mixtral-8x7B-Instruct-v0.1.Q4_K_M.gguf"),
+    "mixtral-8x7b-q8_0": ("mradermacher/Mixtral-8x7B-Instruct-v0.1-GGUF", "Mixtral-8x7B-Instruct-v0.1.Q8_0.gguf"),
+    "phi3.5-moe-q4_k_m": ("bartowski/Phi-3.5-MoE-instruct-GGUF", "Phi-3.5-MoE-instruct-Q4_K_M.gguf"),
+    "qwen2-57b-q4_k_m": ("Qwen/Qwen2-57B-A14B-Instruct-GGUF", "qwen2-57b-a14b-instruct-q4_k_m.gguf"),
+    "dsv2lite-q8_0": ("mradermacher/DeepSeek-V2-Lite-Chat-GGUF", "DeepSeek-V2-Lite-Chat.Q8_0.gguf"),
 }
 
 if __name__ == "__main__":

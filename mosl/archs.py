@@ -11,8 +11,6 @@ import json
 import os
 from dataclasses import dataclass, asdict
 
-import torch
-from transformers import AutoConfig, AutoModelForCausalLM
 
 CACHE = os.path.join(os.path.dirname(__file__), "..", "data", "shapes.json")
 
@@ -59,6 +57,8 @@ def shape(repo: str) -> Shape:
     db = json.load(open(CACHE)) if os.path.exists(CACHE) else {}
     if repo in db:
         return Shape(**db[repo])
+    import torch   # only on a cache miss: machines that only predict need neither torch nor transformers
+    from transformers import AutoConfig, AutoModelForCausalLM
     try:
         cfg = AutoConfig.from_pretrained(repo, trust_remote_code=False)
     except ValueError:  # custom-code repos that reuse a native architecture (e.g. Kimi-K2 = DeepSeek-V3)

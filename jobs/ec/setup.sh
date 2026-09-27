@@ -14,10 +14,10 @@ if [ "$(cat $WORK/llama.cpp-ec/.patch_sha 2>/dev/null)" != "$PATCH_SHA" ]; then
     cd $WORK/llama.cpp-ec && git apply "$J/llama.cpp-expert-cache.patch" || exit 1
     SM=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1 | tr -d .)
     cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$SM -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON > $WORK/ec_cmake.txt 2>&1
-    cmake --build build -j$(nproc) --target llama-ec-bench test-backend-ops > $WORK/ec_build.txt 2>&1 && echo "$PATCH_SHA" > .patch_sha )
+    cmake --build build -j$(nproc) --target llama-ec-bench llama-ec-cpubench test-backend-ops > $WORK/ec_build.txt 2>&1 && echo "$PATCH_SHA" > .patch_sha )
   echo "ec build: $(cat $WORK/llama.cpp-ec/.patch_sha 2>/dev/null || echo FAILED)"; grep -E "error:" $WORK/ec_build.txt | head
 fi
-export EC_BIN=$WORK/llama.cpp-ec/build/bin/llama-ec-bench EC_TESTS=$WORK/llama.cpp-ec/build/bin/test-backend-ops
+export EC_BIN=$WORK/llama.cpp-ec/build/bin/llama-ec-bench EC_TESTS=$WORK/llama.cpp-ec/build/bin/test-backend-ops EC_CPUBENCH=$WORK/llama.cpp-ec/build/bin/llama-ec-cpubench
 if [ ! -f $M/.done ]; then
   pip install -q -U "huggingface_hub[hf_transfer]" > /dev/null 2>&1; export HF_HUB_ENABLE_HF_TRANSFER=1
   mkdir -p $M && ( cd $M

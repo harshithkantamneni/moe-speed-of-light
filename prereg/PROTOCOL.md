@@ -242,3 +242,31 @@ the paper).
     - a per-step copy budget;
     - an LRU queue cap;
     - 8 vs 30 CPU threads.
+- **2026-09-27, 014–015 (same instance as 012).**
+  - **014.** Slot copies by a kernel reading pinned memory (zero-copy)
+    instead of the copy engine: gpt-oss-20b 25 % 57.5 → 67.4 tok/s, Qwen3
+    Q4_K_M 56.0 → 69.2. Top-5 logits identical to memcpy admissions.
+  - **015.** The scheduler's overlap path had never triggered: views of the
+    layer input placed in the GPU split made every CPU split look dependent.
+    Fixed (views are skipped); 24 576 of 24 627 CPU splits now run beside
+    their GPU split. Exploratory (4 sequences × 128 steps, κ chosen per
+    model, not the pre-registered protocol):
+
+    | model | budget | llama.cpp layers | cache DFA+κ | ratio |
+    |---|---|---|---|---|
+    | gpt-oss-20b | 12.5 / 25 / 50 % | 53.8 / 59.3 / 75.5 | 64.9 / 76.9 / 95.4 | 1.21 / 1.30 / 1.26 |
+    | Qwen3-30B-A3B Q4_K_M | 12.5 / 25 / 50 % | 59.7 / 67.8 / 84.0 | 71.3 / 81.8 / 92.9 | 1.19 / 1.21 / 1.11 |
+    | Qwen3-30B-A3B Q8_0 | 12.5 / 25 % | 43.5 / 48.1 | 54.4 / 63.1 | 1.25 / 1.31 |
+    | gpt-oss-120b | 12.5 / 25 % | 35.7 / 39.9 | 48.2 / 55.6 | 1.35 / 1.39 |
+
+    Overlap on vs off: +8 to +13 %. κ (admission margin) cut copies 2–3×
+    and added 1–10 %.
+  - **Remaining gap.** With every expert resident the split-graph cache runs
+    at 106 vs 136 tok/s (012): 84 µs per layer of host-driven hand-off
+    (stream sync, two D2H and one H2D copy, a CPU graph, extra launches),
+    paid even when the CPU has nothing to compute.
+  - **016 (mailbox mode).** The GPU hands a layer's CPU experts to spinning
+    helper threads through pinned memory and waits on the GPU; a layer with
+    no CPU experts never involves the host. Correctness gate first (top-5
+    logits against the split-graph cache and against stock CPU experts),
+    then speed on four models.

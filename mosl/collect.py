@@ -328,14 +328,19 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
     masks.clear()
     norm = type(base.norm)(cfg.hidden_size, eps=cfg.rms_norm_eps).to(device)
     norm.weight.data = store.get("model.norm.weight").to(device=device, dtype=dtype)
+    if getattr(norm, "bias", None) is not None and "model.norm.bias" in store.weight_map:   # PhiMoE: LayerNorm
+        norm.bias.data = store.get("model.norm.bias").to(device=device, dtype=dtype)
     W = tied_head if tied_head is not None else (
         store.get("lm_head.weight").to(dtype) if "lm_head.weight" in store.weight_map else None)
+    hb = store.get("lm_head.bias").to(device=device, dtype=dtype) if "lm_head.bias" in store.weight_map else None
     nll, cnt = 0.0, 0
     if W is not None:
         W = W.to(device)
         pers = []
         for j, h in enumerate(hs):
             logits = norm(h)[0, :-1] @ W.T
+            if hb is not None:
+                logits = logits + hb
             tgt = torch.tensor(sequences[j][1:], device=device)
             per = torch.nn.functional.cross_entropy(logits.float(), tgt, reduction="none").cpu()
             pers.append(per.numpy().astype(np.float32))

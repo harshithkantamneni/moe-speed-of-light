@@ -174,6 +174,22 @@ class RangeStore:
         return torch.frombuffer(buf, dtype=self.DT[info["dtype"]]).reshape(info["shape"]).clone()
 
 
+_W = {"w1": "gate_proj", "w3": "up_proj", "w2": "down_proj"}
+
+
+def _canonical(local: str, params) -> str:
+    """Mixtral / PhiMoE checkpoints keep the pre-v5 names: block_sparse_moe.experts.N.w1/w3/w2 and
+    block_sparse_moe.gate; map them to the module names used below (mlp.experts.N.gate/up/down_proj; the router is
+    mlp.gate in Mixtral and mlp.router in PhiMoE)."""
+    m = re.match(r"^block_sparse_moe\.experts\.(\d+)\.(w[123])\.weight$", local)
+    if m:
+        return f"mlp.experts.{m.group(1)}.{_W[m.group(2)]}.weight"
+    if local.startswith("block_sparse_moe.gate."):
+        tail = local[len("block_sparse_moe.gate."):]
+        return f"mlp.gate.{tail}" if f"mlp.gate.{tail}" in params else f"mlp.router.{tail}"
+    return local
+
+
 def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.float32) -> None:
     """Copy checkpoint tensors for layer i straight into the (materialized)
     layer's parameters, one tensor at a time, to keep peak RAM ~= layer size.
@@ -185,7 +201,7 @@ def load_layer(layer: torch.nn.Module, store: ShardStore, i: int, dtype=torch.fl
     seen = set()
     packed = {}
     for name in store.names(prefix):
-        local = name[len(prefix):]
+        local = _canonical(name[len(prefix):], params)
         if is_packed(store, i) and local.startswith("mlp.experts."):
             packed[local[len("mlp.experts."):]] = store.get(name)
             continue
@@ -238,6 +254,7 @@ def collect(repo, sequences, out_dir, dtype=torch.float32, cache_dir=None, keep=
     cfg._attn_implementation = "eager" if cfg.model_type == "gpt_oss" else "sdpa"
     with torch.device("meta"):
         model = AutoModelForCausalLM.from_config(cfg, torch_dtype=dtype)
+    model.eval()   # inference behaviour: no router jitter / sparsemixer sampling (PhiMoE), no dropout
     base = model.model
     store = (RangeStore if remote else ShardStore)(repo, cache_dir or os.path.join(out_dir, "_hf"), keep=keep)
 

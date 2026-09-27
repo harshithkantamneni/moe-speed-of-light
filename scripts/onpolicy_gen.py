@@ -21,7 +21,10 @@ import os
 import time
 
 MODELS = {"olmoe": "allenai/OLMoE-1B-7B-0125-Instruct", "qwen3-30b-a3b": "Qwen/Qwen3-30B-A3B-Instruct-2507",
-          "gpt-oss-20b": "openai/gpt-oss-20b", "gpt-oss-120b": "openai/gpt-oss-120b"}
+          "gpt-oss-20b": "openai/gpt-oss-20b", "gpt-oss-120b": "openai/gpt-oss-120b",
+          "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1", "deepseek-v2-lite": "deepseek-ai/DeepSeek-V2-Lite-Chat",
+          "qwen1.5-moe": "Qwen/Qwen1.5-MoE-A2.7B-Chat", "qwen2-57b": "Qwen/Qwen2-57B-A14B-Instruct",
+          "phi3.5-moe": "microsoft/Phi-3.5-MoE-instruct"}
 
 
 def lp_of(entry, tok):

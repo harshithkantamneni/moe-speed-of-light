@@ -16,8 +16,9 @@ CUR=$BASE/current_job
 mkdir -p "$BASE" "$WORK"
 # A job named NNN_name@tag.sh runs only on an instance whose GPU name has `tag` as a word (h100, a10, ...), so
 # several instances can share the branch. Each instance heartbeats to its own branch, gpu-heartbeat-<gpu word>.
-GPU_WORDS=" $(timeout 30 nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' ' ') "
-HB_BRANCH=${HB_BRANCH:-gpu-heartbeat-$(echo $GPU_WORDS | awk '{print ($1=="nvidia" ? $2 : $1)}')}
+# RUNNER_TAG (set at launch) adds a word, so two instances with the same GPU can take different jobs.
+GPU_WORDS=" $(timeout 30 nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' ' ') ${RUNNER_TAG:-} "
+HB_BRANCH=${HB_BRANCH:-gpu-heartbeat-$(echo $GPU_WORDS | awk '{print ($1=="nvidia" ? $2 : $1)}')${RUNNER_TAG:+-$RUNNER_TAG}}
 until git clone -q --branch gpu --single-branch "$URL" "$REPO"; do sleep 20; done
 until git clone -q --branch gpu --single-branch "$URL" "$HB"; do sleep 20; done
 for d in "$REPO" "$HB"; do

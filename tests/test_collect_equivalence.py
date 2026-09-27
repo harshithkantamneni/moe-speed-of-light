@@ -14,6 +14,9 @@ REPOS = sys.argv[1:] or [
     "yujiepan/deepseek-v2-tiny-random",
     "yujiepan/gpt-oss-tiny-random",        # MXFP4-packed experts, sliding-window layers
     "yujiepan/gpt-oss-tiny-random-bf16",
+    "yujiepan/mixtral-tiny-random",           # pre-v5 checkpoint names (block_sparse_moe.experts.N.w1/w2/w3)
+    "yujiepan/phi-moe-tiny-random",           # sparsemixer routing, router named mlp.router
+    "hf-tiny-v2/tiny-random-Qwen2MoeForCausalLM",   # shared expert with a sigmoid gate
 ]
 
 

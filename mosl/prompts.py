@@ -20,6 +20,12 @@ MODELS = {  # key -> (repo, existing token file)
     "qwen3-30b-a3b": ("Qwen/Qwen3-30B-A3B-Instruct-2507", "data/tok_qwen3_30b.jsonl"),
     "gpt-oss-20b": ("openai/gpt-oss-20b", "data/tok_gpt-oss-20b.jsonl"),
     "gpt-oss-120b": ("openai/gpt-oss-120b", "data/tok_gpt-oss-120b.jsonl"),
+    # models of the audit (no earlier token file)
+    "mixtral-8x7b": ("mistralai/Mixtral-8x7B-Instruct-v0.1", None),
+    "deepseek-v2-lite": ("deepseek-ai/DeepSeek-V2-Lite-Chat", None),
+    "qwen1.5-moe": ("Qwen/Qwen1.5-MoE-A2.7B-Chat", None),
+    "qwen2-57b": ("Qwen/Qwen2-57B-A14B-Instruct", None),
+    "phi3.5-moe": ("microsoft/Phi-3.5-MoE-instruct", None),
 }
 DATE_RE = re.compile(r"Current date: \d{4}-\d{2}-\d{2}")
 
@@ -38,14 +44,17 @@ def main():
     ap.add_argument("--max-len", type=int, default=1024)
     ap.add_argument("--tokens-per-domain", type=int, default=6000)
     ap.add_argument("--data-len", type=int, default=2048)
+    ap.add_argument("--models", default=None, help="comma-separated subset of MODELS")
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
     corpus = [json.loads(l) for l in open(a.corpus)]
     for key, (repo, tokf) in MODELS.items():
+        if a.models and key not in a.models.split(","):
+            continue
         tok = AutoTokenizer.from_pretrained(repo)
-        old = [json.loads(l) for l in open(tokf)]
+        old = [json.loads(l) for l in open(tokf)] if tokf else []
         date = None
-        m = DATE_RE.search(tok.decode(old[0]["ids"][:200]))
+        m = DATE_RE.search(tok.decode(old[0]["ids"][:200])) if old else None
         if m:
             date = m.group(0).split(": ")[1]
         budget, row, out = Counter(), 0, []
@@ -53,7 +62,7 @@ def main():
             d = it["domain"]
             pids = render(tok, it["messages"][:1], True, date)
             full = render(tok, it["messages"], False, date)
-            in_old = budget[d] < a.tokens_per_domain           # the selection rule of mosl.tokenize_corpus
+            in_old = bool(old) and budget[d] < a.tokens_per_domain  # the selection rule of mosl.tokenize_corpus
             tok_row = -1
             if in_old:
                 ids = full[: a.max_len]

@@ -18,19 +18,19 @@ def call(method, path, body=None):
         raise SystemExit(f"HTTP {e.code}: {e.read().decode()[:800]}")
 
 
-def user_data():
+def user_data(tag=""):
     runner = open(os.path.join(os.path.dirname(__file__), "runner.sh")).read()
     b64 = base64.b64encode(runner.encode()).decode()
     tok = os.environ["GH_REPO_TOKEN"]
     return ("#!/bin/bash\numask 077\n"
             f"printf '%s' '{tok}' > /root/.runner_token\n"
             f"echo '{b64}' | base64 -d > /opt/runner.sh && chmod 700 /opt/runner.sh\n"
-            "nohup /opt/runner.sh > /var/log/runner.log 2>&1 &\n")
+            f"RUNNER_TAG='{tag}' nohup /opt/runner.sh > /var/log/runner.log 2>&1 &\n")
 
 
-def launch(itype, region, name):
+def launch(itype, region, name, tag=""):
     body = {"region_name": region, "instance_type_name": itype, "ssh_key_names": [os.environ["LAMBDA_SSH_KEY_NAME"]],
-            "name": name, "user_data": user_data()}
+            "name": name, "user_data": user_data(tag)}
     return call("POST", "/instance-operations/launch", body)
 
 
@@ -49,7 +49,7 @@ def terminate(ids):
 if __name__ == "__main__":
     cmd = sys.argv[1]
     if cmd == "launch":
-        print(json.dumps(launch(sys.argv[2], sys.argv[3], sys.argv[4]), indent=1))
+        print(json.dumps(launch(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5] if len(sys.argv) > 5 else ""), indent=1))
     elif cmd == "status":
         print(json.dumps(status(), indent=1))
     elif cmd == "terminate":

@@ -718,3 +718,7 @@ job 051/053 measures, so git history orders them.
   NLL check had omitted PhiMoE's final LayerNorm and lm_head biases (fixed; routing unaffected).
 - **Errata to the phase-4 outcomes above.** The A10 under-prediction range is 2–35 % when recomputed with the
   third-party M4 fit (the "2–57 %" above could not be reproduced); the F4 maximum is 1.4–1.5 pp depending on rounding.
+- **H5 on the GH200 (added before job 056 runs).** The GH200 is the first platform after the A10, so the registered
+  two-run calibration (H5) is run there as registered: job 056 repeats job 006's phase-1 sweep unchanged and
+  `scripts/calibrate2.py` scores it with job 052's platform microbenchmarks (pass: median APE ≤ 10 %). H1′ (ncu) is
+  not run.

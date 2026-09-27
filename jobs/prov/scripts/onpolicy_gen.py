@@ -48,6 +48,11 @@ def main():
     ap.add_argument("--batched-tokens", type=int, default=4096)
     ap.add_argument("--limit", type=int, default=0, help="first N prompts only (smoke test)")
     ap.add_argument("--model-dir", default=None, help="local checkpoint directory (default: the hub repo)")
+    ap.add_argument("--arms", default="G,S,D,H", help="subset of G, S, D and H (gpt-oss format variants; needs G)")
+    ap.add_argument("--gen-rows", default="all", choices=["all", "traced"],
+                    help="generate for all prompts, or only the traced conversations (tok_row >= 0)")
+    ap.add_argument("--cpu-offload-gb", type=float, default=0.0, help="vLLM weight offload for GPUs that are too small")
+    ap.add_argument("--tag", default="", help="suffix for output files (e.g. the checkpoint variant)")
     a = ap.parse_args()
     from vllm import LLM, SamplingParams
     from vllm.inputs import TokensPrompt
@@ -58,14 +63,21 @@ def main():
         rows = rows[: a.limit]
     os.makedirs(a.out, exist_ok=True)
     t0 = time.time()
+    arms = set(a.arms.split(","))
+    kw = dict(cpu_offload_gb=a.cpu_offload_gb) if a.cpu_offload_gb > 0 else {}
     llm = LLM(model=a.model_dir or repo, max_model_len=a.max_model_len, gpu_memory_utilization=a.gpu_mem, seed=0,
               enable_prefix_caching=False, max_num_batched_tokens=a.batched_tokens, enforce_eager=True,
-              max_logprobs=1)
+              max_logprobs=1, **kw)
+    all_rows = rows
+    key = key + a.tag
     import vllm
     log = {"model": repo, "vllm": vllm.__version__, "load_s": time.time() - t0}
     tok = llm.get_tokenizer()
 
     def generate(params, tag):
+        rows = [r for r in all_rows if a.gen_rows == "all" or r["tok_row"] >= 0]
+        if isinstance(params, list):
+            params = [p for r, p in zip(all_rows, params) if a.gen_rows == "all" or r["tok_row"] >= 0]
         t = time.time()
         outs = llm.generate([TokensPrompt(prompt_token_ids=r["prompt_ids"]) for r in rows], params, use_tqdm=False)
         corp, score = [], []
@@ -100,7 +112,7 @@ def main():
         return res
 
     # G, S
-    g = generate(SamplingParams(temperature=0.0, max_tokens=a.max_new, logprobs=0), "G")
+    g = generate(SamplingParams(temperature=0.0, max_tokens=a.max_new, logprobs=0), "G") if "G" in arms else None
     base = llm.get_default_sampling_params()
     log["S_params"] = repr(base)
     print("S params:", repr(base), flush=True)
@@ -108,24 +120,30 @@ def main():
                                            "presence_penalty", "frequency_penalty") if hasattr(base, f)}
     log["S_fields"] = keep
     s_params = [SamplingParams(**keep, seed=r["corpus_idx"], max_tokens=a.max_new, logprobs=0) for r in rows]
-    generate(s_params, "S")
-
-    # D: the dataset conversations
-    d_nll = teacher_force([r["data_ids"] for r in rows], "D")
-    dump(os.path.join(a.out, f"corp_{key}_D.jsonl"),
-         [{"domain": r["domain"], "ids": r["data_ids"], "prompt_len": r["data_prompt_len"],
-           "corpus_idx": r["corpus_idx"], "user_start": r["user_start"]} for r in rows])
-    dump(os.path.join(a.out, f"score_{key}_D.jsonl"),
-         [{"corpus_idx": r["corpus_idx"], "nll": x} for r, x in zip(rows, d_nll)])
-
+    if "S" in arms:
+        generate(s_params, "S")
+    if "D" in arms:
+        dataset_arm(a, key, rows, teacher_force)
     json.dump(log, open(os.path.join(a.out, f"log_{key}.json"), "w"), indent=1)
-    if key.startswith("gpt-oss"):
+    if key.startswith("gpt-oss") and "H" in arms and g is not None:
         try:
-            harmony(a, key, rows, g, tok, teacher_force)
+            gmap = {c["corpus_idx"]: c for c in g}
+            harmony(a, key, rows, [gmap.get(r["corpus_idx"]) for r in rows], tok, teacher_force)
         except Exception:
             import traceback
             traceback.print_exc()
     json.dump(log, open(os.path.join(a.out, f"log_{key}.json"), "w"), indent=1)
+
+
+def dataset_arm(a, key, rows, teacher_force):
+    """D: teacher-forced NLL of the dataset conversations, and their token file for the tracer."""
+    if True:
+        d_nll = teacher_force([r["data_ids"] for r in rows], "D")
+        dump(os.path.join(a.out, f"corp_{key}_D.jsonl"),
+             [{"domain": r["domain"], "ids": r["data_ids"], "prompt_len": r["data_prompt_len"],
+               "corpus_idx": r["corpus_idx"], "user_start": r["user_start"]} for r in rows])
+        dump(os.path.join(a.out, f"score_{key}_D.jsonl"),
+             [{"corpus_idx": r["corpus_idx"], "nll": x} for r, x in zip(rows, d_nll)])
 
 
 def harmony(a, key, rows, g, tok, teacher_force):
@@ -137,7 +155,7 @@ def harmony(a, key, rows, g, tok, teacher_force):
         ANALYSIS_HDR = ids_of("<|channel|>analysis<|message|>")
         v1, v2, meta = [], [], []
         for r, gr in zip(rows, g):
-            if r["tok_row"] < 0:
+            if r["tok_row"] < 0 or gr is None:
                 continue
             d, P = r["data_ids"][:1024], r["data_prompt_len"]            # the traced (1024-token) conversation
             if P + len(FINAL_HDR) >= len(d):

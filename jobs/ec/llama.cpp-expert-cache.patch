@@ -26,18 +26,20 @@ index 224bdef..6438973 100644
  
      enum ggml_tri_type {
 diff --git a/ggml/src/ggml-backend.cpp b/ggml/src/ggml-backend.cpp
-index 20bf965..61a385f 100644
+index 20bf965..d6af05e 100644
 --- a/ggml/src/ggml-backend.cpp
 +++ b/ggml/src/ggml-backend.cpp
-@@ -830,6 +830,7 @@ struct ggml_backend_sched {
+@@ -830,6 +830,9 @@ struct ggml_backend_sched {
      size_t context_buffer_size;
  
      bool op_offload;
 +    bool overlap_cpu;
++    uint64_t n_overlapped;
++    uint64_t n_cpu_splits;
  
      int debug;
  
-@@ -1341,7 +1342,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
+@@ -1341,7 +1344,7 @@ void ggml_backend_sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgra
                  }
              }
  
@@ -46,7 +48,7 @@ index 20bf965..61a385f 100644
                  split->i_end = i;
                  i_split++;
                  if (i_split >= sched->splits_capacity) {
-@@ -1653,7 +1654,7 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+@@ -1653,7 +1656,7 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
  
      int prev_backend_id = -1;
  
@@ -55,7 +57,7 @@ index 20bf965..61a385f 100644
          struct ggml_backend_sched_split * split = &splits[split_id];
          int split_backend_id = split->backend_id;
          ggml_backend_t split_backend = sched->backends[split_backend_id];
-@@ -1795,6 +1796,12 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+@@ -1795,6 +1798,12 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
              }
          }
  
@@ -68,7 +70,7 @@ index 20bf965..61a385f 100644
          if (!sched->callback_eval) {
              enum ggml_status ec = ggml_backend_graph_compute_async(split_backend, &split->graph);
              if (ec != GGML_STATUS_SUCCESS) {
-@@ -1840,6 +1847,50 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
+@@ -1840,6 +1849,55 @@ static enum ggml_status ggml_backend_sched_compute_splits(ggml_backend_sched_t s
          }
  
          prev_backend_id = split_backend_id;
@@ -89,13 +91,18 @@ index 20bf965..61a385f 100644
 +                const ggml_tensor * in = next->inputs[k];
 +                for (int n = 0; n < split->graph.n_nodes; n++) {
 +                    const ggml_tensor * node = split->graph.nodes[n];
++                    if (ggml_is_view_op(node->op)) {
++                        continue; // views compute nothing: a view placed in this split still reads earlier data
++                    }
 +                    if (node == in || (in->view_src && node == in->view_src)) {
 +                        independent = false;
 +                        break;
 +                    }
 +                }
 +            }
++            sched->n_cpu_splits++;
 +            if (independent) {
++                sched->n_overlapped++;
 +                copy_inputs(split_id + 1);          // GPU stream holds only earlier splits: short wait
 +                copy_inputs(split_id);
 +                enum ggml_status ec = compute(split_id);   // async enqueue on the GPU
@@ -119,7 +126,18 @@ index 20bf965..61a385f 100644
      }
  
      return GGML_STATUS_SUCCESS;
-@@ -2042,6 +2093,11 @@ void ggml_backend_sched_synchronize(ggml_backend_sched_t sched) {
+@@ -1918,6 +1976,10 @@ ggml_backend_sched_t ggml_backend_sched_new(
+ }
+ 
+ void ggml_backend_sched_free(ggml_backend_sched_t sched) {
++    if (sched && sched->overlap_cpu && sched->n_cpu_splits > 0) {
++        GGML_LOG_INFO("%s: CPU splits following a GPU split: %llu, run concurrently with it: %llu\n", __func__,
++                (unsigned long long) sched->n_cpu_splits, (unsigned long long) sched->n_overlapped);
++    }
+     if (sched == NULL) {
+         return;
+     }
+@@ -2042,6 +2104,11 @@ void ggml_backend_sched_synchronize(ggml_backend_sched_t sched) {
      }
  }
  

@@ -32,10 +32,12 @@ def reference(repo, seqs):
         if g is not None and hasattr(g, "top_k"):
             recs[i] = []
             hooks.append(g.register_forward_hook(lambda mod, inp, out, i=i: recs[i].append(out[2].clone())))
+    nll = []
     with torch.no_grad():
         for s in seqs:
-            m(torch.tensor([s]))
-    return {i: np.sort(torch.cat(v).numpy(), axis=1) for i, v in recs.items()}
+            lg = m(torch.tensor([s])).logits[0, :-1].float()
+            nll.append(torch.nn.functional.cross_entropy(lg, torch.tensor(s[1:]), reduction="none").numpy())
+    return {i: np.sort(torch.cat(v).numpy(), axis=1) for i, v in recs.items()}, np.concatenate(nll)
 
 
 def decode_reference(repo, seqs):
@@ -64,7 +66,7 @@ def check(repo):
     from transformers import AutoConfig
     V = AutoConfig.from_pretrained(repo).vocab_size
     seqs = [rng.integers(0, V, n).tolist() for n in (17, 300, 5)]  # 300 > gpt-oss window (128)
-    ref = reference(repo, seqs)
+    ref, ref_nll = reference(repo, seqs)
     with tempfile.TemporaryDirectory() as d:
         meta = collect(repo, seqs, d, keep=True, log=lambda s: None, device=os.environ.get("MOSL_DEVICE", "cpu"))
         assert set(int(k) for k in meta["layers"]) == set(ref), (meta["layers"].keys(), ref.keys())
@@ -72,12 +74,15 @@ def check(repo):
             got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
             agree = (got == r).all(1).mean()
             assert agree == 1.0, f"{repo} layer {i}: token agreement {agree:.4f}"
+        got_nll = np.load(os.path.join(d, "nll.npy"))
+        err = float(np.abs(got_nll - ref_nll).max())
+        assert err < 1e-3, f"{repo}: collector NLL differs from the reference by up to {err:.2e} nats"
         dec = decode_reference(repo, seqs)
         for i, r in dec.items():
             got = np.load(os.path.join(d, f"layer{i:03d}.npy"))
             agree = (got == r).all(1).mean()
             assert agree == 1.0, f"{repo} layer {i}: decode-vs-streamed agreement {agree:.4f}"
-    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match vs reference prefill AND KV-cache decode (collector on {os.environ.get('MOSL_DEVICE', 'cpu')})")
+    print(f"OK {repo}: {len(ref)} MoE layers, {sum(map(len, seqs))} tokens, exact match vs reference prefill AND KV-cache decode, NLL within 1e-3 (collector on {os.environ.get('MOSL_DEVICE', 'cpu')})")
 
 
 if __name__ == "__main__":

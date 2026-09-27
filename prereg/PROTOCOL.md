@@ -726,3 +726,6 @@ job 051/053 measures, so git history orders them.
   η_c/STREAM = 0.75 from the two gpt-oss-20b runs; 29 held-out configurations, median APE 6.7 %, MAPE 12.6 %,
   maximum 44.9 % (Qwen3-30B-A3B Q4_K_M all-GPU). Qwen3 with experts offloaded is under-predicted by up to 28 %
   (τ_e = 20.7 µs is too large for this CPU, as on the A10).
+- **Deviation: A100 anchors (added while job 050 runs, before job 051 measures).** The instance Lambda provided is an
+  A100-SXM4-80GB (x86), not the 40 GB variant; the sweep is unchanged (every configuration fits either card) and the
+  predictions use its own datasheet bandwidth (2,039 GB/s) and STREAM Triad. A2 and A3 are scored on it as registered.

@@ -1,0 +1,37 @@
++ cd /opt/runner/repo/jobs/prov
++ timeout 40m /opt/runner/work/tv/bin/python scripts/trace_corpus.py --repo /opt/runner/work/hfmodels/olmoe --hub-id allenai/OLMoE-1B-7B-0125-Instruct --corpus /opt/runner/repo/results/031_gen_small@40gb/corp_olmoe_D.jsonl --out /opt/runner/repo/results/032_trace_small@40gb/olmoe_D.npz --device cuda
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+layer   0 done in    2.2s  moe=True
+[W927 12:00:18.619346772 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 8636071936 bytes (free: 2981691392, total: 42406903808).
+[W927 12:00:18.619564848 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 8636071936 bytes (free: 2981691392, total: 42406903808).
+Traceback (most recent call last):
+  File "/opt/runner/repo/jobs/prov/scripts/trace_corpus.py", line 61, in <module>
+    main()
+  File "/opt/runner/repo/jobs/prov/scripts/trace_corpus.py", line 38, in main
+    meta = collect(a.repo, seqs, tmp, dtype=getattr(torch, a.dtype), keep=True, device=a.device,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/repo/jobs/prov/scripts/../mosl/collect.py", line 283, in collect
+    y = layer.mlp(torch.cat(normed, dim=1))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/transformers/models/olmoe/modeling_olmoe.py", line 359, in forward
+    final_hidden_states = self.experts(hidden_states, top_k_index, top_k_weights).reshape(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/transformers/integrations/moe.py", line 573, in forward
+    return experts_forward(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/runner/work/tv/lib/python3.12/site-packages/transformers/integrations/moe.py", line 473, in grouped_mm_experts_forward
+    weighted_out = weighted_out[inv_perm]  # (S, hidden_dim)
+                   ~~~~~~~~~~~~^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 8.04 GiB. GPU 0 has a total capacity of 39.49 GiB of which 2.78 GiB is free. Including non-PyTorch memory, this process has 36.71 GiB memory in use. Of the allocated memory 30.43 GiB is allocated by PyTorch, and 5.79 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

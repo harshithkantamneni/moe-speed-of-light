@@ -344,10 +344,10 @@ index b403b09..e38fff9 100644
      ggml_backend_t backend_cpu = nullptr;
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..ab3e13b
+index 0000000..e202428
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,434 @@
+@@ -0,0 +1,556 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -393,6 +393,14 @@ index 0000000..ab3e13b
 +    half_life = env_double("LLAMA_EC_HALF_LIFE", 16.0);
 +    kappa     = env_double("LLAMA_EC_KAPPA", 0.0);
 +    overlap_cpu = env_int("LLAMA_EC_OVERLAP", 1) != 0;
++    check_ids   = env_int("LLAMA_EC_CHECK", 0) != 0;
++    max_admit   = env_int("LLAMA_EC_MAX_ADMIT", 0);
++    chunk       = (size_t) env_double("LLAMA_EC_CHUNK", 0.0);
++    paced       = env_int("LLAMA_EC_PACED", 1) != 0;
++    max_pending = env_int("LLAMA_EC_MAX_PENDING", 0);
++    if (paced && chunk == 0) {
++        chunk = 1u << 20;
++    }
 +    if (const char * s = getenv("LLAMA_EC_STATS")) {
 +        stats_path = s;
 +    }
@@ -467,9 +475,9 @@ index 0000000..ab3e13b
 +        L.stamp.assign(E, -1);
 +        L.count.assign(E, 0);
 +    }
-+    routing = ggml_new_tensor_2d(ctx, GGML_TYPE_I32, max_used, (int64_t) layers.size());
++    routing = ggml_new_tensor_2d(ctx, GGML_TYPE_I32, max_used, 3 * (int64_t) layers.size());
 +    ggml_set_name(routing, "ec_routing");
-+    routing_host.assign(max_used * layers.size(), -1);
++    routing_host.assign(3 * max_used * layers.size(), -1);
 +
 +    ggml_backend_buffer_type_t buft = gpu_dev ? ggml_backend_dev_buffer_type(gpu_dev)
 +                                              : ggml_backend_get_default_buffer_type(gpu_backend);
@@ -481,6 +489,16 @@ index 0000000..ab3e13b
 +        copy_backend = ggml_backend_dev_init(gpu_dev, nullptr);
 +        events[0] = ggml_backend_event_new(gpu_dev);
 +        events[1] = ggml_backend_event_new(gpu_dev);
++        piece_event = ggml_backend_event_new(gpu_dev);
++    }
++    for (size_t i = 0; i < layers.size(); ++i) {
++        done.emplace_back(new std::atomic<int>[n_slots]);
++        for (int s = 0; s < n_slots; ++s) {
++            done.back()[s].store(0);
++        }
++    }
++    if (paced) {
++        copier = std::thread([this] { copier_main(); });
 +    }
 +
 +    // optional initial resident set: a text file of "<layer> <e0> <e1> ..." lines, or a stats JSON
@@ -551,6 +569,17 @@ index 0000000..ab3e13b
 +}
 +
 +llama_expert_cache::~llama_expert_cache() {
++    if (copier.joinable()) {
++        {
++            std::lock_guard<std::mutex> lk(mtx);
++            stopping = true;
++        }
++        cv.notify_all();
++        copier.join();
++    }
++    if (piece_event) {
++        ggml_backend_event_free(piece_event);
++    }
 +    if (!stats_path.empty() && enabled()) {
 +        write_stats(stats_path.c_str());
 +    }
@@ -591,9 +620,9 @@ index 0000000..ab3e13b
 +    return nullptr;
 +}
 +
-+ggml_tensor * llama_expert_cache::routing_view(ggml_context * ctx0, int il, int n_used) {
++ggml_tensor * llama_expert_cache::routing_view(ggml_context * ctx0, int il, int n_used, int which) {
 +    const int i = idx_of.at(il);
-+    return ggml_view_1d(ctx0, routing, n_used, i * routing->nb[1]);
++    return ggml_view_1d(ctx0, routing, n_used, (3 * i + which) * routing->nb[1]);
 +}
 +
 +const std::vector<int32_t> & llama_expert_cache::gpu_map(int il) const {
@@ -625,23 +654,82 @@ index 0000000..ab3e13b
 +    }
 +}
 +
-+void llama_expert_cache::admit(layer & L, int s, int e) {
++void llama_expert_cache::copy_expert(const layer & L, int s, int e, bool paced_pieces) {
 +    for (size_t k = 0; k < L.src.size(); ++k) {
 +        const size_t st = expert_stride(L.src[k]);
-+        const void * host = (const char *) L.src[k]->data + (size_t) e * st;
-+        if (copy_backend) {
-+            ggml_backend_tensor_set_async(copy_backend, L.slot[k], host, (size_t) s * st, st);
-+        } else {
++        const char * host = (const char *) L.src[k]->data + (size_t) e * st;
++        if (!copy_backend) {
 +            ggml_backend_tensor_set(L.slot[k], host, (size_t) s * st, st);
++            continue;
++        }
++        const size_t piece = chunk > 0 ? chunk : st;
++        for (size_t off = 0; off < st; off += piece) {
++            ggml_backend_tensor_set_async(copy_backend, L.slot[k], host + off, (size_t) s * st + off, std::min(piece, st - off));
++            if (paced_pieces) {  // one piece in flight at a time
++                if (piece_event) {
++                    ggml_backend_event_record(piece_event, copy_backend);
++                    ggml_backend_event_synchronize(piece_event);
++                } else {
++                    ggml_backend_synchronize(copy_backend);
++                }
++            }
 +        }
 +    }
++}
++
++void llama_expert_cache::copier_main() {
++    while (true) {
++        copy_job j;
++        {
++            std::unique_lock<std::mutex> lk(mtx);
++            cv.wait(lk, [this] { return stopping || !queue.empty(); });
++            if (stopping) {
++                return;
++            }
++            j = queue.front();
++            queue.pop_front();
++        }
++        copy_expert(layers[j.li], j.slot, j.expert, true);
++        done[j.li][j.slot].store(j.expert + 1, std::memory_order_release);
++        pending.fetch_sub(1);
++    }
++}
++
++void llama_expert_cache::admit(layer & L, int s, int e) {
 +    L.loading[s] = e;
 +    L.load_batch[s] = (int) (step & 1);
 +    L.admits++;
++    if (paced) {
++        pending.fetch_add(1);
++        {
++            std::lock_guard<std::mutex> lk(mtx);
++            queue.push_back({ idx_of.at(L.il), s, e });
++        }
++        cv.notify_one();
++        return;
++    }
++    copy_expert(L, s, e, false);
 +}
 +
 +void llama_expert_cache::pre_compute() {
 +    if (!enabled()) {
++        return;
++    }
++    if (paced) {
++        // publish every copy that has completed; never wait
++        for (size_t li = 0; li < layers.size(); ++li) {
++            layer & L = layers[li];
++            for (int s = 0; s < n_slots; ++s) {
++                if (L.loading[s] >= 0 && done[li][s].load(std::memory_order_acquire) == L.loading[s] + 1) {
++                    done[li][s].store(0);
++                    const int e = L.loading[s];
++                    L.loading[s]  = -1;
++                    L.resident[s] = e;
++                    L.slot_of[e]  = s;
++                    L.cpu_of[e]   = -1;
++                }
++            }
++        }
 +        return;
 +    }
 +    // publish the copies issued two decode steps ago (they overlapped the previous step)
@@ -673,12 +761,39 @@ index 0000000..ab3e13b
 +    }
 +    ggml_backend_tensor_get(routing, routing_host.data(), 0, ggml_nbytes(routing));
 +
++    if (check_ids) {
++        // the ids the graph used must be the host maps (as set before this step) applied to the selection
++        check_steps++;
++        for (size_t li = 0; li < layers.size(); ++li) {
++            const layer & L = layers[li];
++            const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
++            const int32_t * gid = routing_host.data() + (3 * li + 1) * max_used;
++            const int32_t * cid = routing_host.data() + (3 * li + 2) * max_used;
++            for (int j = 0; j < L.n_used; ++j) {
++                const int e = sel[j];
++                const bool ok = e >= 0 && e < L.n_expert && gid[j] == L.slot_of[e] && cid[j] == L.cpu_of[e] && ((gid[j] >= 0) != (cid[j] >= 0));
++                check_bad += !ok;
++                check_gpu += gid[j] >= 0;
++                check_total++;
++            }
++        }
++        if (check_steps % 256 == 0) {
++            LLAMA_LOG_INFO("%s: check: %llu steps, %llu/%llu ids inconsistent, %.3f served on the GPU\n", __func__,
++                    (unsigned long long) check_steps, (unsigned long long) check_bad, (unsigned long long) check_total,
++                    check_total ? (double) check_gpu / check_total : 0.0);
++        }
++    }
++
 +    const double decay = std::pow(0.5, 1.0 / half_life);
 +    bool any = false;
++    int budget = max_admit > 0 ? max_admit : INT32_MAX;
++    const size_t nl = layers.size();
++    const size_t first = nl ? (size_t) ((step * 7) % (int64_t) nl) : 0;   // rotate which layer admits first
 +
-+    for (size_t li = 0; li < layers.size(); ++li) {
++    for (size_t r = 0; r < nl; ++r) {
++        const size_t li = (first + r) % nl;
 +        layer & L = layers[li];
-+        const int32_t * sel = routing_host.data() + li * max_used;
++        const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
 +        const int k = L.n_used;
 +
 +        std::vector<int> missed;
@@ -702,6 +817,9 @@ index 0000000..ab3e13b
 +            continue;
 +        }
 +        for (int e : missed) {
++            if (budget <= 0 || (paced && max_pending > 0 && pending.load() >= max_pending)) {
++                break;
++            }
 +            if (std::find(L.loading.begin(), L.loading.end(), e) != L.loading.end()) {
 +                continue; // already on its way
 +            }
@@ -714,6 +832,7 @@ index 0000000..ab3e13b
 +            }
 +            if (free_slot >= 0) {
 +                admit(L, free_slot, e);
++                budget--;
 +                any = true;
 +                continue;
 +            }
@@ -743,10 +862,11 @@ index 0000000..ab3e13b
 +            L.slot_of[v] = -1;
 +            L.cpu_of[v]  = v;
 +            admit(L, victim, e);
++            budget--;
 +            any = true;
 +        }
 +    }
-+    if (any) {
++    if (any && !paced) {
 +        const int b = (int) (step & 1);
 +        if (events[b]) {
 +            ggml_backend_event_record(events[b], copy_backend);
@@ -766,8 +886,10 @@ index 0000000..ab3e13b
 +        h += L.hits; m += L.misses; a += L.admits;
 +    }
 +    const char * pn = policy == STATIC ? "static" : policy == LRU ? "lru" : "dfa";
-+    fprintf(f, "{\"slots\": %d, \"policy\": \"%s\", \"half_life\": %g, \"kappa\": %g, \"overlap\": %d, \"steps\": %lld,\n",
-+            n_slots, pn, half_life, kappa, (int) overlap_cpu, (long long) step);
++    fprintf(f, "{\"slots\": %d, \"policy\": \"%s\", \"half_life\": %g, \"kappa\": %g, \"overlap\": %d, \"max_admit\": %d, \"chunk\": %zu, \"paced\": %d, \"max_pending\": %d, \"steps\": %lld,\n",
++            n_slots, pn, half_life, kappa, (int) overlap_cpu, max_admit, chunk, (int) paced, max_pending, (long long) step);
++    fprintf(f, " \"check_steps\": %llu, \"check_bad\": %llu, \"check_gpu_frac\": %.6f,\n", (unsigned long long) check_steps,
++            (unsigned long long) check_bad, check_total ? (double) check_gpu / check_total : 0.0);
 +    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f,\n \"layers\": [\n",
 +            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0);
 +    for (size_t i = 0; i < layers.size(); ++i) {
@@ -784,10 +906,10 @@ index 0000000..ab3e13b
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..d3cf8e3
+index 0000000..e75b6b5
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,137 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -808,11 +930,26 @@ index 0000000..d3cf8e3
 +//                       "<layer> <e0> <e1> ..." (optional; static uses it as the fixed set)
 +//   LLAMA_EC_OVERLAP    1 = run GPU hits concurrently with CPU misses (default 1)
 +//   LLAMA_EC_STATS      file to write per-layer statistics and expert counts at exit
++//   LLAMA_EC_MAX_ADMIT  at most this many slot copies per decode step over all layers (0 = no limit);
++//                       layers take turns being first, so no layer is starved
++//   LLAMA_EC_CHUNK      issue slot copies in pieces of this many bytes (0 = one copy per tensor)
++//   LLAMA_EC_PACED      1 (default) = a copy thread keeps at most one piece in flight, so the step's own
++//                       small host<->device transfers never queue behind admissions; a slot is used from the
++//                       first step after its copy completes. 0 = all of a step's copies are queued at once
++//                       and published two steps later.
++//   LLAMA_EC_MAX_PENDING  paced mode: no new admissions while this many copies are queued (0 = no limit)
++//   LLAMA_EC_CHECK      1 = the graph also records the per-layer GPU/CPU ids it used, checked against the host maps
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
 +
++#include <atomic>
++#include <condition_variable>
 +#include <cstdint>
++#include <deque>
++#include <memory>
++#include <mutex>
++#include <thread>
 +#include <map>
 +#include <string>
 +#include <vector>
@@ -849,7 +986,8 @@ index 0000000..d3cf8e3
 +    // graph building
 +    const layer * get_layer(int il) const;
 +    ggml_tensor * slot_for(int il, const ggml_tensor * src) const;   // nullptr if src is not cached
-+    ggml_tensor * routing_view(ggml_context * ctx, int il, int n_used);
++    ggml_tensor * routing_view(ggml_context * ctx, int il, int n_used, int which = 0); // 0 sel, 1 gpu ids, 2 cpu ids
++    bool check() const { return check_ids; }
 +
 +    // host-side maps copied into the graph inputs before every step
 +    const std::vector<int32_t> & gpu_map(int il) const;
@@ -870,7 +1008,13 @@ index 0000000..d3cf8e3
 +    double half_life = 16.0;
 +    double kappa = 0.0;
 +    bool overlap_cpu = true;
++    bool check_ids = false;
++    int max_admit = 0;
++    size_t chunk = 0;
++    bool paced = true;
++    int max_pending = 0;
 +    std::string stats_path;
++    uint64_t check_steps = 0, check_bad = 0, check_gpu = 0, check_total = 0;
 +
 +private:
 +    void admit(layer & L, int slot, int e);
@@ -880,8 +1024,21 @@ index 0000000..d3cf8e3
 +
 +    ggml_context * ctx = nullptr;       // slot and routing tensor metadata
 +    ggml_backend_buffer_t buf = nullptr;
-+    ggml_tensor * routing = nullptr;    // [n_used, n_moe_layers] I32, written by the graph
++    ggml_tensor * routing = nullptr;    // [n_used, 3*n_moe_layers] I32 (sel, gpu ids, cpu ids), written by the graph
 +    std::vector<int32_t> routing_host;
++
++    // paced copies: a thread drains the queue one piece at a time
++    struct copy_job { int li; int slot; int expert; };
++    std::thread copier;
++    std::mutex mtx;
++    std::condition_variable cv;
++    std::deque<copy_job> queue;
++    bool stopping = false;
++    std::atomic<int> pending{0};
++    std::vector<std::unique_ptr<std::atomic<int>[]>> done;   // [layer][slot]: expert+1 once its copy completed
++    ggml_backend_event_t piece_event = nullptr;
++    void copier_main();
++    void copy_expert(const layer & L, int s, int e, bool paced_pieces);
 +
 +    ggml_backend_t copy_backend = nullptr;      // separate stream for slot copies (GPU only)
 +    ggml_backend_event_t events[2] = {nullptr, nullptr};
@@ -891,7 +1048,7 @@ index 0000000..d3cf8e3
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index 0b3bab6..43a71b1 100644
+index 0b3bab6..6ddcea8 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,4 +1,5 @@
@@ -949,7 +1106,7 @@ index 0b3bab6..43a71b1 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2389,135 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2389,139 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -1016,6 +1173,10 @@ index 0b3bab6..43a71b1 100644
 +    ggml_tensor * cid = ggml_reshape_2d(ctx0, gr_c, n_expert_used, n_tokens);
 +    ggml_build_forward_expand(gf, gid);
 +    ggml_build_forward_expand(gf, cid);
++    if (ec->check()) {
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_g, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 1)));
++        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_c, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 2)));
++    }
 +
 +    // one expert FFN over the entries `ids` selects; entries with id < 0 produce zeros
 +    auto path = [&](ggml_tensor * ids, bool on_gpu) -> ggml_tensor * {
@@ -1276,10 +1437,10 @@ index 0000000..1654fea
 +target_compile_features(${TARGET} PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..fbe7d1b
+index 0000000..611f0dd
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,316 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -1298,10 +1459,13 @@ index 0000000..fbe7d1b
 +#include <cstdio>
 +#include <cstdlib>
 +#include <cstring>
++#include <unistd.h>
 +#include <fstream>
 +#include <sstream>
 +#include <string>
 +#include <vector>
++
++extern char ** environ;
 +
 +struct seq_t {
 +    std::vector<llama_token> ids;
@@ -1434,7 +1598,8 @@ index 0000000..fbe7d1b
 +        }
 +    }
 +
-+    // expert-cache configurations: "k=v:k=v;k=v:..." with k in {slots, policy, overlap, init, stats, half_life, kappa, seqs};
++    // expert-cache configurations: "k=v:k=v;k=v:..." with k any LLAMA_EC_<K> variable (slots, policy, overlap, init, stats,
++    // half_life, kappa, max_admit, chunk, check) or seqs;
 +    // each configuration gets its own context on the same loaded model. Empty = one run with the current environment.
 +    std::vector<std::vector<std::pair<std::string, std::string>>> configs;
 +    {
@@ -1462,8 +1627,16 @@ index 0000000..fbe7d1b
 +    for (size_t ci = 0; ci < configs.size(); ++ci) {
 +        std::string label;
 +        if (!ec_configs.empty()) {
-+            for (const char * k : { "LLAMA_EC_SLOTS", "LLAMA_EC_POLICY", "LLAMA_EC_OVERLAP", "LLAMA_EC_INIT", "LLAMA_EC_STATS", "LLAMA_EC_HALF_LIFE", "LLAMA_EC_KAPPA" }) {
-+                unsetenv(k);
++            {   // clear every LLAMA_EC_* variable so nothing leaks from the previous configuration
++                std::vector<std::string> keys;
++                for (char ** e = environ; *e; ++e) {
++                    if (strncmp(*e, "LLAMA_EC_", 9) == 0) {
++                        keys.emplace_back(*e, strchr(*e, '=') - *e);
++                    }
++                }
++                for (auto & k : keys) {
++                    unsetenv(k.c_str());
++                }
 +            }
 +            for (auto & [k, v] : configs[ci]) {
 +                if (k == "seqs") {

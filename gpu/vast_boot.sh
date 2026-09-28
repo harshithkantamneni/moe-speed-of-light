@@ -18,7 +18,7 @@ find "$OUT" -type f -size +8M -printf '%s %p\n' > "$OUT/omitted_large_files.txt"
 find "$OUT" -type f -size +8M -delete
 tar -C "$W/results" -czf /tmp/r.tgz "$JOB"
 sha=$(sha256sum /tmp/r.tgz | cut -d' ' -f1); n=$(stat -c %s /tmp/r.tgz)
-base64 -w 0 /tmp/r.tgz | fold -w 1000 > /tmp/r.b64; echo >> /tmp/r.b64   # fold leaves the last line unterminated
+base64 -w 0 /tmp/r.tgz | fold -w 400 > /tmp/r.b64; echo >> /tmp/r.b64   # fold leaves the last line unterminated
 lines=$(wc -l < /tmp/r.b64)
 emit() {
   echo "@@RESULT_BEGIN $JOB rc=$rc sha256=$sha bytes=$n lines=$lines"

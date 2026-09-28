@@ -15,10 +15,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..4a8f041
+index 0000000..b6eda64
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,75 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -57,7 +57,8 @@ index 0000000..4a8f041
 +enum ggml_ec_mode {
 +    GGML_EC_REQUEST = 0,
 +    GGML_EC_WAIT    = 1,
-+    GGML_EC_FETCH   = 2,   // move some of this step's misses into slots before the GPU path runs (see below)
++    GGML_EC_FETCH   = 2,   // decide which of this step's misses move into slots (see below)
++    GGML_EC_FETCH_COPY = 3,   // copy them; placed after REQUEST so the helpers start first and the copy overlaps them
 +};
 +
 +// FETCH: when m of a layer's selected experts miss, copy table[m] of them (in selection order, i.e. highest router
@@ -68,6 +69,7 @@ index 0000000..4a8f041
 +struct ggml_ec_fetch {
 +    int32_t      n_t;                              // expert tensors of the layer (weights, then per-expert biases)
 +    int32_t      blocks;                           // thread blocks of the copy kernel
++    int32_t      copy_in_plan;                     // 1 = FETCH copies right away (no FETCH_COPY op in the graph)
 +    int32_t      table[GGML_EC_MAX_K + 1];         // experts to fetch when m selected experts miss
 +    const void * src[GGML_EC_FETCH_MAX_T];         // device pointers of the pinned host expert tensors
 +    void       * slot[GGML_EC_FETCH_MAX_T];        // device pointers of the slot tensors
@@ -305,10 +307,10 @@ index 8d9cf69..005d774 100644
      }
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..22e33d4
+index 0000000..b7fbbfe
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,237 @@
+@@ -0,0 +1,249 @@
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
@@ -475,9 +477,13 @@ index 0000000..22e33d4
 +    __threadfence_system();
 +}
 +
-+static __global__ void ec_fetch_copy_kernel(const int32_t * __restrict__ plan, const ggml_ec_fetch f) {
++static __global__ void ec_fetch_copy_kernel(const int32_t * __restrict__ plan, const ggml_ec_fetch f,
++                                            const int32_t * __restrict__ gid_in, int32_t * __restrict__ gid_out, const int k) {
 +    const int n = plan[0];
 +    const size_t tid = (size_t) blockIdx.x * blockDim.x + threadIdx.x, nth = (size_t) gridDim.x * blockDim.x;
++    if (gid_out && tid < (size_t) k) {
++        gid_out[tid] = gid_in[tid];   // the GPU path reads its ids from here, so it runs after the copy
++    }
 +    for (int i = 0; i < n; ++i) {
 +        const int e = plan[1 + 2 * i], v = plan[2 + 2 * i];
 +        for (int t = 0; t < f.n_t; ++t) {
@@ -514,7 +520,15 @@ index 0000000..22e33d4
 +        GGML_ASSERT(k == ggml_nelements(cid) && k <= GGML_EC_MAX_K && ggml_nelements(dst) >= 2 * k + 1 + 2 * k);
 +        ec_fetch_plan_kernel<<<1, 32, 0, stream>>>((const int32_t *) gid->data, (const int32_t *) cid->data,
 +                (const int32_t *) vic->data, k, (int) ggml_nelements(vic), *p->fetch, (int32_t *) dst->data);
-+        ec_fetch_copy_kernel<<<p->fetch->blocks, 256, 0, stream>>>((const int32_t *) dst->data + 2 * k, *p->fetch);
++        if (p->fetch->copy_in_plan) {   // one-op form (no overlap): copy right away
++            ec_fetch_copy_kernel<<<p->fetch->blocks, 256, 0, stream>>>((const int32_t *) dst->data + 2 * k, *p->fetch, nullptr, nullptr, k);
++        }
++    } else if (p->mode == GGML_EC_FETCH_COPY) {
++        const ggml_tensor * plan = dst->src[0];   // the FETCH op's output: [gid2 | cid2 | plan]
++        GGML_ASSERT(p->fetch != nullptr && plan->type == GGML_TYPE_I32 && dst->type == GGML_TYPE_I32);
++        const int k = (int) ggml_nelements(dst);
++        ec_fetch_copy_kernel<<<p->fetch->blocks, 256, 0, stream>>>((const int32_t *) plan->data + 2 * k, *p->fetch,
++                (const int32_t *) plan->data, (int32_t *) dst->data, k);
 +    } else if (p->mode == GGML_EC_REQUEST) {
 +        const ggml_tensor * x   = dst->src[0];
 +        const ggml_tensor * ids = dst->src[1];
@@ -1028,10 +1042,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..eda7656
+index 0000000..832b50c
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1140 @@
+@@ -0,0 +1,1146 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1312,13 +1326,15 @@ index 0000000..eda7656
 +                memset(fl_host, 0, layers.size() * per * sizeof(int32_t));
 +                int32_t * fl_dev = (int32_t *) dev_ptr(fl_host);
 +                fetch_args.assign(layers.size(), ggml_ec_fetch{});
-+                fetch_ops.assign(layers.size(), ggml_ec_op{});
++                fetch_ops.assign(2 * layers.size(), ggml_ec_op{});
++                fetch_overlap = env_int("LLAMA_EC_FETCH_OVERLAP", 1) != 0;
 +                for (size_t li = 0; li < layers.size(); ++li) {
 +                    const layer & L = layers[li];
 +                    ggml_ec_fetch & f = fetch_args[li];
 +                    GGML_ASSERT(L.src.size() <= GGML_EC_FETCH_MAX_T);
 +                    f.n_t = (int32_t) L.src.size();
 +                    f.blocks = fetch_blocks;
++                    f.copy_in_plan = fetch_overlap ? 0 : 1;
 +                    for (int m = 0; m <= GGML_EC_MAX_K; ++m) {
 +                        f.table[m] = m <= max_used ? fetch_table[m] : fetch_table[max_used];
 +                    }
@@ -1328,10 +1344,14 @@ index 0000000..eda7656
 +                        f.stride[k] = (int64_t) expert_stride(L.src[k]);
 +                    }
 +                    f.log = fl_dev + li * per;
-+                    ggml_ec_op & o = fetch_ops[li];
++                    ggml_ec_op & o = fetch_ops[2 * li + 0];
 +                    o.mode  = GGML_EC_FETCH;
 +                    o.layer = (int32_t) li;
 +                    o.fetch = &fetch_args[li];
++                    ggml_ec_op & oc = fetch_ops[2 * li + 1];
++                    oc.mode  = GGML_EC_FETCH_COPY;
++                    oc.layer = (int32_t) li;
++                    oc.fetch = &fetch_args[li];
 +                }
 +                LLAMA_LOG_INFO("%s: fetch table %s (%d copy blocks)\n", __func__, ft_str(fetch_table).c_str(), fetch_blocks);
 +            }
@@ -1564,8 +1584,8 @@ index 0000000..eda7656
 +    return !fetch_table.empty() && use_mailbox(il) && L && L->C > 0 && L->C < L->n_expert;
 +}
 +
-+ggml_ec_op * llama_expert_cache::fetch_op(int il) {
-+    return &fetch_ops[idx_of.at(il)];
++ggml_ec_op * llama_expert_cache::fetch_op(int il, int which) {
++    return &fetch_ops[2 * idx_of.at(il) + which];
 +}
 +
 +void llama_expert_cache::copy_expert(const layer & L, int s, int e, bool paced_pieces) {
@@ -2174,10 +2194,10 @@ index 0000000..eda7656
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..0d709d6
+index 0000000..da1f9a3
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,216 @@
+@@ -0,0 +1,219 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -2205,10 +2225,10 @@ index 0000000..0d709d6
 +//   LLAMA_EC_MAX_ADMIT  at most this many slot copies per decode step over all layers (0 = no limit);
 +//                       layers take turns being first, so no layer is starved
 +//   LLAMA_EC_CHUNK      issue slot copies in pieces of this many bytes (0 = one copy per tensor)
-+//   LLAMA_EC_PACED      1 (default) = a copy thread keeps at most one piece in flight, so the step's own
++//   LLAMA_EC_PACED      1 = a copy thread keeps at most one piece in flight, so the step's own
 +//                       small host<->device transfers never queue behind admissions; a slot is used from the
 +//                       first step after its copy completes. 0 = all of a step's copies are queued at once
-+//                       and published two steps later.
++//                       and published two steps later (default).
 +//   LLAMA_EC_MAX_PENDING  paced mode: no new admissions while this many copies are queued (0 = no limit)
 +//   LLAMA_EC_ZC         1 (default, CUDA with pinned experts) = slot copies are done by a copy kernel reading
 +//                       pinned host memory (SM loads), not by the copy engine that carries the step's own
@@ -2222,12 +2242,14 @@ index 0000000..0d709d6
 +//                       experts on the helpers.
 +//   LLAMA_EC_HELPERS    helper threads in mailbox mode (default: hardware threads - 2)
 +//   LLAMA_EC_TIMEOUT_MS a GPU wait for the helpers gives up after this long (default 2000; the step then aborts)
-+//   LLAMA_EC_PIN       1 = pin helper i to CPU i+1 (CPU 0 is left to the thread driving the GPU)
++//   LLAMA_EC_PIN       1 = pin helper i to CPU i+1 (CPU 0 is left to the thread driving the GPU); default 0
 +//   LLAMA_EC_FETCH     mailbox mode: comma-separated table T[m], m = 0.. (the last entry repeats): when m of a layer's
 +//                      selected experts miss, T[m] of them are copied into slots on the GPU at once (lowest decayed
 +//                      score evicted first, never a slot in use this step) and served there this step; the helpers
 +//                      run the rest. Empty or unset = off. Suits hosts whose PCIe is about as fast as their DRAM.
 +//   LLAMA_EC_FETCH_BLOCKS  thread blocks of the fetch copy kernel (default 64)
++//   LLAMA_EC_FETCH_OVERLAP 1 (default) = hand the helpers their share first, then copy (the copy overlaps them);
++//                       0 = copy, then hand over
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
@@ -2300,7 +2322,8 @@ index 0000000..0d709d6
 +    bool use_mailbox(int il) const;                         // the decode graph hands this layer's CPU experts to the helpers
 +    ggml_ec_op * mailbox_op(int il, int mode);  // userdata of the layer's REQUEST / WAIT op
 +    bool fetch_enabled(int il) const;                       // the decode graph adds a FETCH op before this layer's GPU path
-+    ggml_ec_op * fetch_op(int il);                          // userdata of the layer's FETCH op
++    ggml_ec_op * fetch_op(int il, int which = 0);           // userdata of the layer's FETCH (0) / FETCH_COPY (1) op
++    bool fetch_overlap = true;                              // copy after REQUEST, overlapping the helpers
 +    void set_act(int il, int act);                          // 0 swiglu, 1 swiglu_oai (set while building the graph)
 +
 +    // decode loop hooks
@@ -2341,7 +2364,7 @@ index 0000000..0d709d6
 +    int64_t y_off = 0, y_stride = 0;
 +    std::vector<ggml_ec_op> mb_ops;             // [2 * n_layers]: REQUEST, WAIT of every layer
 +    std::vector<ggml_ec_fetch> fetch_args;      // [n_layers] (FETCH)
-+    std::vector<ggml_ec_op> fetch_ops;          // [n_layers]
++    std::vector<ggml_ec_op> fetch_ops;          // [2 * n_layers]: FETCH, FETCH_COPY of every layer
 +    ggml_backend_buffer_t fl_buf = nullptr;     // pinned: per layer, the last step's fetch log (n, (expert, slot)...)
 +    int32_t * fl_host = nullptr;
 +    std::vector<std::thread> helpers;
@@ -2395,7 +2418,7 @@ index 0000000..0d709d6
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index a806126..091b69e 100644
+index a806126..d655adb 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -2456,7 +2479,7 @@ index a806126..091b69e 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2391,211 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2391,222 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -2607,17 +2630,19 @@ index a806126..091b69e 100644
 +        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_c, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 2)));
 +    }
 +
++    ggml_tensor * f_plan = nullptr;
 +    if (mailbox && n_tokens == 1 && ec->fetch_enabled(il)) {
-+        // move up to T[m] of this step's misses into slots now and serve them on the GPU (FETCH, ggml-ec.h)
++        // move up to T[m] of this step's misses into slots and serve them on the GPU (FETCH, ggml-ec.h). With
++        // overlap, FETCH only decides; the copy (FETCH_COPY) follows the REQUEST below, so the helpers start first.
 +        ggml_tensor * vic = ggml_view_1d(ctx0, maps, maps->ne[0], (size_t) (3 * li + 2) * maps->nb[1]);
 +        ggml_tensor * f_args[3] = { ggml_reshape_1d(ctx0, gid, n_expert_used), ggml_reshape_1d(ctx0, cid, n_expert_used), vic };
-+        ggml_tensor * f = ggml_custom_4d(ctx0, GGML_TYPE_I32, 4 * n_expert_used + 1, 1, 1, 1, f_args, 3, ggml_ec_op_stub, 1,
-+                ec->fetch_op(il));
-+        ggml_format_name(f, "ec_fetch-%d", il);
-+        ggml_backend_sched_set_tensor_backend(sched, f, be_gpu);
-+        ggml_build_forward_expand(gf, f);
-+        gid = ggml_view_2d(ctx0, f, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), 0);
-+        cid = ggml_view_2d(ctx0, f, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), n_expert_used * sizeof(int32_t));
++        f_plan = ggml_custom_4d(ctx0, GGML_TYPE_I32, 4 * n_expert_used + 1, 1, 1, 1, f_args, 3, ggml_ec_op_stub, 1,
++                ec->fetch_op(il, 0));
++        ggml_format_name(f_plan, "ec_fetch-%d", il);
++        ggml_backend_sched_set_tensor_backend(sched, f_plan, be_gpu);
++        ggml_build_forward_expand(gf, f_plan);
++        gid = ggml_view_2d(ctx0, f_plan, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), 0);
++        cid = ggml_view_2d(ctx0, f_plan, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), n_expert_used * sizeof(int32_t));
 +    }
 +
 +    if (mailbox) {
@@ -2629,6 +2654,15 @@ index a806126..091b69e 100644
 +        ggml_format_name(req, "ec_req-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, req, be_gpu);
 +        ggml_build_forward_expand(gf, req);
++        if (f_plan && ec->fetch_overlap) {
++            ggml_tensor * c_args[2] = { f_plan, req };
++            ggml_tensor * fc = ggml_custom_4d(ctx0, GGML_TYPE_I32, n_expert_used, 1, 1, 1, c_args, 2, ggml_ec_op_stub, 1,
++                    ec->fetch_op(il, 1));
++            ggml_format_name(fc, "ec_fetch_copy-%d", il);
++            ggml_backend_sched_set_tensor_backend(sched, fc, be_gpu);
++            ggml_build_forward_expand(gf, fc);
++            gid = ggml_reshape_2d(ctx0, fc, n_expert_used, n_tokens);
++        }
 +        ggml_tensor * out_gpu = path(gid, true);
 +        cb(out_gpu, "ffn_moe_ec_gpu", il);
 +        ggml_build_forward_expand(gf, out_gpu);

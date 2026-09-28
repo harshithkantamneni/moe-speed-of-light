@@ -1,0 +1,206 @@
++++ dirname /w/jobs/059_ckpt2_homepc@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=16
++ echo 'physical cores 16'
++ tee /w/results/059_ckpt2_homepc@vast/cores.txt
+physical cores 16
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ timeout 15m /work/concur
++ build_all
+++ date +%s
++ local t0=1790635680
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-ec-cpubench test-backend-ops llama-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench llama-ec-cpubench test-backend-ops llama-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/059_ckpt2_homepc@vast/build_lc-ec.txt
++ build_tree /work/lc-stock '' test-backend-ops llama-bench llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target test-backend-ops llama-bench llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/059_ckpt2_homepc@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
+++ date +%s
++ echo 'builds took 217 s'
+builds took 217 s
++ timeout 20m /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID_EC
++ echo 'ops MUL_MAT_ID_EC rc=0'
+ops MUL_MAT_ID_EC rc=0
++ timeout 30m compute-sanitizer --tool memcheck --error-exitcode 9 /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID_EC
++ echo 'memcheck rc=0'
+memcheck rc=0
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790635926
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
++ mv /work/models/gpt-oss-120b-MXFP4.gguf.part /work/models/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf: 63387346208 bytes in 653 s'
+download gpt-oss-120b-MXFP4.gguf: 63387346208 bytes in 653 s
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ H=14
++ MB=mailbox=1:tdec=1:helpers=14
++ COMMON='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap'
++ CFG=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C14.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C32.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C56.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/059_ckpt2_homepc@vast/ec_C56.json' --dump /w/results/059_ckpt2_homepc@vast/ec.bin
++ echo 'ec rc=0'
+ec rc=0
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 32 --dump /w/results/059_ckpt2_homepc@vast/static_n32.bin
++ echo 'static n=32 rc=0'
+static n=32 rc=0
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27 --dump /w/results/059_ckpt2_homepc@vast/static_n27.bin
++ echo 'static n=27 rc=0'
+static n=27 rc=0
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 20 --dump /w/results/059_ckpt2_homepc@vast/static_n20.bin
++ echo 'static n=20 rc=0'
+static n=20 rc=0
++ for n in 32 27 20
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 32 -fa on -lm none -t 16 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=32 t=16 rc=0'
+llama-bench n=32 t=16 rc=0
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 32 -fa on -lm none -t 8 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=32 t=8 rc=0'
+llama-bench n=32 t=8 rc=0
++ for n in 32 27 20
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 27 -fa on -lm none -t 16 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=27 t=16 rc=0'
+llama-bench n=27 t=16 rc=0
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 27 -fa on -lm none -t 8 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=27 t=8 rc=0'
+llama-bench n=27 t=8 rc=0
++ for n in 32 27 20
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 20 -fa on -lm none -t 16 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=20 t=16 rc=0'
+llama-bench n=20 t=16 rc=0
++ for t in $CORES $(( CORES / 2 ))
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -ncmoe 20 -fa on -lm none -t 8 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench n=20 t=8 rc=0'
+llama-bench n=20 t=8 rc=0
++ CFGF=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3
++ for C in 14 32 56
++ CFGF='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C14.json'
++ for C in 14 32 56
++ CFGF='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C32.json'
++ for C in 14 32 56
++ CFGF='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C56.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/059_ckpt2_homepc@vast/ecf_C56.json' --dump /w/results/059_ckpt2_homepc@vast/ecf.bin
++ echo 'ec fetch rc=0'
+ec fetch rc=0
++ python3 - /w/results/059_ckpt2_homepc@vast
++ tee /w/results/059_ckpt2_homepc@vast/summary.txt
+memcheck_mmid_ec.txt: OK 30 FAIL 0 memcheck errors 0 | 28/28 tests passed
+ops_mmid_ec.txt: OK 30 FAIL 0 | 28/28 tests passed
+ncmoe 32 / C 14: ours   52.6 tok/s nll 0.5995 hit 0.541373 | static(ec-bench)   30.4 nll 0.6040 | llama-bench best   31.2 (t=16) | R_ll 1.683 top1 agree 0.9902 dNLL -0.75%
+   + fetch:   53.5 tok/s nll 0.6017 hit 0.583591 fetches 63129 | vs cache 1.018x | R_ll 1.713 top1 agree 0.9889 dNLL -0.38%
+ncmoe 27 / C 32: ours   79.0 tok/s nll 0.6006 hit 0.757799 | static(ec-bench)   36.2 nll 0.6052 | llama-bench best   36.3 (t=16) | R_ll 2.174 top1 agree 0.9870 dNLL -0.75%
+   + fetch:   83.8 tok/s nll 0.6015 hit 0.786418 fetches 34953 | vs cache 1.060x | R_ll 2.305 top1 agree 0.9889 dNLL -0.61%
+ncmoe 20 / C 56: ours  116.5 tok/s nll 0.6040 hit 0.875425 | static(ec-bench)   46.4 nll 0.6031 | llama-bench best   46.7 (t=16) | R_ll 2.493 top1 agree 0.9857 dNLL +0.14%
+   + fetch:  120.3 tok/s nll 0.6021 hit 0.893198 fetches 18791 | vs cache 1.032x | R_ll 2.574 top1 agree 0.9883 dNLL -0.17%

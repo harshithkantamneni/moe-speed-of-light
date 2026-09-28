@@ -20,13 +20,27 @@ from mosl.ecsim import load_steps, simulate  # noqa: E402
 from scripts.oracle_hits import belady_layer  # noqa: E402
 
 B_G, B_C, B_P = 514.4e9, 151.4e9, 25.2e9   # jobs 001 (device read 1 GiB, STREAM-like read at 30 threads (018), H2D pinned)
-MODELS = {  # tag -> (trace dir, corpus, test seqs, L, E, k, expert bytes, dense bytes, all-GPU reference tag, kappa)
+GGUF = {"gpt-oss-20b-MXFP4": "ggml-org/gpt-oss-20b-GGUF/gpt-oss-20b-MXFP4.gguf",
+        "Qwen3-30B-A3B-Instruct-2507-Q4_K_M": "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf",
+        "Qwen3-30B-A3B-Instruct-2507-Q8_0": "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/Qwen3-30B-A3B-Instruct-2507-Q8_0.gguf"}
+
+
+def dense_bytes(tag):
+    """Non-expert weight bytes read per token: dense layers plus the LM head (erratum E6: the head was omitted
+    before 28 Sep 2026, which put too much of the all-GPU step on experts and made the bound too fast)."""
+    g = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "gguf_bytes.json")))[GGUF[tag]]
+    return int(g["dense_bytes"] + g["head_bytes"])
+
+
+MODELS = {  # tag -> (trace dir, corpus, test seqs, L, E, k, expert bytes, dense bytes incl. LM head, all-GPU reference tag, kappa)
     "gpt-oss-20b-MXFP4": ("data/traces/gpt-oss-20b", "data/tok_gpt-oss-20b.jsonl", [7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 31],
-                          24, 32, 4, 13253760, 687012096, "gpt-oss-20b-MXFP4", 1.0),
+                          24, 32, 4, 13253760, dense_bytes("gpt-oss-20b-MXFP4"), "gpt-oss-20b-MXFP4", 1.0),
     "Qwen3-30B-A3B-Instruct-2507-Q4_K_M": ("data/traces/qwen3-30b-a3b", "data/tok_qwen3_30b.jsonl", [7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 32],
-                                           48, 128, 8, 2800000, 567271424, "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", 2.0),
+                                           48, 128, 8, 2800000, dense_bytes("Qwen3-30B-A3B-Instruct-2507-Q4_K_M"),
+                                           "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", 2.0),
     "Qwen3-30B-A3B-Instruct-2507-Q8_0": ("data/traces/qwen3-30b-a3b", "data/tok_qwen3_30b.jsonl", [7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 32],
-                                         48, 128, 8, 5013504, 1013768192, "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", 2.0),
+                                         48, 128, 8, 5013504, dense_bytes("Qwen3-30B-A3B-Instruct-2507-Q8_0"),
+                                         "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", 2.0),
 }
 
 

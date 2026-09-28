@@ -15,18 +15,20 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from mosl import cachesim, ecsim_fast  # noqa: E402
 from mosl.traces import load_pack  # noqa: E402
-from scripts.sol_a10 import B_C, B_G, B_P, bound  # noqa: E402
+from scripts.sol_a10 import B_C, B_G, B_P, bound, dense_bytes  # noqa: E402
 
 TEST = {"gpt-oss": [7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 31], "qwen": [7, 10, 12, 15, 16, 18, 19, 20, 25, 26, 27, 32]}
-MODELS = {  # A10 tag -> (prompts key, pack names by arm, E, k, kappa, expert bytes, dense bytes, all-GPU tag, budgets)
+MODELS = {  # A10 tag -> (prompts key, pack names by arm, E, k, kappa, expert bytes, dense bytes incl. LM head, all-GPU tag, budgets)
     "gpt-oss-20b-MXFP4": ("gpt-oss-20b", {"D": "gpt-oss-20b_tok.npz", "S": "gpt-oss-20b_S.npz", "G": "gpt-oss-20b_G.npz"},
-                          32, 4, 1.0, 13253760, 687012096, "gpt-oss-20b-MXFP4", (1, 2, 4)),
+                          32, 4, 1.0, 13253760, dense_bytes("gpt-oss-20b-MXFP4"), "gpt-oss-20b-MXFP4", (1, 2, 4)),
     "Qwen3-30B-A3B-Instruct-2507-Q4_K_M": ("qwen3-30b-a3b", {"D": "qwen3-30b-a3b_tok.npz", "S": "qwen3-30b-a3b_fp8_S.npz",
                                                              "G": "qwen3-30b-a3b_fp8_G.npz"},
-                                           128, 8, 2.0, 2800000, 567271424, "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", (1, 2, 4)),
+                                           128, 8, 2.0, 2800000, dense_bytes("Qwen3-30B-A3B-Instruct-2507-Q4_K_M"),
+                                           "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", (1, 2, 4)),
     "Qwen3-30B-A3B-Instruct-2507-Q8_0": ("qwen3-30b-a3b", {"D": "qwen3-30b-a3b_tok.npz", "S": "qwen3-30b-a3b_fp8_S.npz",
                                                            "G": "qwen3-30b-a3b_fp8_G.npz"},
-                                         128, 8, 2.0, 5013504, 1013768192, "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", (1, 2, 4)),
+                                         128, 8, 2.0, 5013504, dense_bytes("Qwen3-30B-A3B-Instruct-2507-Q8_0"),
+                                         "Qwen3-30B-A3B-Instruct-2507-Q4_K_M", (1, 2, 4)),
 }
 N_DECODE = 192
 

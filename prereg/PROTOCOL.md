@@ -738,3 +738,12 @@ job 051/053 measures, so git history orders them.
   On the audit's datasheet basis, measured/predicted llama.cpp with experts offloaded has median 1.22 (A10),
   0.83 (A100 host) and 0.86 (GH200); single configurations 0.44–1.35.
   Scaling every predicted baseline by 0.83 / 1.22: 13 / 19 of 20 weak, 10 / 4 of 22 survive.
+- **Erratum (28 Sep 2026): the case-study bound omitted the LM head.** `scripts/sol_a10.py` and
+  `scripts/sol_windows.py` split the measured all-GPU step into dense and expert work by bytes, but their dense bytes
+  left out the LM head (615 MB for gpt-oss-20b, 255 MB for Qwen3-30B-A3B Q4_K_M, 331 MB for Q8_0), unlike
+  `mosl/perfmodel.py` and `scripts/preregister.py`. Too much of the step was charged to experts, so the bound was
+  8–12 % too fast. Both scripts now read dense + head bytes from `data/gguf_bytes.json`; `prereg/a10_mb/sol.json`,
+  `prereg/a10_windows/sol_D.json` and `prereg/a10_windows_038/sol_{D,S}.json` were regenerated. The case study now
+  reads 51–72 % of the bound for the cache (was 47–64 %) and 36–50 % for llama.cpp (was 33–45 %); the bound for
+  gpt-oss-20b is 161.6 tok/s (was 181.0) and for Q4_K_M 183.3 (was 197.3). F4's maximum becomes 1.5 pp (threshold
+  5 pp); no registered outcome changes. The audit's physical bound always included the head and is unaffected.

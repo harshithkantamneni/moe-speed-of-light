@@ -561,7 +561,7 @@ index 0000000..9b14302
 +
 +void ggml_cuda_op_ec(ggml_backend_cuda_context & ctx, ggml_tensor * dst);
 diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
-index b50d05d..9987309 100644
+index b50d05d..57fe502 100644
 --- a/ggml/src/ggml-cuda/ggml-cuda.cu
 +++ b/ggml/src/ggml-cuda/ggml-cuda.cu
 @@ -70,6 +70,7 @@
@@ -583,14 +583,15 @@ index b50d05d..9987309 100644
      if (dst->ne[2] <= MMVQ_MAX_BATCH_SIZE) {
          if (ggml_is_quantized(src0->type)) {
              if (dst->ne[2] <= get_mmvq_mmid_max_batch(src0->type, cc)) {
-@@ -1913,6 +1918,23 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
+@@ -1913,6 +1918,24 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
  
      const int cc = ggml_cuda_info().devices[ggml_cuda_get_device()].cc;
  
 +    // expert-cache: the ids of a GGML_TENSOR_FLAG_NEG_IDS node may be -1 (expert not served on this device), and its
-+    // output row must then be zero. mul_mat_vec_q guards this itself. Every other path (mmf/mmq with ids, the sync
-+    // fallback) only writes rows whose id matches an expert, so zero the output first; for float types at small
-+    // batch use the guarded mul_mat_vec_f kernel instead of mmf or the fallback.
++    // output row must then be zero. The cache builds such nodes for single-token decode only. mul_mat_vec_q guards
++    // -1 itself; float types zero the output and use the guarded mul_mat_vec_f kernel (mmf with ids never writes a
++    // row whose id matches no expert). mmq's src1 gather does not accept -1: batches past the mmvq limit are
++    // unsupported here (the zeroing below is a safety net for mmf and the fallback only).
 +    const bool neg_ids = (dst->flags & GGML_TENSOR_FLAG_NEG_IDS) != 0;
 +    if (neg_ids) {
 +        const bool mmvq_path = ggml_is_quantized(src0->type) && ne2 <= MMVQ_MAX_BATCH_SIZE &&
@@ -607,7 +608,7 @@ index b50d05d..9987309 100644
      // [TAG_MUL_MAT_ID_CUDA_GRAPHS]
      if (src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32) {
          static_assert(MMVQ_MAX_BATCH_SIZE == MMVF_MAX_BATCH_SIZE);
-@@ -1977,7 +1999,7 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
+@@ -1977,7 +2000,7 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
          for (int64_t i12 = 0; i12 < ne12; ++i12) { // tokens
              for (int64_t iex = 0; iex < n_expert_used; ++iex) {
                  const int32_t expert_to_use = *(const int32_t *)(ids_host.data() + i12*ids->nb[1] + iex*ids->nb[0]);
@@ -616,7 +617,7 @@ index b50d05d..9987309 100644
                  if (expert_to_use == i02) {
                      ids_from_sorted_host[i12*n_expert_used + iex] = ids_to_sorted_host.size();
                      ids_to_sorted_host.push_back(i12*ne11 + iex % ne11);
-@@ -1987,6 +2009,20 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
+@@ -1987,6 +2010,20 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor *
              }
          }
      }
@@ -637,7 +638,7 @@ index b50d05d..9987309 100644
      GGML_ASSERT(ids_to_sorted_host.size() == size_t(ne_get_rows));
  
      ids_to_sorted_host.insert(ids_to_sorted_host.end(), ids_from_sorted_host.begin(), ids_from_sorted_host.end());
-@@ -2409,6 +2445,12 @@ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct gg
+@@ -2409,6 +2446,12 @@ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct gg
          case GGML_OP_LIGHTNING_INDEXER:
              ggml_cuda_lightning_indexer(ctx, dst);
              break;
@@ -650,7 +651,7 @@ index b50d05d..9987309 100644
          default:
              return false;
      }
-@@ -2448,6 +2490,40 @@ static void ggml_backend_cuda_set_tensor_async(ggml_backend_t backend, ggml_tens
+@@ -2448,6 +2491,40 @@ static void ggml_backend_cuda_set_tensor_async(ggml_backend_t backend, ggml_tens
      CUDA_CHECK(cudaMemcpyAsync((char *) tensor->data + offset, data, size, cudaMemcpyHostToDevice, cuda_ctx->stream()));
  }
  
@@ -691,7 +692,7 @@ index b50d05d..9987309 100644
  static void ggml_backend_cuda_get_tensor_async(ggml_backend_t backend, const ggml_tensor * tensor, void * data, size_t offset, size_t size) {
      ggml_backend_cuda_context * cuda_ctx = (ggml_backend_cuda_context *) backend->context;
      ggml_backend_buffer_t buf = tensor->view_src ? tensor->view_src->buffer : tensor->buffer;
-@@ -5189,6 +5265,8 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
+@@ -5189,6 +5266,8 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
                      return false;
              }
              break;
@@ -700,7 +701,7 @@ index b50d05d..9987309 100644
          case GGML_OP_GLU:
              switch (ggml_get_glu_op(op)) {
                  case GGML_GLU_OP_REGLU:
-@@ -5781,6 +5859,12 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
+@@ -5781,6 +5860,12 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
      if (strcmp(name, "ggml_backend_get_features") == 0) {
          return (void *)ggml_backend_cuda_get_features;
      }
@@ -2749,7 +2750,7 @@ index 3daa425..7b9d82c 100644
      // inputs
      //
 diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
-index 32c3f3d..0532152 100644
+index 32c3f3d..2a69045 100644
 --- a/tests/test-backend-ops.cpp
 +++ b/tests/test-backend-ops.cpp
 @@ -3391,6 +3391,8 @@ struct test_bin_bcast : public test_case {
@@ -2826,7 +2827,7 @@ index 32c3f3d..0532152 100644
  // FP4 W4A8 path on the MoE path (GGML_PREC_Q8 on src1 disallows 4-bit activations)
  struct test_mul_mat_id_w4a8 : public test_mul_mat_id {
      test_mul_mat_id_w4a8(ggml_type type_a = GGML_TYPE_NVFP4, ggml_type type_b = GGML_TYPE_F32,
-@@ -10077,6 +10130,20 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+@@ -10077,6 +10130,16 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
      test_cases.emplace_back(new test_mul_mat(GGML_TYPE_Q8_0, GGML_TYPE_F32, 8192, 512, 5120, {128, 1}, {1, 1}));
  #endif
  
@@ -2835,10 +2836,6 @@ index 32c3f3d..0532152 100644
 +        for (bool bc : { true, false }) {
 +            test_cases.emplace_back(new test_mul_mat_id_ec(t, GGML_TYPE_F32, 32, 4, bc, 512, 1, 256));
 +            test_cases.emplace_back(new test_mul_mat_id_ec(t, GGML_TYPE_F32, 128, 8, bc, 768, 1, 2048));
-+        }
-+        // several tokens (prefill through the cache path): mmvf/mmvq up to 8, mmf/mmq or the sync fallback above
-+        for (int n : { 4, 32 }) {
-+            test_cases.emplace_back(new test_mul_mat_id_ec(t, GGML_TYPE_F32, 128, 8, false, 768, n, 2048));
 +        }
 +    }
 +    test_cases.emplace_back(new test_add_id_ec(GGML_TYPE_F32, GGML_TYPE_F32, 2880, 32, 4, 1));

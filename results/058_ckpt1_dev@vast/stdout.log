@@ -1,0 +1,157 @@
++++ dirname /w/jobs/058_ckpt1_dev@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ build_all
+++ date +%s
++ local t0=1790634443
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-ec-cpubench test-backend-ops llama-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench llama-ec-cpubench test-backend-ops llama-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/058_ckpt1_dev@vast/build_lc-ec.txt
++ build_tree /work/lc-stock '' test-backend-ops llama-bench llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j24 --target test-backend-ops llama-bench llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/058_ckpt1_dev@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
+++ date +%s
++ echo 'builds took 475 s'
+builds took 475 s
++ R 20m /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID_EC
++ echo 'ops MUL_MAT_ID_EC rc=134'
+ops MUL_MAT_ID_EC rc=134
++ R 10m /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o ADD_ID_EC
++ echo 'ops ADD_ID_EC rc=0'
+ops ADD_ID_EC rc=0
++ R 40m compute-sanitizer --tool memcheck --error-exitcode 9 /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID_EC
++ echo 'memcheck rc=9'
+memcheck rc=9
++ R 40m /work/lc-ec/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID
++ echo 'ops MUL_MAT_ID (patched build) rc=0'
+ops MUL_MAT_ID (patched build) rc=0
++ R 40m /work/lc-stock/build/bin/test-backend-ops -b CUDA0 -o MUL_MAT_ID
++ echo 'ops MUL_MAT_ID (stock build) rc=0'
+ops MUL_MAT_ID (stock build) rc=0
++ getmodel ggml-org/gpt-oss-20b-GGUF gpt-oss-20b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-20b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790634973
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-20b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-MXFP4.gguf
++ mv /work/models/gpt-oss-20b-MXFP4.gguf.part /work/models/gpt-oss-20b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-20b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-20b-MXFP4.gguf: 12109566624 bytes in 215 s'
+download gpt-oss-20b-MXFP4.gguf: 12109566624 bytes in 215 s
++ CORP=/w/jobs/ec2/S_gpt-oss-20b.jsonl
++ SEQ=0,1,2,3,4,5,6,7,8,9,10,11
++ H=22
++ MB=mailbox=1:tdec=1:helpers=22
++ COMMON='--corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 24 --n-prefill 640 --n-decode 128'
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 24 --n-prefill 640 --n-decode 128 --host-experts --ec 'slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=22;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=22:stats=/w/results/058_ckpt1_dev@vast/ec_C8.json' --dump /w/results/058_ckpt1_dev@vast/ec.bin
++ echo 'ec rc=0'
+ec rc=0
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 24 --n-prefill 640 --n-decode 128 --ncmoe 18 --dump /w/results/058_ckpt1_dev@vast/static_n18.bin
++ echo 'static n=18 rc=0'
+static n=18 rc=0
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 24 --n-prefill 640 --n-decode 128 --ncmoe 0 --dump /w/results/058_ckpt1_dev@vast/static_n0.bin
++ echo 'all-GPU rc=0'
+all-GPU rc=0
++ python3 - /w/results/058_ckpt1_dev@vast
++ tee /w/results/058_ckpt1_dev@vast/summary.txt
+memcheck_mmid_ec.txt: OK 0 FAIL 0 memcheck errors 2109 | 
+ops_addid_ec.txt: OK 0 FAIL 0 | 2/2 tests passed Backend CUDA0: [1;32mOK[0m
+ops_mmid_ec.txt: OK 0 FAIL 0 | 
+ops_mmid_patched.txt: OK 0 FAIL 0 | 929/929 tests passed Backend CUDA0: [1;32mOK[0m
+ops_mmid_stock.txt: OK 0 FAIL 0 | 929/929 tests passed Backend CUDA0: [1;32mOK[0m
+cache_C8       40.3 tok/s  nll 0.8055  seqs 12 steps 1536  top1 vs static 0.9947916666666666  vs all-GPU 0.9895833333333334
+static_n18     18.5 tok/s  nll 0.8053  seqs 12 steps 1536  top1 vs static 1.0  vs all-GPU 0.9921875
+all_gpu       246.6 tok/s  nll 0.8050  seqs 12 steps 1536  top1 vs static 0.9921875  vs all-GPU 1.0
+speed-up 2.176x  dNLL +0.03 %  hit rate 0.639723

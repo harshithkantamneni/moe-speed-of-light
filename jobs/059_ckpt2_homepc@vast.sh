@@ -13,6 +13,9 @@ platform
 CORES=$(lscpu -p=CORE | grep -v '^#' | sort -u | wc -l); echo "physical cores $CORES" | tee $OUT/cores.txt
 nvcc -O3 -arch=sm_$SM -Xcompiler -march=native -std=c++17 $J/concur.cu -o $WORK/concur && timeout 15m $WORK/concur > $OUT/concur.txt 2>&1
 build_all
+# checkpoint 1 op tests that job 058 could not reach (its multi-token cases aborted the run): id -1 on every type
+timeout 20m $EC_TESTS -b CUDA0 -o MUL_MAT_ID_EC > $OUT/ops_mmid_ec.txt 2>&1; echo "ops MUL_MAT_ID_EC rc=$?"
+timeout 30m compute-sanitizer --tool memcheck --error-exitcode 9 $EC_TESTS -b CUDA0 -o MUL_MAT_ID_EC > $OUT/memcheck_mmid_ec.txt 2>&1; echo "memcheck rc=$?"
 getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
 F=$M/gpt-oss-120b-MXFP4.gguf
 R() { local t=$1; shift; timeout "$t" "$@"; }
@@ -46,6 +49,12 @@ def runs(p):
     return by
 def rate(v): return sum(r["n_decode"] for r in v) / (sum(r["decode_ms"] for r in v) / 1000)
 def nll(v): return sum(r["nll_sum"] for r in v) / max(1, sum(r["nll_n"] for r in v))
+import re
+for f in sorted(glob.glob(f"{out}/ops_*.txt") + glob.glob(f"{out}/memcheck_*.txt")):
+    t = open(f, errors="replace").read()
+    err = re.findall(r"ERROR SUMMARY: (\d+) error", t)
+    print(f"{os.path.basename(f)}: OK {t.count('OK')} FAIL {t.count('FAIL')}" + (f" memcheck errors {err[-1]}" if err else "") +
+          " | " + " ".join(l.strip() for l in t.splitlines() if "tests passed" in l)[:120])
 def top1(p): return np.fromfile(p, dtype=np.int32).reshape(-1, 10)[:, 0] if os.path.exists(p) and os.path.getsize(p) else None
 ours, oursf, stat, lb = {}, {}, {}, {}
 for tag, dd in (("ec", ours), ("ecf", oursf)):

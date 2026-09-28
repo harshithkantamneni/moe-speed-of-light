@@ -10,10 +10,10 @@ exec 2>&1
 export PATH=/usr/local/cuda/bin:$PATH HF_HUB_ENABLE_HF_TRANSFER=1
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv > $OUT/gpu.csv; lscpu > $OUT/lscpu.txt; free -g > $OUT/free.txt; nvcc --version > $OUT/nvcc.txt
 apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3 python3-venv python3-pip git curl > $OUT/apt.txt 2>&1
-cd $WORK && git init -q ft && cd ft && git remote add origin https://github.com/FlashML-org/FreeToken && git fetch -q --depth 1 origin 0d652e7 && git checkout -q FETCH_HEAD
+cd $WORK && git init -q ft && cd ft && git remote add origin https://github.com/FlashML-org/FreeToken && git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a && git checkout -q FETCH_HEAD || exit 3
 python3 -m pip install -q --break-system-packages uv > $OUT/pip_uv.txt 2>&1
 uv venv -q .venv && . .venv/bin/activate
-( time uv pip install -q -e ".[accel]" huggingface_hub hf_transfer ) > $OUT/install.txt 2>&1; echo "install rc=$?"
+( time uv pip install -q -e ".[accel]" huggingface_hub hf_transfer ) > $OUT/install.txt 2>&1 || { echo "install failed"; exit 4; }
 ft --version | tee $OUT/ft_version.txt
 M=$WORK/models; mkdir -p $M
 ( time hf download openai/gpt-oss-120b --local-dir $M/gpt-oss-120b --exclude "original/*" "metal/*" ) > $OUT/download.txt 2>&1; echo "download rc=$?"

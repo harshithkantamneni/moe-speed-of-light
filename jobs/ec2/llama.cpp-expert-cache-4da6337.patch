@@ -15,10 +15,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..51a86fa
+index 0000000..4a8f041
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,73 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -57,6 +57,22 @@ index 0000000..51a86fa
 +enum ggml_ec_mode {
 +    GGML_EC_REQUEST = 0,
 +    GGML_EC_WAIT    = 1,
++    GGML_EC_FETCH   = 2,   // move some of this step's misses into slots before the GPU path runs (see below)
++};
++
++// FETCH: when m of a layer's selected experts miss, copy table[m] of them (in selection order, i.e. highest router
++// weight first) from pinned host memory into the layer's eviction candidates (a slot list the host ranks by decayed
++// score before every step, skipping slots in use this step) with a kernel that reads the host memory directly, and
++// serve them on the GPU this step; the rest go to the helpers. The (expert, slot) pairs are logged for the host.
++#define GGML_EC_FETCH_MAX_T 8
++struct ggml_ec_fetch {
++    int32_t      n_t;                              // expert tensors of the layer (weights, then per-expert biases)
++    int32_t      blocks;                           // thread blocks of the copy kernel
++    int32_t      table[GGML_EC_MAX_K + 1];         // experts to fetch when m selected experts miss
++    const void * src[GGML_EC_FETCH_MAX_T];         // device pointers of the pinned host expert tensors
++    void       * slot[GGML_EC_FETCH_MAX_T];        // device pointers of the slot tensors
++    int64_t      stride[GGML_EC_FETCH_MAX_T];      // bytes per expert of each tensor
++    int32_t    * log;                              // device pointer into pinned host memory: n, then (expert, slot) pairs
 +};
 +
 +struct ggml_ec_op {
@@ -67,6 +83,7 @@ index 0000000..51a86fa
 +    void    * mailbox;        // device pointer of the pinned mailbox
 +    uint32_t* ctl;            // device memory: [0] = last request sequence number
 +    int64_t   timeout_cycles; // a wait gives up (and sets GGML_EC_MB_ERR) after this many GPU clock cycles
++    const struct ggml_ec_fetch * fetch;   // FETCH only
 +};
 +
 +// the CPU "implementation" of the mailbox ops: aborts (they must be placed on the GPU)
@@ -288,10 +305,10 @@ index 8d9cf69..005d774 100644
      }
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..7a935a1
+index 0000000..22e33d4
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,237 @@
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
@@ -401,11 +418,104 @@ index 0000000..7a935a1
 +    }
 +}
 +
++// FETCH (see ggml-ec.h): src[0] = GPU ids [k] (slot or -1), src[1] = CPU ids [k] (expert or -1), src[2] = eviction
++// candidates [V] (slots, lowest decayed score first, -1 = end). dst = [2k + 1 + 2*GGML_EC_MAX_K] i32: the GPU ids and
++// CPU ids after fetching, then the plan (n, then (expert, slot) pairs), which is also logged for the host.
++static __global__ void ec_fetch_plan_kernel(const int32_t * __restrict__ gid, const int32_t * __restrict__ cid,
++                                            const int32_t * __restrict__ vic, const int k, const int V,
++                                            const ggml_ec_fetch f, int32_t * __restrict__ out) {
++    if (threadIdx.x != 0) {
++        return;
++    }
++    int32_t * og = out;
++    int32_t * oc = out + k;
++    int32_t * plan = out + 2 * k;
++    int m = 0;
++    for (int j = 0; j < k; ++j) {
++        og[j] = gid[j];
++        oc[j] = cid[j];
++        m += cid[j] >= 0;
++    }
++    const int T = f.table[m < k ? m : k];
++    int n = 0, vi = 0;
++    for (int j = 0; j < k && n < T; ++j) {
++        if (cid[j] < 0) {
++            continue;
++        }
++        int v = -1;
++        while (vi < V && v < 0) {
++            const int c = vic[vi++];
++            if (c < 0) {
++                vi = V;
++                break;
++            }
++            bool busy = false;   // a slot serving a hit of this step cannot be overwritten
++            for (int jj = 0; jj < k; ++jj) {
++                busy |= gid[jj] == c;
++            }
++            if (!busy) {
++                v = c;
++            }
++        }
++        if (v < 0) {
++            break;
++        }
++        plan[1 + 2 * n] = cid[j];
++        plan[2 + 2 * n] = v;
++        og[j] = v;
++        oc[j] = -1;
++        n++;
++    }
++    plan[0] = n;
++    volatile int32_t * lg = f.log;
++    for (int i = 0; i < 2 * n; ++i) {
++        lg[1 + i] = plan[1 + i];
++    }
++    lg[0] = n;
++    __threadfence_system();
++}
++
++static __global__ void ec_fetch_copy_kernel(const int32_t * __restrict__ plan, const ggml_ec_fetch f) {
++    const int n = plan[0];
++    const size_t tid = (size_t) blockIdx.x * blockDim.x + threadIdx.x, nth = (size_t) gridDim.x * blockDim.x;
++    for (int i = 0; i < n; ++i) {
++        const int e = plan[1 + 2 * i], v = plan[2 + 2 * i];
++        for (int t = 0; t < f.n_t; ++t) {
++            const size_t st = (size_t) f.stride[t];
++            const char * src = (const char *) f.src[t] + (size_t) e * st;
++            char * dst = (char *) f.slot[t] + (size_t) v * st;
++            if ((((uintptr_t) src | (uintptr_t) dst | st) & 15) == 0) {
++                const int4 * s4 = (const int4 *) src;
++                int4 * d4 = (int4 *) dst;
++                for (size_t q = tid; q < st / 16; q += nth) {
++                    d4[q] = s4[q];
++                }
++            } else {
++                for (size_t q = tid; q < st; q += nth) {
++                    dst[q] = src[q];
++                }
++            }
++        }
++    }
++}
++
 +void ggml_cuda_op_ec(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
 +    const ggml_ec_op * p = ec_params(dst);
 +    GGML_ASSERT(p != nullptr);
 +    cudaStream_t stream = ctx.stream();
-+    if (p->mode == GGML_EC_REQUEST) {
++    if (p->mode == GGML_EC_FETCH) {
++        const ggml_tensor * gid = dst->src[0];
++        const ggml_tensor * cid = dst->src[1];
++        const ggml_tensor * vic = dst->src[2];
++        GGML_ASSERT(p->fetch != nullptr);
++        GGML_ASSERT(gid->type == GGML_TYPE_I32 && cid->type == GGML_TYPE_I32 && vic->type == GGML_TYPE_I32);
++        GGML_ASSERT(ggml_is_contiguous(gid) && ggml_is_contiguous(cid) && ggml_is_contiguous(vic));
++        const int k = (int) ggml_nelements(gid);
++        GGML_ASSERT(k == ggml_nelements(cid) && k <= GGML_EC_MAX_K && ggml_nelements(dst) >= 2 * k + 1 + 2 * k);
++        ec_fetch_plan_kernel<<<1, 32, 0, stream>>>((const int32_t *) gid->data, (const int32_t *) cid->data,
++                (const int32_t *) vic->data, k, (int) ggml_nelements(vic), *p->fetch, (int32_t *) dst->data);
++        ec_fetch_copy_kernel<<<p->fetch->blocks, 256, 0, stream>>>((const int32_t *) dst->data + 2 * k, *p->fetch);
++    } else if (p->mode == GGML_EC_REQUEST) {
 +        const ggml_tensor * x   = dst->src[0];
 +        const ggml_tensor * ids = dst->src[1];
 +        GGML_ASSERT(x->type == GGML_TYPE_F32 && ggml_is_contiguous(x) && ggml_nrows(x) == 1);
@@ -917,10 +1027,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..e539c84
+index 0000000..eda7656
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1029 @@
+@@ -0,0 +1,1140 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -967,6 +1077,14 @@ index 0000000..e539c84
 +
 +static size_t expert_stride(const ggml_tensor * src) {
 +    return src->nb[expert_dim(src)];
++}
++
++static std::string ft_str(const std::vector<int32_t> & t) {
++    std::string s;
++    for (size_t i = 0; i < t.size(); ++i) {
++        s += (i ? "," : "") + std::to_string(t[i]);
++    }
++    return s;
 +}
 +
 +llama_expert_cache::llama_expert_cache(const llama_model & model, ggml_backend_t gpu_backend, ggml_backend_dev_t gpu_dev) {
@@ -1168,6 +1286,54 @@ index 0000000..e539c84
 +            h_xq.assign(xq_max + 64, 0);
 +            aq_stride = (aq_max + 63) / 64 * 64;
 +            h_aq.assign((size_t) max_used * aq_stride + 64, 0);
++
++            if (const char * ft = getenv("LLAMA_EC_FETCH"); ft && *ft) {
++                std::vector<int32_t> t;
++                for (const char * c = ft; *c; ) {
++                    t.push_back((int32_t) strtol(c, (char **) &c, 10));
++                    while (*c == ',' || *c == ' ') {
++                        c++;
++                    }
++                }
++                if (!t.empty()) {
++                    fetch_table.resize(max_used + 1);
++                    for (int m = 0; m <= max_used; ++m) {
++                        fetch_table[m] = std::max(0, std::min(m, t[std::min<size_t>(m, t.size() - 1)]));
++                    }
++                }
++            }
++            fetch_blocks = std::max(1, env_int("LLAMA_EC_FETCH_BLOCKS", 64));
++            if (!fetch_table.empty()) {
++                const size_t per = 1 + 2 * GGML_EC_MAX_K;
++                fl_buf = ggml_backend_buft_alloc_buffer(host_buft, layers.size() * per * sizeof(int32_t));
++                GGML_ASSERT(fl_buf && "expert cache: failed to allocate the fetch log");
++                fl_host = (int32_t *) ggml_backend_buffer_get_base(fl_buf);
++                memset(fl_host, 0, layers.size() * per * sizeof(int32_t));
++                int32_t * fl_dev = (int32_t *) dev_ptr(fl_host);
++                fetch_args.assign(layers.size(), ggml_ec_fetch{});
++                fetch_ops.assign(layers.size(), ggml_ec_op{});
++                for (size_t li = 0; li < layers.size(); ++li) {
++                    const layer & L = layers[li];
++                    ggml_ec_fetch & f = fetch_args[li];
++                    GGML_ASSERT(L.src.size() <= GGML_EC_FETCH_MAX_T);
++                    f.n_t = (int32_t) L.src.size();
++                    f.blocks = fetch_blocks;
++                    for (int m = 0; m <= GGML_EC_MAX_K; ++m) {
++                        f.table[m] = m <= max_used ? fetch_table[m] : fetch_table[max_used];
++                    }
++                    for (size_t k = 0; k < L.src.size(); ++k) {
++                        f.src[k]    = dev_ptr(L.src[k]->data);
++                        f.slot[k]   = L.slot[k]->data;
++                        f.stride[k] = (int64_t) expert_stride(L.src[k]);
++                    }
++                    f.log = fl_dev + li * per;
++                    ggml_ec_op & o = fetch_ops[li];
++                    o.mode  = GGML_EC_FETCH;
++                    o.layer = (int32_t) li;
++                    o.fetch = &fetch_args[li];
++                }
++                LLAMA_LOG_INFO("%s: fetch table %s (%d copy blocks)\n", __func__, ft_str(fetch_table).c_str(), fetch_blocks);
++            }
 +        }
 +    }
 +    if (mailbox) {
@@ -1310,6 +1476,9 @@ index 0000000..e539c84
 +    if (buf) {
 +        ggml_backend_buffer_free(buf);
 +    }
++    if (fl_buf) {
++        ggml_backend_buffer_free(fl_buf);
++    }
 +    if (mb_buf) {
 +        ggml_backend_buffer_free(mb_buf);
 +    }
@@ -1359,15 +1528,43 @@ index 0000000..e539c84
 +
 +void llama_expert_cache::fill_maps(int32_t * dst) const {
 +    const int E = n_expert_max();
++    const double decay = std::pow(0.5, 1.0 / half_life);
 +    for (size_t i = 0; i < layers.size(); ++i) {
 +        const auto & L = layers[i];
-+        int32_t * g = dst + (2 * i + 0) * E;
-+        int32_t * c = dst + (2 * i + 1) * E;
++        int32_t * g = dst + (3 * i + 0) * E;
++        int32_t * c = dst + (3 * i + 1) * E;
++        int32_t * v = dst + (3 * i + 2) * E;
 +        std::fill(g, g + E, -1);
 +        std::fill(c, c + E, -1);
++        std::fill(v, v + E, -1);
 +        std::copy(L.slot_of.begin(), L.slot_of.end(), g);
 +        std::copy(L.cpu_of.begin(), L.cpu_of.end(), c);
++        if (fetch_table.empty() || L.C == 0 || L.C == L.n_expert) {
++            continue;
++        }
++        // FETCH eviction candidates: free slots first, then resident experts by decayed score; never a slot being loaded
++        std::vector<std::pair<double, int>> cand;
++        for (int s = 0; s < L.C; ++s) {
++            if (L.loading[s] >= 0) {
++                continue;
++            }
++            const int r = L.resident[s];
++            cand.emplace_back(r < 0 ? -1.0 : L.score[r] * std::pow(decay, (double) (step - L.last[r])), s);
++        }
++        std::sort(cand.begin(), cand.end());
++        for (size_t q = 0; q < cand.size() && (int) q < E; ++q) {
++            v[q] = cand[q].second;
++        }
 +    }
++}
++
++bool llama_expert_cache::fetch_enabled(int il) const {
++    const layer * L = get_layer(il);
++    return !fetch_table.empty() && use_mailbox(il) && L && L->C > 0 && L->C < L->n_expert;
++}
++
++ggml_ec_op * llama_expert_cache::fetch_op(int il) {
++    return &fetch_ops[idx_of.at(il)];
 +}
 +
 +void llama_expert_cache::copy_expert(const layer & L, int s, int e, bool paced_pieces) {
@@ -1557,6 +1754,29 @@ index 0000000..e539c84
 +                missed.push_back(e);
 +            }
 +        }
++        if (fl_host && L.C > 0 && L.C < L.n_expert) {
++            // experts the GPU fetched into slots this step (FETCH): now resident, the slots' previous experts are not
++            int32_t * lg = fl_host + li * (1 + 2 * GGML_EC_MAX_K);
++            const int32_t n_log = ((volatile int32_t *) lg)[0];
++            const int n = std::min<int32_t>(n_log, GGML_EC_MAX_K);
++            for (int q = 0; q < n; ++q) {
++                const int e = lg[1 + 2 * q], s = lg[2 + 2 * q];
++                if (e < 0 || e >= L.n_expert || s < 0 || s >= L.C) {
++                    continue;
++                }
++                const int old = L.resident[s];
++                if (old >= 0) {
++                    L.slot_of[old] = -1;
++                    L.cpu_of[old]  = old;
++                }
++                L.resident[s] = e;
++                L.slot_of[e]  = s;
++                L.cpu_of[e]   = -1;
++                L.fetches++;
++                missed.erase(std::remove(missed.begin(), missed.end(), e), missed.end());
++            }
++            lg[0] = 0;
++        }
 +        if (policy == STATIC || L.C == 0 || L.C == L.n_expert) {
 +            continue;
 +        }
@@ -1625,9 +1845,9 @@ index 0000000..e539c84
 +    if (!f) {
 +        return;
 +    }
-+    uint64_t h = 0, m = 0, a = 0;
++    uint64_t h = 0, m = 0, a = 0, fe = 0;
 +    for (const auto & L : layers) {
-+        h += L.hits; m += L.misses; a += L.admits;
++        h += L.hits; m += L.misses; a += L.admits; fe += L.fetches;
 +    }
 +    const char * pn = policy == STATIC ? "static" : policy == LRU ? "lru" : "dfa";
 +    fprintf(f, "{\"slots\": %d, \"policy\": \"%s\", \"half_life\": %g, \"kappa\": %g, \"overlap\": %d, \"max_admit\": %d, \"chunk\": %zu, \"paced\": %d, \"max_pending\": %d, \"zc\": %d, \"mailbox\": %d, \"helpers\": %d, \"mxk\": %d, \"steps\": %lld,\n",
@@ -1635,8 +1855,9 @@ index 0000000..e539c84
 +            (int) mailbox, mailbox ? n_helpers : 0, (int) use_mxk, (long long) step);
 +    fprintf(f, " \"check_steps\": %llu, \"check_bad\": %llu, \"check_gpu_frac\": %.6f,\n", (unsigned long long) check_steps,
 +            (unsigned long long) check_bad, check_total ? (double) check_gpu / check_total : 0.0);
-+    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f,\n",
-+            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0);
++    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f, \"fetches\": %llu, \"fetch_table\": \"%s\",\n",
++            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0,
++            (unsigned long long) fe, ft_str(fetch_table).c_str());
 +    fprintf(f, " \"mb_busy_us\": [");
 +    for (size_t m = 0; m < mb_busy_us.size(); ++m) {
 +        fprintf(f, "%s%.1f", m ? "," : "", mb_busy_us[m]);
@@ -1648,8 +1869,8 @@ index 0000000..e539c84
 +    fprintf(f, "],\n \"layers\": [\n");
 +    for (size_t i = 0; i < layers.size(); ++i) {
 +        const auto & L = layers[i];
-+        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, ", L.il, L.C,
-+                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits,
++        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"fetches\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, ", L.il, L.C,
++                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits, (unsigned long long) L.fetches,
 +                (unsigned long long) L.mb_requests, (unsigned long long) L.mb_experts);
 +        fprintf(f, "\"miss_hist\": [");
 +        for (size_t m = 0; m < L.miss_hist.size(); ++m) {
@@ -1952,10 +2173,10 @@ index 0000000..e539c84
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..9ed9415
+index 0000000..0d709d6
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,216 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -2001,6 +2222,11 @@ index 0000000..9ed9415
 +//   LLAMA_EC_HELPERS    helper threads in mailbox mode (default: hardware threads - 2)
 +//   LLAMA_EC_TIMEOUT_MS a GPU wait for the helpers gives up after this long (default 2000; the step then aborts)
 +//   LLAMA_EC_PIN       1 = pin helper i to CPU i+1 (CPU 0 is left to the thread driving the GPU)
++//   LLAMA_EC_FETCH     mailbox mode: comma-separated table T[m], m = 0.. (the last entry repeats): when m of a layer's
++//                      selected experts miss, T[m] of them are copied into slots on the GPU at once (lowest decayed
++//                      score evicted first, never a slot in use this step) and served there this step; the helpers
++//                      run the rest. Empty or unset = off. Suits hosts whose PCIe is about as fast as their DRAM.
++//   LLAMA_EC_FETCH_BLOCKS  thread blocks of the fetch copy kernel (default 64)
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
@@ -2038,7 +2264,7 @@ index 0000000..9ed9415
 +        std::vector<int64_t> last;        // [E]  last step the score was updated
 +        std::vector<int64_t> stamp;       // [E]  last step the expert was used (lru)
 +        std::vector<uint64_t> count;      // [E]  total requests
-+        uint64_t hits = 0, misses = 0, admits = 0;
++        uint64_t hits = 0, misses = 0, admits = 0, fetches = 0;
 +        // mailbox mode: the host expert tensors the helpers compute from, and the activation (0 swiglu, 1 swiglu_oai)
 +        ggml_tensor * w_gate = nullptr, * w_up = nullptr, * w_down = nullptr;
 +        ggml_tensor * b_gate = nullptr, * b_up = nullptr, * b_down = nullptr;
@@ -2072,6 +2298,8 @@ index 0000000..9ed9415
 +    // mailbox mode
 +    bool use_mailbox(int il) const;                         // the decode graph hands this layer's CPU experts to the helpers
 +    ggml_ec_op * mailbox_op(int il, int mode);  // userdata of the layer's REQUEST / WAIT op
++    bool fetch_enabled(int il) const;                       // the decode graph adds a FETCH op before this layer's GPU path
++    ggml_ec_op * fetch_op(int il);                          // userdata of the layer's FETCH op
 +    void set_act(int il, int act);                          // 0 swiglu, 1 swiglu_oai (set while building the graph)
 +
 +    // decode loop hooks
@@ -2099,6 +2327,8 @@ index 0000000..9ed9415
 +    int  n_helpers = 0;
 +    bool pin_helpers = false;
 +    // helper service time (first helper sees the request -> answer published), by number of experts computed
++    std::vector<int32_t>  fetch_table;    // [max_used+1] experts fetched when m miss (empty = off)
++    int fetch_blocks = 64;
 +    std::vector<double>   mb_busy_us;     // [n_used+1]
 +    std::vector<uint64_t> mb_count;       // [n_used+1]
 +
@@ -2109,6 +2339,10 @@ index 0000000..9ed9415
 +    ggml_tensor * ctl = nullptr;                // GPU counters of the mailbox ops
 +    int64_t y_off = 0, y_stride = 0;
 +    std::vector<ggml_ec_op> mb_ops;             // [2 * n_layers]: REQUEST, WAIT of every layer
++    std::vector<ggml_ec_fetch> fetch_args;      // [n_layers] (FETCH)
++    std::vector<ggml_ec_op> fetch_ops;          // [n_layers]
++    ggml_backend_buffer_t fl_buf = nullptr;     // pinned: per layer, the last step's fetch log (n, (expert, slot)...)
++    int32_t * fl_host = nullptr;
 +    std::vector<std::thread> helpers;
 +    std::atomic<bool> h_active{false};
 +    std::atomic<bool> h_stop{false};
@@ -2160,7 +2394,7 @@ index 0000000..9ed9415
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index a806126..5744732 100644
+index a806126..091b69e 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -2221,7 +2455,7 @@ index a806126..5744732 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2391,198 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2391,211 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -2340,7 +2574,7 @@ index a806126..5744732 100644
 +    if (!inp_ec) {
 +        auto inp = std::make_unique<llm_graph_input_expert_cache>(ec);
 +        inp_ec = inp.get();
-+        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 2 * ec->n_layers());
++        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 3 * ec->n_layers());
 +        ggml_set_input(inp_ec->maps);
 +        ggml_set_name(inp_ec->maps, "ec_maps");
 +        res->add_input(std::move(inp));
@@ -2348,8 +2582,8 @@ index a806126..5744732 100644
 +    GGML_ASSERT(n_expert <= ec->n_expert_max());
 +    const int li = ec->layer_index(il);
 +    ggml_tensor * maps = inp_ec->maps;
-+    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 0) * maps->nb[1]);
-+    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (2 * li + 1) * maps->nb[1]);
++    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (3 * li + 0) * maps->nb[1]);
++    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (3 * li + 1) * maps->nb[1]);
 +
 +    // record this step's selection for the cache policy
 +    {
@@ -2370,6 +2604,19 @@ index a806126..5744732 100644
 +    if (ec->check()) {
 +        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_g, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 1)));
 +        ggml_build_forward_expand(gf, ggml_cpy(ctx0, ggml_reshape_1d(ctx0, gr_c, n_expert_used), ec->routing_view(ctx0, il, (int) n_expert_used, 2)));
++    }
++
++    if (mailbox && n_tokens == 1 && ec->fetch_enabled(il)) {
++        // move up to T[m] of this step's misses into slots now and serve them on the GPU (FETCH, ggml-ec.h)
++        ggml_tensor * vic = ggml_view_1d(ctx0, maps, maps->ne[0], (size_t) (3 * li + 2) * maps->nb[1]);
++        ggml_tensor * f_args[3] = { ggml_reshape_1d(ctx0, gid, n_expert_used), ggml_reshape_1d(ctx0, cid, n_expert_used), vic };
++        ggml_tensor * f = ggml_custom_4d(ctx0, GGML_TYPE_I32, 4 * n_expert_used + 1, 1, 1, 1, f_args, 3, ggml_ec_op_stub, 1,
++                ec->fetch_op(il));
++        ggml_format_name(f, "ec_fetch-%d", il);
++        ggml_backend_sched_set_tensor_backend(sched, f, be_gpu);
++        ggml_build_forward_expand(gf, f);
++        gid = ggml_view_2d(ctx0, f, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), 0);
++        cid = ggml_view_2d(ctx0, f, n_expert_used, n_tokens, n_expert_used * sizeof(int32_t), n_expert_used * sizeof(int32_t));
 +    }
 +
 +    if (mailbox) {
@@ -2421,7 +2668,7 @@ index a806126..5744732 100644
  ggml_tensor * llm_graph_context::build_inp_embd(ggml_tensor * tok_embd) const {
      const int64_t n_embd_inp = hparams.n_embd_inp();
 diff --git a/src/llama-graph.h b/src/llama-graph.h
-index 3daa425..33681a4 100644
+index 3daa425..7b9d82c 100644
 --- a/src/llama-graph.h
 +++ b/src/llama-graph.h
 @@ -8,6 +8,7 @@
@@ -2455,7 +2702,7 @@ index 3daa425..33681a4 100644
 +    bool can_reuse(const llm_graph_params & params) override;
 +
 +    llama_expert_cache * ec;
-+    ggml_tensor * maps = nullptr; // I32 [n_expert, 2*n_cached_layers]: expert->slot and expert->cpu maps of every layer
++    ggml_tensor * maps = nullptr; // I32 [n_expert, 3*n_cached_layers]: expert->slot, expert->cpu maps and FETCH eviction candidates of every layer
 +    std::vector<int32_t> host;
 +};
 +

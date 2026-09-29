@@ -191,20 +191,101 @@ def streams(d):
     return R, P
 
 
-def run(d, C, q, npred, kappa=1.0, delay=2, gate=0.0, pred="mid1"):
+def run(d, C, q, npred, kappa=1.0, delay=2, gate=0.0, pred="mid1", timeline=False):
     L, E = d["L"], d["E"]
     R, P = streams(d)
     if pred == "out1":
         P = [P[0]] + [np.ascontiguousarray(d["out1"][:, l - 1]) for l in range(1, L)]
+    if pred == "mid2":     # two layers ahead: the prediction for layer l recorded at layer l-2
+        P = [P[0], P[0]] + [np.ascontiguousarray(d["mid2"][:, l - 2]) for l in range(2, L)]
     if pred == "oracle":   # the true selection, as a ceiling
         P = [np.concatenate([r, np.full((len(r), 8 - r.shape[1]), -1)], 1) for r in R]
     tot = np.zeros(5)
+    M, PF = np.zeros((len(R[0]), L), np.int32), np.zeros((len(R[0]), L), np.int32)
     for l in range(L):
         h, m, a, p, u = _layer_pf(R[l], P[l], E, C, 16.0, kappa, delay, q, npred, gate)
         tot += [h.sum(), m.sum(), a.sum(), p.sum(), u.sum()]
+        M[:, l], PF[:, l] = m, p
     n = len(d["act"]) * L
-    return dict(C=C, q=q, npred=npred, pred=pred, gate=gate, hit=tot[0] / (tot[0] + tot[1]), miss_ls=tot[1] / n,
-                admit_ls=tot[2] / n, pref_ls=tot[3] / n, useful_ls=tot[4] / n)
+    out = dict(C=C, q=q, npred=npred, pred=pred, gate=gate, hit=tot[0] / (tot[0] + tot[1]), miss_ls=tot[1] / n,
+               admit_ls=tot[2] / n, pref_ls=tot[3] / n, useful_ls=tot[4] / n)
+    if timeline:
+        out["_M"], out["_PF"] = M, PF
+    return out
+
+
+# Layer timeline on the home PC (constants fitted on jobs 059 / 060 or measured by concur.cu in job 059):
+#   per layer: attention and other pre-MoE GPU work `a`, then the MoE phase = GPU hits `g` + CPU misses m * s / Bc
+#   (the linear fit of measured tok/s on simulated misses gives T0 = 4.89 ms per token and 215 us per miss on host 1,
+#   i.e. s / 62 GB/s; a + g = T0 / 36 minus the LM head's share).
+#   Prefetch for layer l+1 is issued when layer l's MoE phase starts (the residual after layer l's attention exists),
+#   onto one copy queue; layer l+1's MoE phase waits until its prefetched experts have arrived (a stall).
+#   Bandwidth: link alone Bp, CPU alone Bc, both at once Bp2 and Bc2 (measured 38 and 37 GB/s on host 1).
+HOST1 = dict(a=80e-6, g=48e-6, head=0.26e-3, Bc=62.0, Bp=57.0, Bc2=37.0, Bp2=38.0, s=13.25e-3)
+
+
+def timeline_single_stream(M, PF, h=HOST1):
+    """The simple implementation: layer l's prefetch copy for layer l+1 runs on the main stream after layer l's GPU
+    hits, concurrently with layer l's CPU misses (sharing DRAM), and layer l ends when both are done."""
+    T, L = M.shape
+    s, a, g = h["s"], h["a"], h["g"]
+    total = 0.0
+    for t in range(T):
+        clock = 0.0
+        for l in range(L):
+            clock += a + g
+            cpu, link = M[t, l] * s, (PF[t, l + 1] * s if l + 1 < L else 0.0)
+            both = min(cpu / h["Bc2"], link / h["Bp2"]) if cpu > 0 and link > 0 else 0.0
+            cpu -= h["Bc2"] * both
+            link -= h["Bp2"] * both
+            clock += both + max(cpu, 0.0) / h["Bc"] + max(link, 0.0) / h["Bp"]
+        total += clock + h["head"]
+    return T / total
+
+
+def timeline(M, PF, h=HOST1, late="stall"):
+    """tok/s over all steps: M, PF [T, L] CPU misses and prefetches per layer-step (prefetch for layer l counted at l).
+    late: what layer l does with a prefetch that has not arrived when its MoE phase starts: "stall" (wait for it) or
+    "cpu" (run that expert on the CPU as a miss; the copy still lands, fractional experts by bytes left)."""
+    T, L = M.shape
+    s, a, g = h["s"], h["a"], h["g"]
+    total, stall_tot = 0.0, 0.0
+    for t in range(T):
+        clock, link_left, own_left = 0.0, 0.0, 0.0   # link bytes queued (GB), of which for the next MoE phase
+        for l in range(L):
+            # attention: link alone
+            dt = a
+            link_left = max(0.0, link_left - h["Bp"] * dt)
+            clock += dt
+            # layer l's prefetched experts must be in: stall with the link alone
+            need = link_left if l > 0 else 0.0
+            extra = 0.0
+            if need > 0 and late == "stall":
+                st = need / h["Bp"]
+                stall_tot += st
+                clock += st
+                link_left = 0.0
+            elif need > 0:
+                extra = need      # these bytes' experts run on the CPU; the copy continues in the background
+            # issue the prefetch for layer l+1
+            if l + 1 < L:
+                link_left += PF[t, l + 1] * s
+            # MoE phase: GPU hits (link alone), then CPU misses sharing DRAM with the link
+            link_left = max(0.0, link_left - h["Bp"] * g)
+            clock += g
+            cpu = M[t, l] * s + extra
+            while cpu > 1e-12:
+                if link_left > 1e-12:
+                    tc, tl = cpu / h["Bc2"], link_left / h["Bp2"]
+                    dt = min(tc, tl)
+                    cpu -= h["Bc2"] * dt
+                    link_left -= h["Bp2"] * dt
+                else:
+                    dt = cpu / h["Bc"]
+                    cpu = 0.0
+                clock += dt
+        total += clock + h["head"]
+    return T / total, stall_tot / T
 
 
 def recall(d, key, n, shift=1):

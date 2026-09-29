@@ -3,6 +3,85 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 28 September, late: same host, same client (job `064_samehost_rerun@vast`)
+
+**Setup:**
+- One machine: RTX 5090 + Ryzen 9 9950X, job 060's host.
+  - Measured: CPU memory reads 46.6 GB/s with 16 threads (48.6 at best), the link 47.6 GB/s, both at once 52 GB/s in
+    total; GPU memory 1,558 GB/s.
+- **One client times every system.** It is FreeToken's own benchmark code (`benchmarks/bench_decode_moe.py`, commit
+  0d652e7): its AIME-25 prompts, sampling, warm-up request and tok/s formula, over 5 problems × 256 tokens.
+  - Every system runs as a server with the OpenAI chat API.
+  - Our cache runs in `llama-server`.
+- **Equal GPU memory for experts:** llama.cpp `-ncmoe 32 / 27 / 20`, cache C = 14 / 32 / 56 of 128 (and 51),
+  FreeToken `--moe-cache-rate` 0.111 / 0.25 / 0.40.
+- **Check on the client:** on the same problem (rate 0.25, problem 0), FreeToken's unmodified script gave 67.2 / 67.1
+  tok/s for offload / hybrid, and our client 68.1 / 66.6. That is within 1.3%, as in job 062 (within 2%).
+
+| Experts on the GPU | llama.cpp | **Our cache** | FreeToken offload | FreeToken hybrid |
+|---|---|---|---|---|
+| 11% | 24.3 tok/s | **42.9** | 38.5 | 39.4 |
+| 25% | 28.2 | **68.1** | 68.6 | 66.2 |
+| 40% (C = 51) | – | **105.2** | 108.9 | 99.2 |
+| 44% (C = 56) | 36.4 | **114.8** | does not fit | does not fit |
+
+- **Against FreeToken, we are even:** +9% at 11%, −1% at 25%, −3% at 40% against its better mode.
+  - Every system varies by about ±10% across the five problems (sampled text routes differently), so only the 11%
+    difference is clearly outside the noise.
+  - FreeToken does not fit 44%: its KV cache runs out of room, even at `--memory-ratio 0.95`.
+- **Against llama.cpp:** 1.8× / 2.4× / 3.2×.
+- **Speed-of-light on this host** (own text, measured bandwidths): 174 / 313 / 313 tok/s.
+  - Our cache reaches 24% / 20% / 30% of it, or 27% / 24% / 34% with FETCH; llama.cpp 14% / 9% / 12%.
+- **The host reproduces.** The own-text runs repeated job 060's on the same machine within 0.8%:
+  - cache 41.0 / 62.7 / 94.0 tok/s, with FETCH 46.9 / 74.3 / 108.0;
+  - llama.cpp inside our harness 24.1 / 28.0 / 36.4.
+- **Missing:** our cache with FETCH in the server. It aborted at start-up, because the cache also started during
+  llama-server's memory-fit pass, when the weights are not loaded. Fixed (commit 33290cf); job 066 runs it.
+
+## 28 September, late: predicting the next layer's experts, and PREFETCH
+
+Details: `research_notes/MoE offload system race plan/prefetch_lookahead.md`.
+
+### Lookahead (job `063_lookahead@vast`)
+
+**The next layer's experts are predictable from the current layer.** On gpt-oss-120b, layer l+1's router applied to
+the residual after layer l's attention finds 84% of layer l+1's selected experts in its top 4 and 97% in its top 8
+(gpt-oss-20b: 87% and 98%). A host recomputation of every layer's own routing matched 100%, which checks the
+extraction.
+
+### Simulated benefit
+
+- **The cache simulation reproduces the measured hit rates of job 060** (0.542 / 0.757 / 0.876 against 0.541 / 0.758 /
+  0.875).
+- **With a prefetch of one predicted expert per layer, CPU misses fall 45% / 53% / 58%** at C = 14 / 32 / 56.
+- **A layer timeline with the measured host-1 constants gives +19% / +18% / +13% tok/s**, against +2–6% measured for
+  FETCH on that host. The timeline reproduces the measured base within 2.7%.
+- **This needs the copy on a second GPU stream.** On the main stream the model predicts about +0%.
+
+### PREFETCH, built and checked (job `065_prefetch_check@vast`)
+
+- **Implementation** (llama.cpp branch commit 6dd2d1f): `LLAMA_EC_PREFETCH=q`. The next layer's router is precomputed
+  with the norm ratio folded in, a plan op updates the next layer's maps, the copy runs on a side stream, and the next
+  layer joins it just before its GPU experts.
+- **First GPU run:** gpt-oss-20b, C = 8 of 32, RTX 4500 Ada + Ryzen 9 7900X, PCIe 4.0.
+
+| | Cache | + PREFETCH q=1 | + PREFETCH q=2 | + FETCH | + PREFETCH q=1 + FETCH |
+|---|---|---|---|---|---|
+| Hit rate (simulated) | 0.639 (0.639) | **0.816 (0.816)** | **0.884 (0.885)** | 0.682 | 0.826 |
+| Prefetches per layer-step, used (simulated) | – | 0.722, 0.606 (0.721, 0.605) | 1.087, 0.872 (1.086, 0.871) | – | 0.712, 0.595 |
+| tok/s | 61.5 | 51.4 (−16%) | 43.2 (−30%) | 51.9 (−16%) | 41.1 (−33%) |
+| Same next token as the cache | – | 99.0% | 99.1% | 99.0% | 99.3% |
+
+- **Correct:**
+  - With `LLAMA_EC_CHECK=1`, the ids the graph used equal the host's maps on all 1,536 steps.
+  - CUDA graphs on and off give identical output.
+  - `compute-sanitizer` memcheck reports 0 errors.
+  - NLL is within 0.3%.
+  - Hit rates and prefetch counts match the simulation to 0.001.
+- **Slower on this host, as FETCH is.** Its GPU link is PCIe 4.0 (about 25 GB/s), half its memory bandwidth, so moving
+  an expert over the link costs more than computing it on the CPU. Both FETCH and PREFETCH are for hosts whose link is
+  about as fast as their memory (PCIe 5.0 with a desktop CPU). **Job 066** tests PREFETCH on the RTX 5090 host.
+
 ## 28 September, night: FETCH A/B, FreeToken attempt, same-host comparison started
 
 ### FETCH A/B (job `060_fetch_ab_homepc@vast`, another RTX 5090 + Ryzen 9 9950X host)

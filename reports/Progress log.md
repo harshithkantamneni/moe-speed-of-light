@@ -3,6 +3,32 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, midday: the same-machine comparison, redone (job `073_samehost_v2@vast`)
+
+The protocol and outcome are in `prereg/samehost_v2_outcome.md`.
+
+**Setup:**
+- gpt-oss-120b on a 9950X3D + RTX 5090;
+- 30 AIME-25 problems, 256 tokens, greedy decoding;
+- a held-out warm-up, then a session over the 30 problems;
+- 3 launches per configuration; paired-bootstrap CIs over problems.
+
+**Result:**
+
+| Experts on the GPU | ours+FETCH | FreeToken's best backend | Ratio (95% CI) | llama.cpp |
+|---|---|---|---|---|
+| 11% | 58.0 | 52.3 | **+10.9% [+9.8, +12.0]** | 31.7 |
+| 25% | 88.0 | 81.1 | **+8.4% [+7.6, +9.2]** (+7.1% against FreeToken's best tuned setting) | 37.3 |
+| 40% | 117.7 | 125.1 | **−5.9% [−6.7, −4.9]** (ours without FETCH: −2.2%) | 44.5 |
+
+- **Both are 2–3× llama.cpp** at 25–40% of experts.
+- **The earlier +18–21 / +9–11 / +2–3% (jobs 064/067) shrink or reverse** under the stricter protocol and on a host
+  with faster memory. The claim is now "ahead at 11–25%, behind at 40%".
+- **Launch-to-launch spread is 0.1–0.4%**, so the spread across problems carries the uncertainty.
+- **Warming up on the measured problem made no difference** (−0.9 / −0.3%).
+- **Greedy text is not shared across engines.** CPU and GPU kernels round differently, so each engine decodes its own
+  continuation.
+
 ## 29 September, late morning: deferring admissions fails; where G really goes (job `072_defer@vast`)
 
 **Host.** Ryzen 9 7900 (12 cores, 10 helpers) + RTX 5090. Host memory: CPU / link / both = 45.3 / 44.6 / 49.0 GB/s.

@@ -3,6 +3,51 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## Where things stand (end of 28 September)
+
+- **Same machine, same client, equal GPU memory, gpt-oss-120b:** our cache with FETCH is ahead of FreeToken at all
+  three shared budgets on two RTX 5090 machines: +18–21% at 11% of experts on the GPU, +9–11% at 25%, +2–3% at 40%.
+  - The last is within the spread across prompts.
+  - Against llama.cpp at its best setting it is 1.9× / 2.7× / 3.2–3.3×.
+  - It also runs 44%, which FreeToken cannot fit.
+- **PREFETCH works and behaves as simulated.** Its speed gain is smaller than FETCH's, and it only helps together with
+  FETCH at small budgets on own text.
+- **FETCH and PREFETCH both lose 16% on a PCIe 4.0 machine.** They should be switched on from measured bandwidths.
+- **Spend:** about $4.40 of the $25 tranche.
+- **Open next:**
+  1. Auto-select FETCH / PREFETCH from a start-up bandwidth probe.
+  2. Why both gain less on short chat prompts than on long own-text runs.
+  3. A second model (Qwen3-30B-A3B).
+  4. A PCIe 5.0 machine with faster memory (like job 059's, 62 GB/s).
+
+## 28 September, night: a second machine, RTX 5090 + Ryzen 7 9800X3D (jobs `067` and `068`)
+
+**The machine:** a common gaming configuration, 8 cores on one CCD. CPU memory reads 47.6 GB/s with 8 threads; the
+link 46.9 GB/s.
+- Job 067 measured llama.cpp and FreeToken. Our patched tree failed to fetch llama.cpp (a network reset), so
+  `setup.sh` now retries.
+- Job 068 measured our cache on the same machine in a second session.
+- The settings are unchanged from job 066. The FETCH table was chosen on the 9950X machine, so this run is out of
+  sample for it.
+
+Chat benchmark (FreeToken's method, AIME-25 problems 0–4 × 256 tokens, equal GPU memory for experts), tok/s:
+
+| Experts on the GPU | llama.cpp | Our cache | **Our cache + FETCH** | FreeToken offload | FreeToken hybrid |
+|---|---|---|---|---|---|
+| 11% | 25.1 | 44.6 | **48.3** | 39.0 | 39.9 |
+| 25% | 29.2 | 73.6 | **77.5** | 69.8 | 65.7 |
+| 40% | – | 111.9 | **114.7** | 112.9 | 94.4 |
+| 44% | 38.9 | 124.3 | **124.3** | does not fit | does not fit |
+
+- **Same picture as the 9950X machine.** With FETCH, our cache is +21% / +11% / +2% against FreeToken's better mode;
+  on the 9950X machine it was +18% / +9% / +3%.
+- **Without FETCH:** +12% / +5% / −1%.
+- **Against llama.cpp at its best:** 1.9× / 2.7× / 3.2×.
+- **Paired prompts across machines.** The cache's hit rates are identical to the 9950X machine's to six digits (0.551265
+  at C = 14). With a fixed seed on the same GPU model the sampled text, and so the routing, is the same, so the two
+  machines saw exactly the same work.
+- **Own text:** cache 42.1 / 65.2 / 98.6 tok/s; with FETCH 48.1 / 76.3 / 111.2 (+14% / +17% / +13%).
+
 ## 28 September, night: PREFETCH on the RTX 5090 host (job `066_prefetch_homepc@vast`)
 
 Same machine as jobs 060 and 064 (RTX 5090 + Ryzen 9 9950X; CPU memory 46.5 GB/s, link 46.5 GB/s).

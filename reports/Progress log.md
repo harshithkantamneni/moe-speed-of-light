@@ -3,6 +3,24 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, night: the clean table (job `076_table_5090@vast`)
+
+**Setup:** RTX 5090 + Ryzen 9 9950X, fixed build (ours v2), GPU-side sampling, variant chosen on launch 1 and
+confirmed on launches 2–3.
+
+| Experts on GPU | ours v2 | FreeToken | Difference (95% CI) | llama.cpp |
+|---|---|---|---|---|
+| 11% | 60.5 | 50.2 | **+20.5% [+19.0, +22.0]** | 31.5 |
+| 25% | 97.7 | 80.3 | **+21.7% [+20.1, +23.4]** | 36.4 |
+| 40% | 138.7 | 124.1 | **+11.8% [+10.8, +12.9]** | 43.5 |
+
+- All three predictions held; `prereg/table_outcome_076.md` has the outcome.
+- **With the 60% result (job 075), the cache leads FreeToken at every budget from 11% to 60%** on the two
+  desktop-class hosts measured with the fixed build.
+- **Running now:**
+  - job 077: Pipelined Sharding (MLSys'26) and leloch's llama.cpp cache on gpt-oss-120b;
+  - job 078: Qwen3-30B-A3B BF16 with llama.cpp, ours, FreeToken and KTransformers.
+
 ## 29 September, evening: 40% and 60% on an RTX PRO 6000 (job `075_pro6000_40_60@vast`)
 
 **Setup:** 9950X host; CPU / link / both = 62 / 53 / 71 GB/s. Each system's variant was chosen on launch 1 and

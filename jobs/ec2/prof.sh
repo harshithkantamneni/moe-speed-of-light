@@ -19,9 +19,9 @@ prof_run() {  # label, then the command (env assignments via env ...)
   timeout 30m $NSYS profile -o $WORK/prof_$label --force-overwrite true --trace=cuda --cuda-graph-trace=node \
     --sample=none --cpuctxsw=none "$@" > $OUT/prof_$label.stdout 2> $OUT/prof_$label.err
   echo "prof $label rc=$?"
-  $NSYS stats --report cuda_gpu_trace --format csv --output $WORK/prof_$label $WORK/prof_$label.nsys-rep > /dev/null 2>> $OUT/prof_$label.err
-  $NSYS stats --report cuda_api_trace --format csv --output $WORK/prof_$label $WORK/prof_$label.nsys-rep > /dev/null 2>> $OUT/prof_$label.err
-  $NSYS stats --report cuda_gpu_kern_sum --format csv --output $WORK/prof_$label $WORK/prof_$label.nsys-rep > /dev/null 2>> $OUT/prof_$label.err
+  # one stats call for all reports (a second call refuses to reuse the SQLite export without --force-export)
+  $NSYS stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv \
+    --output $WORK/prof_$label $WORK/prof_$label.nsys-rep > /dev/null 2>> $OUT/prof_$label.err
   for f in $WORK/prof_${label}_*.csv; do gzip -c "$f" > $OUT/$(basename "$f").gz; done
   ls -la $OUT/prof_${label}_* 2>/dev/null
 }

@@ -1,0 +1,186 @@
++++ dirname /w/jobs/070_allvram_pro6000@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=16
++ echo 'physical cores 16'
++ tee /w/results/070_allvram_pro6000@vast/cores.txt
+physical cores 16
++ DLG=5991
++ install_nsys
+++ tail -1
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/070_allvram_pro6000@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/070_allvram_pro6000@vast/build_lc-ec.txt
++ build_tree /work/lc-stock '' llama-bench
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-bench
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/070_allvram_pro6000@vast/build_lc-stock.txt
++ wait 5991
++ cat /w/results/070_allvram_pro6000@vast/dl_gguf.txt
+++ date +%s
++ t0=1790659022
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf download rc=0 in 551 s'
+gguf download rc=0 in 551 s
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ ALL='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap'
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap
++ echo 'all-GPU rc=0'
+all-GPU rc=0
++ R 30m /work/lc-stock/build/bin/llama-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -p 0 -n 128 -d 512 -r 5 -o jsonl
++ echo 'llama-bench rc=0'
+llama-bench rc=0
++ ONE='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-prefill 640 --n-decode 24 --no-mmap'
++ prof_run allgpu /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0
++ local label=allgpu
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_allgpu --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0
++ echo 'prof allgpu rc=0'
+prof allgpu rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --report cuda_gpu_trace --format csv --output /work/prof_allgpu /work/prof_allgpu.nsys-rep
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --report cuda_api_trace --format csv --output /work/prof_allgpu /work/prof_allgpu.nsys-rep
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --report cuda_gpu_kern_sum --format csv --output /work/prof_allgpu /work/prof_allgpu.nsys-rep
++ for f in $WORK/prof_${label}_*.csv
++ gzip -c /work/prof_allgpu_cuda_gpu_trace.csv
+++ basename /work/prof_allgpu_cuda_gpu_trace.csv
++ ls -la /w/results/070_allvram_pro6000@vast/prof_allgpu_cuda_gpu_trace.csv.gz
+-rw-r--r-- 1 root root 1382088 Sep 29 05:30 /w/results/070_allvram_pro6000@vast/prof_allgpu_cuda_gpu_trace.csv.gz
++ H=14
++ B=policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/070_allvram_pro6000@vast/ref_C32.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/070_allvram_pro6000@vast/ref_C32_f.json'
++ echo 'ref ec rc=0'
+ref ec rc=0
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27
++ echo 'ref static rc=0'
+ref static rc=0
++ python3 - /w/results/070_allvram_pro6000@vast
++ tee /w/results/070_allvram_pro6000@vast/summary.txt
+ref_allgpu.jsonl: - 265.3 tok/s
+ref_ec.jsonl: slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14 81.0 tok/s
+ref_ec.jsonl: ref_C32.json 79.0 tok/s
+ref_ec.jsonl: ref_C32_f.json 89.0 tok/s
+ref_static27.jsonl: - 35.4 tok/s
+llama-bench all-GPU tg128@d512: 263.228931 tok/s (sd 1.659906)

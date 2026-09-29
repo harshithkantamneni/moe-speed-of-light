@@ -31,10 +31,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..b6eda64
+index 0000000..716cb16
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,87 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -75,7 +75,18 @@ index 0000000..b6eda64
 +    GGML_EC_WAIT    = 1,
 +    GGML_EC_FETCH   = 2,   // decide which of this step's misses move into slots (see below)
 +    GGML_EC_FETCH_COPY = 3,   // copy them; placed after REQUEST so the helpers start first and the copy overlaps them
++    GGML_EC_PREFETCH      = 4,   // decide which predicted experts of the NEXT layer to copy into its slots (see below)
++    GGML_EC_PREFETCH_COPY = 5,   // start that copy on a side stream (it overlaps the rest of this layer and the next
++                                 // layer's attention)
++    GGML_EC_PREFETCH_JOIN = 6,   // in the next layer, before its GPU experts run: wait for the copy
 +};
++
++// PREFETCH: while layer l runs, the router of layer l+1 applied to layer l's MoE input (with layer l+1's norm weight,
++// folded into a precomputed matrix) predicts layer l+1's experts. Up to `q` of the top `npred` predictions that are not
++// resident are copied from pinned host memory into layer l+1's eviction candidates (never a slot holding a predicted
++// expert) on a side stream, and layer l+1's maps are updated so that they are served there. The plan op's output is
++// [gpu map (E) | cpu map (E) | eviction candidates (E) | n | (expert, slot) pairs], logged for the host like FETCH.
++// The copy uses the target layer's struct ggml_ec_fetch (table[0] = q) and its own log.
 +
 +// FETCH: when m of a layer's selected experts miss, copy table[m] of them (in selection order, i.e. highest router
 +// weight first) from pinned host memory into the layer's eviction candidates (a slot list the host ranks by decayed
@@ -91,6 +102,7 @@ index 0000000..b6eda64
 +    void       * slot[GGML_EC_FETCH_MAX_T];        // device pointers of the slot tensors
 +    int64_t      stride[GGML_EC_FETCH_MAX_T];      // bytes per expert of each tensor
 +    int32_t    * log;                              // device pointer into pinned host memory: n, then (expert, slot) pairs
++    int32_t      n_expert;                         // PREFETCH: experts of the target layer (map length)
 +};
 +
 +struct ggml_ec_op {
@@ -323,14 +335,16 @@ index 8d9cf69..005d774 100644
      }
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..b7fbbfe
+index 0000000..4a098d3
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,373 @@
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
 +#include "ggml-impl.h"
++
++#include <vector>
 +
 +// Expert-cache mailbox ops (see ggml-ec.h).
 +//
@@ -521,11 +535,133 @@ index 0000000..b7fbbfe
 +    }
 +}
 +
++// PREFETCH plan (see ggml-ec.h): src[0] = predicted experts of the target layer [npred] (rank order), src[1..3] = its
++// gpu map, cpu map and eviction candidates [E] (host-filled). dst = [3E + 1 + 2*GGML_EC_MAX_K]: the updated maps and
++// candidates, then the plan (n, (expert, slot) pairs), also logged for the host. q = f.table[0].
++static __global__ void ec_prefetch_plan_kernel(const int32_t * __restrict__ pid, const int npred,
++                                               const int32_t * __restrict__ g, const int32_t * __restrict__ c,
++                                               const int32_t * __restrict__ vic, const int E, const ggml_ec_fetch f,
++                                               int32_t * __restrict__ out) {
++    int32_t * og = out;
++    int32_t * oc = out + E;
++    int32_t * ov = out + 2 * E;
++    int32_t * plan = out + 3 * E;
++    for (int i = threadIdx.x; i < E; i += blockDim.x) {
++        og[i] = g[i];
++        oc[i] = c[i];
++        ov[i] = vic[i];
++    }
++    __syncthreads();
++    if (threadIdx.x != 0) {
++        return;
++    }
++    const int q = f.table[0];
++    int n = 0;
++    for (int i = 0; i < npred && n < q && n < GGML_EC_MAX_K; ++i) {
++        const int e = pid[i];
++        if (e < 0 || e >= E || og[e] >= 0) {
++            continue;   // resident already
++        }
++        int vi = -1, old = -1;
++        for (int j = 0; j < E && ov[j] >= 0 && vi < 0; ++j) {
++            const int s = ov[j];
++            int holder = -1;
++            for (int x = 0; x < E; ++x) {
++                if (og[x] == s) {
++                    holder = x;
++                    break;
++                }
++            }
++            bool predicted = false;   // never evict an expert predicted for this step
++            for (int t = 0; t < npred; ++t) {
++                predicted |= holder >= 0 && pid[t] == holder;
++            }
++            if (!predicted) {
++                vi = j;
++                old = holder;
++            }
++        }
++        if (vi < 0) {
++            break;
++        }
++        const int s = ov[vi];
++        for (int j = vi; j < E - 1; ++j) {   // the candidate is used up
++            ov[j] = ov[j + 1];
++        }
++        ov[E - 1] = -1;
++        if (old >= 0) {
++            og[old] = -1;
++            oc[old] = old;
++        }
++        og[e] = s;
++        oc[e] = -1;
++        plan[1 + 2 * n] = e;
++        plan[2 + 2 * n] = s;
++        n++;
++    }
++    plan[0] = n;
++    volatile int32_t * lg = f.log;
++    for (int i = 0; i < 2 * n; ++i) {
++        lg[1 + i] = plan[1 + i];
++    }
++    lg[0] = n;
++    __threadfence_system();
++}
++
++// the side stream of the prefetch copies and, per target layer, the fork / join events (created on first use)
++struct ec_side_t {
++    cudaStream_t stream = nullptr;
++    std::vector<cudaEvent_t> fork, join;
++};
++static ec_side_t ec_side[GGML_CUDA_MAX_DEVICES];
++
++static cudaEvent_t ec_event(std::vector<cudaEvent_t> & v, int i) {
++    if ((int) v.size() <= i) {
++        v.resize(i + 1, nullptr);
++    }
++    if (!v[i]) {
++        CUDA_CHECK(cudaEventCreateWithFlags(&v[i], cudaEventDisableTiming));
++    }
++    return v[i];
++}
++
 +void ggml_cuda_op_ec(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
 +    const ggml_ec_op * p = ec_params(dst);
 +    GGML_ASSERT(p != nullptr);
 +    cudaStream_t stream = ctx.stream();
-+    if (p->mode == GGML_EC_FETCH) {
++    if (p->mode == GGML_EC_PREFETCH) {
++        const ggml_tensor * pid = dst->src[0];
++        GGML_ASSERT(p->fetch != nullptr && pid->type == GGML_TYPE_I32 && ggml_is_contiguous(pid));
++        const int E = p->fetch->n_expert;
++        for (int i = 1; i <= 3; ++i) {
++            GGML_ASSERT(dst->src[i]->type == GGML_TYPE_I32 && ggml_is_contiguous(dst->src[i]) && ggml_nelements(dst->src[i]) >= E);
++        }
++        GGML_ASSERT(ggml_nelements(dst) >= 3 * E + 1 + 2 * GGML_EC_MAX_K);
++        ec_prefetch_plan_kernel<<<1, 128, 0, stream>>>((const int32_t *) pid->data, (int) ggml_nelements(pid),
++                (const int32_t *) dst->src[1]->data, (const int32_t *) dst->src[2]->data, (const int32_t *) dst->src[3]->data,
++                E, *p->fetch, (int32_t *) dst->data);
++    } else if (p->mode == GGML_EC_PREFETCH_COPY) {
++        const ggml_tensor * plan = dst->src[0];
++        GGML_ASSERT(p->fetch != nullptr && plan->type == GGML_TYPE_I32);
++        ec_side_t & sd = ec_side[ctx.device];
++        if (!sd.stream) {
++            CUDA_CHECK(cudaStreamCreateWithFlags(&sd.stream, cudaStreamNonBlocking));
++        }
++        cudaEvent_t f = ec_event(sd.fork, p->layer), j = ec_event(sd.join, p->layer);
++        CUDA_CHECK(cudaEventRecord(f, stream));
++        CUDA_CHECK(cudaStreamWaitEvent(sd.stream, f, 0));
++        ec_fetch_copy_kernel<<<p->fetch->blocks, 256, 0, sd.stream>>>((const int32_t *) plan->data + 3 * p->fetch->n_expert,
++                *p->fetch, nullptr, nullptr, 0);
++        CUDA_CHECK(cudaEventRecord(j, sd.stream));
++    } else if (p->mode == GGML_EC_PREFETCH_JOIN) {
++        const ggml_tensor * gid = dst->src[0];   // src[1] = the plan (kept alive until here), src[2] = the copy op (order)
++        GGML_ASSERT(gid->type == GGML_TYPE_I32 && dst->type == GGML_TYPE_I32 && ggml_nelements(dst) == ggml_nelements(gid));
++        ec_side_t & sd = ec_side[ctx.device];
++        if (p->layer < (int) sd.join.size() && sd.join[p->layer]) {
++            CUDA_CHECK(cudaStreamWaitEvent(stream, sd.join[p->layer], 0));
++        }
++        CUDA_CHECK(cudaMemcpyAsync(dst->data, gid->data, ggml_nbytes(gid), cudaMemcpyDeviceToDevice, stream));
++    } else if (p->mode == GGML_EC_FETCH) {
 +        const ggml_tensor * gid = dst->src[0];
 +        const ggml_tensor * cid = dst->src[1];
 +        const ggml_tensor * vic = dst->src[2];
@@ -1058,10 +1194,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..832b50c
+index 0000000..c46b01c
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1146 @@
+@@ -0,0 +1,1308 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1203,6 +1339,12 @@ index 0000000..832b50c
 +            }
 +        }
 +    }
++    pf_q      = std::max(0, env_int("LLAMA_EC_PREFETCH", 0));
++    pf_top    = env_int("LLAMA_EC_PREFETCH_TOP", 0);
++    pf_blocks = std::max(1, env_int("LLAMA_EC_PREFETCH_BLOCKS", 64));
++    if (pf_q > 0) {
++        n_tensors += 2 * layers.size();
++    }
 +    ggml_init_params ip = { ggml_tensor_overhead() * (n_tensors + 2), nullptr, true };
 +    ctx = ggml_init(ip);
 +
@@ -1229,6 +1371,24 @@ index 0000000..832b50c
 +        L.stamp.assign(E, -1);
 +        L.count.assign(E, 0);
 +        L.miss_hist.assign(L.n_used + 1, 0);
++    }
++    // PREFETCH: layer li predicts layer li+1 when both are consecutive cached layers and li+1 has a real cache
++    pf_gate.assign(layers.size(), nullptr);
++    pf_bias.assign(layers.size(), nullptr);
++    if (pf_q > 0) {
++        auto mnorm = [&](int il) { const auto & ly = model.layers[il]; return ly.ffn_norm ? ly.ffn_norm : ly.attn_post_norm; };
++        for (size_t li = 0; li + 1 < layers.size(); ++li) {
++            const layer & A = layers[li], & B = layers[li + 1];
++            const auto & lb = model.layers[B.il];
++            if (B.il != A.il + 1 || B.C <= 0 || B.C >= B.n_expert || !lb.ffn_gate_inp || !mnorm(A.il) || !mnorm(B.il)) {
++                continue;
++            }
++            const int64_t n_embd = lb.ffn_gate_inp->ne[0];
++            pf_gate[li] = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, n_embd, B.n_expert);
++            pf_bias[li] = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, B.n_expert);
++            ggml_format_name(pf_gate[li], "ec_pf_gate.%d", A.il);
++            ggml_format_name(pf_bias[li], "ec_pf_bias.%d", A.il);
++        }
 +    }
 +    mb_busy_us.assign(max_used + 1, 0.0);
 +    mb_count.assign(max_used + 1, 0);
@@ -1371,7 +1531,83 @@ index 0000000..832b50c
 +                }
 +                LLAMA_LOG_INFO("%s: fetch table %s (%d copy blocks)\n", __func__, ft_str(fetch_table).c_str(), fetch_blocks);
 +            }
++            if (pf_q > 0) {
++                const size_t per = 1 + 2 * GGML_EC_MAX_K;
++                pl_buf = ggml_backend_buft_alloc_buffer(host_buft, layers.size() * per * sizeof(int32_t));
++                GGML_ASSERT(pl_buf && "expert cache: failed to allocate the prefetch log");
++                pl_host = (int32_t *) ggml_backend_buffer_get_base(pl_buf);
++                memset(pl_host, 0, layers.size() * per * sizeof(int32_t));
++                int32_t * pl_dev = (int32_t *) dev_ptr(pl_host);
++                pf_args.assign(layers.size(), ggml_ec_fetch{});
++                pf_ops.assign(3 * layers.size(), ggml_ec_op{});
++                auto mnorm = [&](int il) { const auto & ly = model.layers[il]; return ly.ffn_norm ? ly.ffn_norm : ly.attn_post_norm; };
++                auto get_f32 = [](const ggml_tensor * t) {
++                    std::vector<uint8_t> raw(ggml_nbytes(t));
++                    ggml_backend_tensor_get(const_cast<ggml_tensor *>(t), raw.data(), 0, raw.size());
++                    std::vector<float> out(ggml_nelements(t));
++                    const auto * tr = ggml_get_type_traits(t->type);
++                    GGML_ASSERT((t->type == GGML_TYPE_F32 || tr->to_float) && "expert cache: router type without to_float");
++                    for (int64_t r = 0; r < ggml_nrows(t); ++r) {
++                        if (t->type == GGML_TYPE_F32) {
++                            memcpy(out.data() + r * t->ne[0], raw.data() + r * t->nb[1], t->ne[0] * sizeof(float));
++                        } else {
++                            tr->to_float(raw.data() + r * t->nb[1], out.data() + r * t->ne[0], t->ne[0]);
++                        }
++                    }
++                    return out;
++                };
++                int n_pf = 0;
++                for (size_t li = 0; li + 1 < layers.size(); ++li) {
++                    if (!pf_gate[li]) {
++                        continue;
++                    }
++                    const layer & A = layers[li];
++                    const layer & B = layers[li + 1];
++                    const auto & lb = model.layers[B.il];
++                    const std::vector<float> G  = get_f32(lb.ffn_gate_inp);          // [E][n_embd]
++                    const std::vector<float> wa = get_f32(mnorm(A.il)), wb = get_f32(mnorm(B.il));
++                    const int64_t d = lb.ffn_gate_inp->ne[0];
++                    std::vector<float> Gp(G.size()), bias(B.n_expert, 0.0f);
++                    for (int e = 0; e < B.n_expert; ++e) {
++                        for (int64_t i = 0; i < d; ++i) {
++                            Gp[e * d + i] = std::fabs(wa[i]) > 1e-12f ? G[e * d + i] * wb[i] / wa[i] : 0.0f;
++                        }
++                    }
++                    if (lb.ffn_gate_inp_b) {
++                        bias = get_f32(lb.ffn_gate_inp_b);
++                    }
++                    ggml_backend_tensor_set(pf_gate[li], Gp.data(), 0, Gp.size() * sizeof(float));
++                    ggml_backend_tensor_set(pf_bias[li], bias.data(), 0, bias.size() * sizeof(float));
++                    // the copy side of the TARGET layer
++                    const size_t lt = li + 1;
++                    ggml_ec_fetch & f = pf_args[lt];
++                    GGML_ASSERT(B.src.size() <= GGML_EC_FETCH_MAX_T);
++                    f.n_t = (int32_t) B.src.size();
++                    f.blocks = pf_blocks;
++                    f.table[0] = pf_q;
++                    f.n_expert = n_expert_max();
++                    for (size_t k = 0; k < B.src.size(); ++k) {
++                        f.src[k]    = dev_ptr(B.src[k]->data);
++                        f.slot[k]   = B.slot[k]->data;
++                        f.stride[k] = (int64_t) expert_stride(B.src[k]);
++                    }
++                    f.log = pl_dev + lt * per;
++                    for (int w = 0; w < 3; ++w) {
++                        ggml_ec_op & o = pf_ops[3 * lt + w];
++                        o.mode  = GGML_EC_PREFETCH + w;
++                        o.layer = (int32_t) lt;
++                        o.fetch = &pf_args[lt];
++                    }
++                    ++n_pf;
++                    (void) A;
++                }
++                LLAMA_LOG_INFO("%s: prefetch q=%d of the top %d predictions, %d layer pairs, %d copy blocks\n", __func__, pf_q,
++                        pf_top > 0 ? pf_top : max_used, n_pf, pf_blocks);
++            }
 +        }
++    }
++    if (!mailbox) {
++        pf_q = 0;
 +    }
 +    if (mailbox) {
 +        for (auto & o : mb_ops) {
@@ -1516,6 +1752,9 @@ index 0000000..832b50c
 +    if (fl_buf) {
 +        ggml_backend_buffer_free(fl_buf);
 +    }
++    if (pl_buf) {
++        ggml_backend_buffer_free(pl_buf);
++    }
 +    if (mb_buf) {
 +        ggml_backend_buffer_free(mb_buf);
 +    }
@@ -1576,10 +1815,10 @@ index 0000000..832b50c
 +        std::fill(v, v + E, -1);
 +        std::copy(L.slot_of.begin(), L.slot_of.end(), g);
 +        std::copy(L.cpu_of.begin(), L.cpu_of.end(), c);
-+        if (fetch_table.empty() || L.C == 0 || L.C == L.n_expert) {
++        if ((fetch_table.empty() && pf_q == 0) || L.C == 0 || L.C == L.n_expert) {
 +            continue;
 +        }
-+        // FETCH eviction candidates: free slots first, then resident experts by decayed score; never a slot being loaded
++        // FETCH / PREFETCH eviction candidates: free slots first, then resident experts by decayed score; never a slot being loaded
 +        std::vector<std::pair<double, int>> cand;
 +        for (int s = 0; s < L.C; ++s) {
 +            if (L.loading[s] >= 0) {
@@ -1602,6 +1841,27 @@ index 0000000..832b50c
 +
 +ggml_ec_op * llama_expert_cache::fetch_op(int il, int which) {
 +    return &fetch_ops[2 * idx_of.at(il) + which];
++}
++
++bool llama_expert_cache::prefetch_from(int il) const {
++    auto it = idx_of.find(il);
++    if (pf_q <= 0 || !mailbox || it == idx_of.end() || !pf_gate[it->second]) {
++        return false;
++    }
++    const layer & B = layers[it->second + 1];
++    return B.w_gate && B.w_up && B.w_down && B.C > 0 && B.C < B.n_expert;
++}
++
++ggml_tensor * llama_expert_cache::pf_gate_of(int il) const {
++    return pf_gate[idx_of.at(il)];
++}
++
++ggml_tensor * llama_expert_cache::pf_bias_of(int il) const {
++    return pf_bias[idx_of.at(il)];
++}
++
++ggml_ec_op * llama_expert_cache::prefetch_op(int il_target, int which) {
++    return &pf_ops[3 * idx_of.at(il_target) + which];
 +}
 +
 +void llama_expert_cache::copy_expert(const layer & L, int s, int e, bool paced_pieces) {
@@ -1685,6 +1945,9 @@ index 0000000..832b50c
 +                    done[li][s].store(0);
 +                    const int e = L.loading[s];
 +                    L.loading[s]  = -1;
++                    if (L.slot_of[e] >= 0 && L.slot_of[e] != s) {
++                        continue;   // fetched or prefetched into another slot meanwhile: this slot stays free
++                    }
 +                    L.resident[s] = e;
 +                    L.slot_of[e]  = s;
 +                    L.cpu_of[e]   = -1;
@@ -1708,6 +1971,9 @@ index 0000000..832b50c
 +            if (L.loading[s] >= 0 && L.load_batch[s] == b) {
 +                const int e = L.loading[s];
 +                L.loading[s]  = -1;
++                if (L.slot_of[e] >= 0 && L.slot_of[e] != s) {
++                    continue;   // fetched or prefetched into another slot meanwhile: this slot stays free
++                }
 +                L.resident[s] = e;
 +                L.slot_of[e]  = s;
 +                L.cpu_of[e]   = -1;
@@ -1724,6 +1990,35 @@ index 0000000..832b50c
 +        check_mailbox();
 +    }
 +    ggml_backend_tensor_get(routing, routing_host.data(), 0, ggml_nbytes(routing));
++
++    if (pl_host) {
++        // experts prefetched into layer li while layer li-1 ran: resident from that point, so this step's selection
++        // counts them as hits; the slots' previous experts are gone
++        for (size_t li = 0; li < layers.size(); ++li) {
++            layer & L = layers[li];
++            int32_t * lg = pl_host + li * (1 + 2 * GGML_EC_MAX_K);
++            const int32_t n_log = ((volatile int32_t *) lg)[0];
++            const int n = std::min<int32_t>(n_log, GGML_EC_MAX_K);
++            const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
++            for (int q = 0; q < n; ++q) {
++                const int e = lg[1 + 2 * q], s = lg[2 + 2 * q];
++                if (e < 0 || e >= L.n_expert || s < 0 || s >= L.C) {
++                    continue;
++                }
++                const int old = L.resident[s];
++                if (old >= 0) {
++                    L.slot_of[old] = -1;
++                    L.cpu_of[old]  = old;
++                }
++                L.resident[s] = e;
++                L.slot_of[e]  = s;
++                L.cpu_of[e]   = -1;
++                L.prefetches++;
++                L.pf_useful += std::find(sel, sel + L.n_used, e) != sel + L.n_used;
++            }
++            lg[0] = 0;
++        }
++    }
 +
 +    if (check_ids) {
 +        // the ids the graph used must be the host maps (as set before this step) applied to the selection
@@ -1882,9 +2177,9 @@ index 0000000..832b50c
 +    if (!f) {
 +        return;
 +    }
-+    uint64_t h = 0, m = 0, a = 0, fe = 0;
++    uint64_t h = 0, m = 0, a = 0, fe = 0, pf = 0, pu = 0;
 +    for (const auto & L : layers) {
-+        h += L.hits; m += L.misses; a += L.admits; fe += L.fetches;
++        h += L.hits; m += L.misses; a += L.admits; fe += L.fetches; pf += L.prefetches; pu += L.pf_useful;
 +    }
 +    const char * pn = policy == STATIC ? "static" : policy == LRU ? "lru" : "dfa";
 +    fprintf(f, "{\"slots\": %d, \"policy\": \"%s\", \"half_life\": %g, \"kappa\": %g, \"overlap\": %d, \"max_admit\": %d, \"chunk\": %zu, \"paced\": %d, \"max_pending\": %d, \"zc\": %d, \"mailbox\": %d, \"helpers\": %d, \"mxk\": %d, \"steps\": %lld,\n",
@@ -1895,6 +2190,8 @@ index 0000000..832b50c
 +    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f, \"fetches\": %llu, \"fetch_table\": \"%s\",\n",
 +            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0,
 +            (unsigned long long) fe, ft_str(fetch_table).c_str());
++    fprintf(f, " \"prefetch_q\": %d, \"prefetch_top\": %d, \"prefetches\": %llu, \"prefetch_useful\": %llu,\n", pf_q,
++            pf_top > 0 ? pf_top : max_used, (unsigned long long) pf, (unsigned long long) pu);
 +    fprintf(f, " \"mb_busy_us\": [");
 +    for (size_t m = 0; m < mb_busy_us.size(); ++m) {
 +        fprintf(f, "%s%.1f", m ? "," : "", mb_busy_us[m]);
@@ -1906,8 +2203,9 @@ index 0000000..832b50c
 +    fprintf(f, "],\n \"layers\": [\n");
 +    for (size_t i = 0; i < layers.size(); ++i) {
 +        const auto & L = layers[i];
-+        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"fetches\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, ", L.il, L.C,
++        fprintf(f, "  {\"il\": %d, \"C\": %d, \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"fetches\": %llu, \"prefetches\": %llu, \"prefetch_useful\": %llu, \"mb_requests\": %llu, \"mb_experts\": %llu, ", L.il, L.C,
 +                (unsigned long long) L.hits, (unsigned long long) L.misses, (unsigned long long) L.admits, (unsigned long long) L.fetches,
++                (unsigned long long) L.prefetches, (unsigned long long) L.pf_useful,
 +                (unsigned long long) L.mb_requests, (unsigned long long) L.mb_experts);
 +        fprintf(f, "\"miss_hist\": [");
 +        for (size_t m = 0; m < L.miss_hist.size(); ++m) {
@@ -2210,10 +2508,10 @@ index 0000000..832b50c
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..da1f9a3
+index 0000000..43cba6d
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,238 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -2266,6 +2564,12 @@ index 0000000..da1f9a3
 +//   LLAMA_EC_FETCH_BLOCKS  thread blocks of the fetch copy kernel (default 64)
 +//   LLAMA_EC_FETCH_OVERLAP 1 (default) = hand the helpers their share first, then copy (the copy overlaps them);
 +//                       0 = copy, then hand over
++//   LLAMA_EC_PREFETCH  mailbox mode: q > 0 = while layer l runs, predict layer l+1's experts (layer l+1's router on
++//                      layer l's MoE input, with layer l+1's norm weight) and copy up to q of the predicted ones that
++//                      are not resident into layer l+1's slots on a side stream; layer l+1 serves them from there
++//                      (ggml-ec.h, PREFETCH). 0 or unset = off.
++//   LLAMA_EC_PREFETCH_TOP  predictions considered, in rank order (default: the layer's experts per token)
++//   LLAMA_EC_PREFETCH_BLOCKS  thread blocks of the prefetch copy kernel (default 64)
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
@@ -2304,6 +2608,7 @@ index 0000000..da1f9a3
 +        std::vector<int64_t> stamp;       // [E]  last step the expert was used (lru)
 +        std::vector<uint64_t> count;      // [E]  total requests
 +        uint64_t hits = 0, misses = 0, admits = 0, fetches = 0;
++        uint64_t prefetches = 0, pf_useful = 0;   // prefetched into this layer; of those, selected in that step
 +        // mailbox mode: the host expert tensors the helpers compute from, and the activation (0 swiglu, 1 swiglu_oai)
 +        ggml_tensor * w_gate = nullptr, * w_up = nullptr, * w_down = nullptr;
 +        ggml_tensor * b_gate = nullptr, * b_up = nullptr, * b_down = nullptr;
@@ -2340,6 +2645,12 @@ index 0000000..da1f9a3
 +    bool fetch_enabled(int il) const;                       // the decode graph adds a FETCH op before this layer's GPU path
 +    ggml_ec_op * fetch_op(int il, int which = 0);           // userdata of the layer's FETCH (0) / FETCH_COPY (1) op
 +    bool fetch_overlap = true;                              // copy after REQUEST, overlapping the helpers
++    // PREFETCH: layer il predicts layer il+1 (the tensors are nullptr when il does not)
++    bool prefetch_from(int il) const;
++    ggml_tensor * pf_gate_of(int il) const;                  // [n_embd, E] router of il+1 with the norm ratio folded in
++    ggml_tensor * pf_bias_of(int il) const;                  // [E] router bias of il+1 (zeros if none)
++    ggml_ec_op * prefetch_op(int il_target, int which);     // PREFETCH (0), PREFETCH_COPY (1), PREFETCH_JOIN (2)
++    int pf_q = 0, pf_top = 0, pf_blocks = 64;
 +    void set_act(int il, int act);                          // 0 swiglu, 1 swiglu_oai (set while building the graph)
 +
 +    // decode loop hooks
@@ -2383,6 +2694,12 @@ index 0000000..da1f9a3
 +    std::vector<ggml_ec_op> fetch_ops;          // [2 * n_layers]: FETCH, FETCH_COPY of every layer
 +    ggml_backend_buffer_t fl_buf = nullptr;     // pinned: per layer, the last step's fetch log (n, (expert, slot)...)
 +    int32_t * fl_host = nullptr;
++    std::vector<ggml_tensor *> pf_gate, pf_bias;  // [n_layers] (index of the predicting layer)
++    std::vector<ggml_ec_fetch> pf_args;         // [n_layers] (index of the target layer)
++    std::vector<ggml_ec_op> pf_ops;             // [3 * n_layers]
++    ggml_backend_buffer_t pl_buf = nullptr;     // pinned: per target layer, the last step's prefetch log
++    int32_t * pl_host = nullptr;
++    void init_prefetch(const llama_model & model);
 +    std::vector<std::thread> helpers;
 +    std::atomic<bool> h_active{false};
 +    std::atomic<bool> h_stop{false};
@@ -2434,7 +2751,7 @@ index 0000000..da1f9a3
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index a806126..d655adb 100644
+index a806126..4277a30 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -2495,7 +2812,7 @@ index a806126..d655adb 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2391,222 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2391,276 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -2624,6 +2941,40 @@ index a806126..d655adb 100644
 +    ggml_tensor * maps = inp_ec->maps;
 +    ggml_tensor * map_g = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (3 * li + 0) * maps->nb[1]);
 +    ggml_tensor * map_c = ggml_view_2d(ctx0, maps, 1, n_expert, sizeof(int32_t), (size_t) (3 * li + 1) * maps->nb[1]);
++    ggml_tensor * map_v = ggml_view_1d(ctx0, maps, maps->ne[0], (size_t) (3 * li + 2) * maps->nb[1]);
++    const int64_t Emax = maps->ne[0];
++    // PREFETCH issued by the previous layer: this layer's maps and eviction candidates are the plan's updated ones
++    std::pair<ggml_tensor *, ggml_tensor *> pf_in = { nullptr, nullptr };
++    if (auto it = ec_pf.find(il); it != ec_pf.end()) {
++        pf_in = it->second;
++        ec_pf.erase(it);
++        map_g = ggml_view_2d(ctx0, pf_in.first, 1, n_expert, sizeof(int32_t), 0);
++        map_c = ggml_view_2d(ctx0, pf_in.first, 1, n_expert, sizeof(int32_t), (size_t) Emax * sizeof(int32_t));
++        map_v = ggml_view_1d(ctx0, pf_in.first, Emax, (size_t) (2 * Emax) * sizeof(int32_t));
++    }
++    // PREFETCH for the next layer: its router (norm ratio folded in, ggml-ec.h) on this layer's MoE input
++    ggml_tensor * pf_plan = nullptr;
++    if (mailbox && n_tokens == 1 && ec->prefetch_from(il)) {
++        ggml_tensor * lg = ggml_mul_mat(ctx0, ec->pf_gate_of(il), ggml_reshape_2d(ctx0, cur, n_embd, n_tokens));
++        lg = ggml_add(ctx0, lg, ec->pf_bias_of(il));
++        const int np = std::max(1, std::min<int>(ec->pf_top > 0 ? ec->pf_top : (int) n_expert_used, (int) lg->ne[0]));
++        ggml_tensor * pid = ggml_cont(ctx0, ggml_argsort_top_k(ctx0, lg, np));
++        ggml_format_name(pid, "ec_pf_pred-%d", il);
++        const int lt = li + 1;
++        ggml_tensor * p_args[4] = {
++            ggml_reshape_1d(ctx0, pid, np),
++            ggml_view_1d(ctx0, maps, Emax, (size_t) (3 * lt + 0) * maps->nb[1]),
++            ggml_view_1d(ctx0, maps, Emax, (size_t) (3 * lt + 1) * maps->nb[1]),
++            ggml_view_1d(ctx0, maps, Emax, (size_t) (3 * lt + 2) * maps->nb[1]) };
++        pf_plan = ggml_custom_4d(ctx0, GGML_TYPE_I32, 3 * Emax + 1 + 2 * GGML_EC_MAX_K, 1, 1, 1, p_args, 4, ggml_ec_op_stub, 1,
++                ec->prefetch_op(il + 1, 0));
++        ggml_format_name(pf_plan, "ec_pf_plan-%d", il);
++        for (ggml_tensor * t : { lg, pid, pf_plan }) {
++            ggml_backend_sched_set_tensor_backend(sched, t, ggml_backend_sched_get_backend(sched, 0));
++        }
++        ggml_backend_sched_set_tensor_backend(sched, lg->src[0], ggml_backend_sched_get_backend(sched, 0));
++        ggml_build_forward_expand(gf, pf_plan);
++    }
 +
 +    // record this step's selection for the cache policy
 +    {
@@ -2650,7 +3001,7 @@ index a806126..d655adb 100644
 +    if (mailbox && n_tokens == 1 && ec->fetch_enabled(il)) {
 +        // move up to T[m] of this step's misses into slots and serve them on the GPU (FETCH, ggml-ec.h). With
 +        // overlap, FETCH only decides; the copy (FETCH_COPY) follows the REQUEST below, so the helpers start first.
-+        ggml_tensor * vic = ggml_view_1d(ctx0, maps, maps->ne[0], (size_t) (3 * li + 2) * maps->nb[1]);
++        ggml_tensor * vic = map_v;
 +        ggml_tensor * f_args[3] = { ggml_reshape_1d(ctx0, gid, n_expert_used), ggml_reshape_1d(ctx0, cid, n_expert_used), vic };
 +        f_plan = ggml_custom_4d(ctx0, GGML_TYPE_I32, 4 * n_expert_used + 1, 1, 1, 1, f_args, 3, ggml_ec_op_stub, 1,
 +                ec->fetch_op(il, 0));
@@ -2678,6 +3029,26 @@ index a806126..d655adb 100644
 +            ggml_backend_sched_set_tensor_backend(sched, fc, be_gpu);
 +            ggml_build_forward_expand(gf, fc);
 +            gid = ggml_reshape_2d(ctx0, fc, n_expert_used, n_tokens);
++        }
++        if (pf_plan) {
++            // start the next layer's prefetch copy now that the helpers have this layer's request (side stream)
++            ggml_tensor * pc_args[2] = { pf_plan, req };
++            ggml_tensor * pc = ggml_custom_4d(ctx0, GGML_TYPE_I32, 1, 1, 1, 1, pc_args, 2, ggml_ec_op_stub, 1,
++                    ec->prefetch_op(il + 1, 1));
++            ggml_format_name(pc, "ec_pf_copy-%d", il);
++            ggml_backend_sched_set_tensor_backend(sched, pc, be_gpu);
++            ggml_build_forward_expand(gf, pc);
++            ec_pf[il + 1] = { pf_plan, pc };
++        }
++        if (pf_in.first) {
++            // this layer's prefetched experts must have landed before its GPU experts run
++            ggml_tensor * j_args[3] = { ggml_reshape_1d(ctx0, gid, n_expert_used * n_tokens), pf_in.first, pf_in.second };
++            ggml_tensor * jn = ggml_custom_4d(ctx0, GGML_TYPE_I32, n_expert_used * n_tokens, 1, 1, 1, j_args, 3, ggml_ec_op_stub, 1,
++                    ec->prefetch_op(il, 2));
++            ggml_format_name(jn, "ec_pf_join-%d", il);
++            ggml_backend_sched_set_tensor_backend(sched, jn, be_gpu);
++            ggml_build_forward_expand(gf, jn);
++            gid = ggml_reshape_2d(ctx0, jn, n_expert_used, n_tokens);
 +        }
 +        ggml_tensor * out_gpu = path(gid, true);
 +        cb(out_gpu, "ffn_moe_ec_gpu", il);
@@ -2719,7 +3090,7 @@ index a806126..d655adb 100644
  ggml_tensor * llm_graph_context::build_inp_embd(ggml_tensor * tok_embd) const {
      const int64_t n_embd_inp = hparams.n_embd_inp();
 diff --git a/src/llama-graph.h b/src/llama-graph.h
-index 3daa425..7b9d82c 100644
+index 3daa425..c60cf7f 100644
 --- a/src/llama-graph.h
 +++ b/src/llama-graph.h
 @@ -8,6 +8,7 @@
@@ -2769,17 +3140,18 @@ index 3daa425..7b9d82c 100644
      // return true if the "other" params would result in a graph with the same topology as with the current params
      //   having the same topology allows us to reuse the graph in some cases
      bool allow_reuse(const llm_graph_params & other) const {
-@@ -1038,6 +1057,9 @@ struct llm_graph_context {
+@@ -1038,6 +1057,10 @@ struct llm_graph_context {
  
      llm_graph_result * res;
  
 +    llama_expert_cache * ec;
 +    mutable llm_graph_input_expert_cache * inp_ec = nullptr;
++    mutable std::map<int, std::pair<ggml_tensor *, ggml_tensor *>> ec_pf;   // target layer -> (PREFETCH plan, PREFETCH_COPY)
 +
      ggml_context * ctx0 = nullptr;
      ggml_cgraph  * gf   = nullptr;
  
-@@ -1162,6 +1184,19 @@ struct llm_graph_context {
+@@ -1162,6 +1185,19 @@ struct llm_graph_context {
               ggml_tensor * down_exps_s = nullptr,
               ggml_tensor * selected_experts_in = nullptr) const;
  

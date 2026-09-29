@@ -3,6 +3,25 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, evening: the server's sampler was the rest of the fixed cost (job `074b_server_overhead@vast`)
+
+**Change tested:** `"backend_sampling": true`, a stock llama-server option that samples on the GPU. It cuts the
+server's time between decode steps from 1.7–2.0 ms to 0.23–0.44 ms. The rest of that time is the CPU sampler chain
+over 201k logits.
+
+**Same 7950X host as 074, same session as FreeToken:**
+
+| Experts on GPU | ours v2 + FETCH + GPU sampling | FreeToken | Difference (95% CI) |
+|---|---|---|---|
+| 40% | 122.8 tok/s | 114.4 | **+7.4% [+6.3, +8.5]** |
+| 25% | 83.0 tok/s | 68.4 | **+21.3% [+19.9, +22.7]** |
+
+- All three predictions held; `prereg/server_overhead_outcome_074b.md` has the outcome.
+- **Settings across the jobs:** FETCH off on the 073 host, where the CPU path is faster than the link; FETCH on here,
+  where they are equal. The host-memory law is what should pick.
+- **Next:** 40% and 60% on an RTX PRO 6000 (job 075, running). Every llama-server system samples on the GPU there,
+  and each system's better variant is chosen on launch 1 and confirmed on launches 2–3.
+
 ## 29 September, afternoon: the 40% fix, and why FreeToken still leads there (job `074_fix40@vast`)
 
 **The data behind the 40% loss (job 073).** Speed per budget fits a line in misses per token, within 0.12 ms, for

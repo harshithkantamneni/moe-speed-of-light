@@ -2924,10 +2924,10 @@ index 0000000..2e52e6a
 +target_compile_features(llama-ec-cpubench PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..2d51f72
+index 0000000..3615605
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,404 @@
+@@ -0,0 +1,574 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -3001,8 +3001,148 @@ index 0000000..2d51f72
 +    return out;
 +}
 +
++// --lookahead FILE: for every decode step and MoE layer, the experts the router selected and the top-8 experts a
++// layer's router would pick from EARLIER hidden states (for studying prefetch). Per step, int16:
++//   seq, step, then per layer: act[k] (selected), self[k] (the layer's own router recomputed on the host from its
++//   pre-norm residual: a check of the host math), mid1[8] (layer il+1's router on the residual after layer il's
++//   attention, available when layer il's MoE starts), out1[8] (layer il+1's router on layer il's output), mid2[8]
++//   (layer il+2's router on the residual after layer il's attention); -1 where undefined. FILE.json holds the shape.
++// Router, norm and bias weights are read through the graph's own nodes (ffn_moe_logits-il: src[0] = router, src[1] =
++// the norm node, whose src[1] is the norm weight and whose src[0] is the RMS norm with its eps; ffn_moe_logits_biased-il:
++// src[1] = bias). Works for any model whose MoE input is an RMS-norm times a weight (gpt-oss, Qwen3-MoE). Uses the
++// scheduler's eval callback, so every observed tensor forces a sync: the timings of such a run are not meaningful.
++struct la_state {
++    int n_layer = 0, k = 0, n_expert = 0, n_embd = 0;
++    std::vector<std::vector<float>> W, nw, b;   // per layer: router [n_expert][n_embd], norm weight, bias
++    std::vector<float> eps;
++    std::vector<char> bchk;   // bias looked for
++    std::vector<std::vector<float>> xmid, xout;
++    std::vector<std::vector<int32_t>> act;
++    FILE * f = nullptr;
++};
++
++static int la_parse(const char * nm, std::string & base) {
++    const char * dash = strrchr(nm, '-');
++    if (!dash || !dash[1] || dash[1] < '0' || dash[1] > '9') {
++        return -1;
++    }
++    base.assign(nm, dash - nm);
++    return atoi(dash + 1);
++}
++
++static std::vector<float> la_get_f32(const ggml_tensor * t) {
++    const int64_t n = ggml_nelements(t);
++    std::vector<uint8_t> raw(ggml_nbytes(t));
++    ggml_backend_tensor_get(const_cast<ggml_tensor *>(t), raw.data(), 0, raw.size());
++    std::vector<float> out(n);
++    if (t->type == GGML_TYPE_F32) {
++        memcpy(out.data(), raw.data(), n * sizeof(float));
++    } else {
++        const auto * tr = ggml_get_type_traits(t->type);
++        GGML_ASSERT(tr->to_float && "router weight type without to_float");
++        const int64_t nr = ggml_nrows(t), nc = t->ne[0];
++        for (int64_t r = 0; r < nr; ++r) {
++            tr->to_float(raw.data() + r * t->nb[1], out.data() + r * nc, nc);
++        }
++    }
++    return out;
++}
++
++static bool la_cb(ggml_tensor * t, bool ask, void * ud) {
++    auto * s = (la_state *) ud;
++    std::string base;
++    const int il = la_parse(t->name, base);
++    if (il < 0 || il >= s->n_layer) {
++        return false;
++    }
++    // the bias node is named ffn_moe_logits_biased, or ffn_moe_probs when the gating reuses the logits (gpt-oss)
++    const bool want = base == "ffn_inp" || base == "l_out" || base == "ffn_moe_topk" ||
++                      (base == "ffn_moe_logits" && s->W[il].empty()) ||
++                      ((base == "ffn_moe_logits_biased" || base == "ffn_moe_probs") && !s->bchk[il]);
++    if (ask) {
++        return want && t->ne[1] == 1;   // decode steps only
++    }
++    if (!want || t->ne[1] != 1) {
++        return true;
++    }
++    if (base == "ffn_inp" || base == "l_out") {
++        std::vector<float> & dst = base == "ffn_inp" ? s->xmid[il] : s->xout[il];
++        dst.resize(t->ne[0]);
++        ggml_backend_tensor_get(t, dst.data(), 0, t->ne[0] * sizeof(float));
++    } else if (base == "ffn_moe_topk") {
++        s->act[il].assign(t->ne[0], -1);
++        ggml_backend_tensor_get(t, s->act[il].data(), 0, t->ne[0] * sizeof(int32_t));
++    } else if (base == "ffn_moe_logits") {
++        const ggml_tensor * w = t->src[0], * nrm = t->src[1];
++        GGML_ASSERT(nrm && nrm->op == GGML_OP_MUL && nrm->src[0] && nrm->src[0]->op == GGML_OP_RMS_NORM);
++        s->W[il] = la_get_f32(w);                 // [n_expert][n_embd]
++        s->nw[il] = la_get_f32(nrm->src[1]);
++        float e;
++        memcpy(&e, nrm->src[0]->op_params, sizeof(float));
++        s->eps[il] = e;
++    } else if (base == "ffn_moe_logits_biased" || base == "ffn_moe_probs") {
++        if (t->op == GGML_OP_ADD && t->src[0] && strncmp(t->src[0]->name, "ffn_moe_logits-", 15) == 0) {
++            s->b[il] = la_get_f32(t->src[1]);
++        }
++        s->bchk[il] = 1;
++    }
++    return true;
++}
++
++// top-n experts of layer j's router on residual x (RMS norm with layer j's weight, then the router and its bias)
++static void la_pred(const la_state & s, int j, const std::vector<float> & x, int n, int16_t * out) {
++    for (int i = 0; i < n; ++i) {
++        out[i] = -1;
++    }
++    if (j >= s.n_layer || s.W[j].empty() || x.empty()) {
++        return;
++    }
++    const int d = (int) x.size();
++    double ss = 0;
++    for (float v : x) {
++        ss += (double) v * v;
++    }
++    const float sc = 1.0f / sqrtf((float) (ss / d) + s.eps[j]);
++    std::vector<float> xn(d);
++    for (int i = 0; i < d; ++i) {
++        xn[i] = x[i] * sc * s.nw[j][i];
++    }
++    std::vector<std::pair<float, int>> lg(s.n_expert);
++    for (int e = 0; e < s.n_expert; ++e) {
++        const float * w = s.W[j].data() + (size_t) e * d;
++        double acc = s.b[j].empty() ? 0.0 : s.b[j][e];
++        for (int i = 0; i < d; ++i) {
++            acc += (double) w[i] * xn[i];
++        }
++        lg[e] = { (float) acc, e };
++    }
++    std::partial_sort(lg.begin(), lg.begin() + n, lg.end(), [](auto & a, auto & b) { return a.first > b.first; });
++    for (int i = 0; i < n; ++i) {
++        out[i] = (int16_t) lg[i].second;
++    }
++}
++
++static void la_record(la_state & s, int seq, int step) {
++    const int L = s.n_layer, k = s.k;
++    std::vector<int16_t> rec(2 + (size_t) L * (2 * k + 24), -1);
++    rec[0] = (int16_t) seq;
++    rec[1] = (int16_t) step;
++    for (int il = 0; il < L; ++il) {
++        int16_t * r = rec.data() + 2 + (size_t) il * (2 * k + 24);
++        for (int i = 0; i < k && i < (int) s.act[il].size(); ++i) {
++            r[i] = (int16_t) s.act[il][i];
++        }
++        la_pred(s, il, s.xmid[il], k, r + k);
++        la_pred(s, il + 1, s.xmid[il], 8, r + 2 * k);
++        la_pred(s, il + 1, s.xout[il], 8, r + 2 * k + 8);
++        la_pred(s, il + 2, s.xmid[il], 8, r + 2 * k + 16);
++        s.act[il].assign(k, -1);
++    }
++    fwrite(rec.data(), sizeof(int16_t), rec.size(), s.f);
++}
++
 +int main(int argc, char ** argv) {
-+    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path;
++    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path, la_path;
 +    float gen_temp = 0.8f;
 +    int gen_seed = 42;
 +    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
@@ -3028,6 +3168,7 @@ index 0000000..2d51f72
 +        else if (a == "--gen-out") gen_path = next();       // sample continuations instead of timing (see below)
 +        else if (a == "--gen-temp") gen_temp = std::stof(next());
 +        else if (a == "--gen-seed") gen_seed = std::stoi(next());
++        else if (a == "--lookahead") la_path = next();      // record router predictions from earlier hidden states (see la_state)
 +        else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 1; }
 +    }
 +    auto corpus = read_corpus(corpus_path);
@@ -3079,6 +3220,25 @@ index 0000000..2d51f72
 +    }
 +    const llama_vocab * vocab = llama_model_get_vocab(model);
 +    const int n_vocab = llama_vocab_n_tokens(vocab);
++
++    la_state la;
++    if (!la_path.empty()) {
++        char arch[64] = {0}, buf[64] = {0};
++        llama_model_meta_val_str(model, "general.architecture", arch, sizeof(arch));
++        la.n_layer = llama_model_n_layer(model);
++        la.n_embd = llama_model_n_embd(model);
++        if (llama_model_meta_val_str(model, (std::string(arch) + ".expert_count").c_str(), buf, sizeof(buf)) > 0) la.n_expert = atoi(buf);
++        if (llama_model_meta_val_str(model, (std::string(arch) + ".expert_used_count").c_str(), buf, sizeof(buf)) > 0) la.k = atoi(buf);
++        GGML_ASSERT(la.n_expert > 0 && la.k > 0 && la.k <= 8 && "--lookahead needs an MoE model with top-k <= 8");
++        la.W.resize(la.n_layer); la.nw.resize(la.n_layer); la.b.resize(la.n_layer); la.eps.assign(la.n_layer, 1e-5f); la.bchk.assign(la.n_layer, 0);
++        la.xmid.resize(la.n_layer); la.xout.resize(la.n_layer); la.act.assign(la.n_layer, std::vector<int32_t>(la.k, -1));
++        la.f = fopen(la_path.c_str(), "wb");
++        FILE * jf = fopen((la_path + ".json").c_str(), "w");
++        fprintf(jf, "{\"arch\": \"%s\", \"n_layer\": %d, \"n_expert\": %d, \"k\": %d, \"n_embd\": %d, \"dtype\": \"int16\", "
++                    "\"record\": \"seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]\"}\n",
++                arch, la.n_layer, la.n_expert, la.k, la.n_embd);
++        fclose(jf);
++    }
 +
 +    // sequence selection
 +    std::vector<int> seqs;
@@ -3150,6 +3310,10 @@ index 0000000..2d51f72
 +        cp.n_ctx = (uint32_t) (n_prefill + n_decode + 16);
 +        cp.n_batch = cp.n_ubatch = (uint32_t) std::max(n_prefill, 32);
 +        cp.no_perf = false;
++        if (la.f) {
++            cp.cb_eval = la_cb;
++            cp.cb_eval_user_data = &la;
++        }
 +        if (threads > 0) {
 +            cp.n_threads = cp.n_threads_batch = threads;
 +        }
@@ -3279,6 +3443,9 @@ index 0000000..2d51f72
 +                const float * lg = llama_get_logits_ith(ctx, -1);   // synchronizes
 +                const auto t1 = std::chrono::steady_clock::now();
 +                step_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
++                if (la.f) {
++                    la_record(la, si, j);
++                }
 +                if (P + j + 1 < (int) s.ids.size()) {   // teacher-forced NLL of the next corpus token (untimed)
 +                    double mx = -1e30;
 +                    for (int v = 0; v < n_vocab; ++v) {
@@ -3328,6 +3495,9 @@ index 0000000..2d51f72
 +        llama_free(ctx);        // the expert cache writes LLAMA_EC_STATS here
 +    }
 +    llama_batch_free(batch);
++    if (la.f) {
++        fclose(la.f);
++    }
 +    llama_model_free(model);
 +    llama_backend_free();
 +    return 0;

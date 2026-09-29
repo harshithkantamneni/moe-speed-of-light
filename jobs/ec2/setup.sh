@@ -10,6 +10,28 @@ if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null || ! command -
 fi
 SM=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1 | tr -d .)
 export SM NPROC=$(nproc)
+usable_cores() {  # physical cores this container may run on: distinct (package, core) in its affinity set, capped by
+  # the cgroup CPU quota (a rented slice of a server sees every host CPU in lscpu but gets only its share)
+  python3 - <<'PYC'
+import os
+cpus = os.sched_getaffinity(0)
+cores = set()
+for c in cpus:
+    try:
+        b = f"/sys/devices/system/cpu/cpu{c}/topology/"
+        cores.add((open(b + "physical_package_id").read().strip(), open(b + "core_id").read().strip()))
+    except OSError:
+        cores.add(("?", str(c)))
+n = len(cores)
+try:
+    q, per = open("/sys/fs/cgroup/cpu.max").read().split()
+    if q != "max":
+        n = min(n, max(1, int(int(q) / int(per))))
+except (OSError, ValueError):
+    pass
+print(n)
+PYC
+}
 platform() {
   nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv > $OUT/gpu.csv 2>&1
   nvidia-smi -q > $OUT/nvidia-smi-q.txt 2>&1

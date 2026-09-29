@@ -13,7 +13,7 @@ exec 2>&1
 export PROF_KEEP_TAIL="C32 C32f static27"
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pip >> $OUT/apt.txt 2>&1
 python3 -m pip install -q --break-system-packages huggingface_hub hf_xet > $OUT/pip.txt 2>&1
-CORES=$(lscpu -p=CORE | grep -v '^#' | sort -u | wc -l); echo "physical cores $CORES" | tee $OUT/cores.txt
+CORES=$(usable_cores); echo "usable physical cores $CORES (lscpu: $(lscpu -p=CORE | grep -v '^#' | sort -u | wc -l), nproc $(nproc))" | tee $OUT/cores.txt
 R() { local t=$1; shift; timeout "$t" "$@"; }
 ( t0=$(date +%s); mkdir -p $M
   python3 -c "import sys; from huggingface_hub import hf_hub_download as d; d('ggml-org/gpt-oss-120b-GGUF', 'gpt-oss-120b-MXFP4.gguf', local_dir=sys.argv[1])" "$M"

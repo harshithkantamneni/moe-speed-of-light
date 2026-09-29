@@ -3,6 +3,44 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, morning: what routing foresight is worth (CPU only, 9 models)
+
+**Question.** After FETCH, PREFETCH and overlap, the largest remaining byte gap is the cache policy itself. For
+gpt-oss-120b at C = 32:
+- the deployed policy reads 45.9 experts per token from host memory (34.9 on the critical path);
+- the best online policy without foresight reads 29.6, all on the critical path (fetch-admit: an admitted miss is
+  copied once and run on the GPU);
+- Belady's optimum with bypass reads 16.4.
+
+How much of that gap can knowledge of future routing close?
+
+**Method.** `scripts/foresight.py` measures a policy that sees the next W decode steps: Belady within the window,
+decayed frequency beyond it. Traces are own sampled text (arm S) of 9 models, cache carried across conversations, at
+12.5 / 25 / 50% of experts per layer. It is a heuristic, so its curve is a lower bound on what W tokens of foresight
+are worth. Output: `prereg/foresight/foresight_S.json`, figure `figures/foresight.pdf`.
+
+**Results.**
+- **The optimum reads 22–56% fewer experts than the best online policy** (median 40%) across the 29 model × budget
+  points.
+- **The foresight needed scales with the cache's turnover time C/k** (slots per layer ÷ experts per token). Half the
+  gap closes at W50 ≈ 0.5 (C/k)^1.4 tokens: log-log r = 0.975 over 26 points, median W50 / (C/k) = 0.73. 90% of the
+  gap needs about 2.5 C/k.
+- **Small caches (C/k ≤ 2):** one or two tokens of foresight recover half or more. OLMoE, gpt-oss-20b, Mixtral,
+  Phi-3.5 and Qwen2-57B at 12.5–25% are in this regime.
+- **Large caches:** gpt-oss-120b at 25% (C/k = 8) needs about 10 tokens; at 50%, about 33.
+- **Next-layer prediction gives zero tokens of cross-token foresight.** That is why PREFETCH raises the hit rate but
+  never lowers host bytes.
+- **Per-conversation hindsight placement** (the C experts each conversation uses most) captures part of the gap only
+  for gpt-oss-120b at 25–50%. For the others it is no better than online.
+
+**In seconds, gpt-oss-120b at C = 32 on the 9950X #2 host** (law, both paths at 51.8 GB/s): the best online policy
+takes 12.4 ms per token (81 tok/s), the optimum 9.0 ms (111 tok/s). Foresight is worth up to +37% there. No
+engineering of paths or overlap can recover it.
+
+**Prior art checked.** Read-ME (NeurIPS'24) makes routing known ahead by decoupling the router and applies Belady.
+ExpertFlow and SpecMD predict one layer or one batch ahead. None of the three measures what a foresight horizon is
+worth, or its scaling with C/k.
+
 ## 29 September, morning: the overlap test failed (job `071_overlap_x3d@vast`)
 
 **Host:** RTX 5090 + Ryzen 9 9950X3D2 (two CCDs, 192 MB L3). CPU read 69.6 GB/s; CPU + copy engine 86 GB/s.

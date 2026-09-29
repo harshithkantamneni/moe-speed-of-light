@@ -130,7 +130,7 @@ def boot_cmd(job):
     return ("set -x; export DEBIAN_FRONTEND=noninteractive; "
             "(command -v git && command -v curl) >/dev/null || "
             "(apt-get update -qq && apt-get install -y -qq git curl ca-certificates >/dev/null); "
-            f"git clone -q --depth 1 --filter=blob:none --sparse -b gpu {REPO} /w && cd /w && "
+            f"{{ [ -d /w/.git ] || git clone -q --depth 1 --filter=blob:none --sparse -b gpu {REPO} /w; }} && cd /w && "
             "git sparse-checkout set jobs gpu && "
             f"exec bash /w/gpu/vast_boot.sh {job}")
 
@@ -184,14 +184,14 @@ def get_logs(iid, tail):
     url = r.get("result_url")
     if not url:
         raise SystemExit(f"no log url: {json.dumps(r)[:200]}")
-    for i in range(20):
+    for i in range(100):     # large result blocks take minutes to be written out
         try:
             txt = call("GET", None, raw_url=url, tries=1)
             if txt.strip():
                 return txt
         except SystemExit:
             pass
-        time.sleep(3)
+        time.sleep(3 if i < 20 else 6)
     raise SystemExit("log file never became available")
 
 
@@ -229,7 +229,11 @@ def parse_result(txt, job):
 
 
 def fetch(a):
-    txt = get_logs(a.id, a.tail)
+    try:
+        txt = get_logs(a.id, a.tail)
+    except SystemExit:
+        print(f"log with tail {a.tail} not available; retrying with 12000")
+        txt = get_logs(a.id, 12000)
     hdr, blob = parse_result(txt, a.job)
     if blob is None:
         started = "@@START" in txt

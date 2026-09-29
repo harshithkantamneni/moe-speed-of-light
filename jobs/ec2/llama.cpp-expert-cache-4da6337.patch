@@ -961,7 +961,7 @@ index afdaddc..15ab013 100644
      llama-impl.cpp
      llama-io.cpp
 diff --git a/src/llama-context.cpp b/src/llama-context.cpp
-index 27b9a38..336d279 100644
+index 27b9a38..05ade7c 100644
 --- a/src/llama-context.cpp
 +++ b/src/llama-context.cpp
 @@ -1,4 +1,5 @@
@@ -986,7 +986,7 @@ index 27b9a38..336d279 100644
 +                break;
 +            }
 +        }
-+        if (getenv("LLAMA_EC_SLOTS")) {
++        if (getenv("LLAMA_EC_SLOTS") && !model.hparams.no_alloc) {   // not in llama-server's memory-fit pass (no weights)
 +            ec = std::make_unique<llama_expert_cache>(model, ec_backend, ec_dev);
 +            if (!ec->enabled()) {
 +                ec.reset();
@@ -1194,10 +1194,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..c46b01c
+index 0000000..f6b1098
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1308 @@
+@@ -0,0 +1,1310 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1300,7 +1300,8 @@ index 0000000..c46b01c
 +        }
 +        bool host = true;
 +        for (auto * t : src) {
-+            host = host && t->buffer && ggml_backend_buffer_is_host(t->buffer) && ggml_is_contiguous(t);
++            // t->data is null when the model was loaded without allocating (llama-server's parameter fitting): no cache
++            host = host && t->buffer && t->data && ggml_backend_buffer_is_host(t->buffer) && ggml_is_contiguous(t);
 +        }
 +        if (!host) {
 +            continue; // experts of this layer already live on a device: nothing to cache
@@ -1380,7 +1381,8 @@ index 0000000..c46b01c
 +        for (size_t li = 0; li + 1 < layers.size(); ++li) {
 +            const layer & A = layers[li], & B = layers[li + 1];
 +            const auto & lb = model.layers[B.il];
-+            if (B.il != A.il + 1 || B.C <= 0 || B.C >= B.n_expert || !lb.ffn_gate_inp || !mnorm(A.il) || !mnorm(B.il)) {
++            if (B.il != A.il + 1 || B.C <= 0 || B.C >= B.n_expert || !lb.ffn_gate_inp || !lb.ffn_gate_inp->data ||
++                    !mnorm(A.il) || !mnorm(B.il) || !mnorm(A.il)->data || !mnorm(B.il)->data) {
 +                continue;
 +            }
 +            const int64_t n_embd = lb.ffn_gate_inp->ne[0];

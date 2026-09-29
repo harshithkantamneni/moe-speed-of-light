@@ -3,7 +3,8 @@
 # 128 tokens, at C = 14 / 32 / 56, in one process per run on one loaded model: the cache without prefetch, prefetch
 # q=1 (top-4 predictions), q=1 + FETCH, q=2, FETCH alone, and the first two again in reverse order (drift check). Then
 # the same client runs as job 064 (FreeToken's method, AIME-25 problems 0-4, 256 tokens, llama-server) for the cache
-# with prefetch at C = 14 / 32 / 51 / 56, to set beside job 064's numbers. The host is measured first (STREAM, bw.cu,
+# with prefetch and with FETCH at C = 14 / 32 / 51 / 56 (job 064's FETCH server runs aborted: the cache ran in
+# llama-server's memory-fit pass, fixed), to set beside job 064's numbers. The host is measured first (STREAM, bw.cu,
 # concur.cu). Job 065 verified prefetch on gpt-oss-20b (ids consistent on 1,536 steps, CUDA graphs on/off identical,
 # memcheck clean, hit rate as simulated) on a PCIe 4.0 host where it lost 16 %, as FETCH did there.
 set -x
@@ -44,8 +45,14 @@ LS="-m $F -ngl 99 -fa on -lm none -t $CORES -np 1 -c 8448 --no-webui"
 OT="-ot '\\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'"
 for C in 14 32 51 56; do
   ECENV="env LLAMA_EC_SLOTS=$C LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=$H"
+  if [ $C = 32 ]; then   # this session's reference: the cache alone (job 064 ran all four budgets)
+    R 40m $CL --label ours_C$C --meta "{\"system\": \"ours\", \"C\": $C}" --extra "$LX" --log $OUT/srv_ours_C$C.log \
+      --cmd "$ECENV LLAMA_EC_STATS=$OUT/srv_ours_C$C.json $EC_SERVER $LS $OT --port {port}"
+  fi
   R 40m $CL --label ourspf_C$C --meta "{\"system\": \"ours+prefetch\", \"C\": $C}" --extra "$LX" --log $OUT/srv_ourspf_C$C.log \
     --cmd "$ECENV LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=$OUT/srv_ourspf_C$C.json $EC_SERVER $LS $OT --port {port}"
+  R 40m $CL --label oursf_C$C --meta "{\"system\": \"ours+fetch\", \"C\": $C}" --extra "$LX" --log $OUT/srv_oursf_C$C.log \
+    --cmd "$ECENV LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=$OUT/srv_oursf_C$C.json $EC_SERVER $LS $OT --port {port}"
 done
 for f in $OUT/srv_*.log; do tail -n 40 "$f" > "$f.tail"; done; find $OUT -name 'srv_*.log' -size +2M -delete
 python3 - "$OUT" <<'PY' | tee $OUT/summary.txt

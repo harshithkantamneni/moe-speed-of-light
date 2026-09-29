@@ -3,6 +3,35 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, morning: the overlap test failed (job `071_overlap_x3d@vast`)
+
+**Host:** RTX 5090 + Ryzen 9 9950X3D2 (two CCDs, 192 MB L3). CPU read 69.6 GB/s; CPU + copy engine 86 GB/s.
+**Run:** own text, 12 × 128 tokens. Predictions were recorded before the run
+(`prereg/homepc/overlap_prediction_071.md`, outcome appended).
+
+| Config | C = 14 | C = 32 | C = 56 |
+|---|---|---|---|
+| base (tok/s) | 55.8 | 84.0 | 121.2 |
+| PREFETCH (early) | +13.9% | +11.0% | +3.7% |
+| PREFETCH_LATE | +8.3% | +3.4% | −3.0% |
+| LLC (warm the next layer's CPU experts into L3) | −1.8% | −2.5% | −5.0% |
+| FETCH | +7.2% | +7.6% | +4.4% |
+| LLC + FETCH | −8.4% | −10.1% | −13.6% |
+
+- **The two overlap predictions failed.** Late copies are slower than early ones, and L3 warming loses. The other
+  predictions held:
+  - the law on the configurations it covers: median 1.8%, worst 11.2%;
+  - no configuration beats its bound;
+  - top-1 agreement ≥ 98.4%, NLL within 0.6%.
+- **Why.** Host memory is not idle during the GPU's work:
+  - background admissions read 100–145 MB per token in exactly those windows;
+  - early PREFETCH already puts predicted copies there, and that is its whole gain.
+  - What is left per layer is about 130 µs, half an expert. The new mechanisms only added competing reads.
+- **Consequence for the paper.** The "+40–55% overlap dividend" of the entry below is withdrawn. The overlap stays in
+  the paper as a bound-level quantity: the max-form bound, and what early PREFETCH realizes of it.
+- **Next.** The profile (job 069b, running) splits G into its parts. G is now 40% of the token time at C = 32 and 58%
+  at C = 56, the largest term the engine controls.
+
 ## 29 September, early: a law for offloaded decode on a PC
 
 **The law** (`scripts/law_hostdram.py`, results in `prereg/homepc/law_hostdram.json`):
@@ -28,12 +57,9 @@
    never reduces the bytes.
 2. **The host lottery is the RAM.** The 19–22% gap between "identical" 9950X rentals is 62 vs 47 GB/s of host memory
    bandwidth.
-3. **G and the host-memory term add up; nothing overlaps them.** Host memory is idle while the GPU does its own work,
-   about 4.8 ms per token. Overlapping turns the sum into a max: +40–55% at C = 32 on the 47 GB/s hosts.
-   - Two ways to try it are built: `LLAMA_EC_PREFETCH_LATE` (the copy starts during the next layer's attention) and
-     `LLAMA_EC_LLC` (idle helpers pull the next layer's predicted CPU experts into L3).
-   - Job 071 tests both on an X3D host. Its predictions were recorded before the run in
-     `prereg/homepc/overlap_prediction_071.md`.
+3. **G and the host-memory term add up.** *(Corrected after job 071, below.)* This entry claimed that host memory is
+   idle while the GPU works and that overlapping would give +40–55% at C = 32. That was wrong: the cache's background
+   admissions and early PREFETCH already use those windows.
 
 **All in VRAM (job 070, RTX PRO 6000 Blackwell, the 5090's die with 96 GB):**
 - gpt-oss-120b decodes at **265 tok/s** in llama.cpp (llama-bench 263). That is about 54% of the GPU's datasheet

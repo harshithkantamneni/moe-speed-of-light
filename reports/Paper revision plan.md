@@ -20,8 +20,9 @@ The law explains:
 - why miss splitting helps on one PC and hurts on another;
 - why prefetching never reduces the bytes that matter.
 
-It also points to the one thing no system does: overlapping the host-memory reads with the GPU's own work, worth
-+40–55% at a quarter of the experts resident.
+The law also bounds overlap. Host-memory reads can hide behind the GPU's own work only where host memory is idle.
+Job 071 shows that background admissions and early PREFETCH already fill those windows, and that late copies and L3
+warming add nothing.
 
 Working title: **"Your RAM Decides: A Bound, a Law and an Audit for Offloaded Mixture-of-Experts Decode on PCs"**
 (alternative, neutral: *"How Fast Could It Be? Bounding and Explaining Offloaded MoE Decode on Consumer Hardware"*).
@@ -47,8 +48,8 @@ Working title: **"Your RAM Decides: A Bound, a Law and an Audit for Offloaded Mi
    gpt-oss-120b result is stated as 6.40 vs 3.00 nats.
 5. **A same-machine protocol.** A competitor's unmodified benchmark client is the referee, at measured equal memory,
    against the bound, with the host measured. It is demonstrated on llama.cpp, the expert cache and FreeToken.
-6. **The overlap result**, if job 071 or a follow-up shows it: moving host-memory reads into the GPU's own time, as a
-   test of the law's prediction, not as a system claim. FETCH and PREFETCH are credited to FreeToken, HybriMoE, DALI
+6. **The overlap result** (job 071, negative, pre-registered). Overlap is bounded by the host-memory idle time left
+   after admissions. Late copies and L3 warming lose 2–14%. FETCH and PREFETCH are credited to FreeToken, HybriMoE, DALI
    and Speculating Experts.
 
 ## Done (28–29 Sep)
@@ -68,7 +69,7 @@ Working title: **"Your RAM Decides: A Bound, a Law and an Audit for Offloaded Mi
 | # | Experiment | Why | Cost | Status |
 |---|---|---|---|---|
 | 1 | Profile of the offloaded configurations (job 069, rerun) | Break G into kernels, host gaps and EC overhead; see whether the host-memory phases really idle during G | ≈ $1 | running |
-| 2 | Overlap test (job 071) | Test the law's max-form prediction; decides contribution 6 | ≈ $1 | running |
+| 2 | Overlap test (job 071) | Test the law's max-form prediction; decides contribution 6 | ≈ $1 | done: predictions 3 and 4 failed |
 | 3 | Chat comparison v2: 30 AIME problems × 3 launches, greedy decoding, warm-up on a different problem, measured VRAM, FreeToken tuned (`ft bench bw` profile, `--moe-hybrid-max-fetch` sweep incl. 0), paired bootstrap CIs | The comparison as it stands has one request per prompt and no CIs | ≈ $6–9 | next |
 | 4 | Speed limit on the evaluated text: trace the AIME outputs and compute the pooled bound for every system | The current denominators use the own-text trace | CPU only | next |
 | 5 | Second model: Qwen3.6-35B-A3B (FreeToken's own) or Qwen3-30B-A3B BF16 | One-model objection | ≈ $4–5 | after 3 |

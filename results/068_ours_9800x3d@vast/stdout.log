@@ -1,0 +1,263 @@
++++ dirname /w/jobs/068_ours_9800x3d@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=16
+++ NPROC=16
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=8
++ echo 'physical cores 8'
++ tee /w/results/068_ours_9800x3d@vast/cores.txt
+physical cores 8
++ DLG=5968
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ python3 -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j16 --target llama-ec-bench llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/068_ours_9800x3d@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ wait 5968
++ cat /w/results/068_ours_9800x3d@vast/dl_gguf.txt
+++ date +%s
++ t0=1790652640
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+++ date +%s
++ echo 'gguf download rc=0 in 822 s'
+gguf download rc=0 in 822 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Sep 29 03:44 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ H=6
++ MB=mailbox=1:tdec=1:helpers=6
++ COMMON='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 8 --n-prefill 640 --n-decode 128 --no-mmap --host-experts'
++ CFG=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C14_f01123.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C32_f01123.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C32_f01123.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C56_f01123.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 8 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C32_f01123.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:stats=/w/results/068_ours_9800x3d@vast/ot_C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=6:fetch=0,1,1,2,3:stats=/w/results/068_ours_9800x3d@vast/ot_C56_f01123.json'
++ echo 'own-text ec rc=0'
+own-text ec rc=0
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ CL='python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl'
++ LX='{"min_p": 0.0, "seed": 1234}'
++ LS='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C14 --meta '{"system": "ours", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C14 --meta '{"system": "ours", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 60499
+[bs1] ours_C14 problem 0: 48.04 tok/s (20.81 ms/token, p50 19.12 p99 38.87, 256 tokens)
+[bs1] ours_C14 problem 1: 46.24 tok/s (21.63 ms/token, p50 20.99 p99 40.09, 256 tokens)
+[bs1] ours_C14 problem 2: 40.66 tok/s (24.59 ms/token, p50 24.38 p99 38.54, 256 tokens)
+[bs1] ours_C14 problem 3: 45.35 tok/s (22.05 ms/token, p50 20.26 p99 39.71, 256 tokens)
+[bs1] ours_C14 problem 4: 42.55 tok/s (23.50 ms/token, p50 24.03 p99 42.55, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 34495
+[bs1] oursf_C14 problem 0: 49.53 tok/s (20.19 ms/token, p50 20.20 p99 36.69, 256 tokens)
+[bs1] oursf_C14 problem 1: 49.49 tok/s (20.20 ms/token, p50 20.26 p99 34.87, 256 tokens)
+[bs1] oursf_C14 problem 2: 45.20 tok/s (22.12 ms/token, p50 22.13 p99 34.89, 256 tokens)
+[bs1] oursf_C14 problem 3: 51.13 tok/s (19.56 ms/token, p50 17.64 p99 36.52, 256 tokens)
+[bs1] oursf_C14 problem 4: 46.04 tok/s (21.72 ms/token, p50 21.72 p99 42.81, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 53717
+[bs1] ours_C32 problem 0: 77.22 tok/s (12.95 ms/token, p50 11.74 p99 28.01, 256 tokens)
+[bs1] ours_C32 problem 1: 76.04 tok/s (13.15 ms/token, p50 11.72 p99 29.16, 256 tokens)
+[bs1] ours_C32 problem 2: 68.13 tok/s (14.68 ms/token, p50 13.84 p99 31.22, 256 tokens)
+[bs1] ours_C32 problem 3: 78.63 tok/s (12.72 ms/token, p50 11.76 p99 26.95, 256 tokens)
+[bs1] ours_C32 problem 4: 67.88 tok/s (14.73 ms/token, p50 14.31 p99 30.38, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 52677
+[bs1] oursf_C32 problem 0: 81.20 tok/s (12.32 ms/token, p50 10.80 p99 25.12, 256 tokens)
+[bs1] oursf_C32 problem 1: 79.95 tok/s (12.51 ms/token, p50 11.70 p99 27.30, 256 tokens)
+[bs1] oursf_C32 problem 2: 71.57 tok/s (13.97 ms/token, p50 13.46 p99 27.91, 256 tokens)
+[bs1] oursf_C32 problem 3: 80.57 tok/s (12.41 ms/token, p50 11.54 p99 25.97, 256 tokens)
+[bs1] oursf_C32 problem 4: 73.95 tok/s (13.52 ms/token, p50 13.26 p99 26.61, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C51 --meta '{"system": "ours", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C51 --meta '{"system": "ours", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C51: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 32823
+[bs1] ours_C51 problem 0: 113.64 tok/s (8.80 ms/token, p50 8.00 p99 18.10, 256 tokens)
+[bs1] ours_C51 problem 1: 118.39 tok/s (8.45 ms/token, p50 7.63 p99 19.34, 256 tokens)
+[bs1] ours_C51 problem 2: 100.85 tok/s (9.92 ms/token, p50 9.36 p99 21.07, 256 tokens)
+[bs1] ours_C51 problem 3: 125.93 tok/s (7.94 ms/token, p50 7.20 p99 18.76, 256 tokens)
+[bs1] ours_C51 problem 4: 100.51 tok/s (9.95 ms/token, p50 9.42 p99 22.50, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C51 --meta '{"system": "ours+fetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C51 --meta '{"system": "ours+fetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C51: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 36983
+[bs1] oursf_C51 problem 0: 124.87 tok/s (8.01 ms/token, p50 7.41 p99 14.24, 256 tokens)
+[bs1] oursf_C51 problem 1: 119.09 tok/s (8.40 ms/token, p50 7.67 p99 19.57, 256 tokens)
+[bs1] oursf_C51 problem 2: 107.73 tok/s (9.28 ms/token, p50 8.88 p99 17.07, 256 tokens)
+[bs1] oursf_C51 problem 3: 116.97 tok/s (8.55 ms/token, p50 8.00 p99 16.61, 256 tokens)
+[bs1] oursf_C51 problem 4: 104.56 tok/s (9.56 ms/token, p50 9.29 p99 20.84, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C56 --meta '{"system": "ours", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label ours_C56 --meta '{"system": "ours", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_ours_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 51651
+[bs1] ours_C56 problem 0: 130.42 tok/s (7.67 ms/token, p50 7.04 p99 16.99, 256 tokens)
+[bs1] ours_C56 problem 1: 130.77 tok/s (7.65 ms/token, p50 7.33 p99 17.61, 256 tokens)
+[bs1] ours_C56 problem 2: 118.24 tok/s (8.46 ms/token, p50 7.68 p99 18.50, 256 tokens)
+[bs1] ours_C56 problem 3: 129.28 tok/s (7.74 ms/token, p50 7.16 p99 15.09, 256 tokens)
+[bs1] ours_C56 problem 4: 112.87 tok/s (8.86 ms/token, p50 8.62 p99 20.82, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/068_ours_9800x3d@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/068_ours_9800x3d@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=6 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/068_ours_9800x3d@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37085
+[bs1] oursf_C56 problem 0: 125.80 tok/s (7.95 ms/token, p50 7.50 p99 15.02, 256 tokens)
+[bs1] oursf_C56 problem 1: 131.64 tok/s (7.60 ms/token, p50 7.17 p99 16.53, 256 tokens)
+[bs1] oursf_C56 problem 2: 116.39 tok/s (8.59 ms/token, p50 8.11 p99 18.38, 256 tokens)
+[bs1] oursf_C56 problem 3: 128.97 tok/s (7.75 ms/token, p50 7.39 p99 14.21, 256 tokens)
+[bs1] oursf_C56 problem 4: 118.75 tok/s (8.42 ms/token, p50 7.97 p99 16.34, 256 tokens)
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_ours_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_ours_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_ours_C51.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_ours_C56.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_oursf_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_oursf_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_oursf_C51.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/068_ours_9800x3d@vast/srv_oursf_C56.log
++ find /w/results/068_ours_9800x3d@vast -name 'srv_*.log' -size +2M -delete
++ tee /w/results/068_ours_9800x3d@vast/summary.txt
++ python3 - /w/results/068_ours_9800x3d@vast
+bs=1 via the chat API (FreeToken's method, AIME-25 problems 0-4, 256 tokens)
+ours_C14       44.57 tok/s (min 40.66 max 48.04, n=5)
+oursf_C14      48.28 tok/s (min 45.20 max 51.13, n=5)
+ours_C32       73.58 tok/s (min 67.88 max 78.63, n=5)
+oursf_C32      77.45 tok/s (min 71.57 max 81.20, n=5)
+ours_C51      111.86 tok/s (min 100.51 max 125.93, n=5)
+oursf_C51     114.65 tok/s (min 104.56 max 124.87, n=5)
+ours_C56      124.31 tok/s (min 112.87 max 130.77, n=5)
+oursf_C56     124.31 tok/s (min 116.39 max 131.64, n=5)
+own text (12 prompts x 128 tokens, ec-bench)
+  warm-up: 42.1 tok/s
+  ot_C14_base.json: 42.1 tok/s
+  ot_C14_f01123.json: 48.1 tok/s
+  ot_C32_base.json: 65.2 tok/s
+  ot_C32_f01123.json: 76.3 tok/s
+  ot_C56_base.json: 98.6 tok/s
+  ot_C56_f01123.json: 111.2 tok/s
+srv_ours_C14.json: hit 0.551265 fetches 0
+srv_ours_C32.json: hit 0.77803 fetches 0
+srv_ours_C51.json: hit 0.885144 fetches 0
+srv_ours_C56.json: hit 0.903603 fetches 0
+srv_oursf_C14.json: hit 0.575906 fetches 107080
+srv_oursf_C32.json: hit 0.78818 fetches 58109
+srv_oursf_C51.json: hit 0.891551 fetches 32206
+srv_oursf_C56.json: hit 0.910401 fetches 27106

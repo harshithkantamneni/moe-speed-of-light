@@ -3,6 +3,43 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, morning: profiles, and the law predicted on three new machines (job `069c`)
+
+**Setup.** Job 069c ran on three RTX 5090 hosts. Before any model run, each machine wrote the law's prediction
+(`law_prediction.json`) from its own bandwidth probe, using constants frozen in the public `gpu` branch. Profiles were
+summarised on the machine: 069b's raw exports, 13 MB, were past the log channel's 20000-line limit and were lost.
+Scores: `scripts/law_crosshost.py` → `prereg/homepc/law_crosshost.json`.
+
+| Host | Host memory, CPU / link / both (GB/s) | Cache C14 / C32 / C56 (tok/s) | Law error | llama.cpp `-ncmoe 27` |
+|---|---|---|---|---|
+| Core Ultra 7 270K (8P+16E, DDR5) | 61.0 / 35.7 / 61.7 | 51.8 / 77.8 / 113.5 | +0.6 / +3.7 / +1.0% | 16.0 tok/s, law +119% |
+| EPYC 7352 (Zen 2, DDR4, PCIe 4) | 39.6 / 26.2 / 52.7 | 38.2 / 59.5 / 89.6 | −2.8 / +1.9 / +3.2% | 22.0 tok/s, law +10% |
+| EPYC 9655 (Zen 5, 12-channel DDR5) | 559 / 26.0 / 418 | 121.9 / 128.0 / 147.6 | +19 / +32 / +26% | 112.9 tok/s, law +16% |
+
+**Where the law holds:** the two machines of desktop-like bandwidth, within 4% for the cache's base configurations,
+predicted blind.
+
+**Where it fails, each case explained:**
+1. **FETCH is overpredicted by ~12% on every host with a slow link** (the 270K, the EPYC 7352, and earlier the X3D
+   host at C14). The law has no term for FETCH's per-layer copy latency.
+2. **llama.cpp on the hybrid-core Intel runs at 45% of the law.** Its CPU threads split each matrix evenly across P-
+   and E-cores. The cache's helpers claim chunks dynamically and stay on the law.
+3. **On the 12-channel EPYC, host bandwidth stops being the limit.**
+   - A layer with one or two CPU misses takes 80–200 µs, about 100 GB/s effective, not 559 GB/s: the per-layer
+     hand-off and the 44-thread split have a latency floor that the law lacks.
+   - Even so, this machine runs gpt-oss-120b at 122–148 tok/s with 11–44% of experts on the GPU, and llama.cpp at
+     113 tok/s. It is the "your RAM decides" thesis at its extreme.
+
+**What the profiles show about G** (the GPU-side time, ~5 ms per token). Each C = 32 token splits into:
+- ~3.3 ms of GPU work inside the layers (36 × 90 µs);
+- 0.35 ms for the output head;
+- a gap between tokens of 2.2 ms (270K), 3.4 ms (EPYC 9655) or 5.5 ms (EPYC 7352).
+
+In that gap, the admission copies of the step just finished (zero-copy kernels) saturate the link. The next token's
+input uploads then crawl behind them: 81 small host-to-device copies per token, against 9 in stock llama.cpp. After
+that, 0.3–0.9 ms of host work comes before the next launch. Job 072 tests issuing the admissions after the next
+launch.
+
 ## 29 September, morning: what routing foresight is worth (CPU only, 9 models)
 
 **Question.** After FETCH, PREFETCH and overlap, the largest remaining byte gap is the cache policy itself. For

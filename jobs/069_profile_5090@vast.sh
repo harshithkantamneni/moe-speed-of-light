@@ -1,5 +1,6 @@
 #!/bin/bash
-# Where does the time go? Nsight Systems timelines of gpt-oss-120b decode on the RTX 5090 + Ryzen 9 9950X host of jobs
+# Where does the time go? Nsight Systems timelines of gpt-oss-120b decode on an RTX 5090 + Ryzen 9 9950X host (rerun:
+# the first run's results were lost when its machine was destroyed after a failed log fetch) of the class of jobs
 # 060 / 064 / 066 (physical speed limit 313 tok/s at 25% of experts resident, the same as all resident; measured
 # 63-115 tok/s for our cache). One sequence (own text, seq 0), 640 prefilled tokens, 24 decode tokens per profiled
 # run; CUDA graphs traced per node. Runs: the cache at C = 14 / 32 / 56, the cache + FETCH and + FETCH + PREFETCH at
@@ -28,15 +29,15 @@ H=$(( CORES > 4 ? CORES - 2 : 2 )); MB="mailbox=1:tdec=1:helpers=$H"
 B="policy=dfa:kappa=1:$MB"
 # reference speeds without the profiler (12 x 128 own text), one process
 CFG="slots=32:$B"
-for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1"; do
-  CFG="$CFG;$c:stats=$OUT/ref_$(echo $c | cut -d: -f1 | tr = _)$(echo $c | grep -q fetch= && echo _f)$(echo $c | grep -q prefetch= && echo _pf).json"
+for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"; do
+  CFG="$CFG;$c:stats=$OUT/ref_$(echo $c | cut -d: -f1 | tr = _)$(echo $c | grep -q ':fetch=' && echo _f)$(echo $c | grep -q prefetch= && echo _pf)$(echo $c | grep -q prefetch_late && echo late)$(echo $c | grep -q llc= && echo _llc).json"
 done
 ALL="--corpus $J/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t $CORES --n-prefill 640 --n-decode 128 --no-mmap"
 R 60m $EC_BIN -m $F $ALL --host-experts --ec "$CFG" > $OUT/ref_ec.jsonl 2> $OUT/ref_ec.err; echo "ref ec rc=$?"
 R 30m $EC_BIN -m $F $ALL --ncmoe 27 > $OUT/ref_static27.jsonl 2> $OUT/ref_static27.err; echo "ref static rc=$?"
 # profiled runs: one sequence, 24 decode tokens, one configuration per process (warm-up on seq 1 first)
 ONE="--corpus $J/S_gpt-oss-120b.jsonl -t $CORES --n-prefill 640 --n-decode 24 --no-mmap"
-for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1"; do
+for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"; do
   lab=${c%%:*}; cfg=${c#*:}
   prof_run $lab $EC_BIN -m $F $ONE --seqs 1,0 --host-experts --ec "$cfg:seqs=1/0"
 done

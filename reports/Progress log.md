@@ -96,6 +96,18 @@ are worth. Output: `prereg/foresight/foresight_S.json`, figure `figures/foresigh
 - **Per-conversation hindsight placement** (the C experts each conversation uses most) captures part of the gap only
   for gpt-oss-120b at 25–50%. For the others it is no better than online.
 
+**Robust to how the trace was made.** The same fit on the greedy own-text traces (arm G) and on teacher-forced
+dataset text (arm D), 9 models and 26 points each:
+
+| Arm | W50 fit | r | Optimum ÷ online reads |
+|---|---|---|---|
+| S (sampled own text) | 0.51 (C/k)^1.39 | 0.975 | median 0.61 |
+| G (greedy own text) | 0.51 (C/k)^1.38 | 0.975 | median 0.61 |
+| D (dataset text) | 0.51 (C/k)^1.43 | 0.978 | median 0.62 |
+
+Files: `prereg/foresight/foresight_{S,G,D}.json`. Unlike hit rates (the provenance result), the foresight horizon
+barely depends on provenance.
+
 **In seconds, gpt-oss-120b at C = 32 on the 9950X #2 host** (law, both paths at 51.8 GB/s): the best online policy
 takes 12.4 ms per token (81 tok/s), the optimum 9.0 ms (111 tok/s). Foresight is worth up to +37% there. No
 engineering of paths or overlap can recover it.

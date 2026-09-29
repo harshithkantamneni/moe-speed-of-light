@@ -4,53 +4,40 @@
 after the fixes") and the night's measurements. Paths: `reports/MoE offload paper novelty recheck.md`,
 `research_notes/Paper review 28 Sep/`.*
 
-## The paper after the revision, in one paragraph
+## The paper after the revision (updated 29 Sep, late morning)
 
-On a PC, a large Mixture-of-Experts model whose experts do not fit in the GPU decodes at a speed set by one number you
-can measure in a second: the bandwidth of host memory. We show this three ways:
-- **A bound.** A lower bound in seconds, valid for every exact-routing policy.
-- **A law.** Time per token = a GPU constant + the expert bytes read from host memory ÷ that bandwidth. Using each
-  host's own microbenchmarks it predicts 42 configurations of llama.cpp, an expert cache, FreeToken-style miss splitting
-  and prefetching, on four machines, within 2–6% median error out of sample.
-- **An audit** of the published speed-ups. Measured against the bound and against a properly configured llama.cpp,
-  most published gains are baseline gains.
+**Working title:** "Where the Seconds Go: Offloaded Mixture-of-Experts Decode on PCs, from Speed of Light to
+Measured".
 
-The law explains:
-- why "identical" rentals differ by 20%;
-- why miss splitting helps on one PC and hurts on another;
-- why prefetching never reduces the bytes that matter.
+On a PC, a large MoE model whose experts do not fit in the GPU decodes 4–5× below its speed of light. The paper
+accounts for every millisecond of that gap, then asks which parts any system could recover.
 
-The law also bounds overlap. Host-memory reads can hide behind the GPU's own work only where host memory is idle.
-Job 071 shows that background admissions and early PREFETCH already fill those windows, and that late copies and L3
-warming add nothing.
-
-Working title: **"Your RAM Decides: A Bound, a Law and an Audit for Offloaded Mixture-of-Experts Decode on PCs"**
-(alternative, neutral: *"How Fast Could It Be? Bounding and Explaining Offloaded MoE Decode on Consumer Hardware"*).
-
-## Contributions (revised; each narrowed as the novelty recheck requires)
-
-1. **A lower bound in seconds** for batch-1 exact-routing decode with a per-layer or pooled GPU expert budget, misses
-   fetched or run on the CPU, demand or prefetching.
-   - In resource form it is valid for every policy. A layer-structured refinement and a demand-only corollary follow.
-   - It draws on Belady/MIN-bypass, Cao 1995, Albers et al. 2000, Jain & Lin 2018 and CHOPT, and is set apart from
-     "Budgeting Bytes", "Paging the Experts" and WiSP.
-   - Physical (datasheet) bounds only; measured-bandwidth figures are called references.
-2. **The host-memory law**, which is new since 29 Sep. It uses one fitted constant per engine and no fitted bandwidths,
-   and is validated out of sample across hosts. It gives the first published numbers for CPU + DMA contention on host
-   memory, correcting FreeToken's full-contention model (5 vs 37 GB/s left to the CPU).
-3. **The audit.** Its claims are narrowed:
-   - "no speed-up is measured against an equal-memory `--n-cpu-moe` baseline";
-   - era-aware labels;
-   - three tiers of verdict;
-   - the pooled bound for pooled systems;
-   - new rows (WiSP, SAEM, SPICE in exact mode).
-4. **Trace provenance**, scoped to routing and locality studies and citing "Myth of Expert Specialization". The
-   gpt-oss-120b result is stated as 6.40 vs 3.00 nats.
-5. **A same-machine protocol.** A competitor's unmodified benchmark client is the referee, at measured equal memory,
-   against the bound, with the host measured. It is demonstrated on llama.cpp, the expert cache and FreeToken.
-6. **The overlap result** (job 071, negative, pre-registered). Overlap is bounded by the host-memory idle time left
-   after admissions. Late copies and L3 warming lose 2–14%. FETCH and PREFETCH are credited to FreeToken, HybriMoE, DALI
-   and Speculating Experts.
+1. **A lower bound in seconds** (the speed of light), valid for every exact-routing policy.
+2. **A host-memory law.** Time per token = GPU-side constant + expert bytes read from host memory ÷ that bandwidth.
+   - It was predicted blind, on the machine and before any run, for four new hosts (plus four earlier ones). Desktop-
+     class hosts come within 2–8%.
+   - Its failures mark the regime boundaries:
+     - on a 12-channel server (559 GB/s), the CPU phases become latency-bound;
+     - FETCH carries a per-layer copy latency;
+     - llama.cpp's even split on hybrid Intel cores runs at 45% of the law.
+3. **Where the seconds go**, per budget (figure `figures/gap_decomposition.pdf`). At C = 32 the gap from 226 to
+   62 tok/s splits into:
+   - no overlap (2.0 ms);
+   - no foresight (3.6 ms, the largest);
+   - the deployed policy (2.2 ms; FETCH recovers it);
+   - batch-1 GPU work (1.6 ms);
+   - host launch (1.0 ms);
+   - residual (1.4 ms).
+4. **The value of routing foresight** (figure `figures/foresight.pdf`).
+   - Across 9 models, the optimum reads 40% fewer expert bytes than the best online policy (median).
+   - Recovering half of that needs about C/k tokens of foresight: W50 ≈ 0.5 (C/k)^1.4, r = 0.975.
+   - Next-layer prediction, the field's main tool, reduces no bytes.
+   - This extends 2608.07911, which splits the gap but does not study a limited horizon.
+5. **Pre-registered negative results, each explained by the decomposition:**
+   - overlap by late copies and L3 warming (job 071, −2 to −14%);
+   - deferring admissions (job 072, −3 to −4%).
+6. **Audit and provenance** (supporting): the published speed-ups against the bound and an equal-memory llama.cpp
+   baseline; own-text versus dataset-text traces.
 
 ## Done (28–29 Sep)
 
@@ -68,7 +55,7 @@ Working title: **"Your RAM Decides: A Bound, a Law and an Audit for Offloaded Mi
 
 | # | Experiment | Why | Cost | Status |
 |---|---|---|---|---|
-| 1 | Profile of the offloaded configurations (job 069, rerun) | Break G into kernels, host gaps and EC overhead; see whether the host-memory phases really idle during G | ≈ $1 | running |
+| 1 | Profile of the offloaded configurations (job 069c) and host-side timing (job 072) | Break G into kernels, host gaps and EC overhead | ≈ $3 | done: G = GPU work 3.65 ms + host 1 ms + contention 0.5–1 ms |
 | 2 | Overlap test (job 071) | Test the law's max-form prediction; decides contribution 6 | ≈ $1 | done: predictions 3 and 4 failed |
 | 3 | Chat comparison v2: 30 AIME problems × 3 launches, greedy decoding, warm-up on a different problem, measured VRAM, FreeToken tuned (`ft bench bw` profile, `--moe-hybrid-max-fetch` sweep incl. 0), paired bootstrap CIs | The comparison as it stands has one request per prompt and no CIs | ≈ $6–9 | next |
 | 4 | Speed limit on the evaluated text: trace the AIME outputs and compute the pooled bound for every system | The current denominators use the own-text trace | CPU only | next |

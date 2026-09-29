@@ -9,9 +9,13 @@ echo "@@START $JOB $(date -u +%FT%TZ) $(nproc) cpus"
 ( while true; do echo "@@HB $(date -u +%FT%TZ) $(tail -n 1 "$OUT/stdout.log" 2>/dev/null | cut -c1-160)"; sleep 60; done ) &
 HBP=$!
 start=$(date +%s)
-( cd "$WORK" && timeout "${JOB_TIMEOUT:-6h}" bash "$W/jobs/$JOB.sh" > "$OUT/stdout.log" 2> "$OUT/stderr.log" )
-rc=$?
-echo "rc=$rc seconds=$(( $(date +%s) - start ))" > "$OUT/DONE"
+if [ -f "$OUT/DONE" ]; then   # the container was restarted after the job finished: only re-emit
+  rc=$(sed -n 's/^rc=\([0-9]*\).*/\1/p' "$OUT/DONE")
+else
+  ( cd "$WORK" && timeout "${JOB_TIMEOUT:-6h}" bash "$W/jobs/$JOB.sh" > "$OUT/stdout.log" 2> "$OUT/stderr.log" )
+  rc=$?
+  echo "rc=$rc seconds=$(( $(date +%s) - start ))" > "$OUT/DONE"
+fi
 kill $HBP 2>/dev/null
 # never ship big files: anything over 8 MB is replaced by a listing line
 find "$OUT" -type f -size +8M -printf '%s %p\n' > "$OUT/omitted_large_files.txt"

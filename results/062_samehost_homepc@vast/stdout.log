@@ -1,0 +1,615 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/062_samehost_homepc@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=16
++ echo 'physical cores 16'
++ tee /w/results/062_samehost_homepc@vast/cores.txt
+physical cores 16
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ python3 -m pip install -q --break-system-packages uv
++ echo 'FreeToken install rc=0'
+FreeToken install rc=0
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ '[' '!' -x /work/ft/.venv/bin/python ']'
++ /work/ft/.venv/bin/ft --version
++ HFD=/work/models/gpt-oss-120b
++ mkdir -p /work/models
++ DLH=6214
++ DLG=6215
++ /work/ft/.venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/062_samehost_homepc@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/062_samehost_homepc@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ wait 6215 6214
++ cat /w/results/062_samehost_homepc@vast/dl_gguf.txt /w/results/062_samehost_homepc@vast/dl_hf.txt
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790641136
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf:  bytes in 776 s'
+download gpt-oss-120b-MXFP4.gguf:  bytes in 776 s
+++ date +%s
++ t0=1790641136
++ /work/ft/.venv/bin/python - /work/models/gpt-oss-120b
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:03,  6.75it/s]Fetching 26 files:  19%|█▉        | 5/26 [00:00<00:00, 22.95it/s]Fetching 26 files:  27%|██▋       | 7/26 [00:20<00:00, 22.95it/s]Fetching 26 files:  31%|███       | 8/26 [00:56<02:41,  8.98s/it]Fetching 26 files:  35%|███▍      | 9/26 [01:11<02:49,  9.99s/it]Fetching 26 files:  38%|███▊      | 10/26 [01:26<02:56, 11.05s/it]Fetching 26 files:  42%|████▏     | 11/26 [01:30<02:22,  9.48s/it]Fetching 26 files:  42%|████▏     | 11/26 [01:50<02:22,  9.48s/it]Fetching 26 files:  46%|████▌     | 12/26 [02:19<04:28, 19.20s/it]Fetching 26 files:  50%|█████     | 13/26 [02:24<03:23, 15.63s/it]Fetching 26 files:  54%|█████▍    | 14/26 [02:40<03:08, 15.68s/it]Fetching 26 files:  58%|█████▊    | 15/26 [03:04<03:19, 18.13s/it]Fetching 26 files:  62%|██████▏   | 16/26 [03:05<02:11, 13.18s/it]Fetching 26 files:  65%|██████▌   | 17/26 [03:05<01:24,  9.43s/it]Fetching 26 files:  69%|██████▉   | 18/26 [03:14<01:14,  9.31s/it]Fetching 26 files:  73%|███████▎  | 19/26 [03:15<00:46,  6.62s/it]Fetching 26 files:  77%|███████▋  | 20/26 [03:20<00:36,  6.14s/it]Fetching 26 files:  81%|████████  | 21/26 [03:20<00:22,  4.42s/it]Fetching 26 files:  85%|████████▍ | 22/26 [03:28<00:21,  5.40s/it]Fetching 26 files:  88%|████████▊ | 23/26 [03:30<00:13,  4.44s/it]Fetching 26 files:  92%|█████████▏| 24/26 [03:41<00:12,  6.37s/it]Fetching 26 files:  96%|█████████▌| 25/26 [03:51<00:07,  7.59s/it]Fetching 26 files: 100%|██████████| 26/26 [03:53<00:00,  5.75s/it]Fetching 26 files: 100%|██████████| 26/26 [03:53<00:00,  8.97s/it]
+++ date +%s
++ echo 'hf download rc=0 in 236 s'
+hf download rc=0 in 236 s
++ du -sh /work/models/gpt-oss-120b
+61G	/work/models/gpt-oss-120b
++ ls /work/models/gpt-oss-120b
+LICENSE
+README.md
+USAGE_POLICY
+chat_template.jinja
+config.json
+generation_config.json
+model-00000-of-00014.safetensors
+model-00001-of-00014.safetensors
+model-00002-of-00014.safetensors
+model-00003-of-00014.safetensors
+model-00004-of-00014.safetensors
+model-00005-of-00014.safetensors
+model-00006-of-00014.safetensors
+model-00007-of-00014.safetensors
+model-00008-of-00014.safetensors
+model-00009-of-00014.safetensors
+model-00010-of-00014.safetensors
+model-00011-of-00014.safetensors
+model-00012-of-00014.safetensors
+model-00013-of-00014.safetensors
+model-00014-of-00014.safetensors
+model.safetensors.index.json
+special_tokens_map.json
+tokenizer.json
+tokenizer_config.json
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -f /work/models/gpt-oss-120b/config.json ']'
++ echo 'HF checkpoint ok'
+HF checkpoint ok
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ cp /root/.cache/freetoken/benchbw/GPU-514da9ca-c8ca-24ff-04bf-e957798f995c.json /w/results/062_samehost_homepc@vast/
++ H=14
++ MB=mailbox=1:tdec=1:helpers=14
++ COMMON='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap'
++ CFG=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C14_f01123.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C32_f01123.json'
++ for C in 14 32 56
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C32_f01123.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C56_f01123.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C14_f01123.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C32_f01123.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/062_samehost_homepc@vast/ot_C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/062_samehost_homepc@vast/ot_C56_f01123.json'
++ echo 'own-text ec rc=1'
+own-text ec rc=1
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 32
++ echo 'own-text static n=32 rc=1'
+own-text static n=32 rc=1
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27
++ echo 'own-text static n=27 rc=1'
+own-text static n=27 rc=1
++ for n in 32 27 20
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 20
++ echo 'own-text static n=20 rc=1'
+own-text static n=20 rc=1
++ P=0,1,2,3,4
++ CL='/work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl'
++ LX='{"min_p": 0.0, "seed": 1234}'
++ LS='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ for pair in 32:14 27:32 20:56
++ n=32
++ C=14
++ lcrun llama_n32 '{"system": "llama.cpp", "ncmoe": 32, "C": 14}' '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n32 --meta '{"system": "llama.cpp", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n32.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n32 --meta '{"system": "llama.cpp", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n32.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
+[bs1] llama_n32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port 49355
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_llama_n32.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_llama_n32.log
++ ECENV='env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ lcrun ours_C14 '{"system": "ours", "ncmoe": 32, "C": 14}' 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C14 --meta '{"system": "ours", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C14 --meta '{"system": "ours", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37365
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_ours_C14.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_ours_C14.log
++ lcrun oursf_C14 '{"system": "ours+fetch", "ncmoe": 32, "C": 14}' 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "ncmoe": 32, "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 35387
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_oursf_C14.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_oursf_C14.log
++ for pair in 32:14 27:32 20:56
++ n=27
++ C=32
++ lcrun llama_n27 '{"system": "llama.cpp", "ncmoe": 27, "C": 32}' '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n27 --meta '{"system": "llama.cpp", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n27.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n27 --meta '{"system": "llama.cpp", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n27.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+[bs1] llama_n27: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port 52177
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_llama_n27.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_llama_n27.log
++ ECENV='env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ lcrun ours_C32 '{"system": "ours", "ncmoe": 27, "C": 32}' 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 48551
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_ours_C32.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_ours_C32.log
++ lcrun oursf_C32 '{"system": "ours+fetch", "ncmoe": 27, "C": 32}' 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "ncmoe": 27, "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 50117
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_oursf_C32.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_oursf_C32.log
++ for pair in 32:14 27:32 20:56
++ n=20
++ C=56
++ lcrun llama_n20 '{"system": "llama.cpp", "ncmoe": 20, "C": 56}' '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 20 --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n20 --meta '{"system": "llama.cpp", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n20.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 20 --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label llama_n20 --meta '{"system": "llama.cpp", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_llama_n20.log --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 20 --port {port}'
+[bs1] llama_n20: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 20 --port 34909
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_llama_n20.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_llama_n20.log
++ ECENV='env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ lcrun ours_C56 '{"system": "ours", "ncmoe": 20, "C": 56}' 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C56 --meta '{"system": "ours", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label ours_C56 --meta '{"system": "ours", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_ours_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_ours_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 40041
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_ours_C56.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_ours_C56.log
++ lcrun oursf_C56 '{"system": "ours+fetch", "ncmoe": 20, "C": 56}' 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ R 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "ncmoe": 20, "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/062_samehost_homepc@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/062_samehost_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 38893
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 193, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 141, in main
+    wait_health(origin, proc, a.log, a.timeout)
+  File "/w/jobs/ec2/bs1_client.py", line 94, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/062_samehost_homepc@vast/srv_oursf_C56.log
++ local rc=1
++ '[' 1 -ne 0 ']'
++ grep -q 'does not match the expected' /w/results/062_samehost_homepc@vast/srv_oursf_C56.log
++ cd /work/ft
++ for pair in 0.111:14 0.25:32 0.444:56
++ r=0.111
++ C=14
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.111 --label ft_offload_r0.111 --meta '{"system": "FreeToken offload", "rate": 0.111, "C": 14}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.111.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.111 --label ft_offload_r0.111 --meta '{"system": "FreeToken offload", "rate": 0.111, "C": 14}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.111.log
+[bs1] ft_offload_r0.111: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '50441', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111']
+[bs1] ft_offload_r0.111 problem 0: 36.41 tok/s (27.46 ms/token, p50 27.04 p99 42.81, 256 tokens)
+[bs1] ft_offload_r0.111 problem 1: 40.21 tok/s (24.87 ms/token, p50 25.06 p99 42.44, 256 tokens)
+[bs1] ft_offload_r0.111 problem 2: 38.53 tok/s (25.96 ms/token, p50 25.91 p99 42.98, 256 tokens)
+[bs1] ft_offload_r0.111 problem 3: 40.78 tok/s (24.52 ms/token, p50 23.40 p99 43.28, 256 tokens)
+[bs1] ft_offload_r0.111 problem 4: 36.83 tok/s (27.16 ms/token, p50 27.32 p99 43.62, 256 tokens)
++ rc=0
++ '[' 0 -ne 0 ']'
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.111 --label ft_hybrid_r0.111 --meta '{"system": "FreeToken hybrid", "rate": 0.111, "C": 14}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.111.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.111 --label ft_hybrid_r0.111 --meta '{"system": "FreeToken hybrid", "rate": 0.111, "C": 14}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.111.log
+[bs1] ft_hybrid_r0.111: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '47011', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111']
+[bs1] ft_hybrid_r0.111 problem 0: 41.60 tok/s (24.04 ms/token, p50 23.87 p99 41.70, 256 tokens)
+[bs1] ft_hybrid_r0.111 problem 1: 39.99 tok/s (25.01 ms/token, p50 25.09 p99 41.05, 256 tokens)
+[bs1] ft_hybrid_r0.111 problem 2: 39.23 tok/s (25.49 ms/token, p50 25.46 p99 40.18, 256 tokens)
+[bs1] ft_hybrid_r0.111 problem 3: 40.94 tok/s (24.43 ms/token, p50 23.08 p99 41.14, 256 tokens)
+[bs1] ft_hybrid_r0.111 problem 4: 37.33 tok/s (26.78 ms/token, p50 27.44 p99 40.17, 256 tokens)
++ rc=0
++ '[' 0 -ne 0 ']'
++ for pair in 0.111:14 0.25:32 0.444:56
++ r=0.25
++ C=32
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.25 --label ft_offload_r0.25 --meta '{"system": "FreeToken offload", "rate": 0.25, "C": 32}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.25.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.25 --label ft_offload_r0.25 --meta '{"system": "FreeToken offload", "rate": 0.25, "C": 32}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.25.log
+[bs1] ft_offload_r0.25: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '58053', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] ft_offload_r0.25 problem 0: 69.24 tok/s (14.44 ms/token, p50 12.62 p99 32.05, 256 tokens)
+[bs1] ft_offload_r0.25 problem 1: 73.12 tok/s (13.68 ms/token, p50 12.14 p99 34.76, 256 tokens)
+[bs1] ft_offload_r0.25 problem 2: 71.92 tok/s (13.90 ms/token, p50 12.96 p99 31.15, 256 tokens)
+[bs1] ft_offload_r0.25 problem 3: 72.85 tok/s (13.73 ms/token, p50 12.03 p99 32.45, 256 tokens)
+[bs1] ft_offload_r0.25 problem 4: 61.85 tok/s (16.17 ms/token, p50 15.59 p99 33.83, 256 tokens)
++ rc=0
++ '[' 0 -ne 0 ']'
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.25 --label ft_hybrid_r0.25 --meta '{"system": "FreeToken hybrid", "rate": 0.25, "C": 32}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.25.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.25 --label ft_hybrid_r0.25 --meta '{"system": "FreeToken hybrid", "rate": 0.25, "C": 32}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.25.log
+[bs1] ft_hybrid_r0.25: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '45867', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] ft_hybrid_r0.25 problem 0: 67.89 tok/s (14.73 ms/token, p50 13.24 p99 29.96, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 1: 69.86 tok/s (14.32 ms/token, p50 13.03 p99 35.12, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 2: 63.80 tok/s (15.68 ms/token, p50 14.85 p99 30.88, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 3: 70.81 tok/s (14.12 ms/token, p50 12.68 p99 32.55, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 4: 61.45 tok/s (16.27 ms/token, p50 15.56 p99 30.80, 256 tokens)
++ rc=0
++ '[' 0 -ne 0 ']'
++ for pair in 0.111:14 0.25:32 0.444:56
++ r=0.444
++ C=56
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.444 --label ft_offload_r0.444 --meta '{"system": "FreeToken offload", "rate": 0.444, "C": 56}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.444.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.444 --label ft_offload_r0.444 --meta '{"system": "FreeToken offload", "rate": 0.444, "C": 56}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.444.log
+[bs1] ft_offload_r0.444: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '37067', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.444']
+[bench] server reported startup error: {'status': 'error', 'message': 'AssertionError: Not enough memory for KV cache, try reducing --num-pages', 'instance_id': '96c7e6ae-c7f3-45a4-99a2-f57dbef51ab3'}
+[bench] server log tail (/w/results/062_samehost_homepc@vast/srv_ft_offload_r0.444.log):
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:22|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:41:23|core|rank=0][0m [32mINFO    [0m MoE experts: mxfp4 via triton_gptoss
+[1m[2026-09-29|00:41:23|core|rank=0][0m [32mINFO    [0m expert banks: slow path (serial build)
+Process freetoken-TP0-scheduler:
+[1m[2026-09-29|00:41:32|FrontendAPI][0m [31mERROR   [0m Backend supervisor: AssertionError: Not enough memory for KV cache, try reducing --num-pages
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/ft/python/freetoken/server/launch.py", line 81, in _run_scheduler
+    scheduler = Scheduler(args)
+                ^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/scheduler/scheduler.py", line 68, in __init__
+    self.engine = Engine(config)
+                  ^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/engine/engine.py", line 420, in __init__
+    self.num_pages = self._pool_cls.solve_num_pages(config, available_memory)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/kvcache/base.py", line 73, in solve_num_pages
+    assert num_pages > 1, "Not enough memory for KV cache, try reducing --num-pages"
+           ^^^^^^^^^^^^^
+AssertionError: Not enough memory for KV cache, try reducing --num-pages
+
++ rc=1
++ '[' 1 -ne 0 ']'
++ '[' 0.444 = 0.444 ']'
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.40 --label ft_offload_r0.40 --meta '{"system": "FreeToken offload", "rate": 0.40, "C": 51.2}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.40.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft offload --cache-rate 0.40 --label ft_offload_r0.40 --meta '{"system": "FreeToken offload", "rate": 0.40, "C": 51.2}' --log /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.40.log
+[bs1] ft_offload_r0.40: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '50363', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bs1] ft_offload_r0.40 problem 0: 116.21 tok/s (8.60 ms/token, p50 7.77 p99 18.57, 256 tokens)
+[bs1] ft_offload_r0.40 problem 1: 115.70 tok/s (8.64 ms/token, p50 8.05 p99 19.21, 256 tokens)
+[bs1] ft_offload_r0.40 problem 2: 110.71 tok/s (9.03 ms/token, p50 8.37 p99 18.76, 256 tokens)
+[bs1] ft_offload_r0.40 problem 3: 122.52 tok/s (8.16 ms/token, p50 7.44 p99 17.31, 256 tokens)
+[bs1] ft_offload_r0.40 problem 4: 99.00 tok/s (10.10 ms/token, p50 9.43 p99 24.09, 256 tokens)
++ for b in offload hybrid
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.444 --label ft_hybrid_r0.444 --meta '{"system": "FreeToken hybrid", "rate": 0.444, "C": 56}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.444.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.444 --label ft_hybrid_r0.444 --meta '{"system": "FreeToken hybrid", "rate": 0.444, "C": 56}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.444.log
+[bs1] ft_hybrid_r0.444: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '57837', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.444']
+[bench] server reported startup error: {'status': 'error', 'message': 'AssertionError: Not enough memory for KV cache, try reducing --num-pages', 'instance_id': '518ec3e9-8d2b-4aa5-becb-cfdf49b3bfc3'}
+[bench] server log tail (/w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.444.log):
+[1m[2026-09-29|00:42:42|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:42:42|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:42:42|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:42:42|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:42:42|core|rank=0][0m [32mINFO    [0m kernel triton_gptoss selected; skipped triton: standard MXFP4 kernel reads the concatenated gate|up row order
+[1m[2026-09-29|00:42:43|core|rank=0][0m [32mINFO    [0m MoE experts: mxfp4 via triton_gptoss
+[1m[2026-09-29|00:42:43|core|rank=0][0m [32mINFO    [0m expert banks: slow path (serial build)
+[1m[2026-09-29|00:42:54|core|rank=0][0m [32mINFO    [0m --moe-hybrid-max-fetch auto: fetching 52.9% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+[1m[2026-09-29|00:42:54|core|rank=0][0m [32mINFO    [0m torch intra-op threads: 16 -> 1 (cores reserved for the pinned CPU MoE pool)
+[1m[2026-09-29|00:42:54|core|rank=0][0m [32mINFO    [0m CPU MoE executor ready: threads=15 (pinned to cores 0..14) isa=avx512bf16 fmt=mxfp4_triton H=2880 I=2880 experts=128 layers=36 top_k=4 act=gpt_oss_swiglu max_tokens=1
+Process freetoken-TP0-scheduler:
+[1m[2026-09-29|00:42:54|FrontendAPI][0m [31mERROR   [0m Backend supervisor: AssertionError: Not enough memory for KV cache, try reducing --num-pages
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/work/ft/python/freetoken/server/launch.py", line 81, in _run_scheduler
+    scheduler = Scheduler(args)
+                ^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/scheduler/scheduler.py", line 68, in __init__
+    self.engine = Engine(config)
+                  ^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/engine/engine.py", line 420, in __init__
+    self.num_pages = self._pool_cls.solve_num_pages(config, available_memory)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/kvcache/base.py", line 73, in solve_num_pages
+    assert num_pages > 1, "Not enough memory for KV cache, try reducing --num-pages"
+           ^^^^^^^^^^^^^
+AssertionError: Not enough memory for KV cache, try reducing --num-pages
+
++ rc=1
++ '[' 1 -ne 0 ']'
++ '[' 0.444 = 0.444 ']'
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.40 --label ft_hybrid_r0.40 --meta '{"system": "FreeToken hybrid", "rate": 0.40, "C": 51.2}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.40.log
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4 --decode 256 --json /w/results/062_samehost_homepc@vast/bs1.jsonl --ft hybrid --cache-rate 0.40 --label ft_hybrid_r0.40 --meta '{"system": "FreeToken hybrid", "rate": 0.40, "C": 51.2}' --log /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.40.log
+[bs1] ft_hybrid_r0.40: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '37575', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bs1] ft_hybrid_r0.40 problem 0: 106.50 tok/s (9.39 ms/token, p50 8.41 p99 19.81, 256 tokens)
+[bs1] ft_hybrid_r0.40 problem 1: 101.05 tok/s (9.90 ms/token, p50 9.13 p99 20.31, 256 tokens)
+[bs1] ft_hybrid_r0.40 problem 2: 99.68 tok/s (10.03 ms/token, p50 9.31 p99 22.27, 256 tokens)
+[bs1] ft_hybrid_r0.40 problem 3: 107.38 tok/s (9.31 ms/token, p50 8.44 p99 23.64, 256 tokens)
+[bs1] ft_hybrid_r0.40 problem 4: 95.74 tok/s (10.44 ms/token, p50 9.59 p99 21.86, 256 tokens)
++ PYTHONPATH=python:.
++ R 60m /work/ft/.venv/bin/python benchmarks/bench_decode_moe.py --model /work/models/gpt-oss-120b --backend offload,hybrid --cache-rate 0.25 --decode 256 --json /w/results/062_samehost_homepc@vast/ft_own_bench.jsonl
++ echo 'their bench rc=0'
+their bench rc=0
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.111.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.25.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.40.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_hybrid_r0.444.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.111.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.25.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.40.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ft_offload_r0.444.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_llama_n20.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_llama_n27.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_llama_n32.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ours_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ours_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_ours_C56.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_oursf_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_oursf_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/062_samehost_homepc@vast/srv_oursf_C56.log
++ find /w/results/062_samehost_homepc@vast -name 'srv_*.log' -size +2M -delete
++ /work/ft/.venv/bin/python - /w/results/062_samehost_homepc@vast
++ tee /w/results/062_samehost_homepc@vast/summary.txt
+bs=1 decode via the chat API, AIME-25 problems 0-4, 256 tokens (FreeToken's method); mean over problems
+ft_offload_r0.111          38.55 tok/s  (min 36.41 max 40.78, n=5)  vram 28.4 GiB
+ft_hybrid_r0.111           39.82 tok/s  (min 37.33 max 41.60, n=5)  vram 28.4 GiB
+ft_offload_r0.25           69.80 tok/s  (min 61.85 max 73.12, n=5)  vram 28.4 GiB
+ft_hybrid_r0.25            66.76 tok/s  (min 61.45 max 70.81, n=5)  vram 28.4 GiB
+ft_offload_r0.40          112.83 tok/s  (min 99.00 max 122.52, n=5)  vram 28.4 GiB
+ft_hybrid_r0.40           102.07 tok/s  (min 95.74 max 107.38, n=5)  vram 28.4 GiB
+own text (12 prompts x 128 tokens, ec-bench)
++ cat /w/results/062_samehost_homepc@vast/ft_own_bench.jsonl

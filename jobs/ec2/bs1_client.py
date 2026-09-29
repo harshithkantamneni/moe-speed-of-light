@@ -107,6 +107,7 @@ def main():
     ap.add_argument("--model", required=True, help="HF checkpoint dir (sampling resolution; FreeToken's model)")
     ap.add_argument("--ft", help="FreeToken backend: offload|hybrid|cpu (spawns `ft serve` via their serve_cmd)")
     ap.add_argument("--cache-rate", type=float)
+    ap.add_argument("--mem-ratio", type=float, default=0.9, help="FreeToken --memory-ratio (their bench's default 0.9)")
     ap.add_argument("--cmd", help="shell command for any other server, with {port}")
     ap.add_argument("--extra", default="{}", help="JSON fields added to every request body")
     ap.add_argument("--problems", default="0")
@@ -124,7 +125,7 @@ def main():
     port = B.free_port()
     origin = f"http://127.0.0.1:{port}"
     if a.ft:
-        ns = argparse.Namespace(model=a.model, decode=a.decode, mem_ratio=0.9, no_graph=False, hybrid_fetch=-1,
+        ns = argparse.Namespace(model=a.model, decode=a.decode, mem_ratio=a.mem_ratio, no_graph=False, hybrid_fetch=-1,
                                 gpu=None, cache=0, cache_rate=a.cache_rate)
         cmd, shell = B.serve_cmd(ns, a.ft, port), False
     else:

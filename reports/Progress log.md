@@ -13,7 +13,8 @@
 - **PREFETCH works and behaves as simulated.** Its speed gain is smaller than FETCH's, and it only helps together with
   FETCH at small budgets on own text.
 - **FETCH and PREFETCH both lose 16% on a PCIe 4.0 machine.** They should be switched on from measured bandwidths.
-- **Spend:** about $4.40 of the $25 tranche.
+- **Spend:** $7.62 of the $25 tranche by Vast's own balance ($17.38 left). Our ledger estimated $4.40: it counts
+  the hourly GPU price but not storage and download charges, so from now on the balance is the number to trust.
 - **Open next:**
   1. Auto-select FETCH / PREFETCH from a start-up bandwidth probe.
   2. Why both gain less on short chat prompts than on long own-text runs.

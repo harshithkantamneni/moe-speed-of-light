@@ -22,8 +22,9 @@ standard `--n-cpu-moe` setting at the same GPU memory, and reached 51–72% of t
 |---|---|---|---|---|---|---|---|
 | Where experts live | GPU cache + RAM | GPU cache + RAM — same | Hot experts on GPU, rest in RAM — similar | Layers split between GPU and CPU — different | GPU cache + RAM — same | GPU cache + RAM — same | Whole layers' experts in RAM — different |
 | Cache organisation | **Per layer**, fixed slots per layer | **One pool for all layers** — different | Fixed placement chosen from a profile — different | No cache — different | Per layer — same | Per layer (2512.16473: set-associative) — same | No cache |
-| What happens on a miss | CPU runs the expert | Splits misses between copying to the GPU and running on the CPU, sized from measured bandwidths — different | CPU runs it — same | CPU runs its layers — similar | Mostly copy to the GPU, some CPU — different | CPU runs it while the expert is copied — similar | CPU runs the whole layer's experts |
+| What happens on a miss | CPU runs the expert; with FETCH (optional, 28 Sep) a table says how many of a layer's misses are copied to the GPU and run there in the same step, the rest on the CPU | Splits misses between copying to the GPU and running on the CPU, sized from measured bandwidths — different | CPU runs it — same | CPU runs its layers — similar | Mostly copy to the GPU, some CPU — different | CPU runs it while the expert is copied — similar | CPU runs the whole layer's experts |
 | How the CPU is told to start | GPU writes a mailbox; helpers spin; a GPU spin kernel waits for the answer, all inside the step's CUDA graph | GPU raises a flag with stream memory operations; a CPU thread polls; the GPU waits on a "done" flag inside the CUDA graph — **same idea, since 11 Aug 2026** | `cudaLaunchHostFunc` callbacks inside a CUDA graph — similar | llama.cpp's scheduler — different | llama.cpp's scheduler — different | Host-driven scheduling — different | llama.cpp's scheduler (CPU and GPU take turns) |
+| Prefetch of predicted experts during decode | Optional PREFETCH (28 Sep): the next layer's router on this layer's MoE input picks one expert to copy on a side stream | Not in its decode path (its prefetch double-buffers the next layer for prefill) | Not found | n/a | Not found | HybriMoE prefetches — similar | n/a |
 | Skip the CPU when a layer has no misses | GPU decides per layer | Not found in its code | Not found | n/a | Not found | Not found | n/a |
 | CPU and GPU at the same time within a layer | Yes | Yes — same | Yes — same | Pipelined across layers — different | Partly | Yes — same | No (they take turns) |
 | How admission copies travel | A GPU kernel reads pinned RAM directly, keeping copies off the copy engine | Copy engine | Copy engine | n/a | Copy engine, with throttling or low priority | Copy engine | n/a |
@@ -57,6 +58,11 @@ These are implementation choices, not new ideas. Each is worth measuring rather 
 - Running the whole decode step as one CUDA graph with the CPU work inside it: KTransformers (SOSP'25).
 - Decayed-frequency admission with a margin: llama.cpp PR #26563 (August 2026).
 - Loading from mapped host memory with GPU kernels: SeqMoE (September 2026).
+- Splitting a layer's misses between copying and CPU execution (our FETCH): FreeToken's hybrid mode (August 2026),
+  sized from measured bandwidths, and HybriMoE (April 2025).
+- Predicting the next layer's experts from the current hidden state and prefetching them (our PREFETCH): Pre-gated MoE
+  (ISCA'24), ProMoE (2410.22134), Fate (2502.12224), HybriMoE, DALI (2602.03495), Speculating Experts (2603.19289),
+  SeqMoE (2609.12978). Fate uses the next layer's gate on the current gate input, as we do.
 
 ## What makes the study itself different
 

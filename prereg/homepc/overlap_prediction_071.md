@@ -31,3 +31,36 @@ bandwidth (concur.cu), and B_both for the both-paths figure.
 
 Decision rule: if 3 and 4 both fail (no gain from either overlap mechanism), the overlap dividend is not reachable
 with next-layer lookahead on this hardware. The paper then states the dividend as a bound-level finding only.
+
+## Outcome (added 29 Sep 2026, 06:00 UTC, after the run; nothing above was changed)
+
+Job 071 ran on an RTX 5090 + Ryzen 9 9950X3D2 host (192 MB L3 in two CCDs; CPU read 69.6 GB/s, CPU + copy engine
+86 GB/s). Results: `results/071_overlap_x3d@vast/` on the `gpu` branch.
+
+| Config | C = 14 | C = 32 | C = 56 |
+|---|---|---|---|
+| base (tok/s) | 55.8 | 84.0 | 121.2 |
+| PREFETCH (early) | +13.9% | +11.0% | +3.7% |
+| PREFETCH_LATE | +8.3% | +3.4% | −3.0% |
+| LLC | −1.8% | −2.5% | −5.0% |
+| FETCH | +7.2% | +7.6% | +4.4% |
+| LLC + FETCH | −8.4% | −10.1% | −13.6% |
+
+1. **Mostly held.** Covered configurations: median error 1.8%, but C14 FETCH is off by 11.2%, above the 8% limit.
+2. **Held.** No configuration exceeds its max-form bound; every one is far below it.
+3. **Failed.** PREFETCH_LATE is slower than early PREFETCH at every budget (3–7 points).
+4. **Failed.** LLC loses 2–5% alone and 8–14% with FETCH.
+5. **Held.** Top-1 agreement with base is ≥ 98.4% for every configuration; mean NLL is within 0.6%.
+
+By the decision rule, the overlap dividend is not reachable with next-layer lookahead on this hardware, and the paper
+states it only as a bound-level quantity.
+
+Why the prediction was wrong. The premise was that host memory is idle while the GPU works. It is not:
+- the cache's own background admissions already read 100–145 MB per token from host memory, and the copy engine
+  schedules them in exactly those windows;
+- early PREFETCH already moves predicted experts in the same windows. That is where its +11–14% comes from.
+
+So what remained to overlap was small, and both new mechanisms added reads that compete with the critical path:
+- the late copy starts after the CPU's wait, so it runs inside the next layer's short attention window (~130 µs per
+  layer, about half an expert at this bandwidth);
+- LLC warms the L3 of whichever CCD the helper runs on, with ~100 MB per token of extra reads.

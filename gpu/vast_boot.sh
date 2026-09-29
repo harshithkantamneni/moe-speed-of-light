@@ -17,6 +17,15 @@ kill $HBP 2>/dev/null
 find "$OUT" -type f -size +8M -printf '%s %p\n' > "$OUT/omitted_large_files.txt"
 find "$OUT" -type f -size +8M -delete
 tar -C "$W/results" -czf /tmp/r.tgz "$JOB"
+# Vast's log API returns at most 20000 lines (x 400 base64 chars = 6 MB of archive; fetches of up to ~7500 lines are proven, so keep it under 3.5 MB): drop the largest files until the
+# archive fits, listing each dropped file
+while [ "$(stat -c %s /tmp/r.tgz)" -gt 3500000 ]; do
+  big=$(find "$OUT" -type f ! -name DONE ! -name omitted_large_files.txt -printf '%s %p\n' | sort -n | tail -1)
+  [ -z "$big" ] && break
+  echo "$big (dropped: archive over the log API limit)" >> "$OUT/omitted_large_files.txt"
+  rm -f "${big#* }"
+  tar -C "$W/results" -czf /tmp/r.tgz "$JOB"
+done
 sha=$(sha256sum /tmp/r.tgz | cut -d' ' -f1); n=$(stat -c %s /tmp/r.tgz)
 base64 -w 0 /tmp/r.tgz | fold -w 400 > /tmp/r.b64; echo >> /tmp/r.b64   # fold leaves the last line unterminated
 lines=$(wc -l < /tmp/r.b64)

@@ -1,6 +1,6 @@
 # Nsight Systems helpers for the profiling jobs (source after setup.sh). Every profiled run is one ec-bench process on
-# one sequence; the GPU kernel trace (CUDA graphs traced per node) and the CUDA API trace are exported as gzipped CSV,
-# with a per-kernel summary, so the per-token breakdown can be computed off the machine.
+# one sequence; the GPU kernel trace (CUDA graphs traced per node) and the CUDA API trace are exported as CSV and
+# summarised per decode token on the machine (prof_summary.py), since full exports exceed the log channel.
 install_nsys() {
   NSYS=$(ls /opt/nvidia/nsight-systems/*/bin/nsys 2>/dev/null | tail -1)
   if [ -z "$NSYS" ]; then
@@ -22,6 +22,11 @@ prof_run() {  # label, then the command (env assignments via env ...)
   # one stats call for all reports (a second call refuses to reuse the SQLite export without --force-export)
   $NSYS stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv \
     --output $WORK/prof_$label $WORK/prof_$label.nsys-rep > /dev/null 2>> $OUT/prof_$label.err
-  for f in $WORK/prof_${label}_*.csv; do gzip -c "$f" > $OUT/$(basename "$f").gz; done
-  ls -la $OUT/prof_${label}_* 2>/dev/null
+  # summarise on the machine (full exports are too large for the log channel); keep the decode-tail trace only for
+  # the labels listed in PROF_KEEP_TAIL, and the full kernel summary for all
+  local keep=""; case " $PROF_KEEP_TAIL " in *" $label "*) keep=--keep-tail;; esac
+  python3 $J/prof_summary.py --work $WORK --label $label --out $OUT $keep >> $OUT/prof_summary.txt 2>> $OUT/prof_$label.err
+  [ -f $WORK/prof_${label}_cuda_gpu_kern_sum.csv ] && gzip -c $WORK/prof_${label}_cuda_gpu_kern_sum.csv > $OUT/prof_${label}_kern_sum.csv.gz
+  rm -f $WORK/prof_${label}_*.csv $WORK/prof_${label}.sqlite
+  ls -la $OUT/prof_${label}* 2>/dev/null
 }

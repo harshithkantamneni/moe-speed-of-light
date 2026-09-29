@@ -3,6 +3,37 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, afternoon: the 40% fix, and why FreeToken still leads there (job `074_fix40@vast`)
+
+**The data behind the 40% loss (job 073).** Speed per budget fits a line in misses per token, within 0.12 ms, for
+both systems:
+
+| | Fixed cost per token | Cost per miss |
+|---|---|---|
+| Ours (no FETCH) | 5.14 ms | 0.195 ms (68 GB/s, the host's CPU path) |
+| FreeToken offload | 3.20 ms | 0.297 ms (45 GB/s over the link) |
+
+This assumes FreeToken's miss counts equal ours. The lines cross near 19 misses per token, and at 40% there are 16.
+
+**Fix 1: the slot maps on the GPU.** The profile's 81 small host-to-device copies per token (9 in stock llama.cpp)
+were the maps input. Placed on the CPU by the scheduler, each per-layer view of it was copied synchronously before
+every launch. With the maps on the GPU, launch time falls from 0.61–0.72 to 0.19–0.21 ms, a gain of +3.6% at C51.
+
+**Admission tuning:** at most 1% overall in simulation, not pursued.
+
+**Result on a 7950X host** (CPU 46 GB/s ≈ link 47 GB/s): ours v2 against FreeToken in the same session:
+- **C14:** +2.3%
+- **C32:** −4.3%
+- **C51:** −16.9%, or −8.4% with FETCH, which helps on this host.
+
+Two of the four predictions failed; `prereg/fix40_outcome_074.md` has the outcome. On a host where the CPU path is no
+faster than the link, our per-miss advantage is gone and the fixed cost decides.
+
+**The next item is the server's 2.0–2.8 ms per token between decode steps** (ec-bench spends 1.2 ms). Job 074b tests
+GPU-side sampling.
+
+**60% of experts needs 37 GB of slots,** so it is prepared for an RTX PRO 6000 (job 075, not yet launched).
+
 ## 29 September, midday: the same-machine comparison, redone (job `073_samehost_v2@vast`)
 
 The protocol and outcome are in `prereg/samehost_v2_outcome.md`.

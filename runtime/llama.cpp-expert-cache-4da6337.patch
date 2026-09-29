@@ -1230,10 +1230,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..d9716d0
+index 0000000..1220497
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1406 @@
+@@ -0,0 +1,1423 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1249,6 +1249,23 @@ index 0000000..d9716d0
 +#include <cstring>
 +#include <fstream>
 +#include <sstream>
++#include <vector>
++
++// decay^dt by table (the policy evaluates it for every resident expert of every layer, every step)
++static inline double ec_decay_pow(double decay, int64_t dt) {
++    static thread_local double cached_decay = -1.0;
++    static thread_local std::vector<double> tab;
++    if (decay != cached_decay) {
++        tab.resize(4096);
++        double v = 1.0;
++        for (size_t i = 0; i < tab.size(); ++i) {
++            tab[i] = v;
++            v *= decay;
++        }
++        cached_decay = decay;
++    }
++    return dt >= 0 && dt < (int64_t) tab.size() ? tab[dt] : std::pow(decay, (double) dt);
++}
 +#include <chrono>
 +#if defined(__linux__)
 +#include <pthread.h>
@@ -1871,7 +1888,7 @@ index 0000000..d9716d0
 +                continue;
 +            }
 +            const int r = L.resident[s];
-+            cand.emplace_back(r < 0 ? -1.0 : L.score[r] * std::pow(decay, (double) (step - L.last[r])), s);
++            cand.emplace_back(r < 0 ? -1.0 : L.score[r] * ec_decay_pow(decay, step - L.last[r]), s);
 +        }
 +        std::sort(cand.begin(), cand.end());
 +        for (size_t q = 0; q < cand.size() && (int) q < E; ++q) {
@@ -2151,7 +2168,7 @@ index 0000000..d9716d0
 +                continue;
 +            }
 +            L.count[e]++;
-+            L.score[e] = L.score[e] * std::pow(decay, (double) (step - L.last[e])) + 1.0;
++            L.score[e] = L.score[e] * ec_decay_pow(decay, step - L.last[e]) + 1.0;
 +            L.last[e]  = step;
 +            if (L.slot_of[e] >= 0) {
 +                L.hits++;
@@ -2216,7 +2233,7 @@ index 0000000..d9716d0
 +                    continue;
 +                }
 +                const double key = policy == LRU ? (double) L.stamp[c]
-+                                                 : L.score[c] * std::pow(decay, (double) (step - L.last[c]));
++                                                 : L.score[c] * ec_decay_pow(decay, step - L.last[c]);
 +                if (victim < 0 || key < best) {
 +                    best = key;
 +                    victim = s;
@@ -2904,7 +2921,7 @@ index 0000000..7b45616
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index a806126..d4bfba3 100644
+index a806126..d924971 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -2965,7 +2982,7 @@ index a806126..d4bfba3 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2391,288 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2391,294 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -3087,6 +3104,12 @@ index a806126..d4bfba3 100644
 +        inp_ec->maps = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, ec->n_expert_max(), 3 * ec->n_layers());
 +        ggml_set_input(inp_ec->maps);
 +        ggml_set_name(inp_ec->maps, "ec_maps");
++        if (getenv("LLAMA_EC_MAPS_CPU") == nullptr) {
++            // allocate the maps on the GPU: set_input then writes them with one copy. Left to the scheduler, the graph
++            // input lands in a CPU buffer and every per-layer view of it becomes a split input copied synchronously
++            // before the launch (~72 small host-to-device copies per token, ~0.5 ms; profile of job 069c)
++            ggml_backend_sched_set_tensor_backend(sched, inp_ec->maps, be_gpu);
++        }
 +        res->add_input(std::move(inp));
 +    }
 +    GGML_ASSERT(n_expert <= ec->n_expert_max());

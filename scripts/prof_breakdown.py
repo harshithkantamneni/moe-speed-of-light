@@ -59,19 +59,28 @@ def main():
     ap.add_argument("--label", required=True)
     ap.add_argument("--tokens", type=int, default=20)
     ap.add_argument("--json")
+    ap.add_argument("--gap-us", type=float, default=40.0)
     a = ap.parse_args()
     gpu = load_csv(os.path.join(a.dir, f"prof_{a.label}_cuda_gpu_trace.csv.gz"))
-    api = load_csv(os.path.join(a.dir, f"prof_{a.label}_cuda_api_trace.csv.gz"))
-    launches = sorted(int(col(r, "Start")) for r in api if re.search(r"cudaGraphLaunch", col(r, "Name")))
-    kind = "graph"
-    if len(launches) < a.tokens + 2:
-        kind = "eager (llama_decode boundaries from cudaStreamSynchronize)"
-        launches = sorted(int(col(r, "Start")) for r in api if re.search(r"cudaStreamSynchronize", col(r, "Name")))
     ev = []
     for r in gpu:
         s = int(col(r, "Start")); d = int(col(r, "Duration")); n = col(r, "Name")
         ev.append((s, s + d, n))
     ev.sort()
+    api_path = os.path.join(a.dir, f"prof_{a.label}_cuda_api_trace.csv.gz")
+    launches = []
+    if os.path.exists(api_path):
+        api = load_csv(api_path)
+        launches = sorted(int(col(r, "Start")) for r in api if re.search(r"cudaGraphLaunch", col(r, "Name")))
+        kind = "graph launches"
+    if len(launches) < a.tokens + 2:
+        # no API trace: a decode token starts at the first GPU activity after a host gap longer than --gap-us
+        kind = f"GPU gaps > {a.gap_us} us"
+        launches, last_end = [], None
+        for s, e, n in ev:
+            if last_end is not None and s - last_end > a.gap_us * 1000:
+                launches.append(s)
+            last_end = e if last_end is None else max(last_end, e)
     # token boundaries: use the last tokens+1 launches (the decode tail of the last sequence)
     bounds = launches[-(a.tokens + 1):]
     per = []

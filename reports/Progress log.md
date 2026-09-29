@@ -3,6 +3,50 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, early: a law for offloaded decode on a PC
+
+**The law** (`scripts/law_hostdram.py`, results in `prereg/homepc/law_hostdram.json`):
+
+  time per token = G + max(CPU bytes / B_c, link bytes / B_p, (CPU + link bytes) / B_both)
+
+- CPU bytes and link bytes are the expert bytes read from host memory per token, taken from the engine's own counters.
+- The bandwidths are each host's own microbenchmarks (`concur.cu`), not fitted.
+- G is one constant per engine, fitted on the 9950X #2 host: 4.82 ms for the cache, 5.06 ms for llama.cpp.
+
+**Out-of-sample checks:**
+
+| Host | CPU / link / both (GB/s) | Configurations | Median error | Worst |
+|---|---|---|---|---|
+| 9950X #1 (job 059) | 62.2 / 53.0 / 73.0 | 9 (cache, serial FETCH, llama.cpp) | 2.2% | 3.3% |
+| 9800X3D (job 068) | 47.5 / 46.4 / 51.5 | 6 (cache, FETCH) | 3.2% | 5.5% |
+| 9950X + RTX PRO 6000 (job 070, a different GPU board) | 64.7 / 53.0 / 74.2 | 3 | 5.7% | 7.3% |
+| 9950X #2 (fit host) | 46.7 / 47.3 / 51.8 | 24 (cache, FETCH, PREFETCH, both, llama.cpp) | 3.1% | 8.4% |
+
+**Readings:**
+1. **Every mechanism acts only through host-memory bytes per token and the number of read paths in use.** A second
+   path gets 11–21% more bandwidth; that is the whole gain of FETCH, PREFETCH and FreeToken-style splits. Prefetch
+   never reduces the bytes.
+2. **The host lottery is the RAM.** The 19–22% gap between "identical" 9950X rentals is 62 vs 47 GB/s of host memory
+   bandwidth.
+3. **G and the host-memory term add up; nothing overlaps them.** Host memory is idle while the GPU does its own work,
+   about 4.8 ms per token. Overlapping turns the sum into a max: +40–55% at C = 32 on the 47 GB/s hosts.
+   - Two ways to try it are built: `LLAMA_EC_PREFETCH_LATE` (the copy starts during the next layer's attention) and
+     `LLAMA_EC_LLC` (idle helpers pull the next layer's predicted CPU experts into L3).
+   - Job 071 tests both on an X3D host. Its predictions were recorded before the run in
+     `prereg/homepc/overlap_prediction_071.md`.
+
+**All in VRAM (job 070, RTX PRO 6000 Blackwell, the 5090's die with 96 GB):**
+- gpt-oss-120b decodes at **265 tok/s** in llama.cpp (llama-bench 263). That is about 54% of the GPU's datasheet
+  bandwidth for the bytes a token reads.
+- Of its ~3.8 ms per token:
+  - about 2.8 ms is the quantized matrix-vector kernel;
+  - most of the rest is activation quantization (0.4 ms), norms (0.2 ms) and top-k by full argsort (0.2 ms);
+  - plus a 0.15 ms host gap between two graph launches per token.
+- Offloaded (C = 32) on the same machine: cache 79.0, +FETCH 89.0, llama.cpp `-ncmoe 27` 35.4 tok/s.
+
+**Lost run:** the first profile of the offloaded configurations (job 069) was lost. Its machine was destroyed after a
+failed log fetch. It is rerunning on a 9950X3D host, with the profiler exports fixed.
+
 ## Where things stand (end of 28 September)
 
 - **Same machine, same client, equal GPU memory, gpt-oss-120b:** our cache with FETCH is ahead of FreeToken at all

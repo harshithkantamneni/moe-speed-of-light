@@ -1,0 +1,479 @@
++++ dirname /w/jobs/069c_profile@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export 'PROF_KEEP_TAIL=C32 C32f static27'
++ PROF_KEEP_TAIL='C32 C32f static27'
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=23
++ tee /w/results/069c_profile@vast/cores.txt
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
+++ nproc
++ echo 'usable physical cores 23 (lscpu: 24, nproc 24)'
+usable physical cores 23 (lscpu: 24, nproc 24)
++ DLG=6218
++ install_nsys
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ awk '{print $1}'
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ sort -V
+++ tail -1
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/069c_profile@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/069c_profile@vast/build_lc-ec.txt
++ wait 6218
++ cat /w/results/069c_profile@vast/dl_gguf.txt
+++ date +%s
++ t0=1790663396
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf download rc=0 in 222 s'
+gguf download rc=0 in 222 s
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ H=21
++ MB=mailbox=1:tdec=1:helpers=21
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ python3 /w/jobs/ec2/law_predict.py /w/results/069c_profile@vast/concur.txt 21 'NVIDIA GeForce RTX 5090'
+++ date -u +%FT%TZ
++ echo 'law prediction written 2026-09-29T06:35:07Z'
+law prediction written 2026-09-29T06:35:07Z
++ cat /w/results/069c_profile@vast/law_prediction.json
+{
+ "time_utc": "2026-09-29T06:35:07Z",
+ "gpu": "NVIDIA GeForce RTX 5090",
+ "valid": true,
+ "helpers": 21,
+ "B_c": 60.95,
+ "B_p": 35.7,
+ "B_both": 61.7,
+ "G_ms": {
+  "cache": 4.819,
+  "static": 5.063
+ },
+ "predicted_tok_s": {
+  "C14": 52.14,
+  "C32": 80.62,
+  "C56": 114.68,
+  "C14_fetch": 50.02,
+  "C32_fetch": 75.72,
+  "C56_fetch": 107.35,
+  "C14_pf": 52.63,
+  "C32_pf": 79.63,
+  "C56_pf": 110.25,
+  "C32_fetch_pf": 61.08,
+  "static20": 44.52,
+  "static27": 35.03,
+  "static32": 30.4
+ }
+}
++ B=policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
++ CFG=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ cut -d: -f1
+++ tr = _
+++ echo slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q :fetch=
+++ echo slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch=
+++ echo slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch_late
+++ echo slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ cut -d: -f1
+++ tr = _
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q :fetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch_late
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ cut -d: -f1
+++ tr = _
+++ echo slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q :fetch=
+++ echo slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch=
+++ echo slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q prefetch_late
+++ echo slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ cut -d: -f1
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
+++ tr = _
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
+++ grep -q :fetch=
+++ echo _f
+++ grep -q prefetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
+++ grep -q prefetch_late
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:stats=/w/results/069c_profile@vast/ref_slots_32_f.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
+++ cut -d: -f1
+++ tr = _
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
+++ grep -q :fetch=
+++ echo _f
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
+++ grep -q prefetch=
+++ echo _pf
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
+++ grep -q prefetch_late
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:stats=/w/results/069c_profile@vast/ref_slots_32_f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:stats=/w/results/069c_profile@vast/ref_slots_32_f_pf.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
+++ tr = _
+++ cut -d: -f1
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
+++ grep -q :fetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
+++ grep -q prefetch=
+++ echo _pf
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
+++ grep -q prefetch_late
+++ echo late
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
+++ grep -q llc=
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:stats=/w/results/069c_profile@vast/ref_slots_32_f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:stats=/w/results/069c_profile@vast/ref_slots_32_f_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1:stats=/w/results/069c_profile@vast/ref_slots_32_pflate.json'
++ for c in "slots=14:$B" "slots=32:$B" "slots=56:$B" "slots=32:$B:fetch=0,1,1,2,3" "slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "slots=32:$B:prefetch=1:prefetch_late=1" "slots=32:$B:llc=1"
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
+++ cut -d: -f1
+++ tr = _
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
+++ grep -q :fetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
+++ grep -q prefetch=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
+++ grep -q prefetch_late
+++ grep -q llc=
+++ echo slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
+++ echo _llc
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:stats=/w/results/069c_profile@vast/ref_slots_32_f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:stats=/w/results/069c_profile@vast/ref_slots_32_f_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1:stats=/w/results/069c_profile@vast/ref_slots_32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1:stats=/w/results/069c_profile@vast/ref_slots_32_llc.json'
++ ALL='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 23 --n-prefill 640 --n-decode 128 --no-mmap'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 23 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_14.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_32.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:stats=/w/results/069c_profile@vast/ref_slots_56.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:stats=/w/results/069c_profile@vast/ref_slots_32_f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:stats=/w/results/069c_profile@vast/ref_slots_32_f_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1:stats=/w/results/069c_profile@vast/ref_slots_32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1:stats=/w/results/069c_profile@vast/ref_slots_32_llc.json'
++ echo 'ref ec rc=0'
+ref ec rc=0
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 23 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27
++ echo 'ref static rc=0'
+ref static rc=0
++ ONE='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap'
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C14
++ cfg=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
++ prof_run C14 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ local label=C14
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C14 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ echo 'prof C14 rc=0'
+prof C14 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C14 /work/prof_C14.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C14 --out /w/results/069c_profile@vast
++ '[' -f /work/prof_C14_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C14_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C14_cuda_api_trace.csv /work/prof_C14_cuda_gpu_kern_sum.csv /work/prof_C14_cuda_gpu_trace.csv /work/prof_C14.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C14.err /w/results/069c_profile@vast/prof_C14.json /w/results/069c_profile@vast/prof_C14.stdout /w/results/069c_profile@vast/prof_C14_kern_sum.csv.gz
+-rw-r--r-- 1 root root 367987 Sep 29 06:42 /w/results/069c_profile@vast/prof_C14.err
+-rw-r--r-- 1 root root   3975 Sep 29 06:42 /w/results/069c_profile@vast/prof_C14.json
+-rw-r--r-- 1 root root   1983 Sep 29 06:42 /w/results/069c_profile@vast/prof_C14.stdout
+-rw-r--r-- 1 root root   2307 Sep 29 06:42 /w/results/069c_profile@vast/prof_C14_kern_sum.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C32
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
++ prof_run C32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ local label=C32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ echo 'prof C32 rc=0'
+prof C32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32 /work/prof_C32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32 --out /w/results/069c_profile@vast --keep-tail
++ '[' -f /work/prof_C32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32_cuda_api_trace.csv /work/prof_C32_cuda_gpu_kern_sum.csv /work/prof_C32_cuda_gpu_trace.csv /work/prof_C32.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C32.err /w/results/069c_profile@vast/prof_C32.json /w/results/069c_profile@vast/prof_C32.stdout /w/results/069c_profile@vast/prof_C32_kern_sum.csv.gz /w/results/069c_profile@vast/prof_C32_tail.csv.gz
+-rw-r--r-- 1 root root 367988 Sep 29 06:43 /w/results/069c_profile@vast/prof_C32.err
+-rw-r--r-- 1 root root   4026 Sep 29 06:43 /w/results/069c_profile@vast/prof_C32.json
+-rw-r--r-- 1 root root   1983 Sep 29 06:43 /w/results/069c_profile@vast/prof_C32.stdout
+-rw-r--r-- 1 root root   2300 Sep 29 06:43 /w/results/069c_profile@vast/prof_C32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 222702 Sep 29 06:43 /w/results/069c_profile@vast/prof_C32_tail.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C56
++ cfg=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21
++ prof_run C56 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ local label=C56
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C56 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:seqs=1/0
++ echo 'prof C56 rc=0'
+prof C56 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C56 /work/prof_C56.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C56 --out /w/results/069c_profile@vast
++ '[' -f /work/prof_C56_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C56_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C56_cuda_api_trace.csv /work/prof_C56_cuda_gpu_kern_sum.csv /work/prof_C56_cuda_gpu_trace.csv /work/prof_C56.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C56.err /w/results/069c_profile@vast/prof_C56.json /w/results/069c_profile@vast/prof_C56.stdout /w/results/069c_profile@vast/prof_C56_kern_sum.csv.gz
+-rw-r--r-- 1 root root 367988 Sep 29 06:43 /w/results/069c_profile@vast/prof_C56.err
+-rw-r--r-- 1 root root   4022 Sep 29 06:43 /w/results/069c_profile@vast/prof_C56.json
+-rw-r--r-- 1 root root   1981 Sep 29 06:43 /w/results/069c_profile@vast/prof_C56.stdout
+-rw-r--r-- 1 root root   2313 Sep 29 06:43 /w/results/069c_profile@vast/prof_C56_kern_sum.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C32f
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3
++ prof_run C32f /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:seqs=1/0
++ local label=C32f
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32f --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:seqs=1/0
++ echo 'prof C32f rc=0'
+prof C32f rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32f /work/prof_C32f.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32f --out /w/results/069c_profile@vast --keep-tail
++ '[' -f /work/prof_C32f_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32f_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32f_cuda_api_trace.csv /work/prof_C32f_cuda_gpu_kern_sum.csv /work/prof_C32f_cuda_gpu_trace.csv /work/prof_C32f.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C32f.err /w/results/069c_profile@vast/prof_C32f.json /w/results/069c_profile@vast/prof_C32f.stdout /w/results/069c_profile@vast/prof_C32f_kern_sum.csv.gz /w/results/069c_profile@vast/prof_C32f_tail.csv.gz
+-rw-r--r-- 1 root root 396878 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32f.err
+-rw-r--r-- 1 root root   4069 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32f.json
+-rw-r--r-- 1 root root   2036 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32f.stdout
+-rw-r--r-- 1 root root   2379 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32f_kern_sum.csv.gz
+-rw-r--r-- 1 root root 205358 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32f_tail.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C32fpf
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1
++ prof_run C32fpf /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:seqs=1/0
++ local label=C32fpf
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32fpf --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:fetch=0,1,1,2,3:prefetch=1:seqs=1/0
++ echo 'prof C32fpf rc=0'
+prof C32fpf rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32fpf /work/prof_C32fpf.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32fpf --out /w/results/069c_profile@vast
++ '[' -f /work/prof_C32fpf_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32fpf_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32fpf_cuda_api_trace.csv /work/prof_C32fpf_cuda_gpu_kern_sum.csv /work/prof_C32fpf_cuda_gpu_trace.csv /work/prof_C32fpf.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C32fpf.err /w/results/069c_profile@vast/prof_C32fpf.json /w/results/069c_profile@vast/prof_C32fpf.stdout /w/results/069c_profile@vast/prof_C32fpf_kern_sum.csv.gz
+-rw-r--r-- 1 root root 396989 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32fpf.err
+-rw-r--r-- 1 root root   4048 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32fpf.json
+-rw-r--r-- 1 root root   2158 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32fpf.stdout
+-rw-r--r-- 1 root root   2494 Sep 29 06:44 /w/results/069c_profile@vast/prof_C32fpf_kern_sum.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C32pflate
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1
++ prof_run C32pflate /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1:seqs=1/0
++ local label=C32pflate
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32pflate --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:prefetch=1:prefetch_late=1:seqs=1/0
++ echo 'prof C32pflate rc=0'
+prof C32pflate rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32pflate /work/prof_C32pflate.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32pflate --out /w/results/069c_profile@vast
++ '[' -f /work/prof_C32pflate_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32pflate_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32pflate_cuda_api_trace.csv /work/prof_C32pflate_cuda_gpu_kern_sum.csv /work/prof_C32pflate_cuda_gpu_trace.csv /work/prof_C32pflate.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C32pflate.err /w/results/069c_profile@vast/prof_C32pflate.json /w/results/069c_profile@vast/prof_C32pflate.stdout /w/results/069c_profile@vast/prof_C32pflate_kern_sum.csv.gz
+-rw-r--r-- 1 root root 396125 Sep 29 06:45 /w/results/069c_profile@vast/prof_C32pflate.err
+-rw-r--r-- 1 root root   4080 Sep 29 06:45 /w/results/069c_profile@vast/prof_C32pflate.json
+-rw-r--r-- 1 root root   2224 Sep 29 06:45 /w/results/069c_profile@vast/prof_C32pflate.stdout
+-rw-r--r-- 1 root root   2488 Sep 29 06:45 /w/results/069c_profile@vast/prof_C32pflate_kern_sum.csv.gz
++ for c in "C14:slots=14:$B" "C32:slots=32:$B" "C56:slots=56:$B" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fpf:slots=32:$B:fetch=0,1,1,2,3:prefetch=1" "C32pflate:slots=32:$B:prefetch=1:prefetch_late=1" "C32llc:slots=32:$B:llc=1"
++ lab=C32llc
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1
++ prof_run C32llc /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1:seqs=1/0
++ local label=C32llc
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32llc --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21:llc=1:seqs=1/0
++ echo 'prof C32llc rc=0'
+prof C32llc rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32llc /work/prof_C32llc.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32llc --out /w/results/069c_profile@vast
++ '[' -f /work/prof_C32llc_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32llc_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32llc_cuda_api_trace.csv /work/prof_C32llc_cuda_gpu_kern_sum.csv /work/prof_C32llc_cuda_gpu_trace.csv /work/prof_C32llc.sqlite
++ ls -la /w/results/069c_profile@vast/prof_C32llc.err /w/results/069c_profile@vast/prof_C32llc.json /w/results/069c_profile@vast/prof_C32llc.stdout /w/results/069c_profile@vast/prof_C32llc_kern_sum.csv.gz
+-rw-r--r-- 1 root root 452186 Sep 29 06:45 /w/results/069c_profile@vast/prof_C32llc.err
+-rw-r--r-- 1 root root   4016 Sep 29 06:46 /w/results/069c_profile@vast/prof_C32llc.json
+-rw-r--r-- 1 root root   2232 Sep 29 06:46 /w/results/069c_profile@vast/prof_C32llc.stdout
+-rw-r--r-- 1 root root   2344 Sep 29 06:46 /w/results/069c_profile@vast/prof_C32llc_kern_sum.csv.gz
++ prof_run static27 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --ncmoe 27
++ local label=static27
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_static27 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 23 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --ncmoe 27
++ echo 'prof static27 rc=0'
+prof static27 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_static27 /work/prof_static27.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label static27 --out /w/results/069c_profile@vast --keep-tail
++ '[' -f /work/prof_static27_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_static27_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_static27_cuda_api_trace.csv /work/prof_static27_cuda_gpu_kern_sum.csv /work/prof_static27_cuda_gpu_trace.csv /work/prof_static27.sqlite
++ ls -la /w/results/069c_profile@vast/prof_static27.err /w/results/069c_profile@vast/prof_static27.json /w/results/069c_profile@vast/prof_static27.stdout /w/results/069c_profile@vast/prof_static27_kern_sum.csv.gz /w/results/069c_profile@vast/prof_static27_tail.csv.gz
+-rw-r--r-- 1 root root 341977 Sep 29 06:46 /w/results/069c_profile@vast/prof_static27.err
+-rw-r--r-- 1 root root   2652 Sep 29 06:46 /w/results/069c_profile@vast/prof_static27.json
+-rw-r--r-- 1 root root   2160 Sep 29 06:46 /w/results/069c_profile@vast/prof_static27.stdout
+-rw-r--r-- 1 root root   2092 Sep 29 06:46 /w/results/069c_profile@vast/prof_static27_kern_sum.csv.gz
+-rw-r--r-- 1 root root   4678 Sep 29 06:46 /w/results/069c_profile@vast/prof_static27_tail.csv.gz
++ python3 - /w/results/069c_profile@vast
++ tee /w/results/069c_profile@vast/summary.txt
+reference ref_ec.jsonl: slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=21 77.3 tok/s
+reference ref_ec.jsonl: ref_slots_14.json 51.8 tok/s
+reference ref_ec.jsonl: ref_slots_32.json 77.8 tok/s
+reference ref_ec.jsonl: ref_slots_56.json 113.5 tok/s
+reference ref_ec.jsonl: ref_slots_32_f.json 67.7 tok/s
+reference ref_ec.jsonl: ref_slots_32_f_pf.json 62.0 tok/s
+reference ref_ec.jsonl: ref_slots_32_pflate.json 67.6 tok/s
+reference ref_ec.jsonl: ref_slots_32_llc.json 76.0 tok/s
+reference ref_static27.jsonl: static/warm-up 16.0 tok/s
+profiled C14 seq 1: 28.4 tok/s (under nsys)
+profiled C14 seq 0: 38.5 tok/s (under nsys)
+profiled C32 seq 1: 27.5 tok/s (under nsys)
+profiled C32 seq 0: 50.8 tok/s (under nsys)
+profiled C32f seq 1: 30.9 tok/s (under nsys)
+profiled C32f seq 0: 45.1 tok/s (under nsys)
+profiled C32fpf seq 1: 30.4 tok/s (under nsys)
+profiled C32fpf seq 0: 40.5 tok/s (under nsys)
+profiled C32llc seq 1: 27.2 tok/s (under nsys)
+profiled C32llc seq 0: 48.5 tok/s (under nsys)
+profiled C32pflate seq 1: 29.0 tok/s (under nsys)
+profiled C32pflate seq 0: 46.7 tok/s (under nsys)
+profiled C56 seq 1: 26.2 tok/s (under nsys)
+profiled C56 seq 0: 63.0 tok/s (under nsys)
+profiled static27 seq 1: 15.4 tok/s (under nsys)
+profiled static27 seq 0: 17.2 tok/s (under nsys)

@@ -1,0 +1,119 @@
++++ dirname /w/jobs/065_prefetch_check@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=89
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
++ lscpu
++ free -g
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=12
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=89 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/065_prefetch_check@vast/build_lc-ec.txt
++ wait
++ cat /w/results/065_prefetch_check@vast/download.txt
++ getmodel ggml-org/gpt-oss-20b-GGUF gpt-oss-20b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-20b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790643641
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-20b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-MXFP4.gguf
++ mv /work/models/gpt-oss-20b-MXFP4.gguf.part /work/models/gpt-oss-20b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-20b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-20b-MXFP4.gguf: 12109566624 bytes in 312 s'
+download gpt-oss-20b-MXFP4.gguf: 12109566624 bytes in 312 s
++ F=/work/models/gpt-oss-20b-MXFP4.gguf
++ H=10
++ MB=mailbox=1:tdec=1:helpers=10
++ B=slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ S='--corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap --host-experts'
++ CFG=slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/pf1_fetch.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/pf1_fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=2:stats=/w/results/065_prefetch_check@vast/pf2.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/pf1_fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=2:stats=/w/results/065_prefetch_check@vast/pf2.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/fetch.json'
++ CFG='slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/pf1_fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=2:stats=/w/results/065_prefetch_check@vast/pf2.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base_r.json'
++ timeout 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:check=1:stats=/w/results/065_prefetch_check@vast/pf1_check.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/pf1_fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=2:stats=/w/results/065_prefetch_check@vast/pf2.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/065_prefetch_check@vast/fetch.json;slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/065_prefetch_check@vast/base_r.json' --dump /w/results/065_prefetch_check@vast/ab.bin
++ echo 'ab rc=0'
+ab rc=0
++ GGML_CUDA_DISABLE_GRAPHS=1
++ timeout 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/065_prefetch_check@vast/pf1_nographs.json --dump /w/results/065_prefetch_check@vast/nog.bin
++ echo 'no-graphs rc=0'
+no-graphs rc=0
++ timeout 40m compute-sanitizer --tool memcheck --error-exitcode 9 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-20b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-20b.jsonl --seqs 0 -t 12 --n-prefill 64 --n-decode 24 --no-mmap --host-experts --ec slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1
++ echo 'memcheck rc=0'
+memcheck rc=0
++ tail -n 5 /w/results/065_prefetch_check@vast/memcheck.txt
+CUDA Graph id 459 reused
+{"config": "slots=8:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1", "seq": 0, "domain": "chat", "n_prefill": 64, "n_decode": 24, "decode_ms": 12007.190, "tok_s": 1.999, "nll_sum": 129.712610, "nll_n": 24, "step_ms": [387.194,391.871,478.672,497.543,503.158,507.960,510.250,525.174,523.650,495.705,511.177,518.996,522.842,517.528,514.667,526.740,492.877,542.614,535.555,511.968,474.953,517.838,505.563,492.693]}
+~llama_context:      CUDA0 compute buffer size is 143.2416 MiB, matches expectation of 143.2416 MiB
+~llama_context:  CUDA_Host compute buffer size is   1.4714 MiB, matches expectation of   1.4714 MiB
+========= ERROR SUMMARY: 0 errors
++ python3 - /w/results/065_prefetch_check@vast
++ tee /w/results/065_prefetch_check@vast/summary.txt
+base              61.5 tok/s  nll 0.7977  hit 0.639255  prefetch/layer-step 0.000 useful 0.000  fetches 0  check_bad 0/0  top1 vs base 1.0
+pf1_check         51.1 tok/s  nll 0.7974  hit 0.815735  prefetch/layer-step 0.722 useful 0.606  fetches 0  check_bad 0/1536  top1 vs base 0.990234375
+pf1               51.4 tok/s  nll 0.7974  hit 0.815735  prefetch/layer-step 0.722 useful 0.606  fetches 0  check_bad 0/0  top1 vs base 0.990234375
+pf1_fetch         41.1 tok/s  nll 0.7993  hit 0.825751  prefetch/layer-step 0.712 useful 0.595  fetches 19632  check_bad 0/0  top1 vs base 0.9934895833333334
+pf2               43.2 tok/s  nll 0.7979  hit 0.884488  prefetch/layer-step 1.087 useful 0.872  fetches 0  check_bad 0/0  top1 vs base 0.9908854166666666
+fetch             51.9 tok/s  nll 0.7979  hit 0.6824  prefetch/layer-step 0.000 useful 0.000  fetches 32946  check_bad 0/0  top1 vs base 0.990234375
+base_r            61.3 tok/s  nll 0.7977  hit 0.639255  prefetch/layer-step 0.000 useful 0.000  fetches 0  check_bad 0/0  top1 vs base 1.0
+prefetch q=1, CUDA graphs on vs off: top-1 identical on 1.0000 of steps

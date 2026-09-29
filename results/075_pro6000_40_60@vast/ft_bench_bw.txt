@@ -1,0 +1,30 @@
++ cd /work/ft
++ R 20m /work/ft/.venv/bin/ft bench bw
++ local t=20m
++ shift
++ timeout 20m /work/ft/.venv/bin/ft bench bw
+[1m[2026-09-29|20:17:09][0m [32mINFO    [0m benchbw: measuring hardware ceilings on cuda:0 ...
+[1m[2026-09-29|20:17:09][0m [32mINFO    [0m benchbw: dtype bf16 real kernels ...
+[1m[2026-09-29|20:17:16][0m [32mINFO    [0m benchbw: dtype nvfp4 real kernels ...
+[1m[2026-09-29|20:17:20][0m [32mINFO    [0m benchbw: dtype fp8 real kernels ...
+[1m[2026-09-29|20:17:20][0m [32mINFO    [0m benchbw: dtype mxfp4 real kernels ...
+[1m[2026-09-29|20:17:25][0m [32mINFO    [0m benchbw: dtype ds_fp4 real kernels ...
+
+  host 6d8fd361ab91   gpu cuda:0 (NVIDIA RTX PRO 6000 Blackwell Workstation Edition)   cpu 16c/16t
+  ceilings: CPU STREAM read 62.0  |  PCIe linear H2D 56.1  D2H 53.3  GB/s   (threshold 2.0x)
+
+  per-dtype (tuning — what the runtime backend pick matches on)
+    format      expert       CPU-MoE   PCIe-gather  CPU/PCIe  backend
+    bf16       9.00 MB     57.6 GB/s     51.4 GB/s     1.12x  offload
+       overlapped: CPU-MoE 32.5 + PCIe 33.6 GB/s -> hybrid fetches 50.8% of misses
+    nvfp4      7.61 MB     54.6 GB/s     52.1 GB/s     1.05x  offload
+       overlapped: CPU-MoE 34.1 + PCIe 33.2 GB/s -> hybrid fetches 49.4% of misses
+    fp8        3.00 MB           n/a     50.1 GB/s         —  offload
+           └─ CPU MoE has no fp8_block weight path; hybrid unavailable
+    mxfp4     12.62 MB     47.0 GB/s     52.8 GB/s     0.89x  offload
+       overlapped: CPU-MoE 28.5 + PCIe 31.9 GB/s -> hybrid fetches 52.8% of misses
+    ds_fp4    12.75 MB     57.6 GB/s     51.3 GB/s     1.12x  offload
+       overlapped: CPU-MoE 33.3 + PCIe 32.3 GB/s -> hybrid fetches 49.3% of misses
+
+  saved: /root/.cache/freetoken/benchbw/GPU-391f5739-5abb-7d85-ab31-d88b66a21a6e.json
+

@@ -1,0 +1,328 @@
++++ dirname /w/jobs/072_defer@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export 'PROF_KEEP_TAIL=C32 C32d'
++ PROF_KEEP_TAIL='C32 C32d'
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=12
++ tee /w/results/072_defer@vast/cores.txt
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
+++ nproc
++ echo 'usable physical cores 12 (lscpu: 12, nproc 24)'
+usable physical cores 12 (lscpu: 12, nproc 24)
++ DLG=6224
++ install_nsys
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/072_defer@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/072_defer@vast/build_lc-ec.txt
++ wait 6224
++ cat /w/results/072_defer@vast/dl_gguf.txt
+++ date +%s
++ t0=1790665078
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+++ date +%s
++ echo 'gguf download rc=0 in 569 s'
+gguf download rc=0 in 569 s
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ H=10
++ MB=mailbox=1:tdec=1:helpers=10
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ python3 /w/jobs/ec2/law_predict.py /w/results/072_defer@vast/concur.txt 10 'NVIDIA GeForce RTX 5090'
+++ date -u +%FT%TZ
++ echo 'law prediction written 2026-09-29T07:08:35Z'
+law prediction written 2026-09-29T07:08:35Z
++ cat /w/results/072_defer@vast/law_prediction.json
+{
+ "time_utc": "2026-09-29T07:08:35Z",
+ "gpu": "NVIDIA GeForce RTX 5090",
+ "valid": true,
+ "helpers": 10,
+ "B_c": 45.33,
+ "B_p": 44.6,
+ "B_both": 49.0,
+ "G_ms": {
+  "cache": 4.819,
+  "static": 5.063
+ },
+ "predicted_tok_s": {
+  "C14": 41.44,
+  "C32": 66.59,
+  "C56": 99.35,
+  "C14_fetch": 47.77,
+  "C32_fetch": 76.5,
+  "C56_fetch": 111.91,
+  "C14_pf": 44.1,
+  "C32_pf": 68.66,
+  "C56_pf": 100.35,
+  "C32_fetch_pf": 70.91,
+  "static20": 35.14,
+  "static27": 27.29,
+  "static32": 23.53
+ }
+}
++ B=policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ for rep in 1 2
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C14
++ cfg=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C14d
++ cfg=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32d
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C56
++ cfg=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C56d
++ cfg=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32f
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32fd
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32pf
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32pfd
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json'
++ for rep in 1 2
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C14
++ cfg=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C14d
++ cfg=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32d
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C56
++ cfg=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C56d
++ cfg=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32f
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32fd
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32pf
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r2.json'
++ for c in "C14:slots=14:$B" "C14d:slots=14:$B:defer_admit=1" "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1" "C56:slots=56:$B" "C56d:slots=56:$B:defer_admit=1" "C32f:slots=32:$B:fetch=0,1,1,2,3" "C32fd:slots=32:$B:fetch=0,1,1,2,3:defer_admit=1" "C32pf:slots=32:$B:prefetch=1" "C32pfd:slots=32:$B:prefetch=1:defer_admit=1"
++ lab=C32pfd
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r2.json'
++ ALL='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C14_r2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C14d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C32_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32d_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:stats=/w/results/072_defer@vast/ref_C56_r2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:stats=/w/results/072_defer@vast/ref_C56d_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:stats=/w/results/072_defer@vast/ref_C32f_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:fetch=0,1,1,2,3:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32fd_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:stats=/w/results/072_defer@vast/ref_C32pf_r2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:prefetch=1:defer_admit=1:stats=/w/results/072_defer@vast/ref_C32pfd_r2.json'
++ echo 'ref ec rc=0'
+ref ec rc=0
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 12 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27
++ echo 'ref static rc=0'
+ref static rc=0
++ ONE='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 12 --n-prefill 640 --n-decode 24 --no-mmap'
++ for c in "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1"
++ lab=C32
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10
++ prof_run C32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 12 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:seqs=1/0
++ local label=C32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 12 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:seqs=1/0
++ echo 'prof C32 rc=0'
+prof C32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32 /work/prof_C32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32 --out /w/results/072_defer@vast --keep-tail
++ '[' -f /work/prof_C32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32_cuda_api_trace.csv /work/prof_C32_cuda_gpu_kern_sum.csv /work/prof_C32_cuda_gpu_trace.csv /work/prof_C32.sqlite
++ ls -la /w/results/072_defer@vast/prof_C32.err /w/results/072_defer@vast/prof_C32.json /w/results/072_defer@vast/prof_C32.stdout /w/results/072_defer@vast/prof_C32_kern_sum.csv.gz /w/results/072_defer@vast/prof_C32_tail.csv.gz
+-rw-r--r-- 1 root root 367988 Sep 29 07:25 /w/results/072_defer@vast/prof_C32.err
+-rw-r--r-- 1 root root   4000 Sep 29 07:26 /w/results/072_defer@vast/prof_C32.json
+-rw-r--r-- 1 root root   1984 Sep 29 07:26 /w/results/072_defer@vast/prof_C32.stdout
+-rw-r--r-- 1 root root   2294 Sep 29 07:26 /w/results/072_defer@vast/prof_C32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 217530 Sep 29 07:26 /w/results/072_defer@vast/prof_C32_tail.csv.gz
++ for c in "C32:slots=32:$B" "C32d:slots=32:$B:defer_admit=1"
++ lab=C32d
++ cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1
++ prof_run C32d /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 12 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:seqs=1/0
++ local label=C32d
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_C32d --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 12 --n-prefill 640 --n-decode 24 --no-mmap --seqs 1,0 --host-experts --ec slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10:defer_admit=1:seqs=1/0
++ echo 'prof C32d rc=0'
+prof C32d rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_C32d /work/prof_C32d.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label C32d --out /w/results/072_defer@vast --keep-tail
++ '[' -f /work/prof_C32d_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_C32d_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_C32d_cuda_api_trace.csv /work/prof_C32d_cuda_gpu_kern_sum.csv /work/prof_C32d_cuda_gpu_trace.csv /work/prof_C32d.sqlite
++ ls -la /w/results/072_defer@vast/prof_C32d.err /w/results/072_defer@vast/prof_C32d.json /w/results/072_defer@vast/prof_C32d.stdout /w/results/072_defer@vast/prof_C32d_kern_sum.csv.gz /w/results/072_defer@vast/prof_C32d_tail.csv.gz
+-rw-r--r-- 1 root root 368002 Sep 29 07:27 /w/results/072_defer@vast/prof_C32d.err
+-rw-r--r-- 1 root root   3966 Sep 29 07:27 /w/results/072_defer@vast/prof_C32d.json
+-rw-r--r-- 1 root root   2034 Sep 29 07:27 /w/results/072_defer@vast/prof_C32d.stdout
+-rw-r--r-- 1 root root   2307 Sep 29 07:27 /w/results/072_defer@vast/prof_C32d_kern_sum.csv.gz
+-rw-r--r-- 1 root root 217862 Sep 29 07:27 /w/results/072_defer@vast/prof_C32d_tail.csv.gz
++ python3 - /w/results/072_defer@vast
++ tee /w/results/072_defer@vast/summary.txt
+ref_C14_r1.json            39.5 tok/s  hit 0.5414 admits/step  9.73  host us/step app=1142 pre=12 inputs=33 launch=778 issue=0 sync=23954 post=258
+ref_C14_r2.json            39.5 tok/s  hit 0.5414 admits/step  9.73  host us/step app=1120 pre=10 inputs=31 launch=766 issue=0 sync=24001 post=243
+ref_C14d_r1.json           38.2 tok/s  hit 0.5414 admits/step  9.73  host us/step app=974 pre=19 inputs=19 launch=530 issue=192 sync=25112 post=72
+ref_C14d_r2.json           38.3 tok/s  hit 0.5414 admits/step  9.73  host us/step app=978 pre=16 inputs=18 launch=532 issue=198 sync=25027 post=75
+ref_C32_r1.json            61.4 tok/s  hit 0.7578 admits/step 10.93  host us/step app=1098 pre=16 inputs=26 launch=731 issue=0 sync=14980 post=253
+ref_C32_r2.json            61.7 tok/s  hit 0.7578 admits/step 10.93  host us/step app=1103 pre=15 inputs=20 launch=705 issue=0 sync=14978 post=236
+ref_C32d_r1.json           59.2 tok/s  hit 0.7578 admits/step 10.93  host us/step app=957 pre=37 inputs=16 launch=510 issue=208 sync=15801 post=73
+ref_C32d_r2.json           59.4 tok/s  hit 0.7578 admits/step 10.93  host us/step app=961 pre=40 inputs=14 launch=505 issue=210 sync=15755 post=68
+ref_C32f_r1.json           73.3 tok/s  hit 0.7881 admits/step  0.74  host us/step app=1022 pre=2 inputs=40 launch=659 issue=0 sync=12648 post=51
+ref_C32f_r2.json           73.3 tok/s  hit 0.7881 admits/step  0.74  host us/step app=1017 pre=2 inputs=41 launch=658 issue=0 sync=12650 post=55
+ref_C32fd_r1.json          72.9 tok/s  hit 0.7881 admits/step  0.74  host us/step app=968 pre=5 inputs=41 launch=652 issue=12 sync=12738 post=34
+ref_C32fd_r2.json          72.9 tok/s  hit 0.7881 admits/step  0.74  host us/step app=951 pre=5 inputs=41 launch=650 issue=12 sync=12727 post=34
+ref_C32pf_r1.json          70.8 tok/s  hit 0.8865 admits/step  3.68  host us/step app=1129 pre=39 inputs=48 launch=757 issue=0 sync=12904 post=108
+ref_C32pf_r2.json          71.0 tok/s  hit 0.8865 admits/step  3.68  host us/step app=1109 pre=38 inputs=42 launch=745 issue=0 sync=12910 post=100
+ref_C32pfd_r1.json         69.1 tok/s  hit 0.8865 admits/step  3.68  host us/step app=948 pre=58 inputs=40 launch=674 issue=49 sync=13380 post=45
+ref_C32pfd_r2.json         69.1 tok/s  hit 0.8865 admits/step  3.68  host us/step app=945 pre=58 inputs=38 launch=668 issue=49 sync=13381 post=44
+ref_C56_r1.json            93.9 tok/s  hit 0.8754 admits/step  7.54  host us/step app=1076 pre=23 inputs=18 launch=638 issue=0 sync=9598 post=183
+ref_C56_r2.json            94.0 tok/s  hit 0.8754 admits/step  7.54  host us/step app=1083 pre=24 inputs=16 launch=638 issue=0 sync=9596 post=182
+ref_C56d_r1.json           91.0 tok/s  hit 0.8754 admits/step  7.54  host us/step app=934 pre=54 inputs=9 launch=470 issue=117 sync=10130 post=58
+ref_C56d_r2.json           90.5 tok/s  hit 0.8754 admits/step  7.54  host us/step app=948 pre=58 inputs=12 launch=491 issue=123 sync=10133 post=66
+slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=10   61.9 tok/s  hit 0.0000 admits/step  0.00  host us/step app=0 pre=0 inputs=0 launch=0 issue=0 sync=0 post=0

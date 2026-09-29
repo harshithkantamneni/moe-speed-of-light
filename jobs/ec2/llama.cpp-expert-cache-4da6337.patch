@@ -1,3 +1,19 @@
+diff --git a/common/arg.cpp b/common/arg.cpp
+index 2acac3b..7cf6424 100644
+--- a/common/arg.cpp
++++ b/common/arg.cpp
+@@ -259,6 +259,11 @@ static void parse_tensor_buffer_overrides(const std::string & value, std::vector
+         if (buft) {
+             buft_list[ggml_backend_buft_name(buft)] = buft;
+         }
++        // a device's pinned host memory (e.g. CUDA_Host): the expert cache keeps every expert there
++        auto * hbuft = ggml_backend_dev_host_buffer_type(dev);
++        if (hbuft) {
++            buft_list[ggml_backend_buft_name(hbuft)] = hbuft;
++        }
+     }
+ 
+     for (const auto & override : string_split<std::string>(value, ',')) {
 diff --git a/ggml/include/ggml-backend.h b/ggml/include/ggml-backend.h
 index cc3f8cd..ea8c543 100644
 --- a/ggml/include/ggml-backend.h

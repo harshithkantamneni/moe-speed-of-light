@@ -3,8 +3,8 @@ fraction of the speed-of-light on this host, from the job's results directory.
 
     python scripts/analyze_homepc.py --res /home/claude/gpu-branch/results/059_ckpt2_homepc@vast [--out prereg/homepc/ckpt2.json]
 
-Speed-of-light (Proposition 1, per-layer budget, MIN-bypass misses from the gpt-oss-120b own-text trace): physical
-(every efficiency 1) with this host's *measured* bandwidths: GPU device read (bw.txt), host read at the helpers'
+Reference (resource-form bound, pooled budget, MIN-bypass misses from the gpt-oss-120b own-text trace, dense bytes from
+the GGUF) with this host's *measured* bandwidths -- a reference, not a floor: GPU device read (bw.txt), host read at the helpers'
 thread count (concur.txt), pinned host-to-device copy (concur.txt).
 """
 import argparse
@@ -16,9 +16,11 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from mosl.calc import PHYS, mstar, shape  # noqa: E402
-from mosl.perfmodel import HW, Workload, speed_of_light_time  # noqa: E402
+from mosl import bounds  # noqa: E402
+from mosl.archs import kv_bytes, shape  # noqa: E402
 from mosl.traces import load_pack  # noqa: E402
+
+GGUF = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "gguf_bytes.json")))["ggml-org/gpt-oss-120b-GGUF/gpt-oss-120b-MXFP4.gguf"]
 
 TRACE = "/home/claude/gpu-branch/results/036_trace_retry@40gb/gpt-oss-120b_S.npz"
 BUDGETS = ((32, 14), (27, 32), (20, 56))   # llama.cpp -ncmoe n  <->  cache slots per layer C (of 128)
@@ -75,21 +77,28 @@ def main():
     bw_pcie = max(x for x in (c["pcie_copyengine_gbs"], c["pcie_zerocopy_gbs"]) if x) if (c["pcie_copyengine_gbs"] or c["pcie_zerocopy_gbs"]) else None
     out = dict(constants=c, rows=rows)
     if c["gpu_read_gbs"] and bw_cpu and bw_pcie:
+        # Corrected 29 Sep 2026: dense + LM-head bytes from the GGUF (the Workload(4.25, 16) default overstated them as
+        # 3.13 GB, so the old "speed-of-light" here was too slow), the resource-form bound (mosl.bounds) over the pooled
+        # budget (valid for every system incl. llama.cpp -ncmoe and pooled caches), and a joint host-DRAM cap equal to
+        # the measured concurrent CPU+link total. On measured bandwidths this is a REFERENCE, not a floor.
         s = shape("openai/gpt-oss-120b")
-        w = Workload(s, 4.25, 16, ctx=640)
-        hw = HW(c["gpu_read_gbs"], bw_cpu, bw_pcie)
+        D = GGUF["dense_bytes"] + GGUF["head_bytes"] + kv_bytes(s, 640, 16)
+        S = GGUF["routed_bytes_total"] / (s.n_moe_layers * s.n_experts)
+        conc = max([x["total"] for x in c["concurrent"]] or [0]) or None
+        bw = bounds.Bw(c["gpu_read_gbs"], bw_cpu, bw_pcie, conc)
         pk = load_pack(TRACE)
         idx = np.concatenate([np.arange(st + P, st + nn) for st, nn, P in zip(pk["starts"], pk["seq_lens"], pk["prompt_lens"]) if nn - P > 1])
-        R = pk["routes"][:, idx]
+        R = np.ascontiguousarray(pk["routes"][:, idx])
         for n, C in BUDGETS:
-            ms = mstar(R, s.n_experts, w.k, C)
-            sol = 1 / speed_of_light_time(w, hw, PHYS, ms)
+            mp = bounds.mstar_segments(R, s.n_experts, C, pooled=True)
+            sol = 1 / bounds.resource_bound(D, S, s.top_k, s.n_moe_layers, mp, bw, dense_split=True)[0]
             r = rows[n]
             r["sol_tok_s"] = sol
             for k in ("ours", "fetch", "static", "llamabench"):
                 if r.get(k):
                     r[f"{k}_of_sol"] = r[k] / sol
-        out["sol_basis"] = dict(bw_gpu=c["gpu_read_gbs"], bw_cpu=bw_cpu, bw_pcie=bw_pcie, trace=TRACE, helpers_threads=helpers)
+        out["sol_basis"] = dict(kind="measured-bandwidth reference (not a floor), resource form, pooled M*", bw_gpu=c["gpu_read_gbs"],
+                                bw_cpu=bw_cpu, bw_pcie=bw_pcie, bw_host_concurrent=conc, dense_bytes=D, trace=TRACE, helpers_threads=helpers)
     print(json.dumps(c, indent=1)[:3000])
     print(f"{'ncmoe':>6} {'C':>3} {'ours':>7} {'+fetch':>7} {'static':>7} {'llama-bench':>11} {'SoL':>7}   fractions of SoL (ours / fetch / best llama.cpp)")
     for n, C in BUDGETS:

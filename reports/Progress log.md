@@ -130,8 +130,17 @@ Same machine as jobs 060 and 064 (RTX 5090 + Ryzen 9 9950X; CPU memory 46.5 GB/s
     difference is clearly outside the noise.
   - FreeToken does not fit 44%: its KV cache runs out of room, even at `--memory-ratio 0.95`.
 - **Against llama.cpp:** 1.8× / 2.4× / 3.2×.
-- **Speed-of-light on this host** (own text, measured bandwidths): 174 / 313 / 313 tok/s.
-  - Our cache reaches 24% / 20% / 30% of it, or 27% / 24% / 34% with FETCH; llama.cpp 14% / 9% / 12%.
+- **Speed limit on this host (corrected 29 Sep).**
+  - The first version (174 / 313 / 313 tok/s) counted the non-expert weights at 16 bits (3.13 GB instead of the GGUF's
+    1.69 GB). That is the same kind of error already fixed for the A10 on 28 Sep, reintroduced in the new home-PC
+    script.
+  - It also used the draft's layer-structured bound, which the reviews showed is not valid for every policy.
+  - Corrected: resource-form bound, pooled budget, GGUF byte counts.
+    - Physical, on datasheet bandwidths (the RAM speed of the rental is unknown, so a DDR5-3600 to 5600 band):
+      135–210 / 347–519 / 511–519 tok/s. All experts resident: 511–519.
+    - On measured bandwidths (a reference, not a floor): 123 / 316 / 444.
+  - Against the physical band, the cache with FETCH reaches 22–35% / 14–21% / 21% (own text); llama.cpp 11–18% /
+    5–8% / 7%.
 - **The host reproduces.** The own-text runs repeated job 060's on the same machine within 0.8%:
   - cache 41.0 / 62.7 / 94.0 tok/s, with FETCH 46.9 / 74.3 / 108.0;
   - llama.cpp inside our harness 24.1 / 28.0 / 36.4.
@@ -262,6 +271,10 @@ with 0 memory errors.
 
 **Checkpoint 2: where do we stand on a home PC?** (RTX 5090 + Ryzen 9 9950X, 126 GB DDR5, gpt-oss-120b, the model's
 own text, 12 prompts × 128 tokens, job `059_ckpt2_homepc@vast`)
+
+*Correction, 29 Sep: the "speed limit" column below and the percentages derived from it used overstated dense bytes and the
+draft's layer-structured bound. On this host's measured bandwidths the corrected reference is 180 / 464 / 484 tok/s:
+our system 29% / 17% / 24%, llama.cpp 17% / 8% / 10% (`scripts/analyze_homepc.py`).*
 
 | GPU memory for experts (llama.cpp setting) | llama.cpp, best of `llama-bench` and our harness | **Our system** | Our system + FETCH (copy, then hand over) | Speed limit on this machine |
 |---|---|---|---|---|

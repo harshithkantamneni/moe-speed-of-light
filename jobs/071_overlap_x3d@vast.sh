@@ -1,5 +1,5 @@
 #!/bin/bash
-# Overlap test on the RTX 5090 + Ryzen 7 9800X3D host (96 MB L3 on one CCD). The host-DRAM law says decode time is
+# Overlap test on an RTX 5090 host with an X3D Ryzen (3D V-Cache: a large L3; this run: Ryzen 9 9950X3D2). The host-DRAM law says decode time is
 # G + host-DRAM bytes / bandwidth, with nothing overlapping the two terms; host memory is idle during the GPU's own
 # work (G, about 4.8 ms per token). Two ways to read future experts' bytes during that window, both driven by the
 # next-layer prediction (84% / 97% recall at top-4 / top-8):

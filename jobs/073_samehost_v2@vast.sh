@@ -31,14 +31,17 @@ R() { local t=$1; shift; timeout "$t" "$@"; }
 FT=$WORK/ft; export FT_DIR=$FT
 ( cd $WORK && git init -q ft && cd ft && git remote add origin https://github.com/FlashML-org/FreeToken &&
   git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a && git checkout -q FETCH_HEAD ) || echo "FreeToken clone FAILED"
-python3 -m pip install -q --break-system-packages uv > $OUT/pip_uv.txt 2>&1
+python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet > $OUT/pip_uv.txt 2>&1
+nvcc --version | tail -2 | tee $OUT/nvcc_version.txt   # FreeToken builds kernels with nvcc and needs the CUDA 13 toolkit (torch cu130)
 ( cd $FT && uv venv -q .venv && . .venv/bin/activate && time uv pip install -q -e ".[accel]" huggingface_hub hf_xet ) > $OUT/ft_install.txt 2>&1
 echo "FreeToken install rc=$?"
 PY=$FT/.venv/bin/python; FTBIN=$FT/.venv/bin/ft
-if [ ! -x $PY ]; then echo "FreeToken venv missing: client on system python"; python3 -m pip install -q --break-system-packages huggingface_hub hf_xet >> $OUT/pip_uv.txt 2>&1; PY=python3; fi
+# stop early (and cheaply) if FreeToken is not usable: the comparison is pointless without it (073 attempt 1 ran on a
+# CUDA 12.8 image, the install failed and every client run died)
+$PY -c "import freetoken, huggingface_hub" > $OUT/ft_import.txt 2>&1 || { echo "FreeToken not importable, stopping"; cat $OUT/ft_import.txt; tail -20 $OUT/ft_install.txt; exit 3; }
 $FTBIN --version > $OUT/ft_version.txt 2>&1
 HFD=$M/gpt-oss-120b; mkdir -p $M
-( t0=$(date +%s); $PY - "$HFD" <<'PY'
+( t0=$(date +%s); python3 - "$HFD" <<'PY'
 import sys
 from huggingface_hub import snapshot_download
 snapshot_download("openai/gpt-oss-120b", local_dir=sys.argv[1], ignore_patterns=["original/*", "metal/*"])
@@ -46,7 +49,7 @@ PY
   echo "hf download rc=$? in $(( $(date +%s) - t0 )) s"; du -sh "$HFD" ) > $OUT/dl_hf.txt 2>&1 &
 DLH=$!
 ( t0=$(date +%s)
-  $PY -c "import sys; from huggingface_hub import hf_hub_download as d; d('ggml-org/gpt-oss-120b-GGUF', 'gpt-oss-120b-MXFP4.gguf', local_dir=sys.argv[1])" "$M"
+  python3 -c "import sys; from huggingface_hub import hf_hub_download as d; d('ggml-org/gpt-oss-120b-GGUF', 'gpt-oss-120b-MXFP4.gguf', local_dir=sys.argv[1])" "$M"
   echo "gguf hf download rc=$? in $(( $(date +%s) - t0 )) s"; ls -la $M/gpt-oss-120b-MXFP4.gguf
   if [ ! -s $M/gpt-oss-120b-MXFP4.gguf ]; then
     rm -f $M/gpt-oss-120b-MXFP4.gguf

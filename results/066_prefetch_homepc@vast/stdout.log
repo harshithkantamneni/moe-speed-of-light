@@ -1,0 +1,301 @@
++++ dirname /w/jobs/066_prefetch_homepc@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ lscpu -p=CORE
+++ grep -v '^#'
+++ sort -u
+++ wc -l
++ CORES=16
++ echo 'physical cores 16'
++ tee /w/results/066_prefetch_homepc@vast/cores.txt
+physical cores 16
++ DLG=5991
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ python3 -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/066_prefetch_homepc@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ wait 5991
++ cat /w/results/066_prefetch_homepc@vast/dl_gguf.txt
+++ date +%s
++ t0=1790646583
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf download rc=0 in 553 s'
+gguf download rc=0 in 553 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Sep 29 01:58 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ H=14
++ MB=mailbox=1:tdec=1:helpers=14
++ COMMON='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts'
++ for C in 14 32 56
++ B=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_pf1f.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_pf1f.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C14_pf2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_fetch.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_pf1f.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C14_pf2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1_r.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_pf1f.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C14_pf2.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C14_pf1_r.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C14_base_r.json' --dump /w/results/066_prefetch_homepc@vast/ab_C14.bin
++ echo 'ab C=14 rc=0'
+ab C=14 rc=0
++ for C in 14 32 56
++ B=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_pf1f.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_pf1f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C32_pf2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_fetch.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_pf1f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C32_pf2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1_r.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_pf1f.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C32_pf2.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C32_pf1_r.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C32_base_r.json' --dump /w/results/066_prefetch_homepc@vast/ab_C32.bin
++ echo 'ab C=32 rc=0'
+ab C=32 rc=0
++ for C in 14 32 56
++ B=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_pf1f.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_pf1f.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C56_pf2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_fetch.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_pf1f.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C56_pf2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1_r.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_pf1f.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=2:stats=/w/results/066_prefetch_homepc@vast/C56_pf2.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/066_prefetch_homepc@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/066_prefetch_homepc@vast/C56_pf1_r.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/066_prefetch_homepc@vast/C56_base_r.json' --dump /w/results/066_prefetch_homepc@vast/ab_C56.bin
++ echo 'ab C=56 rc=0'
+ab C=56 rc=0
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ CL='python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl'
++ LX='{"min_p": 0.0, "seed": 1234}'
++ LS='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ '[' 14 = 32 ']'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C14 --meta '{"system": "ours+prefetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C14 --meta '{"system": "ours+prefetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ourspf_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37865
+[bs1] ourspf_C14 problem 0: 46.16 tok/s (21.66 ms/token, p50 20.71 p99 40.80, 256 tokens)
+[bs1] ourspf_C14 problem 1: 46.24 tok/s (21.63 ms/token, p50 21.26 p99 36.67, 256 tokens)
+[bs1] ourspf_C14 problem 2: 43.50 tok/s (22.99 ms/token, p50 22.84 p99 38.99, 256 tokens)
+[bs1] ourspf_C14 problem 3: 45.23 tok/s (22.11 ms/token, p50 21.12 p99 39.86, 256 tokens)
+[bs1] ourspf_C14 problem 4: 42.08 tok/s (23.76 ms/token, p50 23.17 p99 38.93, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C14 --meta '{"system": "ours+fetch", "C": 14}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C14.log --cmd 'env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C14: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C14.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 58037
+[bs1] oursf_C14 problem 0: 47.41 tok/s (21.09 ms/token, p50 20.95 p99 37.99, 256 tokens)
+[bs1] oursf_C14 problem 1: 47.05 tok/s (21.25 ms/token, p50 21.18 p99 36.12, 256 tokens)
+[bs1] oursf_C14 problem 2: 43.25 tok/s (23.12 ms/token, p50 23.18 p99 36.24, 256 tokens)
+[bs1] oursf_C14 problem 3: 49.03 tok/s (20.40 ms/token, p50 18.18 p99 37.21, 256 tokens)
+[bs1] oursf_C14 problem 4: 44.92 tok/s (22.26 ms/token, p50 22.36 p99 42.55, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ '[' 32 = 32 ']'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ours_C32 --meta '{"system": "ours", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ours_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ours_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37873
+[bs1] ours_C32 problem 0: 71.49 tok/s (13.99 ms/token, p50 12.68 p99 29.40, 256 tokens)
+[bs1] ours_C32 problem 1: 69.82 tok/s (14.32 ms/token, p50 12.77 p99 30.81, 256 tokens)
+[bs1] ours_C32 problem 2: 63.00 tok/s (15.87 ms/token, p50 15.07 p99 32.82, 256 tokens)
+[bs1] ours_C32 problem 3: 72.05 tok/s (13.88 ms/token, p50 13.00 p99 28.34, 256 tokens)
+[bs1] ours_C32 problem 4: 64.23 tok/s (15.57 ms/token, p50 15.22 p99 31.51, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C32 --meta '{"system": "ours+prefetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C32 --meta '{"system": "ours+prefetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ourspf_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 33255
+[bs1] ourspf_C32 problem 0: 74.19 tok/s (13.48 ms/token, p50 12.20 p99 27.48, 256 tokens)
+[bs1] ourspf_C32 problem 1: 77.64 tok/s (12.88 ms/token, p50 11.74 p99 30.24, 256 tokens)
+[bs1] ourspf_C32 problem 2: 68.44 tok/s (14.61 ms/token, p50 13.97 p99 28.23, 256 tokens)
+[bs1] ourspf_C32 problem 3: 72.21 tok/s (13.85 ms/token, p50 13.12 p99 26.29, 256 tokens)
+[bs1] ourspf_C32 problem 4: 70.16 tok/s (14.25 ms/token, p50 13.98 p99 31.20, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C32 --meta '{"system": "ours+fetch", "C": 32}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C32.log --cmd 'env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C32: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=32 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 50819
+[bs1] oursf_C32 problem 0: 78.65 tok/s (12.71 ms/token, p50 11.09 p99 25.99, 256 tokens)
+[bs1] oursf_C32 problem 1: 77.60 tok/s (12.89 ms/token, p50 12.10 p99 28.00, 256 tokens)
+[bs1] oursf_C32 problem 2: 68.44 tok/s (14.61 ms/token, p50 14.09 p99 28.71, 256 tokens)
+[bs1] oursf_C32 problem 3: 78.44 tok/s (12.75 ms/token, p50 11.84 p99 26.65, 256 tokens)
+[bs1] oursf_C32 problem 4: 71.50 tok/s (13.99 ms/token, p50 13.73 p99 27.50, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ '[' 51 = 32 ']'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C51 --meta '{"system": "ours+prefetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C51 --meta '{"system": "ours+prefetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ourspf_C51: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 52773
+[bs1] ourspf_C51 problem 0: 105.21 tok/s (9.50 ms/token, p50 9.01 p99 18.60, 256 tokens)
+[bs1] ourspf_C51 problem 1: 106.27 tok/s (9.41 ms/token, p50 8.96 p99 19.86, 256 tokens)
+[bs1] ourspf_C51 problem 2: 100.56 tok/s (9.94 ms/token, p50 9.24 p99 18.83, 256 tokens)
+[bs1] ourspf_C51 problem 3: 105.57 tok/s (9.47 ms/token, p50 9.01 p99 17.99, 256 tokens)
+[bs1] ourspf_C51 problem 4: 98.13 tok/s (10.19 ms/token, p50 9.80 p99 20.41, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C51 --meta '{"system": "ours+fetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C51 --meta '{"system": "ours+fetch", "C": 51}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C51.log --cmd 'env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C51: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=51 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C51.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 44899
+[bs1] oursf_C51 problem 0: 120.21 tok/s (8.32 ms/token, p50 7.72 p99 14.85, 256 tokens)
+[bs1] oursf_C51 problem 1: 116.80 tok/s (8.56 ms/token, p50 7.82 p99 19.73, 256 tokens)
+[bs1] oursf_C51 problem 2: 106.00 tok/s (9.43 ms/token, p50 8.97 p99 17.18, 256 tokens)
+[bs1] oursf_C51 problem 3: 115.00 tok/s (8.70 ms/token, p50 8.15 p99 16.94, 256 tokens)
+[bs1] oursf_C51 problem 4: 103.27 tok/s (9.68 ms/token, p50 9.44 p99 21.01, 256 tokens)
++ for C in 14 32 51 56
++ ECENV='env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ '[' 56 = 32 ']'
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C56 --meta '{"system": "ours+prefetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label ourspf_C56 --meta '{"system": "ours+prefetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_ourspf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ourspf_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_PREFETCH=1 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_ourspf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 48553
+[bs1] ourspf_C56 problem 0: 112.63 tok/s (8.88 ms/token, p50 8.45 p99 15.55, 256 tokens)
+[bs1] ourspf_C56 problem 1: 113.22 tok/s (8.83 ms/token, p50 8.29 p99 17.92, 256 tokens)
+[bs1] ourspf_C56 problem 2: 105.91 tok/s (9.44 ms/token, p50 9.16 p99 16.42, 256 tokens)
+[bs1] ourspf_C56 problem 3: 121.25 tok/s (8.25 ms/token, p50 7.92 p99 16.92, 256 tokens)
+[bs1] ourspf_C56 problem 4: 104.83 tok/s (9.54 ms/token, p50 9.32 p99 18.17, 256 tokens)
++ R 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=40m
++ shift
++ timeout 40m python3 /w/jobs/ec2/bs1_client.py --model /work/models/no-hf-checkpoint --problems 0,1,2,3,4 --decode 256 --json /w/results/066_prefetch_homepc@vast/bs1.jsonl --label oursf_C56 --meta '{"system": "ours+fetch", "C": 56}' --extra '{"min_p": 0.0, "seed": 1234}' --log /w/results/066_prefetch_homepc@vast/srv_oursf_C56.log --cmd 'env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] oursf_C56: sampling {'temperature': 1.0, 'top_p': 0.95, 'top_k': 64} <- fallback (no generation_config); cmd env LLAMA_EC_SLOTS=56 LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 LLAMA_EC_STATS=/w/results/066_prefetch_homepc@vast/srv_oursf_C56.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 35355
+[bs1] oursf_C56 problem 0: 121.17 tok/s (8.25 ms/token, p50 7.90 p99 15.73, 256 tokens)
+[bs1] oursf_C56 problem 1: 126.31 tok/s (7.92 ms/token, p50 7.48 p99 17.15, 256 tokens)
+[bs1] oursf_C56 problem 2: 111.73 tok/s (8.95 ms/token, p50 8.54 p99 19.22, 256 tokens)
+[bs1] oursf_C56 problem 3: 124.89 tok/s (8.01 ms/token, p50 7.63 p99 14.63, 256 tokens)
+[bs1] oursf_C56 problem 4: 114.63 tok/s (8.72 ms/token, p50 8.28 p99 16.68, 256 tokens)
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_ours_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_oursf_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_oursf_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_oursf_C51.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_oursf_C56.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_ourspf_C14.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_ourspf_C32.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_ourspf_C51.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/066_prefetch_homepc@vast/srv_ourspf_C56.log
++ find /w/results/066_prefetch_homepc@vast -name 'srv_*.log' -size +2M -delete
++ python3 - /w/results/066_prefetch_homepc@vast
++ tee /w/results/066_prefetch_homepc@vast/summary.txt
+C14_base          40.7 tok/s (1.000x)  nll 0.5995  hit 0.5414  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+C14_pf1           46.2 tok/s (1.135x)  nll 0.5990  hit 0.7461  prefetch/ls 0.819 useful 0.704  fetches 0  top1 vs base 0.9889
+C14_pf1f          49.7 tok/s (1.222x)  nll 0.6014  hit 0.7607  prefetch/ls 0.809 useful 0.693  fetches 38227  top1 vs base 0.9876
+C14_pf2           45.3 tok/s (1.113x)  nll 0.5998  hit 0.8475  prefetch/ls 1.329 useful 1.073  fetches 0  top1 vs base 0.9876
+C14_fetch         47.1 tok/s (1.157x)  nll 0.6017  hit 0.5863  prefetch/ls 0.000 useful 0.000  fetches 62777  top1 vs base 0.9883
+C14_pf1_r         46.5 tok/s (1.143x)  nll 0.5990  hit 0.7461  prefetch/ls 0.819 useful 0.704  fetches 0  top1 vs base 0.9889
+C14_base_r        40.7 tok/s (0.999x)  nll 0.5995  hit 0.5414  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+C32_base          62.7 tok/s (1.000x)  nll 0.6006  hit 0.7578  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+C32_pf1           72.7 tok/s (1.158x)  nll 0.6001  hit 0.8865  prefetch/ls 0.547 useful 0.422  fetches 0  top1 vs base 0.9870
+C32_pf1f          76.8 tok/s (1.224x)  nll 0.6038  hit 0.8948  prefetch/ls 0.533 useful 0.408  fetches 18349  top1 vs base 0.9844
+C32_pf2           71.5 tok/s (1.139x)  nll 0.6019  hit 0.9265  prefetch/ls 0.755 useful 0.551  fetches 0  top1 vs base 0.9870
+C32_fetch         74.7 tok/s (1.191x)  nll 0.6014  hit 0.7881  prefetch/ls 0.000 useful 0.000  fetches 34702  top1 vs base 0.9883
+C32_pf1_r         72.7 tok/s (1.159x)  nll 0.6001  hit 0.8865  prefetch/ls 0.547 useful 0.422  fetches 0  top1 vs base 0.9870
+C32_base_r        62.7 tok/s (0.999x)  nll 0.6006  hit 0.7578  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+C56_base          93.6 tok/s (1.000x)  nll 0.6040  hit 0.8754  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+C56_pf1          103.2 tok/s (1.104x)  nll 0.6024  hit 0.9474  prefetch/ls 0.318 useful 0.223  fetches 0  top1 vs base 0.9896
+C56_pf1f         106.1 tok/s (1.135x)  nll 0.6006  hit 0.9518  prefetch/ls 0.307 useful 0.211  fetches 8979  top1 vs base 0.9863
+C56_pf2          102.0 tok/s (1.090x)  nll 0.6019  hit 0.9620  prefetch/ls 0.392 useful 0.261  fetches 0  top1 vs base 0.9896
+C56_fetch        108.8 tok/s (1.163x)  nll 0.6018  hit 0.8943  prefetch/ls 0.000 useful 0.000  fetches 18602  top1 vs base 0.9876
+C56_pf1_r        102.4 tok/s (1.094x)  nll 0.6024  hit 0.9474  prefetch/ls 0.318 useful 0.223  fetches 0  top1 vs base 0.9896
+C56_base_r        93.6 tok/s (1.001x)  nll 0.6040  hit 0.8754  prefetch/ls 0.000 useful 0.000  fetches 0  top1 vs base 1.0000
+bs=1 via the chat API (job 064's client and prompts)
+ourspf_C14         44.64 tok/s (n=5)
+oursf_C14          46.33 tok/s (n=5)
+ours_C32           68.12 tok/s (n=5)
+ourspf_C32         72.53 tok/s (n=5)
+oursf_C32          74.93 tok/s (n=5)
+ourspf_C51        103.15 tok/s (n=5)
+oursf_C51         112.26 tok/s (n=5)
+ourspf_C56        111.57 tok/s (n=5)
+oursf_C56         119.75 tok/s (n=5)

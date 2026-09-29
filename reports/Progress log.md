@@ -37,9 +37,16 @@ are worth. Output: `prereg/foresight/foresight_S.json`, figure `figures/foresigh
 takes 12.4 ms per token (81 tok/s), the optimum 9.0 ms (111 tok/s). Foresight is worth up to +37% there. No
 engineering of paths or overlap can recover it.
 
-**Prior art checked.** Read-ME (NeurIPS'24) makes routing known ahead by decoupling the router and applies Belady.
-ExpertFlow and SpecMD predict one layer or one batch ahead. None of the three measures what a foresight horizon is
-worth, or its scaling with C/k.
+**Prior art checked.**
+- **2608.07911 (closest).** It already splits the online-to-optimal gap and finds 84–97% of it is knowing which
+  resident expert is used furthest in the future. The gap grows with its regime ratio: per-step expert union ÷
+  capacity, the inverse of C/k. A trained causal next-use predictor recovered −11% of the gap. It studies neither a
+  limited lookahead nor the horizon's scaling (3 models).
+- **Read-ME (NeurIPS'24)** makes routing known ahead by decoupling the router, then applies Belady.
+- **ExpertFlow and SpecMD** predict one layer or one batch ahead.
+- **Limited-lookahead caching in general:** Hasslinger et al. (2018, web caching) and Albers (1997, paging theory).
+
+What is new here: the horizon curve, W50 ≈ 0.5 (C/k)^1.4 across 9 models, and its conversion to seconds.
 
 ## 29 September, morning: the overlap test failed (job `071_overlap_x3d@vast`)
 

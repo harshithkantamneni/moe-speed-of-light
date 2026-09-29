@@ -119,14 +119,20 @@ def main():
     ap.add_argument("--json", required=True)
     ap.add_argument("--log", required=True, help="server log file")
     ap.add_argument("--timeout", type=float, default=1800)
+    ap.add_argument("--warmup", default="same", help="same: FreeToken's protocol (a warm-up request on each problem "
+                    "before measuring it); once: one warm-up request on --warmup-prompt at server start, then every "
+                    "problem measured once, in order, with the cache carried across problems (a session)")
+    ap.add_argument("--warmup-prompt", help="file with the held-out warm-up prompt text (--warmup once)")
+    ap.add_argument("--hybrid-fetch", type=int, default=-1, help="FreeToken --moe-hybrid-max-fetch (-1: auto)")
+    ap.add_argument("--launch", type=int, default=0, help="launch index, copied into every row")
     a = ap.parse_args()
     sampling, src = B.resolve_sampling(a.model, a.greedy)
     extra, meta = json.loads(a.extra), json.loads(a.meta)
     port = B.free_port()
     origin = f"http://127.0.0.1:{port}"
     if a.ft:
-        ns = argparse.Namespace(model=a.model, decode=a.decode, mem_ratio=a.mem_ratio, no_graph=False, hybrid_fetch=-1,
-                                gpu=None, cache=0, cache_rate=a.cache_rate)
+        ns = argparse.Namespace(model=a.model, decode=a.decode, mem_ratio=a.mem_ratio, no_graph=False,
+                                hybrid_fetch=a.hybrid_fetch, gpu=None, cache=0, cache_rate=a.cache_rate)
         cmd, shell = B.serve_cmd(ns, a.ft, port), False
     else:
         cmd, shell = a.cmd.format(port=port), True
@@ -143,10 +149,14 @@ def main():
         load_s = time.perf_counter() - t_start
         with urllib.request.urlopen(f"{origin}/v1/models", timeout=10) as r:
             model_id = json.load(r)["data"][0]["id"]
+        if a.warmup == "once":
+            wp = open(a.warmup_prompt).read().strip()
+            stream(origin, model_id, wp, sampling, a.decode, extra)                 # one held-out warm-up
         for p in [int(x) for x in a.problems.split(",")]:
             problem, answer = B.load_problem(a.aime, p)
             try:
-                stream(origin, model_id, problem, sampling, a.decode, extra)       # warm-up, as theirs
+                if a.warmup == "same":
+                    stream(origin, model_id, problem, sampling, a.decode, extra)   # warm-up, as theirs
                 r = stream(origin, model_id, problem, sampling, a.decode, extra)
             except Exception as e:  # keep the other problems
                 print(f"[bs1] {a.label} problem {p} failed: {e!r}", flush=True)
@@ -156,7 +166,8 @@ def main():
             steps = completion - 1
             dt = stamps[-1] - stamps[0] if len(stamps) >= 2 else 0.0
             gaps = sorted((y - x) * 1e3 for x, y in zip(stamps, stamps[1:])) or [0.0]
-            row = {"label": a.label, **meta, "problem": p, "prompt_tokens": usage.get("prompt_tokens"),
+            row = {"label": a.label, **meta, "launch": a.launch, "warmup": a.warmup, "problem": p,
+                   "prompt_tokens": usage.get("prompt_tokens"), "output_sha1_full": hashlib.sha1(r["text"].encode()).hexdigest(),
                    "decode_steps": steps, "decode_tok_s": steps / dt if dt > 0 else 0.0,
                    "ms_per_token": dt / steps * 1e3 if steps > 0 else 0.0,
                    "event_ms_p50": gaps[len(gaps) // 2], "event_ms_p99": gaps[min(len(gaps) - 1, int(len(gaps) * 0.99))],

@@ -329,5 +329,42 @@ def main():
         json.dump(dict(la=a.la, rows=rows), open(a.out, "w"), indent=1)
 
 
+
+def timeline_lead(M, PF, h=HOST1, lead=1):
+    """As timeline(late="stall"), with the prefetch for layer l issued `lead` layers earlier (at layer l-lead's MoE
+    start); the link serves a FIFO queue of (target layer, bytes); layer l stalls until its entries are done."""
+    T, L = M.shape
+    s, a, g = h["s"], h["a"], h["g"]
+    total, stall_tot = 0.0, 0.0
+    for t in range(T):
+        clock, q = 0.0, []
+        def run_link(dt, rate):
+            nonlocal q
+            left = rate * dt
+            while q and left > 1e-15:
+                x = min(left, q[0][1]); q[0][1] -= x; left -= x
+                if q[0][1] <= 1e-15: q.pop(0)
+        for l in range(L):
+            run_link(a, h["Bp"]); clock += a
+            need = sum(b for tl, b in q if tl <= l)
+            if need > 0:
+                st = need / h["Bp"]; stall_tot += st; clock += st
+                q = [e for e in q if e[0] > l]   # FIFO: everything up to layer l is done (later entries may remain)
+            if l + lead < L and PF[t, l + lead] > 0:
+                q.append([l + lead, PF[t, l + lead] * s])
+            run_link(g, h["Bp"]); clock += g
+            cpu = M[t, l] * s
+            while cpu > 1e-12:
+                link_left = sum(b for _, b in q)
+                if link_left > 1e-12:
+                    dt = min(cpu / h["Bc2"], link_left / h["Bp2"])
+                    cpu -= h["Bc2"] * dt; run_link(dt, h["Bp2"])
+                else:
+                    dt = cpu / h["Bc"]; cpu = 0.0
+                clock += dt
+        total += clock + h["head"]
+    return T / total, stall_tot / T
+
+
 if __name__ == "__main__":
     main()

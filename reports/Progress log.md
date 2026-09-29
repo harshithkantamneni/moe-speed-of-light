@@ -3,6 +3,60 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 28 September, night: PREFETCH on the RTX 5090 host (job `066_prefetch_homepc@vast`)
+
+Same machine as jobs 060 and 064 (RTX 5090 + Ryzen 9 9950X; CPU memory 46.5 GB/s, link 46.5 GB/s).
+
+### Own text: 12 prompts × 128 tokens, every configuration in one process
+
+| C of 128 | Cache | + PREFETCH q=1 | + PREFETCH q=2 | + FETCH | + PREFETCH q=1 + FETCH |
+|---|---|---|---|---|---|
+| 14 | 40.7 tok/s | 46.2–46.5 (**+14%**) | 45.3 (+11%) | 47.1 (+16%) | **49.7 (+22%)** |
+| 32 | 62.7 | 72.7 (**+16%**) | 71.5 (+14%) | 74.7 (+19%) | **76.8 (+22%)** |
+| 56 | 93.6 | 102.4–103.2 (**+10%**) | 102.0 (+9%) | **108.8 (+16%)** | 106.1 (+13%) |
+
+- **The hit rates are as simulated:**
+  - with q=1: 0.746 / 0.887 / 0.947, against simulated 0.746 / 0.886 / 0.948;
+  - without prefetch: 0.541 / 0.758 / 0.875.
+- **Prediction against measurement.** The prediction, recorded before the run in
+  `prereg/homepc/prefetch_prediction_066.json`, was +17% / +17% / +14%. Measured is +14% / +16% / +10%: the timeline
+  model is 1–4 points optimistic.
+- **Repeats agree** within 1 point; the base is identical in both runs.
+- **Accuracy:** 98.4–99.0% same next token as the cache alone; NLL within 0.6%.
+- **What wins:**
+  - On this host FETCH alone (+16–19%) beats PREFETCH alone (+10–16%).
+  - Both together is best at the two smaller budgets (+22%). At the largest, FETCH alone is best (+16%).
+  - Two prefetches per layer is worse than one everywhere, as the simulation said.
+
+### The chat benchmark: job 064's client, AIME-25 problems 0–4 × 256 tokens, `llama-server`
+
+| Budget | Cache (job 064) | + PREFETCH | + FETCH | FreeToken, better mode (job 064) |
+|---|---|---|---|---|
+| 11% (C = 14) | 42.9 tok/s | 44.6 (+4%) | **46.3 (+8%)** | 39.4 |
+| 25% (C = 32) | 68.1 (68.1 again in job 066) | 72.5 (+6%) | **74.9 (+10%)** | 68.6 |
+| 40% (C = 51) | 105.2 | 103.2 (−2%) | **112.3 (+7%)** | 108.9 |
+| 44% (C = 56) | 114.8 | 111.6 (−3%) | **119.8 (+4%)** | does not fit |
+
+- **With FETCH, our cache is ahead of FreeToken at all three budgets on this host:** +18% / +9% / +3%. The last is
+  within the ±10% spread across problems.
+- **Against llama.cpp at its best:** 1.9× / 2.7× / 3.3×.
+- **The cache-only server run at C = 32 reproduced job 064 to 0.1%.**
+- **Both options gain less on the chat benchmark than on the own-text runs.**
+  - A likely reason: these prompts are short (109 tokens, against 640+ in the own-text runs), so each layer's
+    attention is quicker. That leaves less GPU time for a copy to hide behind.
+  - The hit rates with PREFETCH are similar to own text (0.734 / 0.886 / 0.955).
+
+### Consequences
+
+1. **PREFETCH is correct and does what the simulation says to the hit rate.** Its speed gain is real but smaller than
+   FETCH's on this host, and it only pays together with FETCH at small budgets.
+2. **Both options depend on the host.**
+   - On a PCIe 4.0 host (job 065) both lost 16%.
+   - A deployable version should pick them from measured bandwidths, as FreeToken's `ft bench bw` calibrates its
+     hybrid mode.
+3. **The chat-benchmark claim, on this host:** our cache with FETCH is 3–18% faster than FreeToken at equal GPU
+   memory, and runs a budget FreeToken cannot fit.
+
 ## 28 September, late: same host, same client (job `064_samehost_rerun@vast`)
 
 **Setup:**

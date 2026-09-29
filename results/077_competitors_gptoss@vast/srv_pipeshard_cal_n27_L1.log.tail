@@ -1,0 +1,60 @@
+            {#- CoT is dropped during all previous turns, so we never render it for inference #}
+            {{- "<|start|>assistant<|channel|>final<|message|>" + message.content + "<|end|>" }}
+            {%- set last_tool_call.name = none %}
+        {%- endif %}
+    {%- elif message.role == 'tool' -%}
+        {%- if last_tool_call.name is none %}
+            {{- raise_exception("Message has tool role, but there was no previous assistant message with a tool call!") }}
+        {%- endif %}
+        {{- "<|start|>functions." + last_tool_call.name }}
+        {{- " to=assistant<|channel|>commentary<|message|>" + message.content|tojson + "<|end|>" }}
+    {%- elif message.role == 'user' -%}
+        {{- "<|start|>user<|message|>" + message.content + "<|end|>" }}
+    {%- endif -%}
+{%- endfor -%}
+
+{#- Generation prompt #}
+{%- if add_generation_prompt -%}
+<|start|>assistant
+{%- endif -%}, example_format: '<|start|>system<|message|>You are ChatGPT, a large language model trained by OpenAI.
+Knowledge cutoff: 2024-06
+Current date: 2026-09-29
+
+Reasoning: medium
+
+# Valid channels: analysis, commentary, final. Channel must be included for every message.<|end|><|start|>developer<|message|># Instructions
+
+You are a helpful assistant
+
+<|end|><|start|>user<|message|>Hello<|end|><|start|>assistant<|channel|>final<|message|>Hi there<|end|><|start|>user<|message|>How are you?<|end|><|start|>assistant'
+main: server is listening on http://127.0.0.1:42365 - starting the main loop
+srv  update_slots: all slots are idle
+srv  log_server_r: request: GET /health 127.0.0.1 200
+srv  log_server_r: request: GET /v1/models 127.0.0.1 200
+srv  params_from_: Chat format: GPT-OSS
+slot launch_slot_: id  0 | task 0 | processing task
+slot update_slots: id  0 | task 0 | new prompt, n_ctx_slot = 8448, n_keep = 0, n_prompt_tokens = 120
+slot update_slots: id  0 | task 0 | kv cache rm [0, end)
+slot update_slots: id  0 | task 0 | prompt processing progress, n_past = 120, n_tokens = 120, progress = 1.000000
+slot update_slots: id  0 | task 0 | prompt done, n_past = 120, n_tokens = 120
+slot      release: id  0 | task 0 | stop processing: n_past = 135, truncated = 0
+slot print_timing: id  0 | task 0 | 
+prompt eval time =     527.11 ms /   120 tokens (    4.39 ms per token,   227.66 tokens per second)
+       eval time =     334.69 ms /    16 tokens (   20.92 ms per token,    47.81 tokens per second)
+      total time =     861.79 ms /   136 tokens
+srv  update_slots: all slots are idle
+srv  log_server_r: request: POST /v1/chat/completions 127.0.0.1 200
+srv  params_from_: Chat format: GPT-OSS
+slot launch_slot_: id  0 | task 17 | processing task
+slot update_slots: id  0 | task 17 | new prompt, n_ctx_slot = 8448, n_keep = 0, n_prompt_tokens = 109
+slot update_slots: id  0 | task 17 | kv cache rm [64, end)
+slot update_slots: id  0 | task 17 | prompt processing progress, n_past = 109, n_tokens = 45, progress = 0.412844
+slot update_slots: id  0 | task 17 | prompt done, n_past = 109, n_tokens = 45
+slot      release: id  0 | task 17 | stop processing: n_past = 124, truncated = 0
+slot print_timing: id  0 | task 17 | 
+prompt eval time =     177.95 ms /    45 tokens (    3.95 ms per token,   252.88 tokens per second)
+       eval time =     546.73 ms /    16 tokens (   34.17 ms per token,    29.27 tokens per second)
+      total time =     724.67 ms /    61 tokens
+srv  update_slots: all slots are idle
+srv  log_server_r: request: POST /v1/chat/completions 127.0.0.1 200
+srv    operator(): operator(): cleaning up before exit...

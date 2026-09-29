@@ -3,6 +3,32 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, late morning: deferring admissions fails; where G really goes (job `072_defer@vast`)
+
+**Host.** Ryzen 9 7900 (12 cores, 10 helpers) + RTX 5090. Host memory: CPU / link / both = 45.3 / 44.6 / 49.0 GB/s.
+
+**The law, predicted blind on the machine:** C14 / C32 / C56 +4.9 / +8.2 / +5.8%, FETCH +4.4%, PREFETCH −3.2%,
+llama.cpp `-ncmoe 27` +3.7% (26.3 tok/s).
+
+**Deferring the admission copies** until after the next launch **loses 3–4%** at every budget (C32: 61.5 → 59.3
+tok/s). The prediction failed; `prereg/homepc/defer_prediction_072.md` has the outcome.
+
+**The new host-side timer explains why.** In steady state the boundary between tokens is ~1 ms, not the 2–5 ms the
+profiler showed:
+- graph launch 0.5–0.8 ms;
+- the cache's post-processing 0.25 ms;
+- inputs 0.03 ms.
+
+Tracing ~1400 graph nodes and ~80 small copies per token had inflated it. Deferring moved ~0.8 ms of admission reads
+into the CPU phases and saved only 0.2–0.4 ms at the boundary.
+
+**G on this host.** It is 5.4–6.0 ms per token:
+- ~3.65 ms of GPU work: 36 layers × ~90 µs, plus the 0.35 ms head;
+- ~1 ms of host launch and bookkeeping;
+- ~0.5–1 ms of admissions competing with the CPU phases (less with FETCH, which admits almost nothing).
+
+Nothing in G is free to remove. The largest parts are batch-1 GPU efficiency and the per-token launch.
+
 ## 29 September, morning: profiles, and the law predicted on three new machines (job `069c`)
 
 **Setup.** Job 069c ran on three RTX 5090 hosts. Before any model run, each machine wrote the law's prediction

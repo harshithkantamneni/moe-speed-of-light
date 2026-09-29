@@ -118,3 +118,24 @@ gpt-oss-120b, host 1, tok/s change against the deployed cache:
   - `compute-sanitizer` memcheck.
 - **Simulation's prediction for job 065:** hit rate 0.639 → 0.816 with q = 1 (0.72 prefetches per layer-step, 0.61
   used), 0.885 with q = 2.
+
+## Measured (jobs 065 and 066)
+
+- **Job 065** (gpt-oss-20b, C = 8 of 32, RTX 4500 Ada, PCIe 4.0): correct.
+  - The graph's ids matched the host maps on all 1,536 steps.
+  - CUDA graphs on and off give identical output; memcheck is clean.
+  - Hit rate 0.816, prefetches 0.722 and used 0.606 per layer-step, all within 0.001 of the simulation.
+  - But **−16% tok/s**: the link is half the memory bandwidth there. FETCH also lost 16%.
+- **Job 066** (gpt-oss-120b, RTX 5090 + 9950X, own text).
+  - **PREFETCH q=1:** +14% / +16% / +10% at C = 14 / 32 / 56, against the recorded prediction of +17% / +17% / +14%.
+    Hit rates matched the simulation to 0.001.
+  - **FETCH alone:** +16% / +19% / +16%.
+  - **Both:** +22% / +22% / +13%.
+  - **q = 2 is worse than q = 1**, as simulated.
+- **Job 066, chat benchmark** (AIME prompts of 109 tokens):
+  - PREFETCH gains +4% / +6% at 11% / 25% of experts on the GPU, and loses 2–3% at 40–44%;
+  - FETCH gains +4–10%.
+  - Likely reason: short contexts leave less attention time for the copy to hide behind. Not tested.
+- **Next:** choose FETCH / PREFETCH from measured bandwidths (both lose on PCIe 4.0), and model the combination.
+  Prefetching two layers ahead is simulated at +18% / +19% / +16% (the lead-time timeline), about the same as one
+  layer ahead: not worth its complexity yet.

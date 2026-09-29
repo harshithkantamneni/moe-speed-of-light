@@ -3,6 +3,20 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, night: two more entrants on gpt-oss-120b (job `077_competitors_gptoss@vast`)
+
+**Setup:** RTX 5090 + 9950X3D, equal measured GPU memory, one launch each.
+
+| Experts on GPU | llama.cpp | Pipelined Sharding (MLSys'26) | leloch cache | FreeToken | ours v2 |
+|---|---|---|---|---|---|
+| 11% | 27.8 | 36.9 | 39.4 | 45.8 | **56.0** |
+| 25% | 33.6 | 45.2 | 48.5 | 76.0 | **92.0** |
+| 40% | 40.1 | 56.8 | 51.3 | 119.5 | **133.0** |
+
+- **Both predictions held;** `prereg/competitors_outcome_077.md` has the outcome.
+- **The two new entrants** run 1.3–1.45× stock llama.cpp. Ours runs 1.4–2.3× the better of them, and 11–22% ahead of
+  FreeToken (paired CIs).
+
 ## 29 September, night: the clean table (job `076_table_5090@vast`)
 
 **Setup:** RTX 5090 + Ryzen 9 9950X, fixed build (ours v2), GPU-side sampling, variant chosen on launch 1 and

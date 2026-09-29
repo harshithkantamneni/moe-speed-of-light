@@ -31,10 +31,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..716cb16
+index 0000000..3949acb
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,90 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -103,6 +103,9 @@ index 0000000..716cb16
 +    int64_t      stride[GGML_EC_FETCH_MAX_T];      // bytes per expert of each tensor
 +    int32_t    * log;                              // device pointer into pinned host memory: n, then (expert, slot) pairs
 +    int32_t      n_expert;                         // PREFETCH: experts of the target layer (map length)
++    int32_t      layer_idx;                        // PREFETCH: the target layer's index (for the hint)
++    int32_t    * hint;                             // PREFETCH: optional device pointer into pinned memory: [seq, layer, n, ids...],
++                                                   // the predicted experts of the target layer that stay off the GPU (CPU cache warm-up)
 +};
 +
 +struct ggml_ec_op {
@@ -335,10 +338,10 @@ index 8d9cf69..005d774 100644
      }
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..4a098d3
+index 0000000..6502757
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,373 @@
+@@ -0,0 +1,387 @@
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
@@ -605,6 +608,20 @@ index 0000000..4a098d3
 +        lg[1 + i] = plan[1 + i];
 +    }
 +    lg[0] = n;
++    if (f.hint) {   // predicted experts that will stay off the GPU: the helpers may pull them into the CPU's cache
++        volatile int32_t * h = f.hint;
++        int nh = 0;
++        for (int i = 0; i < npred && nh < GGML_EC_MAX_K; ++i) {
++            const int e = pid[i];
++            if (e >= 0 && e < E && og[e] < 0) {
++                h[3 + nh++] = e;
++            }
++        }
++        h[1] = f.layer_idx;
++        h[2] = nh;
++        __threadfence_system();
++        h[0] = h[0] + 1;
++    }
 +    __threadfence_system();
 +}
 +
@@ -961,7 +978,7 @@ index afdaddc..15ab013 100644
      llama-impl.cpp
      llama-io.cpp
 diff --git a/src/llama-context.cpp b/src/llama-context.cpp
-index 27b9a38..05ade7c 100644
+index 27b9a38..878df8a 100644
 --- a/src/llama-context.cpp
 +++ b/src/llama-context.cpp
 @@ -1,4 +1,5 @@
@@ -1011,30 +1028,47 @@ index 27b9a38..05ade7c 100644
                  gf = graph_reserve(n_tokens, n_seqs, n_outputs_pp, mctx.get());
              }
              if (!gf) {
-@@ -1449,6 +1476,10 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
+@@ -1449,8 +1476,15 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
      {
          //const auto t_start_us = ggml_time_us();
  
++        ec_t[0] = ggml_time_us();
 +        if (ec) {
 +            ec->pre_compute(ubatch.n_tokens == 1 && !cparams.warmup);
 +        }
++        ec_t[1] = ggml_time_us();
 +
          // FIXME this call causes a crash if any model inputs were not used in the graph and were therefore not allocated
          res->set_inputs(&ubatch);
++        ec_t[2] = ggml_time_us();
  
-@@ -1462,6 +1493,11 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
+         //LLAMA_LOG_INFO("graph set inputs time: %.3f ms\n", (ggml_time_us() - t_start_us)/1000.0);
+     }
+@@ -1462,6 +1496,23 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
          return nullptr;
      }
  
 +    if (ec) {
++        const int64_t t3 = ggml_time_us();
++        ec->issue_deferred();       // admissions decided after the previous step, behind this step's launch
++        const int64_t t4 = ggml_time_us();
 +        ggml_backend_sched_synchronize(sched.get());
-+        ec->post_compute(ubatch.n_tokens == 1 && !cparams.warmup);
++        const int64_t t5 = ggml_time_us();
++        const bool dec = ubatch.n_tokens == 1 && !cparams.warmup;
++        ec->post_compute(dec);
++        const int64_t t6 = ggml_time_us();
++        if (dec && ec_t_last > 0) {
++            const double t[7] = { (double) (ec_t[0] - ec_t_last), (double) (ec_t[1] - ec_t[0]), (double) (ec_t[2] - ec_t[1]),
++                                  (double) (t3 - ec_t[2]), (double) (t4 - t3), (double) (t5 - t4), (double) (t6 - t5) };
++            ec->add_timing(t);
++        }
++        ec_t_last = dec ? t6 : 0;
 +    }
 +
      ret = GGML_STATUS_SUCCESS;
  
      return res;
-@@ -2564,6 +2600,7 @@ llm_graph_params llama_context::graph_params(
+@@ -2564,6 +2615,7 @@ llm_graph_params llama_context::graph_params(
          /*.n_outputs   =*/ n_outputs,
          /*.cb          =*/ graph_get_cb(),
          /*.res         =*/ res,
@@ -1043,7 +1077,7 @@ index 27b9a38..05ade7c 100644
  }
  
 diff --git a/src/llama-context.h b/src/llama-context.h
-index 35a7071..587f26a 100644
+index 35a7071..87131b2 100644
 --- a/src/llama-context.h
 +++ b/src/llama-context.h
 @@ -40,6 +40,8 @@ struct llama_memory_buffer {
@@ -1055,11 +1089,13 @@ index 35a7071..587f26a 100644
  struct llama_context {
      // init scheduler and compute buffers, reserve worst-case graphs
      llama_context(
-@@ -353,6 +355,9 @@ private:
+@@ -353,6 +355,11 @@ private:
  
      ggml_backend_sched_ptr sched;
  
 +    std::unique_ptr<llama_expert_cache> ec; // optional MoE expert cache (LLAMA_EC_SLOTS)
++    int64_t ec_t[3] = {0, 0, 0};            // host timestamps of the current step (pre_compute, set_inputs)
++    int64_t ec_t_last = 0;                  // end of the previous decode step's post_compute
 +    bool ec_init_done = false;
 +
      bool sched_need_reserve = true;
@@ -1194,10 +1230,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..f6b1098
+index 0000000..d9716d0
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1310 @@
+@@ -0,0 +1,1406 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1343,7 +1379,10 @@ index 0000000..f6b1098
 +    pf_q      = std::max(0, env_int("LLAMA_EC_PREFETCH", 0));
 +    pf_top    = env_int("LLAMA_EC_PREFETCH_TOP", 0);
 +    pf_blocks = std::max(1, env_int("LLAMA_EC_PREFETCH_BLOCKS", 64));
-+    if (pf_q > 0) {
++    pf_late   = env_int("LLAMA_EC_PREFETCH_LATE", 0) != 0;
++    llc       = env_int("LLAMA_EC_LLC", 0) != 0;
++    defer_admit = env_int("LLAMA_EC_DEFER_ADMIT", 0) != 0;
++    if (pf_q > 0 || llc) {
 +        n_tensors += 2 * layers.size();
 +    }
 +    ggml_init_params ip = { ggml_tensor_overhead() * (n_tensors + 2), nullptr, true };
@@ -1376,7 +1415,7 @@ index 0000000..f6b1098
 +    // PREFETCH: layer li predicts layer li+1 when both are consecutive cached layers and li+1 has a real cache
 +    pf_gate.assign(layers.size(), nullptr);
 +    pf_bias.assign(layers.size(), nullptr);
-+    if (pf_q > 0) {
++    if (pf_q > 0 || llc) {
 +        auto mnorm = [&](int il) { const auto & ly = model.layers[il]; return ly.ffn_norm ? ly.ffn_norm : ly.attn_post_norm; };
 +        for (size_t li = 0; li + 1 < layers.size(); ++li) {
 +            const layer & A = layers[li], & B = layers[li + 1];
@@ -1533,13 +1572,15 @@ index 0000000..f6b1098
 +                }
 +                LLAMA_LOG_INFO("%s: fetch table %s (%d copy blocks)\n", __func__, ft_str(fetch_table).c_str(), fetch_blocks);
 +            }
-+            if (pf_q > 0) {
++            if (pf_q > 0 || llc) {
 +                const size_t per = 1 + 2 * GGML_EC_MAX_K;
-+                pl_buf = ggml_backend_buft_alloc_buffer(host_buft, layers.size() * per * sizeof(int32_t));
++                const size_t n_hint = 3 + GGML_EC_MAX_K;
++                pl_buf = ggml_backend_buft_alloc_buffer(host_buft, (layers.size() * per + n_hint) * sizeof(int32_t));
 +                GGML_ASSERT(pl_buf && "expert cache: failed to allocate the prefetch log");
 +                pl_host = (int32_t *) ggml_backend_buffer_get_base(pl_buf);
-+                memset(pl_host, 0, layers.size() * per * sizeof(int32_t));
++                memset(pl_host, 0, (layers.size() * per + n_hint) * sizeof(int32_t));
 +                int32_t * pl_dev = (int32_t *) dev_ptr(pl_host);
++                hint_host = llc ? pl_host + layers.size() * per : nullptr;
 +                pf_args.assign(layers.size(), ggml_ec_fetch{});
 +                pf_ops.assign(3 * layers.size(), ggml_ec_op{});
 +                auto mnorm = [&](int il) { const auto & ly = model.layers[il]; return ly.ffn_norm ? ly.ffn_norm : ly.attn_post_norm; };
@@ -1594,6 +1635,8 @@ index 0000000..f6b1098
 +                        f.stride[k] = (int64_t) expert_stride(B.src[k]);
 +                    }
 +                    f.log = pl_dev + lt * per;
++                    f.layer_idx = (int32_t) lt;
++                    f.hint = llc ? pl_dev + layers.size() * per : nullptr;
 +                    for (int w = 0; w < 3; ++w) {
 +                        ggml_ec_op & o = pf_ops[3 * lt + w];
 +                        o.mode  = GGML_EC_PREFETCH + w;
@@ -1610,6 +1653,7 @@ index 0000000..f6b1098
 +    }
 +    if (!mailbox) {
 +        pf_q = 0;
++        llc = false;
 +    }
 +    if (mailbox) {
 +        for (auto & o : mb_ops) {
@@ -1847,7 +1891,7 @@ index 0000000..f6b1098
 +
 +bool llama_expert_cache::prefetch_from(int il) const {
 +    auto it = idx_of.find(il);
-+    if (pf_q <= 0 || !mailbox || it == idx_of.end() || !pf_gate[it->second]) {
++    if ((pf_q <= 0 && !llc) || !mailbox || it == idx_of.end() || !pf_gate[it->second]) {
 +        return false;
 +    }
 +    const layer & B = layers[it->second + 1];
@@ -1924,7 +1968,33 @@ index 0000000..f6b1098
 +        cv.notify_one();
 +        return;
 +    }
++    if (defer_admit && copy_backend) {
++        deferred.push_back({ idx_of.at(L.il), s, e });
++        return;
++    }
 +    copy_expert(L, s, e, false);
++}
++
++void llama_expert_cache::issue_deferred() {
++    if (deferred.empty() || deferred_b < 0) {
++        return;
++    }
++    for (const copy_job & j : deferred) {
++        copy_expert(layers[j.li], j.slot, j.expert, false);
++    }
++    deferred.clear();
++    if (events[deferred_b]) {
++        ggml_backend_event_record(events[deferred_b], copy_backend);
++    }
++    issued[deferred_b] = true;
++    deferred_b = -1;
++}
++
++void llama_expert_cache::add_timing(const double t[7]) {
++    for (int i = 0; i < 7; ++i) {
++        t_acc[i] += t[i];
++    }
++    t_n++;
 +}
 +
 +void llama_expert_cache::pre_compute(bool decode) {
@@ -1960,6 +2030,9 @@ index 0000000..f6b1098
 +    }
 +    // publish the copies issued two decode steps ago (they overlapped the previous step)
 +    const int b = (int) (step & 1);
++    if (deferred_b == b) {
++        issue_deferred();   // not issued yet (no graph was launched since they were decided): issue them now
++    }
 +    if (issued[b]) {
 +        if (events[b]) {
 +            ggml_backend_event_synchronize(events[b]);
@@ -2166,10 +2239,14 @@ index 0000000..f6b1098
 +    }
 +    if (any && !paced) {
 +        const int b = (int) (step & 1);
-+        if (events[b]) {
-+            ggml_backend_event_record(events[b], copy_backend);
++        if (defer_admit && copy_backend) {
++            deferred_b = b;             // issue_deferred() records events[b] once the copies are issued
++        } else {
++            if (events[b]) {
++                ggml_backend_event_record(events[b], copy_backend);
++            }
++            issued[b] = true;
 +        }
-+        issued[b] = true;
 +    }
 +    step++;
 +}
@@ -2192,8 +2269,12 @@ index 0000000..f6b1098
 +    fprintf(f, " \"hits\": %llu, \"misses\": %llu, \"admits\": %llu, \"hit_rate\": %.6f, \"fetches\": %llu, \"fetch_table\": \"%s\",\n",
 +            (unsigned long long) h, (unsigned long long) m, (unsigned long long) a, h + m ? (double) h / (h + m) : 0.0,
 +            (unsigned long long) fe, ft_str(fetch_table).c_str());
-+    fprintf(f, " \"prefetch_q\": %d, \"prefetch_top\": %d, \"prefetches\": %llu, \"prefetch_useful\": %llu,\n", pf_q,
-+            pf_top > 0 ? pf_top : max_used, (unsigned long long) pf, (unsigned long long) pu);
++    fprintf(f, " \"prefetch_q\": %d, \"prefetch_top\": %d, \"prefetches\": %llu, \"prefetch_useful\": %llu, \"prefetch_late\": %d, \"llc\": %d, \"llc_bytes\": %llu,\n", pf_q,
++            pf_top > 0 ? pf_top : max_used, (unsigned long long) pf, (unsigned long long) pu, (int) pf_late, (int) llc,
++            (unsigned long long) (llc_lines.load() * 64));
++    fprintf(f, " \"defer_admit\": %d, \"host_us_per_step\": {\"n\": %llu, \"app\": %.1f, \"pre\": %.1f, \"inputs\": %.1f, \"launch\": %.1f, \"issue\": %.1f, \"sync\": %.1f, \"post\": %.1f},\n",
++            (int) defer_admit, (unsigned long long) t_n, t_n ? t_acc[0] / t_n : 0.0, t_n ? t_acc[1] / t_n : 0.0, t_n ? t_acc[2] / t_n : 0.0,
++            t_n ? t_acc[3] / t_n : 0.0, t_n ? t_acc[4] / t_n : 0.0, t_n ? t_acc[5] / t_n : 0.0, t_n ? t_acc[6] / t_n : 0.0);
 +    fprintf(f, " \"mb_busy_us\": [");
 +    for (size_t m = 0; m < mb_busy_us.size(); ++m) {
 +        fprintf(f, "%s%.1f", m ? "," : "", mb_busy_us[m]);
@@ -2252,6 +2333,52 @@ index 0000000..f6b1098
 +    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 +}
 +
++// LLAMA_EC_LLC: read this helper's share of the next layer's predicted CPU experts into the cache, once per hint,
++// stopping as soon as a request arrives (the request must never wait for this)
++void llama_expert_cache::helper_prefetch(int ith, uint32_t seen_req) {
++    thread_local uint32_t seen_hint = 0;
++    const volatile int32_t * h = hint_host;
++    const uint32_t hs = (uint32_t) h[0];
++    if (hs == seen_hint) {
++        return;
++    }
++    std::atomic_thread_fence(std::memory_order_acquire);
++    seen_hint = hs;
++    const int li = h[1];
++    const int n_h = h[2];
++    const int n = std::min(n_h, (int) GGML_EC_MAX_K);
++    if (li < 0 || li >= (int) layers.size()) {
++        return;
++    }
++    const layer & L = layers[li];
++    const volatile uint32_t * req = (const volatile uint32_t *) (mb_host + GGML_EC_MB_REQ);
++    uint64_t acc = 0, lines = 0;
++    for (int j = 0; j < n; ++j) {
++        const int e = h[3 + j];
++        if (e < 0 || e >= L.n_expert) {
++            continue;
++        }
++        for (const ggml_tensor * t : { L.w_gate, L.w_up, L.w_down }) {
++            if (!t) {
++                continue;
++            }
++            const size_t st = t->nb[2];
++            const char * base = (const char *) t->data + (size_t) e * st;
++            size_t lo = st * ith / n_helpers, hi = st * (ith + 1) / n_helpers;
++            lo &= ~(size_t) 63;
++            for (size_t o = lo; o < hi; o += 64) {
++                acc += *(const volatile uint64_t *) (base + o);
++                ++lines;
++                if ((lines & 1023) == 0 && *req != seen_req) {
++                    llc_lines.fetch_add(lines, std::memory_order_relaxed);
++                    return;
++                }
++            }
++        }
++    }
++    llc_lines.fetch_add(lines + (acc == 42 ? 1 : 0), std::memory_order_relaxed);
++}
++
 +void llama_expert_cache::helper_main(int ith) {
 +#if defined(__linux__)
 +    if (pin_helpers) {
@@ -2275,6 +2402,11 @@ index 0000000..f6b1098
 +        }
 +        const uint32_t s = *req;
 +        if (s == seen) {
++            // warm the CPU cache only once the current request is answered (the GPU is then working and host memory is
++            // idle); helpers that finish early must not take bandwidth from those still computing it
++            if (hint_host && *(const volatile uint32_t *) (mb_host + GGML_EC_MB_RESP) == seen) {
++                helper_prefetch(ith, seen);
++            }
 +            cpu_relax();
 +            continue;
 +        }
@@ -2510,10 +2642,10 @@ index 0000000..f6b1098
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..43cba6d
+index 0000000..7b45616
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,238 @@
+@@ -0,0 +1,257 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -2572,6 +2704,12 @@ index 0000000..43cba6d
 +//                      (ggml-ec.h, PREFETCH). 0 or unset = off.
 +//   LLAMA_EC_PREFETCH_TOP  predictions considered, in rank order (default: the layer's experts per token)
 +//   LLAMA_EC_PREFETCH_BLOCKS  thread blocks of the prefetch copy kernel (default 64)
++//   LLAMA_EC_LLC       1 = the next layer's predicted experts that will stay off the GPU are read into the CPU's cache
++//                      by the idle helpers (between their requests, i.e. during the GPU's own work), so that their
++//                      later computation reads the CPU cache instead of DRAM. Uses the PREFETCH prediction; works with
++//                      LLAMA_EC_PREFETCH=0 (prediction only, no GPU copies).
++//   LLAMA_EC_PREFETCH_LATE    1 = start the copy when this layer's helpers are done (it then reads host memory during the
++//                      next layer's attention, when host memory is otherwise idle); 0 = at this layer's REQUEST (default)
 +
 +#include "ggml.h"
 +#include "ggml-backend.h"
@@ -2653,11 +2791,17 @@ index 0000000..43cba6d
 +    ggml_tensor * pf_bias_of(int il) const;                  // [E] router bias of il+1 (zeros if none)
 +    ggml_ec_op * prefetch_op(int il_target, int which);     // PREFETCH (0), PREFETCH_COPY (1), PREFETCH_JOIN (2)
 +    int pf_q = 0, pf_top = 0, pf_blocks = 64;
++    bool pf_late = false;
++    bool llc = false;       // LLAMA_EC_LLC=1: the helpers read the next layer's predicted CPU experts into their cache while idle   // LLAMA_EC_PREFETCH_LATE=1: issue the copy after this layer's helpers finish, not at its REQUEST
 +    void set_act(int il, int act);                          // 0 swiglu, 1 swiglu_oai (set while building the graph)
 +
 +    // decode loop hooks
 +    void pre_compute(bool decode);      // finish copies issued two steps ago, publish them; wake/park the helpers
 +    void post_compute(bool decoded);    // read this step's routing, run the policy, issue copies
++    void issue_deferred();              // LLAMA_EC_DEFER_ADMIT=1: issue the admission copies queued by post_compute
++                                        // (called right after the next graph is launched, so they do not delay it)
++    void add_timing(const double t[7]);  // host-side time per decode step: app, pre, inputs, launch, issue, sync, post (us)
++    bool defer_admit = false;
 +
 +    void write_stats(const char * path) const;
 +
@@ -2701,6 +2845,9 @@ index 0000000..43cba6d
 +    std::vector<ggml_ec_op> pf_ops;             // [3 * n_layers]
 +    ggml_backend_buffer_t pl_buf = nullptr;     // pinned: per target layer, the last step's prefetch log
 +    int32_t * pl_host = nullptr;
++    int32_t * hint_host = nullptr;             // [seq, layer, n, ids...] written by the PREFETCH plan (LLAMA_EC_LLC)
++    std::atomic<uint64_t> llc_lines{0};         // cache lines the helpers read ahead
++    void helper_prefetch(int ith, uint32_t seen_req);
 +    void init_prefetch(const llama_model & model);
 +    std::vector<std::thread> helpers;
 +    std::atomic<bool> h_active{false};
@@ -2748,12 +2895,16 @@ index 0000000..43cba6d
 +    ggml_backend_t copy_backend = nullptr;      // separate stream for slot copies (GPU only)
 +    ggml_backend_event_t events[2] = {nullptr, nullptr};
 +    bool issued[2] = {false, false};
++    std::vector<copy_job> deferred;     // admissions decided but not yet issued (defer_admit)
++    int deferred_b = -1;
++    double t_acc[7] = {0, 0, 0, 0, 0, 0, 0};
++    uint64_t t_n = 0;
 +
 +    int64_t step = 0;
 +    int max_used = 0;
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
-index a806126..4277a30 100644
+index a806126..d4bfba3 100644
 --- a/src/llama-graph.cpp
 +++ b/src/llama-graph.cpp
 @@ -1,5 +1,8 @@
@@ -2814,7 +2965,7 @@ index a806126..4277a30 100644
  
      if (!weight_before_ffn) {
          experts = ggml_mul(ctx0, experts, weights);
-@@ -2367,6 +2391,276 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
+@@ -2367,6 +2391,288 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
      return moe_out;
  }
  
@@ -3032,7 +3183,7 @@ index a806126..4277a30 100644
 +            ggml_build_forward_expand(gf, fc);
 +            gid = ggml_reshape_2d(ctx0, fc, n_expert_used, n_tokens);
 +        }
-+        if (pf_plan) {
++        if (pf_plan && ec->pf_q > 0 && !ec->pf_late) {
 +            // start the next layer's prefetch copy now that the helpers have this layer's request (side stream)
 +            ggml_tensor * pc_args[2] = { pf_plan, req };
 +            ggml_tensor * pc = ggml_custom_4d(ctx0, GGML_TYPE_I32, 1, 1, 1, 1, pc_args, 2, ggml_ec_op_stub, 1,
@@ -3061,6 +3212,18 @@ index a806126..4277a30 100644
 +        ggml_format_name(out, "ec_wait-%d", il);
 +        ggml_backend_sched_set_tensor_backend(sched, out, be_gpu);
 +        cb(out, "ffn_moe_ec_merged", il);
++        if (pf_plan && ec->pf_q > 0 && ec->pf_late) {
++            // late issue: start the next layer's prefetch copy once this layer's helpers are done, so that it reads host
++            // memory during the next layer's attention, when neither the helpers nor anything else is reading it
++            ggml_build_forward_expand(gf, out);
++            ggml_tensor * pc_args[2] = { pf_plan, out };
++            ggml_tensor * pc = ggml_custom_4d(ctx0, GGML_TYPE_I32, 1, 1, 1, 1, pc_args, 2, ggml_ec_op_stub, 1,
++                    ec->prefetch_op(il + 1, 1));
++            ggml_format_name(pc, "ec_pf_copy-%d", il);
++            ggml_backend_sched_set_tensor_backend(sched, pc, be_gpu);
++            ggml_build_forward_expand(gf, pc);
++            ec_pf[il + 1] = { pf_plan, pc };
++        }
 +        return out;
 +    }
 +

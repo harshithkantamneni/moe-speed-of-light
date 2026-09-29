@@ -1,0 +1,182 @@
++++ dirname /w/jobs/071_overlap_x3d@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
+++ lscpu -p=CORE
+++ sort -u
+++ grep -v '^#'
+++ wc -l
++ CORES=16
++ echo 'physical cores 16'
++ tee /w/results/071_overlap_x3d@vast/cores.txt
+physical cores 16
++ lscpu
++ grep -i L3
++ tee /w/results/071_overlap_x3d@vast/l3.txt
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc amd_ibpb_ret arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d srso_user_kernel_no
+L3 cache:                                192 MiB (2 instances)
++ DLG=5988
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/071_overlap_x3d@vast/build_lc-ec.txt
++ wait 5988
++ cat /w/results/071_overlap_x3d@vast/dl_gguf.txt
+++ date +%s
++ t0=1790659904
++ mkdir -p /work/models
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf download rc=0 in 138 s'
+gguf download rc=0 in 138 s
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ H=14
++ B=policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ ALL='--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts'
++ for C in 14 32 56
++ b=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG=slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_fetch.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_llc_fetch.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_llc_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_all.json'
++ CFG='slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_llc_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_all.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C14_pf.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C14_llc.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C14_llc_pflate.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_llc_fetch.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C14_all.json;slots=14:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C14_base_r.json' --dump /w/results/071_overlap_x3d@vast/ab_C14.bin
++ echo 'ab C=14 rc=0'
+ab C=14 rc=0
++ for C in 14 32 56
++ b=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_fetch.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_llc_fetch.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_llc_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_all.json'
++ CFG='slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_llc_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_all.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C32_pf.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C32_llc.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C32_llc_pflate.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_llc_fetch.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C32_all.json;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C32_base_r.json' --dump /w/results/071_overlap_x3d@vast/ab_C32.bin
++ echo 'ab C=32 rc=0'
+ab C=32 rc=0
++ for C in 14 32 56
++ b=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG=slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_fetch.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_llc_fetch.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_llc_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_all.json'
++ CFG='slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_llc_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_all.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base_r.json'
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 16 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec 'slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:stats=/w/results/071_overlap_x3d@vast/C56_pf.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:stats=/w/results/071_overlap_x3d@vast/C56_llc.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:stats=/w/results/071_overlap_x3d@vast/C56_llc_pflate.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_llc_fetch.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:llc=1:prefetch=1:prefetch_late=1:fetch=0,1,1,2,3:stats=/w/results/071_overlap_x3d@vast/C56_all.json;slots=56:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=14:stats=/w/results/071_overlap_x3d@vast/C56_base_r.json' --dump /w/results/071_overlap_x3d@vast/ab_C56.bin
++ echo 'ab C=56 rc=0'
+ab C=56 rc=0
++ python3 - /w/results/071_overlap_x3d@vast
++ tee /w/results/071_overlap_x3d@vast/summary.txt
+C14_base            55.8 tok/s (1.000x) hit 0.5414 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000
+C14_pf              63.5 tok/s (1.139x) hit 0.7461 pf/ls 0.819 fetch/ls 0.000 llc MB/token 0 top1 0.9889
+C14_pflate          60.4 tok/s (1.083x) hit 0.7461 pf/ls 0.819 fetch/ls 0.000 llc MB/token 0 top1 0.9889
+C14_llc             54.7 tok/s (0.982x) hit 0.5414 pf/ls 0.000 fetch/ls 0.000 llc MB/token 99 top1 1.0000
+C14_llc_pflate      58.6 tok/s (1.051x) hit 0.7461 pf/ls 0.819 fetch/ls 0.000 llc MB/token 134 top1 0.9889
+C14_fetch           59.8 tok/s (1.072x) hit 0.5863 pf/ls 0.000 fetch/ls 1.135 llc MB/token 0 top1 0.9883
+C14_llc_fetch       51.1 tok/s (0.916x) hit 0.5863 pf/ls 0.000 fetch/ls 1.135 llc MB/token 364 top1 0.9883
+C14_all             51.7 tok/s (0.927x) hit 0.7607 pf/ls 0.809 fetch/ls 0.691 llc MB/token 243 top1 0.9876
+C14_base_r          55.6 tok/s (0.998x) hit 0.5414 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000
+C32_base            84.0 tok/s (1.000x) hit 0.7578 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000
+C32_pf              93.3 tok/s (1.110x) hit 0.8865 pf/ls 0.547 fetch/ls 0.000 llc MB/token 0 top1 0.9870
+C32_pflate          86.9 tok/s (1.034x) hit 0.8865 pf/ls 0.547 fetch/ls 0.000 llc MB/token 0 top1 0.9870
+C32_llc             82.0 tok/s (0.975x) hit 0.7578 pf/ls 0.000 fetch/ls 0.000 llc MB/token 101 top1 1.0000
+C32_llc_pflate      84.6 tok/s (1.006x) hit 0.8865 pf/ls 0.547 fetch/ls 0.000 llc MB/token 67 top1 0.9870
+C32_fetch           90.4 tok/s (1.076x) hit 0.7881 pf/ls 0.000 fetch/ls 0.628 llc MB/token 0 top1 0.9883
+C32_llc_fetch       75.5 tok/s (0.899x) hit 0.7881 pf/ls 0.000 fetch/ls 0.628 llc MB/token 258 top1 0.9883
+C32_all             78.4 tok/s (0.933x) hit 0.8948 pf/ls 0.533 fetch/ls 0.332 llc MB/token 103 top1 0.9844
+C32_base_r          84.1 tok/s (1.001x) hit 0.7578 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000
+C56_base           121.2 tok/s (1.000x) hit 0.8754 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000
+C56_pf             125.7 tok/s (1.037x) hit 0.9474 pf/ls 0.318 fetch/ls 0.000 llc MB/token 0 top1 0.9896
+C56_pflate         117.6 tok/s (0.970x) hit 0.9474 pf/ls 0.318 fetch/ls 0.000 llc MB/token 0 top1 0.9896
+C56_llc            115.1 tok/s (0.950x) hit 0.8754 pf/ls 0.000 fetch/ls 0.000 llc MB/token 80 top1 1.0000
+C56_llc_pflate     115.3 tok/s (0.951x) hit 0.9474 pf/ls 0.318 fetch/ls 0.000 llc MB/token 29 top1 0.9896
+C56_fetch          126.6 tok/s (1.044x) hit 0.8943 pf/ls 0.000 fetch/ls 0.336 llc MB/token 0 top1 0.9876
+C56_llc_fetch      104.7 tok/s (0.864x) hit 0.8943 pf/ls 0.000 fetch/ls 0.336 llc MB/token 155 top1 0.9876
+C56_all            110.5 tok/s (0.912x) hit 0.9518 pf/ls 0.307 fetch/ls 0.162 llc MB/token 40 top1 0.9863
+C56_base_r         121.3 tok/s (1.001x) hit 0.8754 pf/ls 0.000 fetch/ls 0.000 llc MB/token 0 top1 1.0000

@@ -57,7 +57,7 @@ accounts for every millisecond of that gap, then asks which parts any system cou
 |---|---|---|---|---|
 | 1 | Profile of the offloaded configurations (job 069c) and host-side timing (job 072) | Break G into kernels, host gaps and EC overhead | ≈ $3 | done: G = GPU work 3.65 ms + host 1 ms + contention 0.5–1 ms |
 | 2 | Overlap test (job 071) | Test the law's max-form prediction; decides contribution 6 | ≈ $1 | done: predictions 3 and 4 failed |
-| 3 | Chat comparison v2: 30 AIME problems × 3 launches, greedy decoding, warm-up on a different problem, measured VRAM, FreeToken tuned (`ft bench bw` profile, `--moe-hybrid-max-fetch` sweep incl. 0), paired bootstrap CIs | The comparison as it stands has one request per prompt and no CIs | ≈ $6–9 | next |
+| 3 | Chat comparison v2 (job 073): 30 AIME problems × 3 launches, greedy, held-out warm-up, measured VRAM, FreeToken tuned, paired bootstrap CIs | The comparison as it stands has one request per prompt and no CIs | ≈ $2.5 | done: +10.9% / +8.4% / −5.9% vs FreeToken at 11 / 25 / 40%; 1.8–2.7× llama.cpp |
 | 4 | Speed limit on the evaluated text: trace the AIME outputs and compute the pooled bound for every system | The current denominators use the own-text trace | CPU only | next |
 | 5 | Second model: Qwen3.6-35B-A3B (FreeToken's own) or Qwen3-30B-A3B BF16 | One-model objection | ≈ $4–5 | after 3 |
 | 6 | Host lottery: 5–8 rentals, predictions registered per host from the law before each run | Turns the law's host prediction into a registered test | ≈ $5–7 | after 5 |

@@ -29,7 +29,8 @@ build_tree() {  # dir patch|"" targets...
   local d=$1 p=$2; shift 2
   [ -f $d/.built ] && return 0
   ( cd $WORK && { [ -d lc ] || { git init -q lc && git -C lc remote add origin https://github.com/ggml-org/llama.cpp; }; } &&
-    git -C lc fetch -q --depth 1 origin $BASE && rm -rf $d && git -C lc worktree add -q -f $d FETCH_HEAD && cd $d &&
+    { git -C lc fetch -q --depth 1 origin $BASE || { sleep 10; git -C lc fetch -q --depth 1 origin $BASE; } || { sleep 30; git -C lc fetch -q --depth 1 origin $BASE; }; } &&
+    rm -rf $d && git -C lc worktree add -q -f $d FETCH_HEAD && cd $d &&
     { [ -z "$p" ] || git apply "$p"; } &&
     cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$SM -DLLAMA_CURL=OFF \
       -DLLAMA_BUILD_TESTS=ON > $OUT/cmake_$(basename $d).txt 2>&1 &&

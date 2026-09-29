@@ -87,12 +87,18 @@ def vram_used_gib():
         return None
 
 
-def wait_health(origin, proc, log_path, timeout):
+def wait_health(origin, proc, log_path, timeout, mode="health"):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if proc.poll() is not None:
             raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
         try:
+            if mode == "models":
+                with urllib.request.urlopen(f"{origin}/v1/models", timeout=5) as r:
+                    if json.load(r).get("data"):
+                        return
+                time.sleep(1.0)
+                continue
             with urllib.request.urlopen(f"{origin}/health", timeout=5) as r:
                 if json.load(r).get("status") == "ok":
                     return
@@ -125,6 +131,8 @@ def main():
     ap.add_argument("--warmup-prompt", help="file with the held-out warm-up prompt text (--warmup once)")
     ap.add_argument("--hybrid-fetch", type=int, default=-1, help="FreeToken --moe-hybrid-max-fetch (-1: auto)")
     ap.add_argument("--launch", type=int, default=0, help="launch index, copied into every row")
+    ap.add_argument("--ready", default="health", help="health: GET /health == {status: ok} (llama-server); models: GET "
+                    "/v1/models answers (SGLang, whose /health runs a generation)")
     a = ap.parse_args()
     sampling, src = B.resolve_sampling(a.model, a.greedy)
     extra, meta = json.loads(a.extra), json.loads(a.meta)
@@ -145,7 +153,7 @@ def main():
         if a.ft:
             B.wait_ready(origin, proc, a.log, a.timeout)
         else:
-            wait_health(origin, proc, a.log, a.timeout)
+            wait_health(origin, proc, a.log, a.timeout, a.ready)
         load_s = time.perf_counter() - t_start
         with urllib.request.urlopen(f"{origin}/v1/models", timeout=10) as r:
             model_id = json.load(r)["data"][0]["id"]

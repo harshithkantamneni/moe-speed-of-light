@@ -3,6 +3,28 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, evening: 40% and 60% on an RTX PRO 6000 (job `075_pro6000_40_60@vast`)
+
+**Setup:** 9950X host; CPU / link / both = 62 / 53 / 71 GB/s. Each system's variant was chosen on launch 1 and
+confirmed on launches 2–3.
+
+| Experts on GPU | ours v2 | FreeToken | Difference (95% CI) | llama.cpp |
+|---|---|---|---|---|
+| 40% | 137.5 (FETCH) | 122.6 (offload) | **+12.2% [+10.7, +13.7]** | 43.7 |
+| 60% | 189.7 | 169.7 (offload) | **+11.8% [+10.9, +12.7]** | 63.0 |
+
+- **All in VRAM**, llama.cpp: 261.4 tok/s. With 60% of experts on the GPU, the cache reaches **72.7%** of that, in
+  37.5 GiB against 59.6.
+- **Predictions:** 2 of 3 held. The third ("within +10% at 60%") was exceeded. Outcome in
+  `prereg/pro6000_outcome_075.md`.
+
+**Where the comparison stands after the fixes** (maps on the GPU, GPU-side sampling, FETCH chosen per host). Ours
+leads FreeToken:
+- 7950X host (074b): +21% at 25%, +7% at 40%;
+- PRO 6000 host (075): +12% at 40% and at 60%.
+
+11% on these hosts has not been rerun with the fixes. Job 073's 11% and 25% results predate them.
+
 ## 29 September, evening: the server's sampler was the rest of the fixed cost (job `074b_server_overhead@vast`)
 
 **Change tested:** `"backend_sampling": true`, a stock llama-server option that samples on the GPU. It cuts the

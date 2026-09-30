@@ -27,7 +27,7 @@ launch). Statistics: `scripts/split_stats.py`; numbers in `prereg/split_080.json
 
 **Launch 2 (confirmation of the launch-1 picks):**
 - lite 108.2, law 108.2, current 103.2, FreeToken offload 103.1.
-- Ours (law or lite) ÷ FreeToken = **1.049 [1.035, 1.064]**; current ÷ FreeToken = 1.000 [0.987, 1.014].
+- Ours ÷ FreeToken = **1.049**: lite [1.035, 1.064], law [1.036, 1.064]; current ÷ FreeToken = 1.000 [0.987, 1.014].
 - law ÷ current = 1.049 [1.043, 1.056].
 
 **25%, launch 1:**

@@ -27,13 +27,13 @@ launch). Numbers are in `prereg/qwen3_profile_079.json` and the gpu branch `resu
 | Attention projections (Q, K, V, O) | 1.65 (four kernels) | 1.34 (fused QKV + O) |
 | Attention | 0.49 | 0.37 |
 | Router + top-k | 0.29 | ~0.28 |
-| Output head | 0.38 | 0.39 |
-| Norms, small ops, cache control, waits | 0.92 | ~0.4 |
+| Output head | 0.38 | 0.38 |
+| Norms, small ops, cache control, waits | 0.97 | ~0.4 |
 | GPU idle between kernels | 0.60 | 0.27 |
 | **Token (wall)** | **10.92** | **10.45** |
 | Kernels per token | 1436 | 894 |
 
-In ours, 0.63 ms of kernel time overlaps other kernels (concurrent streams; not attributed further), so our rows add up to more
+In ours, 0.69 ms of kernel time overlaps other kernels (concurrent streams; not attributed further), so our rows add up to more
 than the wall time. FreeToken's rows add up to its wall time.
 
 1. **Held.** Our host-side time per step is 0.27 ms (app 48, pre 2, inputs 79, launch 103, post 33 µs), 2.7% of the
@@ -59,7 +59,7 @@ than the wall time. FreeToken's rows add up to its wall time.
 - In the 3-token timelines, 0 µs of copy time overlaps any other kernel, in ours and in FreeToken.
 - Each layer runs router → copy the missed experts → all 8 experts' products.
 - **Bound:** computing a layer's resident experts during its copy would save min(copy, resident compute) per layer.
-  From the 3-token sample that is about 0.5–0.9 ms per token (5–9%). Most layers copy nothing, and the layers that
+  From the 3-token sample that is about 0.5–0.6 ms per token for ours and 0.9–1.0 ms for FreeToken (5–10%). Most layers copy nothing, and the layers that
   copy a lot have few resident hits.
 
 **FETCH on this host.**

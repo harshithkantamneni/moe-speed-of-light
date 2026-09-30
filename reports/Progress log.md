@@ -15,7 +15,7 @@ budget and confirmed on launch 2.
 | gpt-oss-120b | 40% | 47.7 | 132.2 | **152.5** | +15.4% [13.4, 17.2] |
 | Qwen3 BF16 | 12.5% | 19.5 | 38.7 | **40.0** | +3.2% [2.2, 4.2] |
 | Qwen3 BF16 | 25% (080) | — | 54.8 | **63.1** | +15.3% [13.4, 17.3] |
-| Qwen3 BF16 | 43.75% (080) | — | 103.1 | **108.2** | +4.9% [3.5, 6.4] |
+| Qwen3 BF16 | 43.75% (080) | — | 103.1 | **108.2** | +4.9% [3.6, 6.4] |
 
 - **All four predictions held;** `prereg/headline_outcome_081.md` has the outcome.
 - **The law's table against the fixed one:** +3.3% to +8.0% on every budget of both models.
@@ -29,7 +29,7 @@ the machine's own probe: 0,0,1,1,2,3,3,4,5 against the fixed 0,1,1,2,3,3,4,5,6.
 
 | Experts on GPU | ours, current table | ours, law table | FreeToken (better) | law vs current | ours (law) vs FreeToken |
 |---|---|---|---|---|---|
-| 43.75% | 103.1 | **108.0** | 103.2 | +4.8% [4.1, 5.5] | **+4.9% [3.5, 6.4]** (confirmation launch) |
+| 43.75% | 103.1 | **108.0** | 103.2 | +4.8% [4.1, 5.5] | **+4.9% [3.6, 6.4]** (confirmation launch) |
 | 25% | 59.2 | **63.1** | 54.8 | +6.7% [6.2, 7.1] | +15.3% [13.4, 17.3] |
 
 - **All four predictions held;** `prereg/split_outcome_080.md` has the outcome.
@@ -55,7 +55,7 @@ comparison.
   - Host side: 0.27 ms per token.
 - **The miss path is the other half of the token in both systems:** 4.9–5.2 ms of PCIe copies, not overlapped with
   any compute in either system.
-  - Overlapping each layer's resident experts with its copy is worth at most ~0.5–0.9 ms per token.
+  - Overlapping each layer's resident experts with its copy is worth at most ~0.5–0.6 ms per token for ours (0.9–1.0 ms for FreeToken).
 - **Our FETCH table is not tuned per host.** It sends 75% of misses over PCIe even where the CPU path is faster
   (+0.4% here, +16% on the 078 host).
 
@@ -68,7 +68,7 @@ one launch each.
 |---|---|---|---|---|---|
 | 12.5% | 13.4 | 13.1 | 26.5 | **28.4** | +7.1% [+6.3, +8.0] |
 | 25% | 15.4 | 15.3 | 43.9 | **46.8** | +6.7% [+4.3, +9.4] |
-| 43.75% | 20.0 | 20.2 | **94.1** | 89.2 | −5.2% [−6.5, −3.8] |
+| 43.75% | 19.9 | 20.2 | **94.1** | 89.2 | −5.2% [−6.5, −3.8] |
 
 - **All three predictions held.** `prereg/qwen3_outcome_078.md` has the outcome.
 - **FreeToken leads at 43.75%.** That was not predicted, and it is the gpt-oss crossover again. Our fixed cost is

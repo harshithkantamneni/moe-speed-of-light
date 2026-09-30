@@ -26,7 +26,7 @@ before launch). Statistics: `scripts/headline_stats.py`; numbers in `prereg/head
 | gpt-oss-120b | 40% | 47.7 | 132.2 (offload) | **152.5** | **1.154 [1.134, 1.172]** | 3.20× |
 | Qwen3-30B-A3B BF16 | 12.5% | 19.5 | 38.7 (hybrid) | **40.0** | **1.032 [1.022, 1.042]** | 2.05× |
 | Qwen3-30B-A3B BF16 | 25% (job 080, launch 1) | — | 54.8 (hybrid) | **63.1** | **1.153 [1.134, 1.173]** | — |
-| Qwen3-30B-A3B BF16 | 43.75% (job 080, launch 2) | — | 103.1 (offload) | **108.2** | **1.049 [1.035, 1.064]** | — |
+| Qwen3-30B-A3B BF16 | 43.75% (job 080, launch 2) | — | 103.1 (offload) | **108.2** | **1.049 [1.036, 1.064]** | — |
 
 **The law's table against the current one (launch 1, paired):**
 - gpt-oss: +7.9% [7.2, 8.5] at 11%, +5.4% [4.1, 6.6] at 25%, +3.3% [2.1, 4.4] at 40%.

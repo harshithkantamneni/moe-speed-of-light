@@ -28,7 +28,7 @@ Speeds are tok/s. Paired against the other systems (95% CI):
 2. **Held.** Ours is ahead of both at every budget.
 
 **Handicap to report.** Neither new entrant can sample on the GPU; they are built on llama.cpp b6097 and an August
-2026 base. That costs them ~1.6 ms per token (job 074b), about 4–8% of their token time, which is far smaller than
+2026 base. That costs them 1.0–1.4 ms per token end to end (job 074b, on a 7950X), about 4–8% of their token time, which is far smaller than
 the gaps above.
 
 **Other notes.**

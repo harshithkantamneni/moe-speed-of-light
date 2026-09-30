@@ -28,7 +28,7 @@ The recipe is in `research_notes/MoE offload system race plan/qwen3_recipe.md`. 
 |---|---|---|---|---|
 | 12.5% | 13.4 | 13.1 | 26.5 (hybrid) | **28.4** (FETCH) |
 | 25% | 15.4 | 15.3 | 43.9 (offload) | **46.8** (FETCH) |
-| 43.75% | 20.0 | 20.2 | **94.1** (offload) | 89.2 (FETCH) |
+| 43.75% | 19.9 | 20.2 | **94.1** (offload) | 89.2 (FETCH) |
 
 Speeds are tok/s. Paired by problem against ours, with 95% bootstrap CIs:
 

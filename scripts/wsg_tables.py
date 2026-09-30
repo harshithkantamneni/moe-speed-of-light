@@ -233,6 +233,17 @@ def foresight():
         M("fsSpeedMax", f"{max(sp):.2f}")
 
 
+def qwen36():
+    q = load("qwen36_086.json")
+    if not q:
+        return
+    for r, key in zip(q["rows"], ("A", "B", "C")):
+        M(f"qsixFt{key}", ci(r["ours_over_ft_L2"], 3))
+        M(f"qsixLl{key}", f"{r['ours_over_llama'][0]:.2f}")
+        M(f"qsixLaw{key}", f"{100 * (r['law_over_fixed_L1'][0] - 1):.1f}")
+    M("qsixAuto", f"{q['ft_auto']:.1f}")
+
+
 def gap():
     g = load("gap_listingb.json")
     if not g:
@@ -355,6 +366,7 @@ def main():
     law()
     split()
     hard()
+    qwen36()
     gap()
     foresight()
     simcheck()

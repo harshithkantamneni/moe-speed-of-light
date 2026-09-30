@@ -31,8 +31,8 @@ largest or tied-largest cost (\gapFsMin--\gapFsMax\% of each token), with serial
 \textbf{(3) A system the law implies.} We built an expert cache into llama.cpp. It runs misses on the CPU and sets,
 per machine, how many of a layer's missed experts to copy over PCIe instead. At equal GPU memory on one RTX 5090 machine
 it decodes gpt-oss-120b \ftLeadGptMin--\ftLeadGptMax\% faster than FreeToken and Qwen3-30B-A3B
-\ftLeadQwenMin--\ftLeadQwenMax\% faster, and runs \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp; its lead over
-FreeToken holds over 2{,}048-token outputs.
+\ftLeadQwenMin--\ftLeadQwenMax\% faster, and runs \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp; the lead holds over 2{,}048-token outputs,
+but on FreeToken's own headline model, Qwen3.6-35B-A3B, the two systems tie at two of three budgets.
 \textbf{(4) Foresight.} The optimum reads \fsSaveMin--\fsSaveMax\% fewer experts from host memory than the best online
 policy. The lookahead that closes half of that gap grows as ${\approx}\fsPre\,(C/k)^{\fsExp}$ tokens across \fsModels{} models.
 Every prediction was committed before the measurement it predicts.
@@ -65,8 +65,8 @@ point at something the law leaves out.
 expert slots per layer, from exact routing traces and measured bandwidths, reported next to every measured speed
 (\cref{tab:headline}), and a decomposition of the gap into overlap, foresight, policy, GPU efficiency and host work.
 \item \textbf{A system that follows from the law} (\cref{sec:system}): a llama.cpp expert cache whose miss path is
-chosen per machine from the law. It leads FreeToken~\cite{freetoken} at every budget we measured, runs
-\llamaXMin--\llamaXMax$\times$ llama.cpp at equal GPU memory, and an ablation says which parts matter.
+chosen per machine from the law. At equal GPU memory it leads FreeToken~\cite{freetoken} at every budget on two models
+and ties it on a third, runs \llamaXMin--\llamaXMax$\times$ llama.cpp, and an ablation says which parts matter.
 \item \textbf{The value of foresight} (\cref{sec:foresight}): how many host reads knowing future routing would save,
 and how far ahead one must know it, across nine models.
 \end{itemize}
@@ -235,7 +235,12 @@ FreeToken at every budget, by \ftLeadGptMin--\ftLeadGptMax\% on gpt-oss and \ftL
 and runs \llamaXMin--\llamaXMax$\times$ llama.cpp. The lead is largest when many experts miss and the CPU path carries
 them (gpt-oss at 11--25\%). It is smallest at Qwen3 12.5\%, where our cache already reads host memory at \qlowBW\,GB/s,
 \qlowBWpct\% of the machine's combined rate, and at Qwen3 43.75\%, where few experts miss and FreeToken's fused GPU kernels count.
-On FreeToken's own headline model, Qwen3.6-35B-A3B in BF16, \pend{} (job 086).
+On FreeToken's own headline model, Qwen3.6-35B-A3B
+in BF16 (256 experts of 6.3\,MB per layer, hybrid linear attention), the two systems are close: ours leads by
+\qsixFtA{} at 12.5\% and ties at 25 and 37.5\% (\qsixFtB, \qsixFtC), at \qsixLlA--\qsixLlC$\times$ llama.cpp (job 086,
+listing A). FreeToken as shipped, with its automatic backend and cache size, runs this model at \qsixAuto\,tok/s on that
+machine, at the top of the 77--83\,tok/s its paper reports on an RTX 5090, so our setup does not handicap it. Our lead
+is therefore model-dependent: largest with few large experts (gpt-oss, top-4 of 128), smallest with many small ones.
 
 \input{tab_split}
 

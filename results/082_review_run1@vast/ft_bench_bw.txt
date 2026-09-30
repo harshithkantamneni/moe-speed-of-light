@@ -1,0 +1,30 @@
++ cd /work/ft
++ R 25m /work/ft/.venv/bin/ft bench bw
++ local t=25m
++ shift
++ timeout 25m /work/ft/.venv/bin/ft bench bw
+[1m[2026-09-30|08:14:23][0m [32mINFO    [0m benchbw: measuring hardware ceilings on cuda:0 ...
+[1m[2026-09-30|08:14:24][0m [32mINFO    [0m benchbw: dtype bf16 real kernels ...
+[1m[2026-09-30|08:14:30][0m [32mINFO    [0m benchbw: dtype nvfp4 real kernels ...
+[1m[2026-09-30|08:14:34][0m [32mINFO    [0m benchbw: dtype fp8 real kernels ...
+[1m[2026-09-30|08:14:34][0m [32mINFO    [0m benchbw: dtype mxfp4 real kernels ...
+[1m[2026-09-30|08:14:38][0m [32mINFO    [0m benchbw: dtype ds_fp4 real kernels ...
+
+  host 47378cdc9a27   gpu cuda:0 (NVIDIA GeForce RTX 5090)   cpu 16c/16t
+  ceilings: CPU STREAM read 69.1  |  PCIe linear H2D 56.7  D2H 57.4  GB/s   (threshold 2.0x)
+
+  per-dtype (tuning — what the runtime backend pick matches on)
+    format      expert       CPU-MoE   PCIe-gather  CPU/PCIe  backend
+    bf16       9.00 MB     65.9 GB/s     53.7 GB/s     1.23x  offload
+       overlapped: CPU-MoE 41.0 + PCIe 37.6 GB/s -> hybrid fetches 47.9% of misses
+    nvfp4      7.61 MB     60.4 GB/s     53.7 GB/s     1.12x  offload
+       overlapped: CPU-MoE 39.6 + PCIe 36.7 GB/s -> hybrid fetches 48.1% of misses
+    fp8        3.00 MB           n/a     53.7 GB/s         —  offload
+           └─ CPU MoE has no fp8_block weight path; hybrid unavailable
+    mxfp4     12.62 MB     55.7 GB/s     53.7 GB/s     1.04x  offload
+       overlapped: CPU-MoE 34.5 + PCIe 38.0 GB/s -> hybrid fetches 52.4% of misses
+    ds_fp4    12.75 MB     63.4 GB/s     53.5 GB/s     1.19x  offload
+       overlapped: CPU-MoE 39.7 + PCIe 37.9 GB/s -> hybrid fetches 48.8% of misses
+
+  saved: /root/.cache/freetoken/benchbw/GPU-1388b6e4-a172-6a01-5432-9e763ee8fa83.json
+

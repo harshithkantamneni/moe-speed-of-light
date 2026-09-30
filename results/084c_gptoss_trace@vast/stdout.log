@@ -1,0 +1,103 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/084c_gptoss_trace@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=96
+++ NPROC=96
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ usable_cores
+++ python3 -
++ CORES=48
++ tee /w/results/084c_gptoss_trace@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 48 (nproc 96)'
+usable physical cores 48 (nproc 96)
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet numpy
++ mkdir -p /work/models
++ DLG=6034
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j96 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/084c_gptoss_trace@vast/build_lc-ec.txt
++ wait 6034
++ cat /w/results/084c_gptoss_trace@vast/dl_gguf.txt
+++ date +%s
++ t0=1790786322
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+++ date +%s
++ echo 'gguf hf download rc=0 in 656 s'
+gguf hf download rc=0 in 656 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Sep 30 16:49 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ nvidia-smi --query-gpu=name,memory.total,power.limit --format=csv
++ lscpu
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ timeout 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 48 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin
+++ ls -la /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin
++ echo 'lookahead rc=0 -rw-r--r-- 1 root root 17725440 Sep 30 17:01 /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin'
+lookahead rc=0 -rw-r--r-- 1 root root 17725440 Sep 30 17:01 /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin
++ tail -n 3 /w/results/084c_gptoss_trace@vast/la_gptoss.err
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+~llama_context:      CUDA0 compute buffer size is 901.0234 MiB, matches expectation of 901.0234 MiB
+~llama_context:  CUDA_Host compute buffer size is  28.5430 MiB, matches expectation of  28.5430 MiB
++ python3 - /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin /w/results/084c_gptoss_trace@vast/route_aime25_gptoss.npz
+routes (7680, 36, 4) -> /w/results/084c_gptoss_trace@vast/route_aime25_gptoss.npz
++ rm -f /w/results/084c_gptoss_trace@vast/la_aime25_gptoss.bin
++ python3 - /w/results/084c_gptoss_trace@vast
++ tee /w/results/084c_gptoss_trace@vast/summary.txt
+gptoss: teacher-forced own text, 30 sequences, NLL 0.206 nats/token
+routes file: True

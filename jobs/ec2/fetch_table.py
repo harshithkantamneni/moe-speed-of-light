@@ -14,7 +14,9 @@ once, which saves later misses). B_c = CPU read at the helper count, B_p = zero-
 CPU + zero-copy sum (the same reading of concur.txt as law_predict.py). g and L_c are frozen: g = 48 us (Qwen3-30B-A3B
 BF16 expert products per layer on an RTX 5090, job 079 profile), L_c = 20 us (helper hand-off).
 
-    python3 fetch_table.py concur.txt HELPERS EXPERT_BYTES TOPK  ->  prints the table, e.g. 0,0,1,1,2,2,3,4,4
+    python3 fetch_table.py concur.txt HELPERS EXPERT_BYTES TOPK [OUT_JSON [G_US]]  ->  prints the table, e.g. 0,0,1,1,2,3,3,4,5
+G_US defaults to Qwen3's 48 us; gpt-oss-120b (MXFP4, top-4) uses 37 us (two expert products of 17.5 us plus small
+ops per layer, job 069c profile).
 """
 import json
 import re
@@ -64,10 +66,11 @@ def table(S, k, bc, bp, bb, g=G_US, lc=LC_US):
 def main():
     txt = open(sys.argv[1]).read()
     helpers, S, k = int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4])
+    g = float(sys.argv[6]) if len(sys.argv) > 6 else G_US
     bc, bp, bb = bandwidths(txt, helpers)
-    t, c = table(S, k, bc, bp, bb)
+    t, c = table(S, k, bc, bp, bb, g=g)
     print(",".join(map(str, t)))
-    json.dump(dict(B_c=round(bc, 2), B_p=round(bp, 2), B_both=round(bb, 2), g_us=G_US, L_c_us=LC_US, table=t,
+    json.dump(dict(B_c=round(bc, 2), B_p=round(bp, 2), B_both=round(bb, 2), g_us=g, L_c_us=LC_US, table=t,
                    modelled_layer_us=c), open(sys.argv[5] if len(sys.argv) > 5 else "/dev/stderr", "w"), indent=1)
 
 

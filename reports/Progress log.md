@@ -3,6 +3,26 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, morning: the review's run 1 (job `082_review_run1@vast`)
+
+**Setup:** the headline machine; `prereg/run1_outcome_082.md` has the outcome.
+
+- **Long outputs (Qwen3, 2,048 tokens, held-out MATH-500):** ours leads FreeToken by +4.3 / +5.6 / +5.4% over tokens
+  257–2048 (all CIs above 1). Both systems speed up after the first 256 tokens, ours more.
+- **FreeToken's prefill overlap:** turning it off changes nothing, so the review's decode-window threat is refuted
+  where it can be measured.
+- **gpt-oss long runs are not comparable.** The easy prompts end early, `ignore_eos` then forces post-answer text,
+  and ours' hit rate jumps from 58% to 77%. A rerun on hard held-out problems (AIME 2022–2024) is needed.
+- **Ablation at 25%:** stock 40.5 → ours 107.6 tok/s (gpt-oss) and 22.0 → 61.7 (Qwen3).
+  - Dynamic caching gives 2.2–2.3× over a static cache; the decayed-frequency policy +20–27%.
+  - Mailbox, maps, GPU sampling, fixed FETCH and the law's table add 2–10% each.
+  - The static cache is slower than stock.
+- **Teacher-forced parity:** top-1 agreement with stock is 98.6% (gpt-oss) and 99.3% (Qwen3); NLL moves −0.22% and
+  +0.31%. Stock against its own second placement: 99.6% / 99.9%.
+- **Missing Table 1 cells:** llama.cpp Qwen3 at 25% / 43.75% runs 22.1 / 28.4 tok/s, within 3.6 / 4.0% of the law's
+  prediction.
+- **Predictions:** 5 and 6 held; 2, 3 and 4 failed (3 favourably); 1 is not scorable.
+
 ## 30 September, night: the headline table with the law's split (job `081_headline_law@vast`)
 
 **Setup:** RTX 5090 + 9950X3D (the job 080 listing), both models on one machine. The law's table was used at every

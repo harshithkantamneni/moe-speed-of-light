@@ -1,0 +1,1176 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/087_ablation_static@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/087_ablation_static@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32)'
+usable physical cores 16 (nproc 32)
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
++ VE=/work/venv
++ echo 'venv install rc=0'
+venv install rc=0
++ PY=/work/venv/bin/python
++ /work/venv/bin/python -c 'import torch, transformers, huggingface_hub; print(torch.__version__, transformers.__version__)'
++ tee /w/results/087_ablation_static@vast/venv_ok.txt
+2.14.1+cpu 5.18.0
++ mkdir -p /work/models
++ HFD=/work/models/gpt-oss-120b
++ DLG=6214
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6215
++ /work/venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ wc -l /work/aime25.jsonl
++ tee /w/results/087_ablation_static@vast/aime25_count.txt
+30 /work/aime25.jsonl
++ /work/venv/bin/python - /work/warmup.txt
++ cat /w/results/087_ablation_static@vast/warmup_source.txt
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+no math-ai/aime24 test.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd5077-46d7a283665645103b5df1ae;f04cc842-a4ba-4418-82c5-1c7f2dfc4cf6)\n\nEntry Not Found for url: https://huggingface.co/datasets/math
+no HuggingFaceH4/aime_2024 train.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd5077-5f79faca54789ef26eb6d062;6f85cfcb-9b18-494c-9dfc-a9dd3072d984)\n\nEntry Not Found for url: https://huggingface.co/datasets/Hugg
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/087_ablation_static@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/087_ablation_static@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ wait 6214 6215
++ cat /w/results/087_ablation_static@vast/dl_gguf.txt /w/results/087_ablation_static@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790791798
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''openai/gpt-oss-120b'\'', local_dir=sys.argv[1], allow_patterns=['\''*.json'\'', '\''*.jinja'\'', '\''*.txt'\''])' /work/models/gpt-oss-120b
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 10 files:  10%|█         | 1/10 [00:00<00:02,  4.04it/s]Fetching 10 files:  80%|████████  | 8/10 [00:00<00:00, 27.46it/s]Fetching 10 files: 100%|██████████| 10/10 [00:05<00:00,  1.68it/s]
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+++ date +%s
++ echo 'gguf hf download rc=0 in 1341 s'
+gguf hf download rc=0 in 1341 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Sep 30 18:32 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ t0=1790791798
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:06,  4.10it/s]Fetching 26 files:  15%|█▌        | 4/26 [00:00<00:01, 12.92it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:20<00:01, 12.92it/s]Fetching 26 files:  27%|██▋       | 7/26 [05:23<18:17, 57.75s/it]Fetching 26 files:  31%|███       | 8/26 [05:25<13:58, 46.61s/it]Fetching 26 files:  35%|███▍      | 9/26 [05:26<10:17, 36.33s/it]Fetching 26 files:  38%|███▊      | 10/26 [05:30<07:32, 28.29s/it]Fetching 26 files:  42%|████▏     | 11/26 [05:33<05:28, 21.92s/it]Fetching 26 files:  46%|████▌     | 12/26 [05:40<04:09, 17.80s/it]Fetching 26 files:  50%|█████     | 13/26 [05:55<03:42, 17.15s/it]Fetching 26 files:  54%|█████▍    | 14/26 [06:36<04:43, 23.65s/it]Fetching 26 files:  58%|█████▊    | 15/26 [09:12<11:20, 61.88s/it]Fetching 26 files:  62%|██████▏   | 16/26 [09:13<07:21, 44.19s/it]Fetching 26 files:  65%|██████▌   | 17/26 [09:17<04:51, 32.41s/it]Fetching 26 files:  69%|██████▉   | 18/26 [09:17<03:03, 22.90s/it]Fetching 26 files:  73%|███████▎  | 19/26 [09:18<01:53, 16.25s/it]Fetching 26 files:  77%|███████▋  | 20/26 [09:35<01:38, 16.38s/it]Fetching 26 files:  81%|████████  | 21/26 [10:53<02:54, 34.81s/it]Fetching 26 files:  85%|████████▍ | 22/26 [11:09<01:56, 29.22s/it]Fetching 26 files:  88%|████████▊ | 23/26 [11:11<01:03, 21.08s/it]Fetching 26 files:  92%|█████████▏| 24/26 [11:14<00:31, 15.59s/it]Fetching 26 files:  96%|█████████▌| 25/26 [11:18<00:12, 12.32s/it]Fetching 26 files: 100%|██████████| 26/26 [11:20<00:00,  9.19s/it]Fetching 26 files: 100%|██████████| 26/26 [11:20<00:00, 26.18s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 682 s'
+qwen3 hf download rc=0 in 682 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
++ echo 'GGUF ok 63387346208 bytes'
+GGUF ok 63387346208 bytes
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/087_ablation_static@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Sep 30 18:33 /work/models/Qwen3-30B-A3B-BF16.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/087_ablation_static@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/087_ablation_static@vast/concur.txt 14 13253760 4 /w/results/087_ablation_static@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,1,2
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/087_ablation_static@vast/concur.txt 14 9437184 8 /w/results/087_ablation_static@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,1,2,3,3,4,4
++ CURG=0,1,1,2,3
++ CURQ=0,1,1,2,3,3,4,5,6
++ tee /w/results/087_ablation_static@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-09-30T18:34:48Z): gpt-oss 0,0,1,1,2 (fixed 0,1,1,2,3); qwen3 0,0,1,1,2,3,3,4,4 (fixed 0,1,1,2,3,3,4,5,6)'
+law tables (2026-09-30T18:34:48Z): gpt-oss 0,0,1,1,2 (fixed 0,1,1,2,3); qwen3 0,0,1,1,2,3,3,4,4 (fixed 0,1,1,2,3,3,4,5,6)
++ '[' -n 0,0,1,1,2 ']'
++ '[' -n 0,0,1,1,2,3,3,4,4 ']'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ GPUS='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ CPUS='{"min_p": 0.0, "seed": 1234, "backend_sampling": false}'
+++ seq -s, 0 14
++ P15=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
++ LSG='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ ladder g 27 0,0,1,1,2 0,1,1,2,3 /w/jobs/ec2/counts_mathtext_gptoss_C32.json /w/jobs/ec2/counts_aime_gptoss_C32.json /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local p=g n=27 law=0,0,1,1,2 fix=0,1,1,2,3 prof=/w/jobs/ec2/counts_mathtext_gptoss_C32.json hind=/w/jobs/ec2/counts_aime_gptoss_C32.json hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ stock g_abl_0_stock_n27 27 /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ cl /work/models/gpt-oss-120b g_abl_0_stock_n27 '{"system": "llama.cpp", "ncmoe": 27}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_0_stock_n27 'meta={"system": "llama.cpp", "ncmoe": 27}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_0_stock_n27 --meta '{"system": "llama.cpp", "ncmoe": 27}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_0_stock_n27.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_0_stock_n27 --meta '{"system": "llama.cpp", "ncmoe": 27}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_0_stock_n27.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+[bs1] g_abl_0_stock_n27: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port 42095
+[bs1] g_abl_0_stock_n27 problem 0: 39.18 tok/s (25.53 ms/token, p50 25.80 p99 26.93, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 1: 39.18 tok/s (25.52 ms/token, p50 25.78 p99 26.94, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 2: 39.26 tok/s (25.47 ms/token, p50 25.76 p99 26.78, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 3: 39.22 tok/s (25.50 ms/token, p50 25.78 p99 27.29, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 4: 39.34 tok/s (25.42 ms/token, p50 25.69 p99 27.79, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 5: 39.30 tok/s (25.44 ms/token, p50 25.74 p99 26.60, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 6: 39.38 tok/s (25.40 ms/token, p50 25.66 p99 27.13, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 7: 39.22 tok/s (25.49 ms/token, p50 25.77 p99 26.92, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 8: 39.15 tok/s (25.55 ms/token, p50 25.80 p99 27.00, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 9: 39.07 tok/s (25.60 ms/token, p50 25.89 p99 26.93, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 10: 39.21 tok/s (25.50 ms/token, p50 25.79 p99 26.83, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 11: 39.34 tok/s (25.42 ms/token, p50 25.70 p99 26.75, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 12: 39.30 tok/s (25.44 ms/token, p50 25.72 p99 26.67, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 13: 39.32 tok/s (25.43 ms/token, p50 25.71 p99 26.68, 256 tokens)
+[bs1] g_abl_0_stock_n27 problem 14: 39.21 tok/s (25.50 ms/token, p50 25.74 p99 27.67, 256 tokens)
++ echo 'g_abl_0_stock_n27 rc=0'
+g_abl_0_stock_n27 rc=0
++ oursrun g_abl_1a_nocache none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_1a_nocache t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_1a_nocache '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_1a_nocache 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1a_nocache --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1a_nocache --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_1a_nocache: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 58437
+[bs1] g_abl_1a_nocache problem 0: 28.92 tok/s (34.58 ms/token, p50 34.99 p99 36.15, 256 tokens)
+[bs1] g_abl_1a_nocache problem 1: 28.82 tok/s (34.70 ms/token, p50 35.04 p99 36.92, 256 tokens)
+[bs1] g_abl_1a_nocache problem 2: 28.86 tok/s (34.65 ms/token, p50 35.04 p99 36.94, 256 tokens)
+[bs1] g_abl_1a_nocache problem 3: 28.89 tok/s (34.62 ms/token, p50 35.02 p99 36.28, 256 tokens)
+[bs1] g_abl_1a_nocache problem 4: 28.86 tok/s (34.65 ms/token, p50 35.00 p99 36.85, 256 tokens)
+[bs1] g_abl_1a_nocache problem 5: 28.95 tok/s (34.54 ms/token, p50 34.91 p99 36.41, 256 tokens)
+[bs1] g_abl_1a_nocache problem 6: 28.88 tok/s (34.63 ms/token, p50 35.01 p99 35.99, 256 tokens)
+[bs1] g_abl_1a_nocache problem 7: 28.91 tok/s (34.59 ms/token, p50 34.96 p99 37.01, 256 tokens)
+[bs1] g_abl_1a_nocache problem 8: 29.13 tok/s (34.33 ms/token, p50 34.71 p99 36.89, 256 tokens)
+[bs1] g_abl_1a_nocache problem 9: 28.95 tok/s (34.54 ms/token, p50 34.89 p99 36.51, 256 tokens)
+[bs1] g_abl_1a_nocache problem 10: 29.01 tok/s (34.47 ms/token, p50 34.84 p99 36.14, 256 tokens)
+[bs1] g_abl_1a_nocache problem 11: 29.22 tok/s (34.22 ms/token, p50 34.61 p99 35.71, 256 tokens)
+[bs1] g_abl_1a_nocache problem 12: 29.12 tok/s (34.35 ms/token, p50 34.68 p99 36.79, 256 tokens)
+[bs1] g_abl_1a_nocache problem 13: 29.24 tok/s (34.20 ms/token, p50 34.55 p99 35.79, 256 tokens)
+[bs1] g_abl_1a_nocache problem 14: 29.12 tok/s (34.34 ms/token, p50 34.72 p99 36.50, 256 tokens)
++ echo 'g_abl_1a_nocache rc=0'
+g_abl_1a_nocache rc=0
++ oursrun g_abl_1_static none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' /w/jobs/ec2/counts_mathtext_gptoss_C32.json /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_1_static t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=/w/jobs/ec2/counts_mathtext_gptoss_C32.json hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' /w/jobs/ec2/counts_mathtext_gptoss_C32.json '!=' none ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_gptoss_C32.json'
++ cl /work/models/gpt-oss-120b g_abl_1_static '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_gptoss_C32.json"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_1_static 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_gptoss_C32.json"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1_static --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_gptoss_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1_static.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1_static --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_gptoss_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1_static.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_1_static: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 43161
+[bs1] g_abl_1_static problem 0: 61.84 tok/s (16.17 ms/token, p50 15.35 p99 25.11, 256 tokens)
+[bs1] g_abl_1_static problem 1: 52.34 tok/s (19.11 ms/token, p50 18.68 p99 27.12, 256 tokens)
+[bs1] g_abl_1_static problem 2: 54.01 tok/s (18.51 ms/token, p50 17.93 p99 27.67, 256 tokens)
+[bs1] g_abl_1_static problem 3: 57.79 tok/s (17.30 ms/token, p50 16.66 p99 25.91, 256 tokens)
+[bs1] g_abl_1_static problem 4: 50.88 tok/s (19.65 ms/token, p50 20.23 p99 28.44, 256 tokens)
+[bs1] g_abl_1_static problem 5: 50.04 tok/s (19.99 ms/token, p50 20.00 p99 28.58, 256 tokens)
+[bs1] g_abl_1_static problem 6: 44.84 tok/s (22.30 ms/token, p50 23.26 p99 29.02, 256 tokens)
+[bs1] g_abl_1_static problem 7: 53.20 tok/s (18.80 ms/token, p50 18.77 p99 26.48, 256 tokens)
+[bs1] g_abl_1_static problem 8: 53.05 tok/s (18.85 ms/token, p50 18.17 p99 27.81, 256 tokens)
+[bs1] g_abl_1_static problem 9: 45.94 tok/s (21.77 ms/token, p50 22.62 p99 27.19, 256 tokens)
+[bs1] g_abl_1_static problem 10: 51.89 tok/s (19.27 ms/token, p50 18.76 p99 28.86, 256 tokens)
+[bs1] g_abl_1_static problem 11: 56.97 tok/s (17.55 ms/token, p50 16.34 p99 27.00, 256 tokens)
+[bs1] g_abl_1_static problem 12: 42.54 tok/s (23.51 ms/token, p50 24.53 p99 28.38, 256 tokens)
+[bs1] g_abl_1_static problem 13: 41.76 tok/s (23.94 ms/token, p50 24.75 p99 29.14, 256 tokens)
+[bs1] g_abl_1_static problem 14: 52.40 tok/s (19.08 ms/token, p50 18.87 p99 27.83, 256 tokens)
++ echo 'g_abl_1_static rc=0'
+g_abl_1_static rc=0
++ oursrun g_abl_1h_static_hindsight none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' /w/jobs/ec2/counts_aime_gptoss_C32.json /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_1h_static_hindsight t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=/w/jobs/ec2/counts_aime_gptoss_C32.json hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' /w/jobs/ec2/counts_aime_gptoss_C32.json '!=' none ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_gptoss_C32.json'
++ cl /work/models/gpt-oss-120b g_abl_1h_static_hindsight '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_gptoss_C32.json"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_1h_static_hindsight 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_gptoss_C32.json"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1h_static_hindsight --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_gptoss_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_1h_static_hindsight --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_gptoss_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_1h_static_hindsight: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_gptoss_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 53371
+[bs1] g_abl_1h_static_hindsight problem 0: 82.10 tok/s (12.18 ms/token, p50 11.87 p99 21.60, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 1: 76.29 tok/s (13.11 ms/token, p50 12.80 p99 22.28, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 2: 80.50 tok/s (12.42 ms/token, p50 12.07 p99 22.22, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 3: 78.04 tok/s (12.81 ms/token, p50 12.58 p99 21.81, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 4: 77.58 tok/s (12.89 ms/token, p50 12.74 p99 21.61, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 5: 79.60 tok/s (12.56 ms/token, p50 11.79 p99 23.56, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 6: 71.28 tok/s (14.03 ms/token, p50 13.92 p99 22.90, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 7: 85.15 tok/s (11.74 ms/token, p50 11.72 p99 20.61, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 8: 82.15 tok/s (12.17 ms/token, p50 12.03 p99 21.01, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 9: 70.49 tok/s (14.19 ms/token, p50 14.01 p99 23.89, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 10: 82.78 tok/s (12.08 ms/token, p50 11.52 p99 20.62, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 11: 83.71 tok/s (11.95 ms/token, p50 11.63 p99 19.62, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 12: 79.44 tok/s (12.59 ms/token, p50 12.16 p99 20.86, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 13: 78.21 tok/s (12.79 ms/token, p50 12.21 p99 23.42, 256 tokens)
+[bs1] g_abl_1h_static_hindsight problem 14: 80.59 tok/s (12.41 ms/token, p50 11.86 p99 22.88, 256 tokens)
++ echo 'g_abl_1h_static_hindsight rc=0'
+g_abl_1h_static_hindsight rc=0
++ oursrun g_abl_2_lru none lru 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_2_lru t=none pol=lru mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_2_lru '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_2_lru 'meta={"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_2_lru --meta '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_2_lru.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_2_lru --meta '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_2_lru.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_2_lru: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 59045
+[bs1] g_abl_2_lru problem 0: 64.33 tok/s (15.54 ms/token, p50 14.74 p99 28.33, 256 tokens)
+[bs1] g_abl_2_lru problem 1: 64.35 tok/s (15.54 ms/token, p50 14.70 p99 28.39, 256 tokens)
+[bs1] g_abl_2_lru problem 2: 68.16 tok/s (14.67 ms/token, p50 13.88 p99 26.17, 256 tokens)
+[bs1] g_abl_2_lru problem 3: 69.57 tok/s (14.37 ms/token, p50 13.73 p99 26.19, 256 tokens)
+[bs1] g_abl_2_lru problem 4: 61.24 tok/s (16.33 ms/token, p50 15.94 p99 29.17, 256 tokens)
+[bs1] g_abl_2_lru problem 5: 70.45 tok/s (14.19 ms/token, p50 13.29 p99 28.53, 256 tokens)
+[bs1] g_abl_2_lru problem 6: 59.61 tok/s (16.78 ms/token, p50 16.11 p99 31.24, 256 tokens)
+[bs1] g_abl_2_lru problem 7: 65.51 tok/s (15.26 ms/token, p50 14.45 p99 30.55, 256 tokens)
+[bs1] g_abl_2_lru problem 8: 67.25 tok/s (14.87 ms/token, p50 14.30 p99 29.10, 256 tokens)
+[bs1] g_abl_2_lru problem 9: 63.04 tok/s (15.86 ms/token, p50 15.21 p99 28.34, 256 tokens)
+[bs1] g_abl_2_lru problem 10: 63.67 tok/s (15.71 ms/token, p50 15.02 p99 28.97, 256 tokens)
+[bs1] g_abl_2_lru problem 11: 74.52 tok/s (13.42 ms/token, p50 12.94 p99 24.43, 256 tokens)
+[bs1] g_abl_2_lru problem 12: 63.85 tok/s (15.66 ms/token, p50 14.35 p99 29.77, 256 tokens)
+[bs1] g_abl_2_lru problem 13: 78.16 tok/s (12.80 ms/token, p50 12.04 p99 24.91, 256 tokens)
+[bs1] g_abl_2_lru problem 14: 67.62 tok/s (14.79 ms/token, p50 13.93 p99 30.32, 256 tokens)
++ echo 'g_abl_2_lru rc=0'
+g_abl_2_lru rc=0
++ oursrun g_abl_3_dfa none dfa 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_3_dfa t=none pol=dfa mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_3_dfa '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_3_dfa 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_3_dfa --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_3_dfa.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_3_dfa --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_3_dfa.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_3_dfa: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 38745
+[bs1] g_abl_3_dfa problem 0: 84.14 tok/s (11.89 ms/token, p50 10.80 p99 23.26, 256 tokens)
+[bs1] g_abl_3_dfa problem 1: 81.09 tok/s (12.33 ms/token, p50 11.77 p99 22.24, 256 tokens)
+[bs1] g_abl_3_dfa problem 2: 78.75 tok/s (12.70 ms/token, p50 11.98 p99 23.68, 256 tokens)
+[bs1] g_abl_3_dfa problem 3: 82.93 tok/s (12.06 ms/token, p50 11.26 p99 23.43, 256 tokens)
+[bs1] g_abl_3_dfa problem 4: 71.48 tok/s (13.99 ms/token, p50 13.57 p99 28.18, 256 tokens)
+[bs1] g_abl_3_dfa problem 5: 84.62 tok/s (11.82 ms/token, p50 11.12 p99 23.89, 256 tokens)
+[bs1] g_abl_3_dfa problem 6: 76.61 tok/s (13.05 ms/token, p50 12.22 p99 27.97, 256 tokens)
+[bs1] g_abl_3_dfa problem 7: 80.46 tok/s (12.43 ms/token, p50 11.64 p99 25.34, 256 tokens)
+[bs1] g_abl_3_dfa problem 8: 78.88 tok/s (12.68 ms/token, p50 11.98 p99 25.53, 256 tokens)
+[bs1] g_abl_3_dfa problem 9: 77.12 tok/s (12.97 ms/token, p50 12.29 p99 26.68, 256 tokens)
+[bs1] g_abl_3_dfa problem 10: 80.41 tok/s (12.44 ms/token, p50 11.80 p99 24.53, 256 tokens)
+[bs1] g_abl_3_dfa problem 11: 85.83 tok/s (11.65 ms/token, p50 11.25 p99 21.59, 256 tokens)
+[bs1] g_abl_3_dfa problem 12: 81.43 tok/s (12.28 ms/token, p50 11.16 p99 27.22, 256 tokens)
+[bs1] g_abl_3_dfa problem 13: 87.84 tok/s (11.38 ms/token, p50 10.46 p99 23.77, 256 tokens)
+[bs1] g_abl_3_dfa problem 14: 80.66 tok/s (12.40 ms/token, p50 11.96 p99 24.09, 256 tokens)
++ echo 'g_abl_3_dfa rc=0'
+g_abl_3_dfa rc=0
++ oursrun g_abl_4_mailbox none dfa 1 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_4_mailbox t=none pol=dfa mb=1 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_4_mailbox '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_4_mailbox 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_4_mailbox --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_4_mailbox --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_4_mailbox: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 43197
+[bs1] g_abl_4_mailbox problem 0: 89.06 tok/s (11.23 ms/token, p50 10.11 p99 23.68, 256 tokens)
+[bs1] g_abl_4_mailbox problem 1: 91.82 tok/s (10.89 ms/token, p50 9.97 p99 21.88, 256 tokens)
+[bs1] g_abl_4_mailbox problem 2: 87.93 tok/s (11.37 ms/token, p50 10.63 p99 21.41, 256 tokens)
+[bs1] g_abl_4_mailbox problem 3: 91.05 tok/s (10.98 ms/token, p50 10.10 p99 22.17, 256 tokens)
+[bs1] g_abl_4_mailbox problem 4: 78.49 tok/s (12.74 ms/token, p50 12.17 p99 27.53, 256 tokens)
+[bs1] g_abl_4_mailbox problem 5: 90.39 tok/s (11.06 ms/token, p50 10.32 p99 26.76, 256 tokens)
+[bs1] g_abl_4_mailbox problem 6: 84.41 tok/s (11.85 ms/token, p50 10.97 p99 25.27, 256 tokens)
+[bs1] g_abl_4_mailbox problem 7: 88.41 tok/s (11.31 ms/token, p50 10.43 p99 26.18, 256 tokens)
+[bs1] g_abl_4_mailbox problem 8: 85.97 tok/s (11.63 ms/token, p50 11.04 p99 22.68, 256 tokens)
+[bs1] g_abl_4_mailbox problem 9: 84.23 tok/s (11.87 ms/token, p50 11.27 p99 22.06, 256 tokens)
+[bs1] g_abl_4_mailbox problem 10: 86.66 tok/s (11.54 ms/token, p50 11.03 p99 24.15, 256 tokens)
+[bs1] g_abl_4_mailbox problem 11: 91.41 tok/s (10.94 ms/token, p50 10.18 p99 23.08, 256 tokens)
+[bs1] g_abl_4_mailbox problem 12: 82.14 tok/s (12.17 ms/token, p50 11.53 p99 25.48, 256 tokens)
+[bs1] g_abl_4_mailbox problem 13: 89.68 tok/s (11.15 ms/token, p50 10.37 p99 24.12, 256 tokens)
+[bs1] g_abl_4_mailbox problem 14: 87.99 tok/s (11.37 ms/token, p50 10.82 p99 22.87, 256 tokens)
++ echo 'g_abl_4_mailbox rc=0'
+g_abl_4_mailbox rc=0
++ oursrun g_abl_5_mapsgpu none dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_5_mapsgpu t=none pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_5_mapsgpu '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_5_mapsgpu 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_5_mapsgpu --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_5_mapsgpu --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_5_mapsgpu: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 42977
+[bs1] g_abl_5_mapsgpu problem 0: 95.35 tok/s (10.49 ms/token, p50 9.41 p99 22.69, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 1: 94.25 tok/s (10.61 ms/token, p50 9.69 p99 21.54, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 2: 89.99 tok/s (11.11 ms/token, p50 10.33 p99 21.33, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 3: 93.39 tok/s (10.71 ms/token, p50 9.81 p99 21.97, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 4: 79.93 tok/s (12.51 ms/token, p50 12.07 p99 26.17, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 5: 89.48 tok/s (11.18 ms/token, p50 10.26 p99 26.51, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 6: 94.48 tok/s (10.58 ms/token, p50 9.40 p99 23.25, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 7: 90.40 tok/s (11.06 ms/token, p50 10.37 p99 23.48, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 8: 87.44 tok/s (11.44 ms/token, p50 10.93 p99 22.55, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 9: 95.46 tok/s (10.48 ms/token, p50 9.69 p99 22.51, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 10: 87.54 tok/s (11.42 ms/token, p50 10.89 p99 26.80, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 11: 96.91 tok/s (10.32 ms/token, p50 9.58 p99 22.64, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 12: 85.66 tok/s (11.67 ms/token, p50 10.77 p99 25.75, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 13: 99.55 tok/s (10.04 ms/token, p50 9.23 p99 20.58, 256 tokens)
+[bs1] g_abl_5_mapsgpu problem 14: 91.03 tok/s (10.99 ms/token, p50 10.70 p99 22.70, 256 tokens)
++ echo 'g_abl_5_mapsgpu rc=0'
+g_abl_5_mapsgpu rc=0
++ oursrun g_abl_6_gpusample none dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_6_gpusample t=none pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_6_gpusample '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_6_gpusample 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_6_gpusample --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_6_gpusample --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_6_gpusample: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 51909
+[bs1] g_abl_6_gpusample problem 0: 100.70 tok/s (9.93 ms/token, p50 8.80 p99 22.28, 256 tokens)
+[bs1] g_abl_6_gpusample problem 1: 99.24 tok/s (10.08 ms/token, p50 9.23 p99 21.21, 256 tokens)
+[bs1] g_abl_6_gpusample problem 2: 94.99 tok/s (10.53 ms/token, p50 9.78 p99 20.76, 256 tokens)
+[bs1] g_abl_6_gpusample problem 3: 98.42 tok/s (10.16 ms/token, p50 9.28 p99 21.42, 256 tokens)
+[bs1] g_abl_6_gpusample problem 4: 83.61 tok/s (11.96 ms/token, p50 11.49 p99 26.04, 256 tokens)
+[bs1] g_abl_6_gpusample problem 5: 95.42 tok/s (10.48 ms/token, p50 9.69 p99 25.22, 256 tokens)
+[bs1] g_abl_6_gpusample problem 6: 99.60 tok/s (10.04 ms/token, p50 8.90 p99 23.83, 256 tokens)
+[bs1] g_abl_6_gpusample problem 7: 95.72 tok/s (10.45 ms/token, p50 9.71 p99 23.13, 256 tokens)
+[bs1] g_abl_6_gpusample problem 8: 91.72 tok/s (10.90 ms/token, p50 10.42 p99 22.04, 256 tokens)
+[bs1] g_abl_6_gpusample problem 9: 100.75 tok/s (9.93 ms/token, p50 9.11 p99 21.97, 256 tokens)
+[bs1] g_abl_6_gpusample problem 10: 91.46 tok/s (10.93 ms/token, p50 10.40 p99 27.09, 256 tokens)
+[bs1] g_abl_6_gpusample problem 11: 102.93 tok/s (9.72 ms/token, p50 9.01 p99 22.53, 256 tokens)
+[bs1] g_abl_6_gpusample problem 12: 89.32 tok/s (11.20 ms/token, p50 10.24 p99 25.89, 256 tokens)
+[bs1] g_abl_6_gpusample problem 13: 105.39 tok/s (9.49 ms/token, p50 8.66 p99 20.51, 256 tokens)
+[bs1] g_abl_6_gpusample problem 14: 95.88 tok/s (10.43 ms/token, p50 10.16 p99 22.44, 256 tokens)
++ echo 'g_abl_6_gpusample rc=0'
+g_abl_6_gpusample rc=0
++ oursrun g_abl_7_fetchfixed 0,1,1,2,3 dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_7_fetchfixed t=0,1,1,2,3 pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' 0,1,1,2,3 '!=' none ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_7_fetchfixed '{"system": "ours", "C": 32, "table": "0,1,1,2,3", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_7_fetchfixed 'meta={"system": "ours", "C": 32, "table": "0,1,1,2,3", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_7_fetchfixed --meta '{"system": "ours", "C": 32, "table": "0,1,1,2,3", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_7_fetchfixed --meta '{"system": "ours", "C": 32, "table": "0,1,1,2,3", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_7_fetchfixed: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 60067
+[bs1] g_abl_7_fetchfixed problem 0: 102.11 tok/s (9.79 ms/token, p50 9.10 p99 19.51, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 1: 99.22 tok/s (10.08 ms/token, p50 9.71 p99 21.65, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 2: 98.22 tok/s (10.18 ms/token, p50 9.64 p99 19.28, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 3: 98.75 tok/s (10.13 ms/token, p50 9.41 p99 20.41, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 4: 90.36 tok/s (11.07 ms/token, p50 10.75 p99 23.49, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 5: 104.00 tok/s (9.62 ms/token, p50 9.03 p99 22.43, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 6: 103.67 tok/s (9.65 ms/token, p50 8.95 p99 22.85, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 7: 95.97 tok/s (10.42 ms/token, p50 10.06 p99 20.97, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 8: 95.74 tok/s (10.44 ms/token, p50 9.92 p99 21.52, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 9: 102.06 tok/s (9.80 ms/token, p50 9.35 p99 19.56, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 10: 92.07 tok/s (10.86 ms/token, p50 10.64 p99 22.52, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 11: 114.08 tok/s (8.77 ms/token, p50 8.24 p99 17.88, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 12: 95.16 tok/s (10.51 ms/token, p50 9.55 p99 24.63, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 13: 110.35 tok/s (9.06 ms/token, p50 8.51 p99 19.95, 256 tokens)
+[bs1] g_abl_7_fetchfixed problem 14: 98.88 tok/s (10.11 ms/token, p50 9.97 p99 19.57, 256 tokens)
++ echo 'g_abl_7_fetchfixed rc=0'
+g_abl_7_fetchfixed rc=0
++ oursrun g_abl_8_fetchlaw 0,0,1,1,2 dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/gpt-oss-120b '-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local lab=g_abl_8_fetchlaw t=0,0,1,1,2 pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/gpt-oss-120b 'ls=-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' 0,0,1,1,2 '!=' none ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2'
++ '[' none '!=' none ']'
++ cl /work/models/gpt-oss-120b g_abl_8_fetchlaw '{"system": "ours", "C": 32, "table": "0,0,1,1,2", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_abl_8_fetchlaw 'meta={"system": "ours", "C": 32, "table": "0,0,1,1,2", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_8_fetchlaw --meta '{"system": "ours", "C": 32, "table": "0,0,1,1,2", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_abl_8_fetchlaw --meta '{"system": "ours", "C": 32, "table": "0,0,1,1,2", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_abl_8_fetchlaw: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2 /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 58989
+[bs1] g_abl_8_fetchlaw problem 0: 108.92 tok/s (9.18 ms/token, p50 8.46 p99 19.85, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 1: 107.15 tok/s (9.33 ms/token, p50 8.70 p99 17.19, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 2: 102.19 tok/s (9.79 ms/token, p50 9.27 p99 19.16, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 3: 107.71 tok/s (9.28 ms/token, p50 8.64 p99 18.25, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 4: 96.92 tok/s (10.32 ms/token, p50 9.95 p99 20.28, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 5: 107.12 tok/s (9.34 ms/token, p50 8.80 p99 17.34, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 6: 109.88 tok/s (9.10 ms/token, p50 8.45 p99 19.31, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 7: 99.49 tok/s (10.05 ms/token, p50 9.71 p99 21.21, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 8: 101.73 tok/s (9.83 ms/token, p50 9.22 p99 19.60, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 9: 106.30 tok/s (9.41 ms/token, p50 8.86 p99 17.65, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 10: 95.37 tok/s (10.49 ms/token, p50 10.30 p99 20.19, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 11: 117.36 tok/s (8.52 ms/token, p50 8.01 p99 18.66, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 12: 95.89 tok/s (10.43 ms/token, p50 10.01 p99 19.71, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 13: 116.81 tok/s (8.56 ms/token, p50 8.21 p99 18.09, 256 tokens)
+[bs1] g_abl_8_fetchlaw problem 14: 104.49 tok/s (9.57 ms/token, p50 9.37 p99 18.12, 256 tokens)
++ echo 'g_abl_8_fetchlaw rc=0'
+g_abl_8_fetchlaw rc=0
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ LSQ='-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ ladder q 36 0,0,1,1,2,3,3,4,4 0,1,1,2,3,3,4,5,6 /w/jobs/ec2/counts_mathtext_qwen3_C32.json /w/jobs/ec2/counts_aime_qwen3_C32.json /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local p=q n=36 law=0,0,1,1,2,3,3,4,4 fix=0,1,1,2,3,3,4,5,6 prof=/w/jobs/ec2/counts_mathtext_qwen3_C32.json hind=/w/jobs/ec2/counts_aime_qwen3_C32.json hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ stock q_abl_0_stock_n36 36 /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ cl /work/models/Qwen3-30B-A3B q_abl_0_stock_n36 '{"system": "llama.cpp", "ncmoe": 36}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ncmoe 36 --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_0_stock_n36 'meta={"system": "llama.cpp", "ncmoe": 36}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_0_stock_n36 --meta '{"system": "llama.cpp", "ncmoe": 36}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_0_stock_n36.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ncmoe 36 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_0_stock_n36 --meta '{"system": "llama.cpp", "ncmoe": 36}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_0_stock_n36.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ncmoe 36 --port {port}'
+[bs1] q_abl_0_stock_n36: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ncmoe 36 --port 44129
+[bs1] q_abl_0_stock_n36 problem 0: 21.73 tok/s (46.02 ms/token, p50 46.34 p99 48.06, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 1: 21.78 tok/s (45.92 ms/token, p50 46.21 p99 47.34, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 2: 21.79 tok/s (45.90 ms/token, p50 46.17 p99 48.06, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 3: 21.73 tok/s (46.02 ms/token, p50 46.16 p99 49.62, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 4: 21.78 tok/s (45.91 ms/token, p50 46.22 p99 48.16, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 5: 21.76 tok/s (45.95 ms/token, p50 46.25 p99 48.26, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 6: 21.67 tok/s (46.15 ms/token, p50 46.28 p99 49.05, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 7: 21.82 tok/s (45.83 ms/token, p50 46.13 p99 47.88, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 8: 21.73 tok/s (46.01 ms/token, p50 46.31 p99 92.74, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 9: 21.77 tok/s (45.94 ms/token, p50 46.25 p99 47.40, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 10: 21.74 tok/s (46.01 ms/token, p50 46.30 p99 48.17, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 11: 21.80 tok/s (45.88 ms/token, p50 46.20 p99 47.46, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 12: 21.77 tok/s (45.93 ms/token, p50 46.19 p99 47.72, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 13: 21.80 tok/s (45.88 ms/token, p50 46.20 p99 48.05, 256 tokens)
+[bs1] q_abl_0_stock_n36 problem 14: 21.79 tok/s (45.90 ms/token, p50 46.20 p99 47.99, 256 tokens)
++ echo 'q_abl_0_stock_n36 rc=0'
+q_abl_0_stock_n36 rc=0
++ oursrun q_abl_1a_nocache none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_1a_nocache t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_1a_nocache '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_1a_nocache 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1a_nocache --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1a_nocache --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_1a_nocache: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37215
+[bs1] q_abl_1a_nocache problem 0: 16.38 tok/s (61.06 ms/token, p50 61.46 p99 63.39, 256 tokens)
+[bs1] q_abl_1a_nocache problem 1: 16.37 tok/s (61.07 ms/token, p50 61.45 p99 63.24, 256 tokens)
+[bs1] q_abl_1a_nocache problem 2: 16.37 tok/s (61.07 ms/token, p50 61.47 p99 62.81, 256 tokens)
+[bs1] q_abl_1a_nocache problem 3: 16.34 tok/s (61.19 ms/token, p50 61.59 p99 64.18, 256 tokens)
+[bs1] q_abl_1a_nocache problem 4: 16.34 tok/s (61.21 ms/token, p50 61.62 p99 63.06, 256 tokens)
+[bs1] q_abl_1a_nocache problem 5: 16.34 tok/s (61.20 ms/token, p50 61.60 p99 64.25, 256 tokens)
+[bs1] q_abl_1a_nocache problem 6: 16.32 tok/s (61.26 ms/token, p50 61.61 p99 64.81, 256 tokens)
+[bs1] q_abl_1a_nocache problem 7: 16.33 tok/s (61.22 ms/token, p50 61.60 p99 64.21, 256 tokens)
+[bs1] q_abl_1a_nocache problem 8: 16.35 tok/s (61.18 ms/token, p50 61.61 p99 123.23, 256 tokens)
+[bs1] q_abl_1a_nocache problem 9: 16.29 tok/s (61.39 ms/token, p50 61.62 p99 65.29, 256 tokens)
+[bs1] q_abl_1a_nocache problem 10: 16.29 tok/s (61.38 ms/token, p50 61.64 p99 64.69, 256 tokens)
+[bs1] q_abl_1a_nocache problem 11: 16.37 tok/s (61.10 ms/token, p50 61.53 p99 62.96, 256 tokens)
+[bs1] q_abl_1a_nocache problem 12: 16.36 tok/s (61.12 ms/token, p50 61.53 p99 64.05, 256 tokens)
+[bs1] q_abl_1a_nocache problem 13: 16.36 tok/s (61.11 ms/token, p50 61.53 p99 63.07, 256 tokens)
+[bs1] q_abl_1a_nocache problem 14: 16.36 tok/s (61.13 ms/token, p50 61.53 p99 64.05, 256 tokens)
++ echo 'q_abl_1a_nocache rc=0'
+q_abl_1a_nocache rc=0
++ oursrun q_abl_1_static none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' /w/jobs/ec2/counts_mathtext_qwen3_C32.json /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_1_static t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=/w/jobs/ec2/counts_mathtext_qwen3_C32.json hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' /w/jobs/ec2/counts_mathtext_qwen3_C32.json '!=' none ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_qwen3_C32.json'
++ cl /work/models/Qwen3-30B-A3B q_abl_1_static '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_qwen3_C32.json"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_1_static 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_qwen3_C32.json"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1_static --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_qwen3_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1_static.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1_static --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_mathtext_qwen3_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1_static.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_1_static: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1_static.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_mathtext_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 56909
+[bs1] q_abl_1_static problem 0: 42.16 tok/s (23.72 ms/token, p50 23.40 p99 39.71, 256 tokens)
+[bs1] q_abl_1_static problem 1: 43.51 tok/s (22.98 ms/token, p50 23.11 p99 35.87, 256 tokens)
+[bs1] q_abl_1_static problem 2: 33.90 tok/s (29.50 ms/token, p50 29.46 p99 47.26, 256 tokens)
+[bs1] q_abl_1_static problem 3: 43.93 tok/s (22.76 ms/token, p50 22.11 p99 38.38, 256 tokens)
+[bs1] q_abl_1_static problem 4: 41.23 tok/s (24.25 ms/token, p50 24.95 p99 38.59, 256 tokens)
+[bs1] q_abl_1_static problem 5: 37.73 tok/s (26.50 ms/token, p50 26.68 p99 43.92, 256 tokens)
+[bs1] q_abl_1_static problem 6: 34.96 tok/s (28.60 ms/token, p50 29.08 p99 40.28, 256 tokens)
+[bs1] q_abl_1_static problem 7: 46.87 tok/s (21.34 ms/token, p50 20.71 p99 36.15, 256 tokens)
+[bs1] q_abl_1_static problem 8: 43.62 tok/s (22.93 ms/token, p50 22.93 p99 43.93, 256 tokens)
+[bs1] q_abl_1_static problem 9: 39.65 tok/s (25.22 ms/token, p50 25.85 p99 37.75, 256 tokens)
+[bs1] q_abl_1_static problem 10: 43.96 tok/s (22.75 ms/token, p50 22.62 p99 40.30, 256 tokens)
+[bs1] q_abl_1_static problem 11: 43.35 tok/s (23.07 ms/token, p50 22.47 p99 38.88, 256 tokens)
+[bs1] q_abl_1_static problem 12: 38.56 tok/s (25.93 ms/token, p50 27.07 p99 41.37, 256 tokens)
+[bs1] q_abl_1_static problem 13: 39.00 tok/s (25.64 ms/token, p50 25.68 p99 42.44, 256 tokens)
+[bs1] q_abl_1_static problem 14: 44.08 tok/s (22.69 ms/token, p50 23.05 p99 38.94, 256 tokens)
++ echo 'q_abl_1_static rc=0'
+q_abl_1_static rc=0
++ oursrun q_abl_1h_static_hindsight none static 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' /w/jobs/ec2/counts_aime_qwen3_C32.json /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_1h_static_hindsight t=none pol=static mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=/w/jobs/ec2/counts_aime_qwen3_C32.json hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' /w/jobs/ec2/counts_aime_qwen3_C32.json '!=' none ']'
++ e='env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_qwen3_C32.json'
++ cl /work/models/Qwen3-30B-A3B q_abl_1h_static_hindsight '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_qwen3_C32.json"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_1h_static_hindsight 'meta={"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_qwen3_C32.json"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1h_static_hindsight --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_qwen3_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_1h_static_hindsight --meta '{"system": "ours", "C": 32, "table": "none", "policy": "static", "mailbox": 0, "maps_gpu": 0, "init": "/w/jobs/ec2/counts_aime_qwen3_C32.json"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_1h_static_hindsight: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=static LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.json LLAMA_EC_MAPS_CPU=1 LLAMA_EC_INIT=/w/jobs/ec2/counts_aime_qwen3_C32.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 59143
+[bs1] q_abl_1h_static_hindsight problem 0: 42.68 tok/s (23.43 ms/token, p50 22.71 p99 44.32, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 1: 43.62 tok/s (22.93 ms/token, p50 22.10 p99 39.79, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 2: 43.56 tok/s (22.95 ms/token, p50 22.07 p99 45.40, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 3: 42.15 tok/s (23.72 ms/token, p50 23.65 p99 42.25, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 4: 45.86 tok/s (21.80 ms/token, p50 21.23 p99 36.94, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 5: 44.69 tok/s (22.37 ms/token, p50 21.81 p99 42.08, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 6: 46.31 tok/s (21.60 ms/token, p50 20.97 p99 34.76, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 7: 49.95 tok/s (20.02 ms/token, p50 19.06 p99 36.59, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 8: 44.12 tok/s (22.67 ms/token, p50 21.25 p99 56.71, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 9: 49.33 tok/s (20.27 ms/token, p50 19.20 p99 36.26, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 10: 50.63 tok/s (19.75 ms/token, p50 18.90 p99 37.94, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 11: 50.78 tok/s (19.69 ms/token, p50 18.96 p99 32.82, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 12: 50.55 tok/s (19.78 ms/token, p50 19.03 p99 37.26, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 13: 47.03 tok/s (21.26 ms/token, p50 20.32 p99 43.45, 256 tokens)
+[bs1] q_abl_1h_static_hindsight problem 14: 48.81 tok/s (20.49 ms/token, p50 19.58 p99 39.48, 256 tokens)
++ echo 'q_abl_1h_static_hindsight rc=0'
+q_abl_1h_static_hindsight rc=0
++ oursrun q_abl_2_lru none lru 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_2_lru t=none pol=lru mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_2_lru '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_2_lru 'meta={"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_2_lru --meta '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_2_lru.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_2_lru --meta '{"system": "ours", "C": 32, "table": "none", "policy": "lru", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_2_lru.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_2_lru: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=lru LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_2_lru.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 51235
+[bs1] q_abl_2_lru problem 0: 32.43 tok/s (30.84 ms/token, p50 30.25 p99 53.22, 256 tokens)
+[bs1] q_abl_2_lru problem 1: 34.89 tok/s (28.66 ms/token, p50 27.88 p99 51.69, 256 tokens)
+[bs1] q_abl_2_lru problem 2: 34.77 tok/s (28.76 ms/token, p50 27.22 p99 61.16, 256 tokens)
+[bs1] q_abl_2_lru problem 3: 35.49 tok/s (28.18 ms/token, p50 27.23 p99 57.25, 256 tokens)
+[bs1] q_abl_2_lru problem 4: 32.50 tok/s (30.77 ms/token, p50 30.30 p99 48.99, 256 tokens)
+[bs1] q_abl_2_lru problem 5: 36.13 tok/s (27.68 ms/token, p50 27.14 p99 51.30, 256 tokens)
+[bs1] q_abl_2_lru problem 6: 36.53 tok/s (27.38 ms/token, p50 25.95 p99 49.39, 256 tokens)
+[bs1] q_abl_2_lru problem 7: 37.22 tok/s (26.87 ms/token, p50 26.55 p99 49.03, 256 tokens)
+[bs1] q_abl_2_lru problem 8: 36.03 tok/s (27.75 ms/token, p50 26.47 p99 59.04, 256 tokens)
+[bs1] q_abl_2_lru problem 9: 37.68 tok/s (26.54 ms/token, p50 25.35 p99 55.63, 256 tokens)
+[bs1] q_abl_2_lru problem 10: 35.63 tok/s (28.07 ms/token, p50 27.31 p99 46.35, 256 tokens)
+[bs1] q_abl_2_lru problem 11: 37.91 tok/s (26.38 ms/token, p50 25.08 p99 48.55, 256 tokens)
+[bs1] q_abl_2_lru problem 12: 39.15 tok/s (25.54 ms/token, p50 23.57 p99 58.28, 256 tokens)
+[bs1] q_abl_2_lru problem 13: 36.28 tok/s (27.56 ms/token, p50 26.69 p99 52.83, 256 tokens)
+[bs1] q_abl_2_lru problem 14: 37.77 tok/s (26.48 ms/token, p50 25.98 p99 53.10, 256 tokens)
++ echo 'q_abl_2_lru rc=0'
+q_abl_2_lru rc=0
++ oursrun q_abl_3_dfa none dfa 0 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_3_dfa t=none pol=dfa mb=0 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json'
++ '[' 0 = 1 ']'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_3_dfa '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_3_dfa 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_3_dfa --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_3_dfa.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_3_dfa --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 0, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_3_dfa.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_3_dfa: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_3_dfa.json LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 38587
+[bs1] q_abl_3_dfa problem 0: 43.27 tok/s (23.11 ms/token, p50 22.61 p99 43.17, 256 tokens)
+[bs1] q_abl_3_dfa problem 1: 47.52 tok/s (21.04 ms/token, p50 19.93 p99 42.27, 256 tokens)
+[bs1] q_abl_3_dfa problem 2: 43.82 tok/s (22.82 ms/token, p50 21.08 p99 49.90, 256 tokens)
+[bs1] q_abl_3_dfa problem 3: 45.27 tok/s (22.09 ms/token, p50 21.50 p99 41.33, 256 tokens)
+[bs1] q_abl_3_dfa problem 4: 44.13 tok/s (22.66 ms/token, p50 21.71 p99 40.54, 256 tokens)
+[bs1] q_abl_3_dfa problem 5: 46.63 tok/s (21.44 ms/token, p50 20.61 p99 41.45, 256 tokens)
+[bs1] q_abl_3_dfa problem 6: 47.89 tok/s (20.88 ms/token, p50 19.40 p99 42.58, 256 tokens)
+[bs1] q_abl_3_dfa problem 7: 46.26 tok/s (21.62 ms/token, p50 20.48 p99 42.27, 256 tokens)
+[bs1] q_abl_3_dfa problem 8: 45.58 tok/s (21.94 ms/token, p50 21.09 p99 49.24, 256 tokens)
+[bs1] q_abl_3_dfa problem 9: 47.09 tok/s (21.24 ms/token, p50 19.74 p99 43.85, 256 tokens)
+[bs1] q_abl_3_dfa problem 10: 45.49 tok/s (21.98 ms/token, p50 21.23 p99 39.78, 256 tokens)
+[bs1] q_abl_3_dfa problem 11: 47.90 tok/s (20.88 ms/token, p50 20.27 p99 37.98, 256 tokens)
+[bs1] q_abl_3_dfa problem 12: 51.57 tok/s (19.39 ms/token, p50 17.80 p99 43.31, 256 tokens)
+[bs1] q_abl_3_dfa problem 13: 45.08 tok/s (22.18 ms/token, p50 21.31 p99 44.31, 256 tokens)
+[bs1] q_abl_3_dfa problem 14: 45.16 tok/s (22.14 ms/token, p50 21.72 p99 41.84, 256 tokens)
++ echo 'q_abl_3_dfa rc=0'
+q_abl_3_dfa rc=0
++ oursrun q_abl_4_mailbox none dfa 1 0 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_4_mailbox t=none pol=dfa mb=1 mg=0 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 0 = 0 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_4_mailbox '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_4_mailbox 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_4_mailbox --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_4_mailbox --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 0, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_4_mailbox: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_MAPS_CPU=1 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 49353
+[bs1] q_abl_4_mailbox problem 0: 47.14 tok/s (21.21 ms/token, p50 20.98 p99 39.94, 256 tokens)
+[bs1] q_abl_4_mailbox problem 1: 51.93 tok/s (19.26 ms/token, p50 18.24 p99 39.32, 256 tokens)
+[bs1] q_abl_4_mailbox problem 2: 48.53 tok/s (20.61 ms/token, p50 18.74 p99 47.77, 256 tokens)
+[bs1] q_abl_4_mailbox problem 3: 48.62 tok/s (20.57 ms/token, p50 20.09 p99 39.73, 256 tokens)
+[bs1] q_abl_4_mailbox problem 4: 47.12 tok/s (21.22 ms/token, p50 20.38 p99 38.61, 256 tokens)
+[bs1] q_abl_4_mailbox problem 5: 49.78 tok/s (20.09 ms/token, p50 19.30 p99 39.73, 256 tokens)
+[bs1] q_abl_4_mailbox problem 6: 51.42 tok/s (19.45 ms/token, p50 17.95 p99 40.90, 256 tokens)
+[bs1] q_abl_4_mailbox problem 7: 49.88 tok/s (20.05 ms/token, p50 18.94 p99 40.98, 256 tokens)
+[bs1] q_abl_4_mailbox problem 8: 48.78 tok/s (20.50 ms/token, p50 19.69 p99 46.33, 256 tokens)
+[bs1] q_abl_4_mailbox problem 9: 50.42 tok/s (19.83 ms/token, p50 18.28 p99 42.65, 256 tokens)
+[bs1] q_abl_4_mailbox problem 10: 48.67 tok/s (20.55 ms/token, p50 19.85 p99 38.05, 256 tokens)
+[bs1] q_abl_4_mailbox problem 11: 51.39 tok/s (19.46 ms/token, p50 18.50 p99 37.50, 256 tokens)
+[bs1] q_abl_4_mailbox problem 12: 54.44 tok/s (18.37 ms/token, p50 16.63 p99 39.93, 256 tokens)
+[bs1] q_abl_4_mailbox problem 13: 48.55 tok/s (20.60 ms/token, p50 19.82 p99 42.78, 256 tokens)
+[bs1] q_abl_4_mailbox problem 14: 48.40 tok/s (20.66 ms/token, p50 20.37 p99 40.56, 256 tokens)
++ echo 'q_abl_4_mailbox rc=0'
+q_abl_4_mailbox rc=0
++ oursrun q_abl_5_mapsgpu none dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_5_mapsgpu t=none pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": false}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_5_mapsgpu '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_5_mapsgpu 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_5_mapsgpu --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_5_mapsgpu --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": false}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_5_mapsgpu: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 47221
+[bs1] q_abl_5_mapsgpu problem 0: 48.25 tok/s (20.73 ms/token, p50 20.56 p99 39.80, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 1: 52.71 tok/s (18.97 ms/token, p50 17.95 p99 38.98, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 2: 49.20 tok/s (20.33 ms/token, p50 18.56 p99 47.39, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 3: 49.59 tok/s (20.16 ms/token, p50 19.54 p99 39.26, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 4: 47.93 tok/s (20.86 ms/token, p50 20.05 p99 38.15, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 5: 50.79 tok/s (19.69 ms/token, p50 18.90 p99 39.42, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 6: 52.52 tok/s (19.04 ms/token, p50 17.50 p99 40.51, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 7: 50.87 tok/s (19.66 ms/token, p50 18.55 p99 40.59, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 8: 49.72 tok/s (20.11 ms/token, p50 19.39 p99 45.55, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 9: 51.71 tok/s (19.34 ms/token, p50 17.58 p99 41.99, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 10: 49.75 tok/s (20.10 ms/token, p50 19.20 p99 37.48, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 11: 52.33 tok/s (19.11 ms/token, p50 18.22 p99 37.19, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 12: 55.59 tok/s (17.99 ms/token, p50 16.25 p99 40.61, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 13: 49.42 tok/s (20.24 ms/token, p50 19.49 p99 42.43, 256 tokens)
+[bs1] q_abl_5_mapsgpu problem 14: 49.32 tok/s (20.28 ms/token, p50 19.90 p99 40.38, 256 tokens)
++ echo 'q_abl_5_mapsgpu rc=0'
+q_abl_5_mapsgpu rc=0
++ oursrun q_abl_6_gpusample none dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_6_gpusample t=none pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' none '!=' none ']'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_6_gpusample '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_6_gpusample 'meta={"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_6_gpusample --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_6_gpusample --meta '{"system": "ours", "C": 32, "table": "none", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_6_gpusample: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 38377
+[bs1] q_abl_6_gpusample problem 0: 49.95 tok/s (20.02 ms/token, p50 19.74 p99 39.41, 256 tokens)
+[bs1] q_abl_6_gpusample problem 1: 53.36 tok/s (18.74 ms/token, p50 17.66 p99 39.94, 256 tokens)
+[bs1] q_abl_6_gpusample problem 2: 49.79 tok/s (20.08 ms/token, p50 18.26 p99 47.54, 256 tokens)
+[bs1] q_abl_6_gpusample problem 3: 50.48 tok/s (19.81 ms/token, p50 19.27 p99 40.31, 256 tokens)
+[bs1] q_abl_6_gpusample problem 4: 49.32 tok/s (20.28 ms/token, p50 19.41 p99 38.03, 256 tokens)
+[bs1] q_abl_6_gpusample problem 5: 52.34 tok/s (19.10 ms/token, p50 18.26 p99 38.85, 256 tokens)
+[bs1] q_abl_6_gpusample problem 6: 53.98 tok/s (18.53 ms/token, p50 17.09 p99 40.75, 256 tokens)
+[bs1] q_abl_6_gpusample problem 7: 52.71 tok/s (18.97 ms/token, p50 17.39 p99 40.15, 256 tokens)
+[bs1] q_abl_6_gpusample problem 8: 51.13 tok/s (19.56 ms/token, p50 18.91 p99 41.56, 256 tokens)
+[bs1] q_abl_6_gpusample problem 9: 53.34 tok/s (18.75 ms/token, p50 17.24 p99 41.53, 256 tokens)
+[bs1] q_abl_6_gpusample problem 10: 50.94 tok/s (19.63 ms/token, p50 18.65 p99 37.05, 256 tokens)
+[bs1] q_abl_6_gpusample problem 11: 54.23 tok/s (18.44 ms/token, p50 17.78 p99 36.45, 256 tokens)
+[bs1] q_abl_6_gpusample problem 12: 57.74 tok/s (17.32 ms/token, p50 15.64 p99 41.25, 256 tokens)
+[bs1] q_abl_6_gpusample problem 13: 50.40 tok/s (19.84 ms/token, p50 19.04 p99 41.89, 256 tokens)
+[bs1] q_abl_6_gpusample problem 14: 50.33 tok/s (19.87 ms/token, p50 19.62 p99 39.74, 256 tokens)
++ echo 'q_abl_6_gpusample rc=0'
+q_abl_6_gpusample rc=0
++ oursrun q_abl_7_fetchfixed 0,1,1,2,3,3,4,5,6 dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_7_fetchfixed t=0,1,1,2,3,3,4,5,6 pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' 0,1,1,2,3,3,4,5,6 '!=' none ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_7_fetchfixed '{"system": "ours", "C": 32, "table": "0,1,1,2,3,3,4,5,6", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_7_fetchfixed 'meta={"system": "ours", "C": 32, "table": "0,1,1,2,3,3,4,5,6", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_7_fetchfixed --meta '{"system": "ours", "C": 32, "table": "0,1,1,2,3,3,4,5,6", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_7_fetchfixed --meta '{"system": "ours", "C": 32, "table": "0,1,1,2,3,3,4,5,6", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_7_fetchfixed: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 47553
+[bs1] q_abl_7_fetchfixed problem 0: 52.00 tok/s (19.23 ms/token, p50 18.80 p99 35.55, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 1: 56.83 tok/s (17.60 ms/token, p50 17.06 p99 32.18, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 2: 53.76 tok/s (18.60 ms/token, p50 17.38 p99 42.75, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 3: 56.17 tok/s (17.80 ms/token, p50 16.82 p99 37.22, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 4: 52.66 tok/s (18.99 ms/token, p50 18.81 p99 32.83, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 5: 56.87 tok/s (17.58 ms/token, p50 16.83 p99 31.48, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 6: 57.98 tok/s (17.25 ms/token, p50 16.02 p99 33.35, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 7: 57.89 tok/s (17.27 ms/token, p50 16.37 p99 31.03, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 8: 55.99 tok/s (17.86 ms/token, p50 17.34 p99 36.36, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 9: 59.27 tok/s (16.87 ms/token, p50 16.28 p99 35.98, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 10: 55.70 tok/s (17.95 ms/token, p50 17.79 p99 33.94, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 11: 57.80 tok/s (17.30 ms/token, p50 16.76 p99 30.15, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 12: 62.44 tok/s (16.01 ms/token, p50 14.99 p99 33.33, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 13: 56.08 tok/s (17.83 ms/token, p50 16.74 p99 36.36, 256 tokens)
+[bs1] q_abl_7_fetchfixed problem 14: 58.07 tok/s (17.22 ms/token, p50 16.57 p99 34.63, 256 tokens)
++ echo 'q_abl_7_fetchfixed rc=0'
+q_abl_7_fetchfixed rc=0
++ oursrun q_abl_8_fetchlaw 0,0,1,1,2,3,3,4,4 dfa 1 1 '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' none /work/models/Qwen3-30B-A3B '-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local lab=q_abl_8_fetchlaw t=0,0,1,1,2,3,3,4,4 pol=dfa mb=1 mg=1 'samp={"min_p": 0.0, "seed": 1234, "backend_sampling": true}' init=none hf=/work/models/Qwen3-30B-A3B 'ls=-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja'
++ local 'e=env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json'
++ '[' 1 = 1 ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14'
++ '[' 1 = 0 ']'
++ '[' 0,0,1,1,2,3,3,4,4 '!=' none ']'
++ e='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4'
++ '[' none '!=' none ']'
++ cl /work/models/Qwen3-30B-A3B q_abl_8_fetchlaw '{"system": "ours", "C": 32, "table": "0,0,1,1,2,3,3,4,4", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_abl_8_fetchlaw 'meta={"system": "ours", "C": 32, "table": "0,0,1,1,2,3,3,4,4", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_8_fetchlaw --meta '{"system": "ours", "C": 32, "table": "0,0,1,1,2,3,3,4,4", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_abl_8_fetchlaw --meta '{"system": "ours", "C": 32, "table": "0,0,1,1,2,3,3,4,4", "policy": "dfa", "mailbox": 1, "maps_gpu": 1, "init": "none"}' --json /w/results/087_ablation_static@vast/bs1.jsonl --log /w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_abl_8_fetchlaw: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_TDEC=1 LLAMA_EC_SLOTS=32 LLAMA_EC_STATS=/w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.json LLAMA_EC_MAILBOX=1 LLAMA_EC_HELPERS=14 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 4096 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 41715
+[bs1] q_abl_8_fetchlaw problem 0: 55.74 tok/s (17.94 ms/token, p50 17.49 p99 32.70, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 1: 61.48 tok/s (16.27 ms/token, p50 15.76 p99 29.50, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 2: 60.06 tok/s (16.65 ms/token, p50 15.06 p99 40.94, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 3: 60.13 tok/s (16.63 ms/token, p50 15.56 p99 35.27, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 4: 57.36 tok/s (17.43 ms/token, p50 17.13 p99 29.58, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 5: 61.55 tok/s (16.25 ms/token, p50 15.61 p99 28.22, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 6: 62.71 tok/s (15.95 ms/token, p50 14.83 p99 32.33, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 7: 62.52 tok/s (15.99 ms/token, p50 14.94 p99 29.25, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 8: 60.24 tok/s (16.60 ms/token, p50 15.87 p99 33.36, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 9: 65.13 tok/s (15.35 ms/token, p50 14.65 p99 33.12, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 10: 59.74 tok/s (16.74 ms/token, p50 16.55 p99 30.93, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 11: 63.29 tok/s (15.80 ms/token, p50 15.49 p99 28.38, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 12: 66.18 tok/s (15.11 ms/token, p50 14.06 p99 30.62, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 13: 60.42 tok/s (16.55 ms/token, p50 15.67 p99 34.19, 256 tokens)
+[bs1] q_abl_8_fetchlaw problem 14: 62.32 tok/s (16.05 ms/token, p50 15.32 p99 31.65, 256 tokens)
++ echo 'q_abl_8_fetchlaw rc=0'
+q_abl_8_fetchlaw rc=0
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_0_stock_n27.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_1_static.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_1a_nocache.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_1h_static_hindsight.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_2_lru.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_3_dfa.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_4_mailbox.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_5_mapsgpu.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_6_gpusample.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_7_fetchfixed.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_g_abl_8_fetchlaw.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_0_stock_n36.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_1_static.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_1a_nocache.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_1h_static_hindsight.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_2_lru.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_3_dfa.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_4_mailbox.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_5_mapsgpu.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_6_gpusample.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_7_fetchfixed.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/087_ablation_static@vast/srv_q_abl_8_fetchlaw.log
++ find /w/results/087_ablation_static@vast -name 'srv_*.log' -delete
++ /work/venv/bin/python - /w/results/087_ablation_static@vast
++ tee /w/results/087_ablation_static@vast/summary.txt
+g_abl_0_stock_n27                  39.24 tok/s (n=15)
+g_abl_1a_nocache                   28.99 tok/s (n=15)  hit 0.000
+g_abl_1_static                     51.30 tok/s (n=15)  hit 0.521
+g_abl_1h_static_hindsight          79.19 tok/s (n=15)  hit 0.749
+g_abl_2_lru                        66.75 tok/s (n=15)  hit 0.768
+g_abl_3_dfa                        80.82 tok/s (n=15)  hit 0.783
+g_abl_4_mailbox                    87.31 tok/s (n=15)  hit 0.781
+g_abl_5_mapsgpu                    91.39 tok/s (n=15)  hit 0.785
+g_abl_6_gpusample                  96.34 tok/s (n=15)  hit 0.785
+g_abl_7_fetchfixed                100.04 tok/s (n=15)  hit 0.799
+g_abl_8_fetchlaw                  105.15 tok/s (n=15)  hit 0.790
+q_abl_0_stock_n36                  21.76 tok/s (n=15)
+q_abl_1a_nocache                   16.35 tok/s (n=15)  hit 0.000
+q_abl_1_static                     41.10 tok/s (n=15)  hit 0.669
+q_abl_1h_static_hindsight          46.67 tok/s (n=15)  hit 0.717
+q_abl_2_lru                        36.03 tok/s (n=15)  hit 0.731
+q_abl_3_dfa                        46.18 tok/s (n=15)  hit 0.743
+q_abl_4_mailbox                    49.67 tok/s (n=15)  hit 0.743
+q_abl_5_mapsgpu                    50.65 tok/s (n=15)  hit 0.743
+q_abl_6_gpusample                  52.00 tok/s (n=15)  hit 0.743
+q_abl_7_fetchfixed                 56.63 tok/s (n=15)  hit 0.780
+q_abl_8_fetchlaw                   61.26 tok/s (n=15)  hit 0.769

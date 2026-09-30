@@ -1,4 +1,4 @@
-# Jobs 085 and 085b: the contrasting machines (PCIe 4.0-class links) — predictions and outcome
+# Jobs 085 and 085b: the contrasting machines (host links measured at about 27 GB/s) — predictions and outcome
 
 The predictions are in the header of `jobs/085_half_pcie@vast.sh` (gpu branch commits 7a4f502 and 4f0ef91, pushed before
 launch). Job 085b carries them over for Qwen3 (commit of `jobs/085b_half_pcie_qwen3@vast.sh`, before its launch).
@@ -15,8 +15,8 @@ Statistics: `scripts/samemachine_stats.py --job 085 / 085b`; numbers in `prereg/
   separate environment.
   - Our probe: CPU 44.75 GB/s, PCIe 26.6, both 49.3.
   - FreeToken's probe: 43.4 / 28.9.
-- **Deviation:** the two halves ran on different machines, both with PCIe 4.0-class links. Every comparison below is
-  within one machine.
+- **Deviation:** the two halves ran on different machines. Both links measure about 27 GB/s. The 7900's slot is
+  PCIe 4.0; the 14900K host reports a Gen 5 x16 slot but reads 28 GB/s. Every comparison below is within one machine.
 
 **The law's tables** (computed on each machine before any model run):
 - gpt-oss 0,0,0,1,1 (headline machine 0,0,1,1,2; fixed 0,1,1,2,3);

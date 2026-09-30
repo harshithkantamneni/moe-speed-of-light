@@ -57,8 +57,8 @@ def points():
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "law", r["ours_over_ft_L2"][0], "headline_081.json")
         ftb = max(r["ft_L1"].values())
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "fixed", r["ours_cur_L1"] / ftb, "headline_081.json (launch 1)")
-    for name, job, host in (("halfpcie_085.json", "085_half_pcie@vast", "14900K, PCIe 4"),
-                            ("halfpcie_085b.json", "085b_half_pcie_qwen3@vast", "7900, PCIe 4")):
+    for name, job, host in (("halfpcie_085.json", "085_half_pcie@vast", "14900K, slow link"),
+                            ("halfpcie_085b.json", "085b_half_pcie_qwen3@vast", "7900, PCIe 4.0")):
         hp = load(name)
         if hp:
             for r in hp["rows"]:

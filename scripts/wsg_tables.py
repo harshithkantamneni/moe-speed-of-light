@@ -160,6 +160,10 @@ def ablation():
         M(f"ablHind{nm}", ci(ex["abl_1h_static_hindsight"]["over_dfa"], 2))
         M(f"ablHindHit{nm}", f"{100 * ex['abl_1h_static_hindsight']['hit']:.0f}")
         M(f"ablNone{nm}", f"{ex['abl_1a_nocache']['over_stock'][0]:.2f}")
+    for key, nm in (("g", "Gpt"), ("q", "Qwen")):
+        for step, sn in (("abl_1_static", "Static"), ("abl_2_lru", "Lru"), ("abl_3_dfa", "Dfa")):
+            st_ = json.load(open(f"/home/claude/gpu-branch/results/087_ablation_static@vast/srv_{key}_{step}.json"))
+            M(f"rd{sn}{nm}", f"{(st_['misses'] + st_['admits']) / st_['steps']:.0f}")
     par = r1["parity"]
     M("parTopGpt", f"{100 * par['g']['ours']['top1_agree']:.1f}")
     M("parTopQwen", f"{100 * par['q']['ours']['top1_agree']:.1f}")

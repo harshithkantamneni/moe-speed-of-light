@@ -59,7 +59,7 @@ budget and confirmed on launch 2.
 | gpt-oss-120b | 25% | 40.0 | 85.6 | **109.2** | +27.5% [25.4, 29.5] |
 | gpt-oss-120b | 40% | 47.7 | 132.2 | **152.5** | +15.4% [13.4, 17.2] |
 | Qwen3 BF16 | 12.5% | 19.5 | 38.7 | **40.0** | +3.2% [2.2, 4.2] |
-| Qwen3 BF16 | 25% (080) | — | 54.8 | **63.1** | +15.3% [13.4, 17.3] |
+| Qwen3 BF16 | 25% (080) | — | 54.7 | **63.1** | +15.3% [13.4, 17.3] |
 | Qwen3 BF16 | 43.75% (080) | — | 103.1 | **108.2** | +4.9% [3.6, 6.4] |
 
 - **All four predictions held;** `prereg/headline_outcome_081.md` has the outcome.
@@ -75,7 +75,7 @@ the machine's own probe: 0,0,1,1,2,3,3,4,5 against the fixed 0,1,1,2,3,3,4,5,6.
 | Experts on GPU | ours, current table | ours, law table | FreeToken (better) | law vs current | ours (law) vs FreeToken |
 |---|---|---|---|---|---|
 | 43.75% | 103.1 | **108.0** | 103.2 | +4.8% [4.1, 5.5] | **+4.9% [3.6, 6.4]** (confirmation launch) |
-| 25% | 59.2 | **63.1** | 54.8 | +6.7% [6.2, 7.1] | +15.3% [13.4, 17.3] |
+| 25% | 59.2 | **63.1** | 54.7 | +6.7% [6.2, 7.1] | +15.3% [13.4, 17.3] |
 
 - **All four predictions held;** `prereg/split_outcome_080.md` has the outcome.
 - **The deciding entry:** a single missed expert runs on the CPU instead of being fetched, worth +3.7% by itself.

@@ -29,3 +29,47 @@ The predictions are in the header of `jobs/084_vram_traces@vast.sh` (gpu branch 
   - The server is started without `eval`.
   - Traces keep only the router's choices as uint8.
 - **084c:** the gpt-oss trace on job 084's own greedy text, on an RTX 5090 host.
+
+## Reruns 084b and 084c: outcome of job 084's predictions
+
+Statistics: `scripts/vram_stats.py`; numbers in `prereg/vram_084.json` and `prereg/speed_limit_084.json`.
+
+**Job 084b.**
+- **Host:** RTX PRO 6000 Workstation + Core Ultra 9 285K, Vast offer 49074400. Device read 1,637 GB/s; both gates
+  passed.
+- **Stock llama.cpp, every weight in VRAM (launches 1 / 2):** gpt-oss-120b 259.0 / 255.3 tok/s; Qwen3-30B-A3B BF16
+  178.3 / 177.8 tok/s.
+- **Ours with 128 slots per layer ÷ stock (launch 1):**
+  - gpt-oss 0.997 [0.991, 1.004];
+  - Qwen3 1.047 [1.043, 1.052].
+  - The hit rate is 1.0 in both.
+
+**Traces.**
+- Qwen3 from 084b, gpt-oss from 084c (on 084's text).
+- Teacher-forced loss on the models' own greedy text: 0.090 (Qwen3) and 0.206 (gpt-oss) nats per token.
+
+**Speed limit** (headline machine's probe: highest host read 87.5 GB/s; RTX 5090 datasheet 1,792 GB/s):
+
+| Cell | Reads/token: optimum / best online / deployed (sim.) | Speed limit (tok/s) | Ours (Table 1) | Ours, % of limit | Sim. hit vs engine |
+|---|---|---|---|---|---|
+| gpt-oss 11% | 39.0 / 59.4 / 70.8 | 169.2 | 69.9 | 41% | 0.566 vs 0.580 |
+| gpt-oss 25% | 15.5 / 28.3 / 40.0 | 426.9 | 109.2 | 26% | 0.785 vs 0.793 |
+| gpt-oss 40% | 6.8 / 14.3 / 21.4 | 518.8 | 152.5 | 29% | 0.892 vs 0.892 |
+| Qwen3 12.5% | 100.4 / 166.2 / 196.6 | 92.3 | 40.0 | 43% | 0.533 vs 0.586 |
+| Qwen3 25% | 44.3 / 84.2 / 115.1 | 209.1 | 63.1 | 30% | 0.750 vs 0.775 |
+| Qwen3 43.75% | 13.8 / 28.8 / 47.0 | 307.7 | 108.2 | 35% | 0.908 vs 0.915 |
+
+**Predictions.**
+1. **Held.** Qwen3 BF16 all in VRAM runs at 177.8 tok/s (120–190).
+2. **Held.** gpt-oss all in VRAM runs at 255.3 tok/s, −2.3% from job 075's 261.4.
+3. **Held.** Ours with every expert in its slots is within 5% of stock all in VRAM on both models (0.997, 1.047).
+4. **Half held.**
+   - Ours runs at 26–43% of the speed limit at every budget (20–50% predicted).
+   - The simulated hit rate is within 5 points of the engine's at five of six budgets. It misses Qwen3 12.5% by 5.3
+     points. The simulator models the deployed policy without FETCH, whose immediate admissions raise the engine's
+     hit rate most where it fetches most (76 fetches per token at Qwen3 12.5%).
+
+**Where the seconds go** (`scripts/gap_listingb.py`, `prereg/gap_listingb.json`):
+- Missing foresight is the largest or tied-largest step in all six cells: 17–27% of each token.
+- Serialised host reads cost 13–22%, the policy and read paths 9–17%, host work 2–7%, and GPU kernels below datasheet
+  rate (net of the overlap achieved) 6–13%.

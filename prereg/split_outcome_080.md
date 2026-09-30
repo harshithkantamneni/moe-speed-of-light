@@ -31,7 +31,7 @@ launch). Statistics: `scripts/split_stats.py`; numbers in `prereg/split_080.json
 - law ÷ current = 1.049 [1.043, 1.056].
 
 **25%, launch 1:**
-- law 63.1, current 59.2, none 54.3; FreeToken hybrid 54.8, offload 48.7.
+- law 63.1, current 59.2, none 54.3; FreeToken hybrid 54.7, offload 48.7.
 - law ÷ current = **1.067 [1.062, 1.071]**; ours (law) ÷ FreeToken's better backend = **1.153 [1.134, 1.173]**.
 
 1. **Held.** At 43.75% the law table beats the current table by 4.8% [4.1, 5.5] (launch 1) and 4.9% (launch 2).

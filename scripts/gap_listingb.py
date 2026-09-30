@@ -75,7 +75,7 @@ def main():
         t.append(t[-1] + hw)
         T = 1 / meas[label]
         steps = [("speed limit", t[0]), ("no overlap", t[1] - t[0]), ("no foresight", t[2] - t[1]),
-                 ("policy and read paths", t[3] - t[2]), ("host work", hw), ("GPU below datasheet, net of overlap", T - t[4])]
+                 ("policy and read paths", t[3] - t[2]), ("host work", hw), ("GPU below datasheet (net)", T - t[4])]
         out.append(dict(cell=label, C=C, measured_tok_s=meas[label], measured_ms=T * 1e3, engine_reads=cpu + link,
                         engine_cpu=cpu, engine_link=link, steps_ms=[(k, v * 1e3) for k, v in steps]))
         print(f"{label:13s} measured {meas[label]:6.1f} tok/s = {T * 1e3:6.2f} ms; reads/token engine {cpu + link:6.1f} "
@@ -102,7 +102,7 @@ def main():
         ax.set_yticklabels([r["cell"] for r in out[::-1]], fontsize=6.5)
         ax.set_xlabel("ms per token", fontsize=7)
         ax.tick_params(axis="x", labelsize=6.5)
-        ax.legend(fontsize=5.5, frameon=False, loc="lower center", bbox_to_anchor=(0.45, 1.0), ncol=3)
+        ax.legend(fontsize=5.5, frameon=False, loc="lower center", bbox_to_anchor=(0.42, 1.0), ncol=3, columnspacing=0.8, handlelength=1.2)
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
         ax.set_xlim(0, max(r["measured_ms"] for r in out) * 1.22)

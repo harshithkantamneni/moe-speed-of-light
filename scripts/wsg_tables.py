@@ -169,6 +169,47 @@ def hard():
     M("hardAnsMax", str(max(max(r["ours"]["answered"], r["freetoken"]["answered"]) for r in h["rows"])))
 
 
+def simcheck():
+    v = load("vram_084.json")
+    sl = load("speed_limit_084.json")
+    if not v or not sl:
+        return
+    g = [abs(x["diff"]) for k, x in v["check"].items() if k.startswith("gpt")]
+    q = [abs(x["diff"]) for k, x in v["check"].items() if k.startswith("qwen")]
+    M("simHitGptMax", f"{100 * max(g):.1f}")
+    M("simHitQwenMin", f"{100 * min(q):.1f}")
+    M("simHitQwenMax", f"{100 * max(q):.1f}")
+    M("bHost", f"{sl['gpt-oss-120b']['B_host'] / 1e9:.1f}")
+    M("cOneTwoEight", f"{v['ours_c128']['gpt-oss-120b']['over_stock'][0]:.3f}")
+    M("cOneTwoEightQ", f"{v['ours_c128']['qwen3-30b-a3b-bf16']['over_stock'][0]:.3f}")
+    M("vramGpt", f"{v['vram']['gpt-oss-120b']:.1f}")
+    M("vramQwen", f"{v['vram']['qwen3-30b-a3b-bf16']:.1f}")
+    for key, nm in (("gpt-oss-120b", "Gpt"), ("qwen3-30b-a3b-bf16", "Qwen")):
+        row = next(iter(sl[key]["rows"].values()))
+        M(f"vramFrac{nm}", f"{100 * v['vram'][key] * row['gpu_only_ms'] / 1e3:.0f}")
+
+
+def gap():
+    g = load("gap_listingb.json")
+    if not g:
+        return
+    share = {}
+    for c in g["cells"]:
+        T = c["measured_ms"]
+        for k, v in c["steps_ms"]:
+            share.setdefault(k, []).append(v / T)
+    for k, name in (("no overlap", "Ovl"), ("no foresight", "Fs"), ("policy and read paths", "Pol"), ("host work", "Host"),
+                    ("GPU below datasheet (net)", "Gpu"), ("speed limit", "Lim")):
+        M(f"gap{name}Min", f"{100 * min(share[k]):.0f}")
+        M(f"gap{name}Max", f"{100 * max(share[k]):.0f}")
+    big = sum(1 for c in g["cells"] if max(v for k, v in c["steps_ms"][1:]) - dict(c["steps_ms"])["no foresight"] < 0.05)
+    M("gapFsLargest", str(big))
+    M("gapCells", str(len(g["cells"])))
+    c = {x["cell"]: x for x in g["cells"]}
+    q = c["Qwen3 12.5%"]
+    M("gapQlowReads", f"{q['engine_reads']:.0f}")
+
+
 def law():
     rows = json.load(open(P("prereg", "homepc", "law_crosshost.json")))
     extra = []
@@ -259,6 +300,8 @@ def main():
     law()
     split()
     hard()
+    gap()
+    simcheck()
     for k in PENDING:   # results of jobs still running print as a red marker
         macros.setdefault(k, "\\pend{}")
     with open(P("paper", "wsg_numbers.tex"), "w") as f:

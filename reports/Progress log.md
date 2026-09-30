@@ -3,6 +3,26 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, early: profile of Qwen3 at 43.75% (job `079_qwen3_profile@vast`)
+
+**Setup:** RTX 5090 + 9950X3D (CPU 66.9 / PCIe 57.9 GB/s), Nsight per-token profiles plus the unprofiled
+comparison.
+
+- **Parity on this host:**
+  - ours 100.1 tok/s, FreeToken's better backend 101.0; ours ÷ FreeToken = 0.991 [0.975, 1.009];
+  - llama.cpp 27.5 tok/s.
+  - Job 078's −5.2% depends on the host.
+- **All three predictions held;** `prereg/qwen3_profile_outcome_079.md` has the outcome.
+- **The 5.44 ms "fixed cost" is GPU work, not overhead:** attention, projections, router, resident experts and head
+  take ~5.3 ms for us against ~5.0 ms for FreeToken.
+  - Our extra ~0.5 ms: unfused batch-1 kernels (1.6× the kernels) and 0.3 ms more idle time between kernels.
+  - Host side: 0.27 ms per token.
+- **The miss path is the other half of the token in both systems:** 4.9–5.2 ms of PCIe copies, not overlapped with
+  any compute in either system.
+  - Overlapping each layer's resident experts with its copy is worth at most ~0.5–0.9 ms per token.
+- **Our FETCH table is not tuned per host.** It sends 75% of misses over PCIe even where the CPU path is faster
+  (+0.4% here, +16% on the 078 host).
+
 ## 29 September, late night: a second model, Qwen3-30B-A3B BF16 (job `078_qwen3_4way@vast`)
 
 **Setup:** RTX 5090 + Ryzen 9 9950X with slow host DRAM (CPU 44.7 GB/s, link 46.7 GB/s), equal measured GPU memory,

@@ -79,6 +79,29 @@ def stream(origin, model_id, problem, sampling, decode, extra):
     return {"t0": t0, "stamps": stamps, "text": "".join(pieces), "usage": usage, "timings": timings}
 
 
+def window_rates(stamps, completion):
+    """Decode rate over token windows of one request (tokens counted from the first streamed token, as the
+    headline metric does). Events are mapped to token indices linearly (llama-server and FreeToken stream about
+    one event per token)."""
+    n = len(stamps)
+    if n < 3 or completion < 3:
+        return {}
+    scale = (completion - 1) / (n - 1)
+    tok = [1 + i * scale for i in range(n)]
+
+    def rate(a, b):
+        ia = next((i for i, t in enumerate(tok) if t >= a), None)
+        ib = max((i for i, t in enumerate(tok) if t <= b), default=None)
+        if ia is None or ib is None or ib <= ia or stamps[ib] <= stamps[ia]:
+            return None
+        return (tok[ib] - tok[ia]) / (stamps[ib] - stamps[ia])
+    out = {}
+    for a, b in ((1, 256), (257, 512), (513, 1024), (1025, 2048), (257, None)):
+        if a < completion:
+            out[f"{a}-{b or 'end'}"] = rate(a, min(b or completion, completion))
+    return out
+
+
 def vram_used_gib():
     try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
@@ -137,6 +160,7 @@ def main():
     ap.add_argument("--wrap", help="command prefix for the server (e.g. `nsys launch --session-new=S ...`)")
     ap.add_argument("--before-cmd", help="shell command run after the warm-up, before the first measured problem "
                     "(e.g. `nsys start --session=S ...`)")
+    ap.add_argument("--ft-extra", help="extra arguments appended to FreeToken's serve command (e.g. --disable-moe-prefill-overlap)")
     ap.add_argument("--stop-wait", type=float, default=120, help="seconds to wait for the server to exit after SIGINT")
     ap.add_argument("--after-cmd", help="shell command run right after the first measured problem (e.g. `nsys stop`)")
     a = ap.parse_args()
@@ -148,6 +172,8 @@ def main():
         ns = argparse.Namespace(model=a.model, decode=a.decode, mem_ratio=a.mem_ratio, no_graph=False,
                                 hybrid_fetch=a.hybrid_fetch, gpu=None, cache=0, cache_rate=a.cache_rate)
         cmd, shell = B.serve_cmd(ns, a.ft, port), False
+        if a.ft_extra:
+            cmd += shlex.split(a.ft_extra)
     else:
         cmd, shell = a.cmd.format(port=port), True
     if a.wrap:
@@ -199,7 +225,8 @@ def main():
                    "ttft_ms": (stamps[0] - r["t0"]) * 1e3 if stamps else None, "events": len(stamps),
                    "completion_tokens": completion, "sampling": sampling, "extra": extra,
                    "output_sha1": hashlib.sha1(r["text"].encode()).hexdigest()[:12], "load_s": load_s,
-                   "server_timings": r["timings"], "text_head": r["text"][:160]}
+                   "server_timings": r["timings"], "text_head": r["text"][:160],
+                   "windows": window_rates(stamps, completion) if completion > 300 else None}
             rows.append(row)
             print(f"[bs1] {a.label} problem {p}: {row['decode_tok_s']:.2f} tok/s ({row['ms_per_token']:.2f} ms/token, "
                   f"p50 {row['event_ms_p50']:.2f} p99 {row['event_ms_p99']:.2f}, {completion} tokens)", flush=True)

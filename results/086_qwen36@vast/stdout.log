@@ -1,0 +1,1455 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/086_qwen36@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/086_qwen36@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32)'
+usable physical cores 16 (nproc 32)
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
++ nvcc --version
++ tail -2
++ tee /w/results/086_qwen36@vast/nvcc_version.txt
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
++ echo 'FreeToken install rc=0'
+FreeToken install rc=0
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ /work/ft/.venv/bin/python -c 'import freetoken, huggingface_hub'
++ /work/ft/.venv/bin/ft --version
++ mkdir -p /work/models
++ HF6=/work/models/Qwen3.6-35B-A3B
++ DL6=6249
++ /work/ft/.venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ wc -l /work/aime25.jsonl
++ tee /w/results/086_qwen36@vast/aime25_count.txt
+30 /work/aime25.jsonl
++ /work/ft/.venv/bin/python - /work/warmup.txt
++ cat /w/results/086_qwen36@vast/warmup_source.txt
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+no math-ai/aime24 test.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd3b2f-38118391433c2aeb28099704;e2f729ef-f3f5-4ade-93da-c9988e549bda)\n\nEntry Not Found for url: https://huggingface.co/datasets/math
+no HuggingFaceH4/aime_2024 train.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd3b2f-55fda48c775c9c4b6fddbc3d;8eacb29a-8308-40db-b7c4-10827b21419f)\n\nEntry Not Found for url: https://huggingface.co/datasets/Hugg
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/086_qwen36@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/086_qwen36@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ wait 6249
++ cat /w/results/086_qwen36@vast/dl_qwen36.txt
+++ date +%s
++ t0=1790786349
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3.6-35B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3.6-35B-A3B
+Fetching 40 files:   0%|          | 0/40 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 40 files:   2%|▎         | 1/40 [00:00<00:19,  2.04it/s]Fetching 40 files:   5%|▌         | 2/40 [00:00<00:10,  3.59it/s]Fetching 40 files:  12%|█▎        | 5/40 [00:00<00:04,  7.23it/s]Fetching 40 files:  22%|██▎       | 9/40 [02:02<09:03, 17.54s/it]Fetching 40 files:  25%|██▌       | 10/40 [04:23<19:23, 38.77s/it]Fetching 40 files:  30%|███       | 12/40 [04:32<12:47, 27.40s/it]Fetching 40 files:  32%|███▎      | 13/40 [04:42<10:54, 24.23s/it]Fetching 40 files:  35%|███▌      | 14/40 [04:55<09:27, 21.82s/it]Fetching 40 files:  38%|███▊      | 15/40 [04:59<07:20, 17.62s/it]Fetching 40 files:  40%|████      | 16/40 [05:33<08:38, 21.62s/it]Fetching 40 files:  42%|████▎     | 17/40 [05:43<07:06, 18.52s/it]Fetching 40 files:  45%|████▌     | 18/40 [06:03<06:58, 19.01s/it]Fetching 40 files:  48%|████▊     | 19/40 [06:37<08:09, 23.30s/it]Fetching 40 files:  50%|█████     | 20/40 [07:35<11:01, 33.08s/it]Fetching 40 files:  52%|█████▎    | 21/40 [07:42<08:06, 25.60s/it]Fetching 40 files:  55%|█████▌    | 22/40 [07:45<05:43, 19.09s/it]Fetching 40 files:  57%|█████▊    | 23/40 [07:56<04:42, 16.64s/it]Fetching 40 files:  60%|██████    | 24/40 [08:36<06:14, 23.40s/it]Fetching 40 files:  62%|██████▎   | 25/40 [09:35<08:32, 34.16s/it]Fetching 40 files:  65%|██████▌   | 26/40 [10:08<07:51, 33.65s/it]Fetching 40 files:  68%|██████▊   | 27/40 [10:38<07:03, 32.58s/it]Fetching 40 files:  70%|███████   | 28/40 [10:38<04:36, 23.02s/it]Fetching 40 files:  72%|███████▎  | 29/40 [10:39<03:01, 16.46s/it]Fetching 40 files:  75%|███████▌  | 30/40 [10:46<02:15, 13.56s/it]Fetching 40 files:  78%|███████▊  | 31/40 [10:47<01:27,  9.75s/it]Fetching 40 files:  80%|████████  | 32/40 [10:47<00:55,  6.97s/it]Fetching 40 files:  82%|████████▎ | 33/40 [10:48<00:35,  5.08s/it]Fetching 40 files:  85%|████████▌ | 34/40 [11:42<01:58, 19.77s/it]Fetching 40 files:  88%|████████▊ | 35/40 [12:07<01:45, 21.17s/it]Fetching 40 files:  90%|█████████ | 36/40 [12:08<01:01, 15.34s/it]Fetching 40 files:  92%|█████████▎| 37/40 [12:37<00:57, 19.19s/it]Fetching 40 files:  95%|█████████▌| 38/40 [12:39<00:28, 14.25s/it]Fetching 40 files:  98%|█████████▊| 39/40 [12:52<00:13, 13.88s/it]Fetching 40 files: 100%|██████████| 40/40 [13:25<00:00, 19.66s/it]Fetching 40 files: 100%|██████████| 40/40 [13:25<00:00, 20.15s/it]
+++ date +%s
++ echo 'qwen3.6 hf download rc=0 in 807 s'
+qwen3.6 hf download rc=0 in 807 s
++ du -sh /work/models/Qwen3.6-35B-A3B
+67G	/work/models/Qwen3.6-35B-A3B
++ G6=/work/models/Qwen3.6-35B-A3B-BF16.gguf
++ tail -2 /w/results/086_qwen36@vast/convert_qwen36.txt
++ ls -la /work/models/Qwen3.6-35B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 69376637440 Sep 30 16:54 /work/models/Qwen3.6-35B-A3B-BF16.gguf
++ '[' -s /work/models/Qwen3.6-35B-A3B-BF16.gguf ']'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ cp /root/.cache/freetoken/benchbw/GPU-7b36e882-bdd6-8be0-a6b5-94c72b2318aa.json /w/results/086_qwen36@vast/
++ H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/086_qwen36@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/086_qwen36@vast/concur.txt 14 6291456 8 /w/results/086_qwen36@vast/fetch_table_law_qwen36.json 32
++ LAW=0,0,1,1,2,3,3,4,4
++ CUR=0,1,1,2,3,3,4,5,6
++ tee /w/results/086_qwen36@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-09-30T16:55:20Z): qwen3.6 0,0,1,1,2,3,3,4,4 (fixed 0,1,1,2,3,3,4,5,6)'
+law table (2026-09-30T16:55:20Z): qwen3.6 0,0,1,1,2,3,3,4,4 (fixed 0,1,1,2,3,3,4,5,6)
++ '[' -n 0,0,1,1,2,3,3,4,4 ']'
++ LXB='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ ECENV='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ LS6='-m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja'
++ cd /work/ft
++ cl ft_auto 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken auto (as shipped)"}' --ft auto --ft-extra=--text-model-only
++ local lab=ft_auto L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken auto (as shipped)"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_auto --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken auto (as shipped)"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_auto_L1.log --ft auto --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_auto --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken auto (as shipped)"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_auto_L1.log --ft auto --ft-extra=--text-model-only
+[bs1] ft_auto: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '34153', '--moe-backend', 'auto', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-auto', '--text-model-only']
+[bs1] ft_auto problem 0: 91.77 tok/s (10.90 ms/token, p50 10.08 p99 23.39, 256 tokens)
+[bs1] ft_auto problem 1: 96.58 tok/s (10.35 ms/token, p50 9.85 p99 22.16, 256 tokens)
+[bs1] ft_auto problem 2: 95.42 tok/s (10.48 ms/token, p50 9.76 p99 21.42, 256 tokens)
+[bs1] ft_auto problem 3: 87.13 tok/s (11.48 ms/token, p50 11.06 p99 22.01, 256 tokens)
+[bs1] ft_auto problem 4: 92.03 tok/s (10.87 ms/token, p50 10.12 p99 20.30, 256 tokens)
+[bs1] ft_auto problem 5: 104.47 tok/s (9.57 ms/token, p50 8.78 p99 20.45, 256 tokens)
+[bs1] ft_auto problem 6: 95.24 tok/s (10.50 ms/token, p50 9.89 p99 23.03, 256 tokens)
+[bs1] ft_auto problem 7: 89.34 tok/s (11.19 ms/token, p50 10.46 p99 22.06, 256 tokens)
+[bs1] ft_auto problem 8: 91.95 tok/s (10.88 ms/token, p50 10.37 p99 22.23, 256 tokens)
+[bs1] ft_auto problem 9: 95.26 tok/s (10.50 ms/token, p50 9.63 p99 24.07, 256 tokens)
+[bs1] ft_auto problem 10: 88.78 tok/s (11.26 ms/token, p50 10.78 p99 20.99, 256 tokens)
+[bs1] ft_auto problem 11: 98.72 tok/s (10.13 ms/token, p50 9.30 p99 23.49, 256 tokens)
+[bs1] ft_auto problem 12: 99.42 tok/s (10.06 ms/token, p50 9.36 p99 23.73, 256 tokens)
+[bs1] ft_auto problem 13: 104.75 tok/s (9.55 ms/token, p50 8.99 p99 19.71, 256 tokens)
+[bs1] ft_auto problem 14: 87.16 tok/s (11.47 ms/token, p50 10.55 p99 24.32, 256 tokens)
+[bs1] ft_auto problem 15: 97.43 tok/s (10.26 ms/token, p50 9.43 p99 23.87, 256 tokens)
+[bs1] ft_auto problem 16: 87.80 tok/s (11.39 ms/token, p50 11.03 p99 23.89, 256 tokens)
+[bs1] ft_auto problem 17: 101.21 tok/s (9.88 ms/token, p50 9.02 p99 26.28, 256 tokens)
+[bs1] ft_auto problem 18: 82.41 tok/s (12.13 ms/token, p50 11.18 p99 26.26, 256 tokens)
+[bs1] ft_auto problem 19: 88.25 tok/s (11.33 ms/token, p50 10.14 p99 22.99, 256 tokens)
+[bs1] ft_auto problem 20: 103.67 tok/s (9.65 ms/token, p50 8.91 p99 19.54, 256 tokens)
+[bs1] ft_auto problem 21: 84.40 tok/s (11.85 ms/token, p50 11.34 p99 22.58, 256 tokens)
+[bs1] ft_auto problem 22: 96.20 tok/s (10.39 ms/token, p50 9.65 p99 22.46, 256 tokens)
+[bs1] ft_auto problem 23: 92.31 tok/s (10.83 ms/token, p50 10.24 p99 19.63, 256 tokens)
+[bs1] ft_auto problem 24: 106.08 tok/s (9.43 ms/token, p50 8.77 p99 20.12, 256 tokens)
+[bs1] ft_auto problem 25: 109.19 tok/s (9.16 ms/token, p50 8.53 p99 20.08, 256 tokens)
+[bs1] ft_auto problem 26: 88.23 tok/s (11.33 ms/token, p50 10.56 p99 22.72, 256 tokens)
+[bs1] ft_auto problem 27: 81.58 tok/s (12.26 ms/token, p50 11.33 p99 24.37, 256 tokens)
+[bs1] ft_auto problem 28: 90.72 tok/s (11.02 ms/token, p50 10.44 p99 24.56, 256 tokens)
+[bs1] ft_auto problem 29: 87.24 tok/s (11.46 ms/token, p50 10.88 p99 23.79, 256 tokens)
++ echo 'ft_auto launch 1 rc=0'
+ft_auto launch 1 rc=0
++ for C in 32 64 96
++ ours 32 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C32_law 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C32_law L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C32_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C32_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 53605
+[bs1] ours_C32_law problem 0: 58.67 tok/s (17.04 ms/token, p50 16.95 p99 27.29, 256 tokens)
+[bs1] ours_C32_law problem 1: 56.51 tok/s (17.70 ms/token, p50 17.43 p99 26.87, 256 tokens)
+[bs1] ours_C32_law problem 2: 57.50 tok/s (17.39 ms/token, p50 17.22 p99 27.31, 256 tokens)
+[bs1] ours_C32_law problem 3: 56.61 tok/s (17.66 ms/token, p50 17.24 p99 27.43, 256 tokens)
+[bs1] ours_C32_law problem 4: 59.56 tok/s (16.79 ms/token, p50 16.46 p99 26.57, 256 tokens)
+[bs1] ours_C32_law problem 5: 61.41 tok/s (16.28 ms/token, p50 15.90 p99 26.20, 256 tokens)
+[bs1] ours_C32_law problem 6: 61.81 tok/s (16.18 ms/token, p50 15.75 p99 26.30, 256 tokens)
+[bs1] ours_C32_law problem 7: 59.50 tok/s (16.81 ms/token, p50 16.60 p99 28.71, 256 tokens)
+[bs1] ours_C32_law problem 8: 59.58 tok/s (16.78 ms/token, p50 16.29 p99 28.10, 256 tokens)
+[bs1] ours_C32_law problem 9: 60.46 tok/s (16.54 ms/token, p50 15.82 p99 29.25, 256 tokens)
+[bs1] ours_C32_law problem 10: 59.22 tok/s (16.89 ms/token, p50 16.58 p99 28.52, 256 tokens)
+[bs1] ours_C32_law problem 11: 65.25 tok/s (15.33 ms/token, p50 14.44 p99 28.01, 256 tokens)
+[bs1] ours_C32_law problem 12: 60.81 tok/s (16.45 ms/token, p50 16.04 p99 28.84, 256 tokens)
+[bs1] ours_C32_law problem 13: 59.90 tok/s (16.69 ms/token, p50 16.61 p99 28.08, 256 tokens)
+[bs1] ours_C32_law problem 14: 62.15 tok/s (16.09 ms/token, p50 15.60 p99 28.67, 256 tokens)
+[bs1] ours_C32_law problem 15: 59.67 tok/s (16.76 ms/token, p50 16.55 p99 25.45, 256 tokens)
+[bs1] ours_C32_law problem 16: 57.61 tok/s (17.36 ms/token, p50 17.06 p99 25.95, 256 tokens)
+[bs1] ours_C32_law problem 17: 62.72 tok/s (15.94 ms/token, p50 15.05 p99 28.62, 256 tokens)
+[bs1] ours_C32_law problem 18: 57.90 tok/s (17.27 ms/token, p50 16.89 p99 27.55, 256 tokens)
+[bs1] ours_C32_law problem 19: 59.08 tok/s (16.93 ms/token, p50 16.51 p99 28.60, 256 tokens)
+[bs1] ours_C32_law problem 20: 60.47 tok/s (16.54 ms/token, p50 16.23 p99 26.74, 256 tokens)
+[bs1] ours_C32_law problem 21: 58.89 tok/s (16.98 ms/token, p50 16.78 p99 24.54, 256 tokens)
+[bs1] ours_C32_law problem 22: 63.73 tok/s (15.69 ms/token, p50 15.36 p99 26.78, 256 tokens)
+[bs1] ours_C32_law problem 23: 58.34 tok/s (17.14 ms/token, p50 17.17 p99 26.56, 256 tokens)
+[bs1] ours_C32_law problem 24: 62.39 tok/s (16.03 ms/token, p50 15.56 p99 25.28, 256 tokens)
+[bs1] ours_C32_law problem 25: 66.86 tok/s (14.96 ms/token, p50 14.39 p99 26.64, 256 tokens)
+[bs1] ours_C32_law problem 26: 58.17 tok/s (17.19 ms/token, p50 16.68 p99 26.96, 256 tokens)
+[bs1] ours_C32_law problem 27: 56.33 tok/s (17.75 ms/token, p50 17.75 p99 28.29, 256 tokens)
+[bs1] ours_C32_law problem 28: 57.50 tok/s (17.39 ms/token, p50 17.20 p99 28.00, 256 tokens)
+[bs1] ours_C32_law problem 29: 58.69 tok/s (17.04 ms/token, p50 16.90 p99 27.54, 256 tokens)
++ echo 'ours_C32_law launch 1 rc=0'
+ours_C32_law launch 1 rc=0
++ ours 32 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ cl ours_C32_cur 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C32_cur L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C32_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C32_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 49859
+[bs1] ours_C32_cur problem 0: 54.45 tok/s (18.37 ms/token, p50 18.25 p99 30.02, 256 tokens)
+[bs1] ours_C32_cur problem 1: 52.76 tok/s (18.95 ms/token, p50 18.87 p99 29.40, 256 tokens)
+[bs1] ours_C32_cur problem 2: 54.21 tok/s (18.45 ms/token, p50 18.30 p99 29.69, 256 tokens)
+[bs1] ours_C32_cur problem 3: 53.70 tok/s (18.62 ms/token, p50 18.18 p99 29.12, 256 tokens)
+[bs1] ours_C32_cur problem 4: 55.84 tok/s (17.91 ms/token, p50 17.73 p99 30.28, 256 tokens)
+[bs1] ours_C32_cur problem 5: 57.48 tok/s (17.40 ms/token, p50 17.04 p99 28.64, 256 tokens)
+[bs1] ours_C32_cur problem 6: 57.98 tok/s (17.25 ms/token, p50 16.54 p99 29.24, 256 tokens)
+[bs1] ours_C32_cur problem 7: 55.06 tok/s (18.16 ms/token, p50 17.89 p99 32.33, 256 tokens)
+[bs1] ours_C32_cur problem 8: 56.08 tok/s (17.83 ms/token, p50 17.39 p99 30.43, 256 tokens)
+[bs1] ours_C32_cur problem 9: 57.22 tok/s (17.48 ms/token, p50 16.87 p99 32.13, 256 tokens)
+[bs1] ours_C32_cur problem 10: 55.22 tok/s (18.11 ms/token, p50 17.91 p99 32.01, 256 tokens)
+[bs1] ours_C32_cur problem 11: 60.03 tok/s (16.66 ms/token, p50 15.86 p99 31.42, 256 tokens)
+[bs1] ours_C32_cur problem 12: 56.31 tok/s (17.76 ms/token, p50 17.00 p99 31.99, 256 tokens)
+[bs1] ours_C32_cur problem 13: 56.12 tok/s (17.82 ms/token, p50 17.58 p99 29.76, 256 tokens)
+[bs1] ours_C32_cur problem 14: 57.35 tok/s (17.44 ms/token, p50 16.71 p99 31.10, 256 tokens)
+[bs1] ours_C32_cur problem 15: 55.55 tok/s (18.00 ms/token, p50 17.96 p99 28.44, 256 tokens)
+[bs1] ours_C32_cur problem 16: 53.88 tok/s (18.56 ms/token, p50 18.03 p99 27.65, 256 tokens)
+[bs1] ours_C32_cur problem 17: 58.85 tok/s (16.99 ms/token, p50 15.97 p99 31.24, 256 tokens)
+[bs1] ours_C32_cur problem 18: 54.07 tok/s (18.50 ms/token, p50 18.13 p99 30.05, 256 tokens)
+[bs1] ours_C32_cur problem 19: 54.45 tok/s (18.37 ms/token, p50 18.02 p99 32.02, 256 tokens)
+[bs1] ours_C32_cur problem 20: 56.08 tok/s (17.83 ms/token, p50 17.62 p99 30.02, 256 tokens)
+[bs1] ours_C32_cur problem 21: 54.52 tok/s (18.34 ms/token, p50 18.12 p99 26.56, 256 tokens)
+[bs1] ours_C32_cur problem 22: 58.75 tok/s (17.02 ms/token, p50 16.70 p99 30.06, 256 tokens)
+[bs1] ours_C32_cur problem 23: 53.79 tok/s (18.59 ms/token, p50 18.48 p99 29.19, 256 tokens)
+[bs1] ours_C32_cur problem 24: 58.42 tok/s (17.12 ms/token, p50 16.59 p99 26.47, 256 tokens)
+[bs1] ours_C32_cur problem 25: 62.78 tok/s (15.93 ms/token, p50 15.33 p99 28.85, 256 tokens)
+[bs1] ours_C32_cur problem 26: 54.99 tok/s (18.18 ms/token, p50 17.78 p99 29.65, 256 tokens)
+[bs1] ours_C32_cur problem 27: 52.88 tok/s (18.91 ms/token, p50 18.76 p99 28.93, 256 tokens)
+[bs1] ours_C32_cur problem 28: 54.29 tok/s (18.42 ms/token, p50 18.06 p99 30.01, 256 tokens)
+[bs1] ours_C32_cur problem 29: 54.74 tok/s (18.27 ms/token, p50 18.22 p99 30.25, 256 tokens)
++ echo 'ours_C32_cur launch 1 rc=0'
+ours_C32_cur launch 1 rc=0
++ for C in 32 64 96
++ ours 64 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C64_law 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C64_law L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C64_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C64_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C64_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 50505
+[bs1] ours_C64_law problem 0: 79.20 tok/s (12.63 ms/token, p50 12.17 p99 20.38, 256 tokens)
+[bs1] ours_C64_law problem 1: 79.34 tok/s (12.60 ms/token, p50 12.23 p99 21.96, 256 tokens)
+[bs1] ours_C64_law problem 2: 77.50 tok/s (12.90 ms/token, p50 12.59 p99 20.43, 256 tokens)
+[bs1] ours_C64_law problem 3: 74.71 tok/s (13.39 ms/token, p50 13.05 p99 22.35, 256 tokens)
+[bs1] ours_C64_law problem 4: 77.23 tok/s (12.95 ms/token, p50 12.54 p99 20.70, 256 tokens)
+[bs1] ours_C64_law problem 5: 84.05 tok/s (11.90 ms/token, p50 11.42 p99 21.38, 256 tokens)
+[bs1] ours_C64_law problem 6: 81.24 tok/s (12.31 ms/token, p50 11.80 p99 23.20, 256 tokens)
+[bs1] ours_C64_law problem 7: 77.57 tok/s (12.89 ms/token, p50 12.32 p99 21.49, 256 tokens)
+[bs1] ours_C64_law problem 8: 79.87 tok/s (12.52 ms/token, p50 11.93 p99 22.00, 256 tokens)
+[bs1] ours_C64_law problem 9: 83.64 tok/s (11.96 ms/token, p50 11.40 p99 21.99, 256 tokens)
+[bs1] ours_C64_law problem 10: 77.18 tok/s (12.96 ms/token, p50 12.43 p99 22.29, 256 tokens)
+[bs1] ours_C64_law problem 11: 86.60 tok/s (11.55 ms/token, p50 10.84 p99 22.65, 256 tokens)
+[bs1] ours_C64_law problem 12: 80.98 tok/s (12.35 ms/token, p50 11.74 p99 23.51, 256 tokens)
+[bs1] ours_C64_law problem 13: 79.39 tok/s (12.60 ms/token, p50 12.03 p99 22.01, 256 tokens)
+[bs1] ours_C64_law problem 14: 78.61 tok/s (12.72 ms/token, p50 12.20 p99 24.71, 256 tokens)
+[bs1] ours_C64_law problem 15: 80.91 tok/s (12.36 ms/token, p50 11.91 p99 22.60, 256 tokens)
+[bs1] ours_C64_law problem 16: 76.05 tok/s (13.15 ms/token, p50 12.77 p99 24.24, 256 tokens)
+[bs1] ours_C64_law problem 17: 84.73 tok/s (11.80 ms/token, p50 11.08 p99 22.49, 256 tokens)
+[bs1] ours_C64_law problem 18: 75.05 tok/s (13.32 ms/token, p50 12.66 p99 22.82, 256 tokens)
+[bs1] ours_C64_law problem 19: 78.37 tok/s (12.76 ms/token, p50 12.30 p99 22.93, 256 tokens)
+[bs1] ours_C64_law problem 20: 81.83 tok/s (12.22 ms/token, p50 11.62 p99 20.10, 256 tokens)
+[bs1] ours_C64_law problem 21: 76.25 tok/s (13.11 ms/token, p50 12.75 p99 20.45, 256 tokens)
+[bs1] ours_C64_law problem 22: 83.29 tok/s (12.01 ms/token, p50 11.52 p99 20.72, 256 tokens)
+[bs1] ours_C64_law problem 23: 77.75 tok/s (12.86 ms/token, p50 12.63 p99 19.63, 256 tokens)
+[bs1] ours_C64_law problem 24: 86.74 tok/s (11.53 ms/token, p50 11.08 p99 20.23, 256 tokens)
+[bs1] ours_C64_law problem 25: 90.17 tok/s (11.09 ms/token, p50 10.40 p99 20.23, 256 tokens)
+[bs1] ours_C64_law problem 26: 78.74 tok/s (12.70 ms/token, p50 12.31 p99 21.56, 256 tokens)
+[bs1] ours_C64_law problem 27: 74.11 tok/s (13.49 ms/token, p50 13.00 p99 21.47, 256 tokens)
+[bs1] ours_C64_law problem 28: 78.49 tok/s (12.74 ms/token, p50 12.43 p99 23.80, 256 tokens)
+[bs1] ours_C64_law problem 29: 76.69 tok/s (13.04 ms/token, p50 12.86 p99 21.86, 256 tokens)
++ echo 'ours_C64_law launch 1 rc=0'
+ours_C64_law launch 1 rc=0
++ ours 64 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ cl ours_C64_cur 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C64_cur L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C64_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C64_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C64_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 48835
+[bs1] ours_C64_cur problem 0: 74.11 tok/s (13.49 ms/token, p50 12.93 p99 22.43, 256 tokens)
+[bs1] ours_C64_cur problem 1: 74.18 tok/s (13.48 ms/token, p50 12.97 p99 23.22, 256 tokens)
+[bs1] ours_C64_cur problem 2: 72.94 tok/s (13.71 ms/token, p50 13.33 p99 22.62, 256 tokens)
+[bs1] ours_C64_cur problem 3: 71.48 tok/s (13.99 ms/token, p50 13.55 p99 23.67, 256 tokens)
+[bs1] ours_C64_cur problem 4: 73.89 tok/s (13.53 ms/token, p50 13.03 p99 22.14, 256 tokens)
+[bs1] ours_C64_cur problem 5: 79.32 tok/s (12.61 ms/token, p50 11.94 p99 22.59, 256 tokens)
+[bs1] ours_C64_cur problem 6: 77.13 tok/s (12.96 ms/token, p50 12.53 p99 23.11, 256 tokens)
+[bs1] ours_C64_cur problem 7: 72.34 tok/s (13.82 ms/token, p50 13.33 p99 22.44, 256 tokens)
+[bs1] ours_C64_cur problem 8: 75.75 tok/s (13.20 ms/token, p50 12.49 p99 22.40, 256 tokens)
+[bs1] ours_C64_cur problem 9: 79.02 tok/s (12.65 ms/token, p50 12.08 p99 24.95, 256 tokens)
+[bs1] ours_C64_cur problem 10: 73.89 tok/s (13.53 ms/token, p50 13.01 p99 23.40, 256 tokens)
+[bs1] ours_C64_cur problem 11: 82.20 tok/s (12.17 ms/token, p50 11.55 p99 24.55, 256 tokens)
+[bs1] ours_C64_cur problem 12: 77.36 tok/s (12.93 ms/token, p50 12.28 p99 24.72, 256 tokens)
+[bs1] ours_C64_cur problem 13: 75.84 tok/s (13.19 ms/token, p50 12.65 p99 23.02, 256 tokens)
+[bs1] ours_C64_cur problem 14: 73.35 tok/s (13.63 ms/token, p50 13.05 p99 26.41, 256 tokens)
+[bs1] ours_C64_cur problem 15: 75.98 tok/s (13.16 ms/token, p50 12.57 p99 24.32, 256 tokens)
+[bs1] ours_C64_cur problem 16: 71.68 tok/s (13.95 ms/token, p50 13.53 p99 25.80, 256 tokens)
+[bs1] ours_C64_cur problem 17: 79.35 tok/s (12.60 ms/token, p50 11.93 p99 23.87, 256 tokens)
+[bs1] ours_C64_cur problem 18: 70.25 tok/s (14.23 ms/token, p50 13.61 p99 24.60, 256 tokens)
+[bs1] ours_C64_cur problem 19: 73.75 tok/s (13.56 ms/token, p50 12.83 p99 24.61, 256 tokens)
+[bs1] ours_C64_cur problem 20: 75.65 tok/s (13.22 ms/token, p50 12.73 p99 22.91, 256 tokens)
+[bs1] ours_C64_cur problem 21: 72.76 tok/s (13.74 ms/token, p50 13.29 p99 21.14, 256 tokens)
+[bs1] ours_C64_cur problem 22: 78.78 tok/s (12.69 ms/token, p50 12.28 p99 23.75, 256 tokens)
+[bs1] ours_C64_cur problem 23: 72.96 tok/s (13.71 ms/token, p50 13.35 p99 21.53, 256 tokens)
+[bs1] ours_C64_cur problem 24: 82.27 tok/s (12.16 ms/token, p50 11.69 p99 21.53, 256 tokens)
+[bs1] ours_C64_cur problem 25: 85.52 tok/s (11.69 ms/token, p50 11.15 p99 21.85, 256 tokens)
+[bs1] ours_C64_cur problem 26: 73.57 tok/s (13.59 ms/token, p50 13.18 p99 22.69, 256 tokens)
+[bs1] ours_C64_cur problem 27: 69.61 tok/s (14.36 ms/token, p50 13.84 p99 23.20, 256 tokens)
+[bs1] ours_C64_cur problem 28: 73.69 tok/s (13.57 ms/token, p50 13.10 p99 25.22, 256 tokens)
+[bs1] ours_C64_cur problem 29: 72.03 tok/s (13.88 ms/token, p50 13.62 p99 24.81, 256 tokens)
++ echo 'ours_C64_cur launch 1 rc=0'
+ours_C64_cur launch 1 rc=0
++ for C in 32 64 96
++ ours 96 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C96_law 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C96_law L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C96_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C96_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C96_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 34779
+[bs1] ours_C96_law problem 0: 99.49 tok/s (10.05 ms/token, p50 9.72 p99 17.31, 256 tokens)
+[bs1] ours_C96_law problem 1: 100.52 tok/s (9.95 ms/token, p50 9.40 p99 18.94, 256 tokens)
+[bs1] ours_C96_law problem 2: 96.20 tok/s (10.40 ms/token, p50 10.18 p99 17.18, 256 tokens)
+[bs1] ours_C96_law problem 3: 94.77 tok/s (10.55 ms/token, p50 10.34 p99 17.28, 256 tokens)
+[bs1] ours_C96_law problem 4: 95.22 tok/s (10.50 ms/token, p50 9.88 p99 17.13, 256 tokens)
+[bs1] ours_C96_law problem 5: 106.06 tok/s (9.43 ms/token, p50 8.98 p99 15.28, 256 tokens)
+[bs1] ours_C96_law problem 6: 99.83 tok/s (10.02 ms/token, p50 9.56 p99 17.95, 256 tokens)
+[bs1] ours_C96_law problem 7: 97.33 tok/s (10.27 ms/token, p50 9.93 p99 16.49, 256 tokens)
+[bs1] ours_C96_law problem 8: 98.46 tok/s (10.16 ms/token, p50 9.40 p99 17.69, 256 tokens)
+[bs1] ours_C96_law problem 9: 103.71 tok/s (9.64 ms/token, p50 9.29 p99 16.36, 256 tokens)
+[bs1] ours_C96_law problem 10: 94.33 tok/s (10.60 ms/token, p50 10.13 p99 18.11, 256 tokens)
+[bs1] ours_C96_law problem 11: 105.60 tok/s (9.47 ms/token, p50 8.94 p99 18.38, 256 tokens)
+[bs1] ours_C96_law problem 12: 101.79 tok/s (9.82 ms/token, p50 9.32 p99 18.29, 256 tokens)
+[bs1] ours_C96_law problem 13: 99.33 tok/s (10.07 ms/token, p50 9.79 p99 17.71, 256 tokens)
+[bs1] ours_C96_law problem 14: 100.37 tok/s (9.96 ms/token, p50 9.56 p99 17.88, 256 tokens)
+[bs1] ours_C96_law problem 15: 101.28 tok/s (9.87 ms/token, p50 9.54 p99 16.47, 256 tokens)
+[bs1] ours_C96_law problem 16: 95.39 tok/s (10.48 ms/token, p50 10.28 p99 16.48, 256 tokens)
+[bs1] ours_C96_law problem 17: 102.26 tok/s (9.78 ms/token, p50 9.26 p99 21.82, 256 tokens)
+[bs1] ours_C96_law problem 18: 94.43 tok/s (10.59 ms/token, p50 10.23 p99 16.77, 256 tokens)
+[bs1] ours_C96_law problem 19: 98.93 tok/s (10.11 ms/token, p50 9.63 p99 18.58, 256 tokens)
+[bs1] ours_C96_law problem 20: 102.85 tok/s (9.72 ms/token, p50 9.27 p99 16.59, 256 tokens)
+[bs1] ours_C96_law problem 21: 95.86 tok/s (10.43 ms/token, p50 10.29 p99 15.73, 256 tokens)
+[bs1] ours_C96_law problem 22: 102.37 tok/s (9.77 ms/token, p50 9.44 p99 16.57, 256 tokens)
+[bs1] ours_C96_law problem 23: 98.70 tok/s (10.13 ms/token, p50 9.74 p99 15.29, 256 tokens)
+[bs1] ours_C96_law problem 24: 109.62 tok/s (9.12 ms/token, p50 8.58 p99 16.24, 256 tokens)
+[bs1] ours_C96_law problem 25: 112.06 tok/s (8.92 ms/token, p50 8.42 p99 17.46, 256 tokens)
+[bs1] ours_C96_law problem 26: 101.09 tok/s (9.89 ms/token, p50 9.34 p99 16.98, 256 tokens)
+[bs1] ours_C96_law problem 27: 91.72 tok/s (10.90 ms/token, p50 10.58 p99 16.34, 256 tokens)
+[bs1] ours_C96_law problem 28: 98.07 tok/s (10.20 ms/token, p50 9.90 p99 19.34, 256 tokens)
+[bs1] ours_C96_law problem 29: 94.83 tok/s (10.55 ms/token, p50 10.39 p99 17.37, 256 tokens)
++ echo 'ours_C96_law launch 1 rc=0'
+ours_C96_law launch 1 rc=0
++ ours 96 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ cl ours_C96_cur 1 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C96_cur L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C96_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ours_C96_cur --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C96_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 35883
+[bs1] ours_C96_cur problem 0: 94.43 tok/s (10.59 ms/token, p50 10.22 p99 17.79, 256 tokens)
+[bs1] ours_C96_cur problem 1: 95.50 tok/s (10.47 ms/token, p50 9.96 p99 20.18, 256 tokens)
+[bs1] ours_C96_cur problem 2: 92.84 tok/s (10.77 ms/token, p50 10.48 p99 17.10, 256 tokens)
+[bs1] ours_C96_cur problem 3: 88.79 tok/s (11.26 ms/token, p50 11.05 p99 19.36, 256 tokens)
+[bs1] ours_C96_cur problem 4: 91.52 tok/s (10.93 ms/token, p50 10.40 p99 18.04, 256 tokens)
+[bs1] ours_C96_cur problem 5: 100.16 tok/s (9.98 ms/token, p50 9.57 p99 17.53, 256 tokens)
+[bs1] ours_C96_cur problem 6: 95.89 tok/s (10.43 ms/token, p50 9.91 p99 20.66, 256 tokens)
+[bs1] ours_C96_cur problem 7: 89.96 tok/s (11.12 ms/token, p50 10.63 p99 17.61, 256 tokens)
+[bs1] ours_C96_cur problem 8: 93.82 tok/s (10.66 ms/token, p50 10.15 p99 18.89, 256 tokens)
+[bs1] ours_C96_cur problem 9: 98.33 tok/s (10.17 ms/token, p50 9.73 p99 18.16, 256 tokens)
+[bs1] ours_C96_cur problem 10: 92.08 tok/s (10.86 ms/token, p50 10.53 p99 19.03, 256 tokens)
+[bs1] ours_C96_cur problem 11: 100.90 tok/s (9.91 ms/token, p50 9.45 p99 20.91, 256 tokens)
+[bs1] ours_C96_cur problem 12: 97.37 tok/s (10.27 ms/token, p50 9.76 p99 19.53, 256 tokens)
+[bs1] ours_C96_cur problem 13: 94.99 tok/s (10.53 ms/token, p50 10.12 p99 18.92, 256 tokens)
+[bs1] ours_C96_cur problem 14: 92.52 tok/s (10.81 ms/token, p50 10.47 p99 18.34, 256 tokens)
+[bs1] ours_C96_cur problem 15: 95.20 tok/s (10.50 ms/token, p50 10.04 p99 20.83, 256 tokens)
+[bs1] ours_C96_cur problem 16: 90.38 tok/s (11.06 ms/token, p50 10.79 p99 18.21, 256 tokens)
+[bs1] ours_C96_cur problem 17: 97.44 tok/s (10.26 ms/token, p50 9.63 p99 23.08, 256 tokens)
+[bs1] ours_C96_cur problem 18: 87.96 tok/s (11.37 ms/token, p50 10.85 p99 20.63, 256 tokens)
+[bs1] ours_C96_cur problem 19: 93.25 tok/s (10.72 ms/token, p50 10.18 p99 19.15, 256 tokens)
+[bs1] ours_C96_cur problem 20: 97.61 tok/s (10.25 ms/token, p50 9.73 p99 17.60, 256 tokens)
+[bs1] ours_C96_cur problem 21: 91.20 tok/s (10.97 ms/token, p50 10.68 p99 17.31, 256 tokens)
+[bs1] ours_C96_cur problem 22: 97.17 tok/s (10.29 ms/token, p50 9.73 p99 18.31, 256 tokens)
+[bs1] ours_C96_cur problem 23: 92.32 tok/s (10.83 ms/token, p50 10.50 p99 16.11, 256 tokens)
+[bs1] ours_C96_cur problem 24: 104.10 tok/s (9.61 ms/token, p50 9.02 p99 16.89, 256 tokens)
+[bs1] ours_C96_cur problem 25: 105.40 tok/s (9.49 ms/token, p50 8.86 p99 18.75, 256 tokens)
+[bs1] ours_C96_cur problem 26: 93.36 tok/s (10.71 ms/token, p50 10.12 p99 18.15, 256 tokens)
+[bs1] ours_C96_cur problem 27: 85.83 tok/s (11.65 ms/token, p50 11.06 p99 18.90, 256 tokens)
+[bs1] ours_C96_cur problem 28: 91.74 tok/s (10.90 ms/token, p50 10.42 p99 22.21, 256 tokens)
+[bs1] ours_C96_cur problem 29: 89.91 tok/s (11.12 ms/token, p50 10.78 p99 18.35, 256 tokens)
++ echo 'ours_C96_cur launch 1 rc=0'
+ours_C96_cur launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.375:0.95
++ r=0.125
++ mr=0.9
++ ft offload 0.125 1 0.9
++ cd /work/ft
++ cl ft_offload_r0.125 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.125}' --ft offload --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_offload_r0.125 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.125}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.125_L1.log --ft offload --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.125_L1.log --ft offload --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_offload_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '60675', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125', '--text-model-only']
+[bs1] ft_offload_r0.125 problem 0: 44.84 tok/s (22.30 ms/token, p50 22.09 p99 37.25, 256 tokens)
+[bs1] ft_offload_r0.125 problem 1: 42.65 tok/s (23.44 ms/token, p50 24.02 p99 36.50, 256 tokens)
+[bs1] ft_offload_r0.125 problem 2: 45.76 tok/s (21.85 ms/token, p50 21.53 p99 35.99, 256 tokens)
+[bs1] ft_offload_r0.125 problem 3: 45.65 tok/s (21.91 ms/token, p50 21.31 p99 35.94, 256 tokens)
+[bs1] ft_offload_r0.125 problem 4: 49.65 tok/s (20.14 ms/token, p50 19.61 p99 35.20, 256 tokens)
+[bs1] ft_offload_r0.125 problem 5: 47.36 tok/s (21.12 ms/token, p50 21.47 p99 35.94, 256 tokens)
+[bs1] ft_offload_r0.125 problem 6: 49.81 tok/s (20.08 ms/token, p50 20.10 p99 35.96, 256 tokens)
+[bs1] ft_offload_r0.125 problem 7: 44.90 tok/s (22.27 ms/token, p50 21.97 p99 40.22, 256 tokens)
+[bs1] ft_offload_r0.125 problem 8: 46.56 tok/s (21.48 ms/token, p50 21.32 p99 34.62, 256 tokens)
+[bs1] ft_offload_r0.125 problem 9: 46.77 tok/s (21.38 ms/token, p50 20.56 p99 37.86, 256 tokens)
+[bs1] ft_offload_r0.125 problem 10: 44.30 tok/s (22.57 ms/token, p50 22.89 p99 37.38, 256 tokens)
+[bs1] ft_offload_r0.125 problem 11: 48.79 tok/s (20.49 ms/token, p50 19.33 p99 36.17, 256 tokens)
+[bs1] ft_offload_r0.125 problem 12: 48.24 tok/s (20.73 ms/token, p50 20.33 p99 36.45, 256 tokens)
+[bs1] ft_offload_r0.125 problem 13: 50.22 tok/s (19.91 ms/token, p50 19.56 p99 33.81, 256 tokens)
+[bs1] ft_offload_r0.125 problem 14: 46.98 tok/s (21.28 ms/token, p50 20.75 p99 37.27, 256 tokens)
+[bs1] ft_offload_r0.125 problem 15: 47.05 tok/s (21.25 ms/token, p50 20.97 p99 35.88, 256 tokens)
+[bs1] ft_offload_r0.125 problem 16: 43.27 tok/s (23.11 ms/token, p50 22.39 p99 35.66, 256 tokens)
+[bs1] ft_offload_r0.125 problem 17: 52.32 tok/s (19.11 ms/token, p50 18.63 p99 34.10, 256 tokens)
+[bs1] ft_offload_r0.125 problem 18: 46.46 tok/s (21.53 ms/token, p50 20.83 p99 39.68, 256 tokens)
+[bs1] ft_offload_r0.125 problem 19: 44.98 tok/s (22.23 ms/token, p50 22.57 p99 38.67, 256 tokens)
+[bs1] ft_offload_r0.125 problem 20: 45.20 tok/s (22.13 ms/token, p50 21.90 p99 33.53, 256 tokens)
+[bs1] ft_offload_r0.125 problem 21: 45.47 tok/s (21.99 ms/token, p50 22.02 p99 36.34, 256 tokens)
+[bs1] ft_offload_r0.125 problem 22: 48.42 tok/s (20.65 ms/token, p50 20.17 p99 33.58, 256 tokens)
+[bs1] ft_offload_r0.125 problem 23: 44.90 tok/s (22.27 ms/token, p50 22.14 p99 35.54, 256 tokens)
+[bs1] ft_offload_r0.125 problem 24: 50.22 tok/s (19.91 ms/token, p50 19.88 p99 33.28, 256 tokens)
+[bs1] ft_offload_r0.125 problem 25: 52.57 tok/s (19.02 ms/token, p50 18.28 p99 32.07, 256 tokens)
+[bs1] ft_offload_r0.125 problem 26: 46.17 tok/s (21.66 ms/token, p50 21.51 p99 34.59, 256 tokens)
+[bs1] ft_offload_r0.125 problem 27: 43.74 tok/s (22.86 ms/token, p50 22.85 p99 37.92, 256 tokens)
+[bs1] ft_offload_r0.125 problem 28: 44.23 tok/s (22.61 ms/token, p50 22.83 p99 36.18, 256 tokens)
+[bs1] ft_offload_r0.125 problem 29: 46.48 tok/s (21.51 ms/token, p50 21.34 p99 36.75, 256 tokens)
++ echo 'ft_offload_r0.125 launch 1 rc=0'
+ft_offload_r0.125 launch 1 rc=0
++ ft hybrid 0.125 1 0.9
++ cd /work/ft
++ cl ft_hybrid_r0.125 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.125 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L1.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L1.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '39963', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125', '--text-model-only']
+[bs1] ft_hybrid_r0.125 problem 0: 57.17 tok/s (17.49 ms/token, p50 17.46 p99 25.75, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 1: 54.65 tok/s (18.30 ms/token, p50 18.16 p99 29.35, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 2: 58.01 tok/s (17.24 ms/token, p50 16.99 p99 27.02, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 3: 56.20 tok/s (17.79 ms/token, p50 17.41 p99 25.72, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 4: 58.77 tok/s (17.02 ms/token, p50 16.65 p99 27.05, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 5: 58.77 tok/s (17.02 ms/token, p50 16.61 p99 26.32, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 6: 58.48 tok/s (17.10 ms/token, p50 16.74 p99 34.07, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 7: 54.75 tok/s (18.27 ms/token, p50 18.05 p99 34.03, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 8: 56.44 tok/s (17.72 ms/token, p50 17.48 p99 26.56, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 9: 58.11 tok/s (17.21 ms/token, p50 16.65 p99 27.68, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 10: 55.48 tok/s (18.02 ms/token, p50 17.37 p99 29.77, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 11: 61.59 tok/s (16.24 ms/token, p50 15.61 p99 26.44, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 12: 57.50 tok/s (17.39 ms/token, p50 16.92 p99 27.88, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 13: 60.69 tok/s (16.48 ms/token, p50 16.21 p99 28.84, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 14: 59.10 tok/s (16.92 ms/token, p50 16.09 p99 27.81, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 15: 58.55 tok/s (17.08 ms/token, p50 16.54 p99 27.56, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 16: 55.25 tok/s (18.10 ms/token, p50 17.65 p99 27.57, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 17: 60.99 tok/s (16.40 ms/token, p50 16.13 p99 26.32, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 18: 58.13 tok/s (17.20 ms/token, p50 16.59 p99 28.03, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 19: 56.47 tok/s (17.71 ms/token, p50 17.48 p99 27.90, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 20: 57.64 tok/s (17.35 ms/token, p50 17.07 p99 26.01, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 21: 57.20 tok/s (17.48 ms/token, p50 17.15 p99 26.62, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 22: 60.22 tok/s (16.61 ms/token, p50 16.11 p99 25.08, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 23: 55.14 tok/s (18.14 ms/token, p50 17.87 p99 26.34, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 24: 61.08 tok/s (16.37 ms/token, p50 16.01 p99 25.42, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 25: 63.11 tok/s (15.84 ms/token, p50 15.03 p99 25.95, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 26: 57.27 tok/s (17.46 ms/token, p50 17.15 p99 26.20, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 27: 54.59 tok/s (18.32 ms/token, p50 18.05 p99 26.41, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 28: 56.69 tok/s (17.64 ms/token, p50 17.36 p99 30.60, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 29: 56.84 tok/s (17.59 ms/token, p50 17.49 p99 26.22, 256 tokens)
++ echo 'ft_hybrid_r0.125 launch 1 rc=0'
+ft_hybrid_r0.125 launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.375:0.95
++ r=0.25
++ mr=0.9
++ ft offload 0.25 1 0.9
++ cd /work/ft
++ cl ft_offload_r0.25 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.25}' --ft offload --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_offload_r0.25 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.25}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_offload_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '33169', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25', '--text-model-only']
+[bs1] ft_offload_r0.25 problem 0: 66.24 tok/s (15.10 ms/token, p50 14.47 p99 30.81, 256 tokens)
+[bs1] ft_offload_r0.25 problem 1: 63.59 tok/s (15.73 ms/token, p50 14.99 p99 26.91, 256 tokens)
+[bs1] ft_offload_r0.25 problem 2: 68.81 tok/s (14.53 ms/token, p50 14.03 p99 26.82, 256 tokens)
+[bs1] ft_offload_r0.25 problem 3: 64.96 tok/s (15.39 ms/token, p50 14.74 p99 27.67, 256 tokens)
+[bs1] ft_offload_r0.25 problem 4: 67.35 tok/s (14.85 ms/token, p50 14.09 p99 25.57, 256 tokens)
+[bs1] ft_offload_r0.25 problem 5: 72.62 tok/s (13.77 ms/token, p50 12.88 p99 26.23, 256 tokens)
+[bs1] ft_offload_r0.25 problem 6: 70.94 tok/s (14.10 ms/token, p50 13.27 p99 26.78, 256 tokens)
+[bs1] ft_offload_r0.25 problem 7: 62.92 tok/s (15.89 ms/token, p50 15.14 p99 30.40, 256 tokens)
+[bs1] ft_offload_r0.25 problem 8: 66.72 tok/s (14.99 ms/token, p50 14.41 p99 27.08, 256 tokens)
+[bs1] ft_offload_r0.25 problem 9: 70.98 tok/s (14.09 ms/token, p50 13.16 p99 29.91, 256 tokens)
+[bs1] ft_offload_r0.25 problem 10: 65.14 tok/s (15.35 ms/token, p50 14.57 p99 29.97, 256 tokens)
+[bs1] ft_offload_r0.25 problem 11: 74.74 tok/s (13.38 ms/token, p50 12.20 p99 29.60, 256 tokens)
+[bs1] ft_offload_r0.25 problem 12: 67.61 tok/s (14.79 ms/token, p50 13.96 p99 31.17, 256 tokens)
+[bs1] ft_offload_r0.25 problem 13: 77.22 tok/s (12.95 ms/token, p50 11.91 p99 25.70, 256 tokens)
+[bs1] ft_offload_r0.25 problem 14: 66.04 tok/s (15.14 ms/token, p50 14.48 p99 31.90, 256 tokens)
+[bs1] ft_offload_r0.25 problem 15: 69.58 tok/s (14.37 ms/token, p50 13.35 p99 29.41, 256 tokens)
+[bs1] ft_offload_r0.25 problem 16: 60.92 tok/s (16.41 ms/token, p50 15.60 p99 28.58, 256 tokens)
+[bs1] ft_offload_r0.25 problem 17: 72.31 tok/s (13.83 ms/token, p50 12.88 p99 31.89, 256 tokens)
+[bs1] ft_offload_r0.25 problem 18: 65.18 tok/s (15.34 ms/token, p50 14.68 p99 31.27, 256 tokens)
+[bs1] ft_offload_r0.25 problem 19: 68.01 tok/s (14.70 ms/token, p50 13.57 p99 30.43, 256 tokens)
+[bs1] ft_offload_r0.25 problem 20: 71.98 tok/s (13.89 ms/token, p50 13.08 p99 24.85, 256 tokens)
+[bs1] ft_offload_r0.25 problem 21: 65.94 tok/s (15.17 ms/token, p50 14.31 p99 28.26, 256 tokens)
+[bs1] ft_offload_r0.25 problem 22: 74.14 tok/s (13.49 ms/token, p50 12.55 p99 26.92, 256 tokens)
+[bs1] ft_offload_r0.25 problem 23: 64.18 tok/s (15.58 ms/token, p50 15.03 p99 27.37, 256 tokens)
+[bs1] ft_offload_r0.25 problem 24: 76.64 tok/s (13.05 ms/token, p50 12.55 p99 25.93, 256 tokens)
+[bs1] ft_offload_r0.25 problem 25: 77.39 tok/s (12.92 ms/token, p50 12.06 p99 26.59, 256 tokens)
+[bs1] ft_offload_r0.25 problem 26: 64.22 tok/s (15.57 ms/token, p50 14.90 p99 29.81, 256 tokens)
+[bs1] ft_offload_r0.25 problem 27: 61.20 tok/s (16.34 ms/token, p50 15.31 p99 28.98, 256 tokens)
+[bs1] ft_offload_r0.25 problem 28: 67.76 tok/s (14.76 ms/token, p50 14.01 p99 27.34, 256 tokens)
+[bs1] ft_offload_r0.25 problem 29: 62.98 tok/s (15.88 ms/token, p50 15.38 p99 30.63, 256 tokens)
++ echo 'ft_offload_r0.25 launch 1 rc=0'
+ft_offload_r0.25 launch 1 rc=0
++ ft hybrid 0.25 1 0.9
++ cd /work/ft
++ cl ft_hybrid_r0.25 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.25 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '46251', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25', '--text-model-only']
+[bs1] ft_hybrid_r0.25 problem 0: 81.10 tok/s (12.33 ms/token, p50 11.90 p99 21.13, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 1: 79.56 tok/s (12.57 ms/token, p50 12.19 p99 22.18, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 2: 78.19 tok/s (12.79 ms/token, p50 12.04 p99 22.26, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 3: 75.37 tok/s (13.27 ms/token, p50 12.80 p99 21.96, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 4: 77.15 tok/s (12.96 ms/token, p50 12.58 p99 20.09, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 5: 83.41 tok/s (11.99 ms/token, p50 11.28 p99 21.36, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 6: 78.83 tok/s (12.68 ms/token, p50 11.88 p99 26.79, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 7: 77.42 tok/s (12.92 ms/token, p50 12.67 p99 20.45, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 8: 77.39 tok/s (12.92 ms/token, p50 12.55 p99 20.22, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 9: 78.54 tok/s (12.73 ms/token, p50 12.09 p99 23.78, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 10: 76.04 tok/s (13.15 ms/token, p50 12.54 p99 21.52, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 11: 84.07 tok/s (11.90 ms/token, p50 11.10 p99 22.14, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 12: 81.62 tok/s (12.25 ms/token, p50 11.61 p99 23.96, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 13: 83.00 tok/s (12.05 ms/token, p50 11.54 p99 22.05, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 14: 77.07 tok/s (12.97 ms/token, p50 12.31 p99 23.35, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 15: 79.84 tok/s (12.53 ms/token, p50 11.98 p99 22.64, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 16: 77.73 tok/s (12.86 ms/token, p50 12.57 p99 20.30, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 17: 83.52 tok/s (11.97 ms/token, p50 11.18 p99 23.33, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 18: 72.41 tok/s (13.81 ms/token, p50 13.34 p99 21.88, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 19: 75.13 tok/s (13.31 ms/token, p50 12.64 p99 21.80, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 20: 81.81 tok/s (12.22 ms/token, p50 11.82 p99 21.88, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 21: 73.33 tok/s (13.64 ms/token, p50 13.26 p99 21.30, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 22: 81.95 tok/s (12.20 ms/token, p50 11.62 p99 20.83, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 23: 77.18 tok/s (12.96 ms/token, p50 12.69 p99 19.81, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 24: 84.53 tok/s (11.83 ms/token, p50 11.27 p99 19.45, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 25: 89.50 tok/s (11.17 ms/token, p50 10.54 p99 20.86, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 26: 77.98 tok/s (12.82 ms/token, p50 12.29 p99 22.25, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 27: 71.37 tok/s (14.01 ms/token, p50 13.37 p99 22.76, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 28: 76.77 tok/s (13.03 ms/token, p50 12.83 p99 23.53, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 29: 76.52 tok/s (13.07 ms/token, p50 12.87 p99 22.32, 256 tokens)
++ echo 'ft_hybrid_r0.25 launch 1 rc=0'
+ft_hybrid_r0.25 launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.375:0.95
++ r=0.375
++ mr=0.95
++ ft offload 0.375 1 0.95
++ cd /work/ft
++ cl ft_offload_r0.375 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.375}' --ft offload --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local lab=ft_offload_r0.375 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.375}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.375_L1.log --ft offload --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_offload_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken offload", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_offload_r0.375_L1.log --ft offload --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
+[bs1] ft_offload_r0.375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '60339', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.375', '--text-model-only']
+[bs1] ft_offload_r0.375 problem 0: 92.22 tok/s (10.84 ms/token, p50 9.99 p99 23.26, 256 tokens)
+[bs1] ft_offload_r0.375 problem 1: 97.22 tok/s (10.29 ms/token, p50 9.64 p99 22.29, 256 tokens)
+[bs1] ft_offload_r0.375 problem 2: 95.96 tok/s (10.42 ms/token, p50 9.65 p99 21.21, 256 tokens)
+[bs1] ft_offload_r0.375 problem 3: 87.40 tok/s (11.44 ms/token, p50 10.99 p99 21.83, 256 tokens)
+[bs1] ft_offload_r0.375 problem 4: 92.64 tok/s (10.79 ms/token, p50 9.94 p99 20.21, 256 tokens)
+[bs1] ft_offload_r0.375 problem 5: 105.44 tok/s (9.48 ms/token, p50 8.70 p99 20.27, 256 tokens)
+[bs1] ft_offload_r0.375 problem 6: 95.96 tok/s (10.42 ms/token, p50 9.73 p99 23.97, 256 tokens)
+[bs1] ft_offload_r0.375 problem 7: 90.25 tok/s (11.08 ms/token, p50 10.47 p99 22.35, 256 tokens)
+[bs1] ft_offload_r0.375 problem 8: 92.55 tok/s (10.81 ms/token, p50 10.35 p99 22.00, 256 tokens)
+[bs1] ft_offload_r0.375 problem 9: 95.94 tok/s (10.42 ms/token, p50 9.66 p99 23.75, 256 tokens)
+[bs1] ft_offload_r0.375 problem 10: 89.40 tok/s (11.19 ms/token, p50 10.67 p99 20.55, 256 tokens)
+[bs1] ft_offload_r0.375 problem 11: 99.47 tok/s (10.05 ms/token, p50 9.22 p99 23.49, 256 tokens)
+[bs1] ft_offload_r0.375 problem 12: 100.82 tok/s (9.92 ms/token, p50 9.26 p99 23.80, 256 tokens)
+[bs1] ft_offload_r0.375 problem 13: 105.93 tok/s (9.44 ms/token, p50 8.82 p99 19.50, 256 tokens)
+[bs1] ft_offload_r0.375 problem 14: 88.18 tok/s (11.34 ms/token, p50 10.39 p99 24.02, 256 tokens)
+[bs1] ft_offload_r0.375 problem 15: 98.24 tok/s (10.18 ms/token, p50 9.35 p99 23.74, 256 tokens)
+[bs1] ft_offload_r0.375 problem 16: 88.29 tok/s (11.33 ms/token, p50 10.98 p99 23.78, 256 tokens)
+[bs1] ft_offload_r0.375 problem 17: 102.50 tok/s (9.76 ms/token, p50 8.79 p99 26.61, 256 tokens)
+[bs1] ft_offload_r0.375 problem 18: 83.07 tok/s (12.04 ms/token, p50 11.08 p99 26.19, 256 tokens)
+[bs1] ft_offload_r0.375 problem 19: 88.54 tok/s (11.29 ms/token, p50 10.13 p99 23.04, 256 tokens)
+[bs1] ft_offload_r0.375 problem 20: 104.41 tok/s (9.58 ms/token, p50 8.78 p99 19.34, 256 tokens)
+[bs1] ft_offload_r0.375 problem 21: 85.31 tok/s (11.72 ms/token, p50 11.22 p99 22.50, 256 tokens)
+[bs1] ft_offload_r0.375 problem 22: 96.79 tok/s (10.33 ms/token, p50 9.54 p99 22.26, 256 tokens)
+[bs1] ft_offload_r0.375 problem 23: 93.10 tok/s (10.74 ms/token, p50 10.07 p99 19.69, 256 tokens)
+[bs1] ft_offload_r0.375 problem 24: 106.98 tok/s (9.35 ms/token, p50 8.65 p99 20.10, 256 tokens)
+[bs1] ft_offload_r0.375 problem 25: 110.44 tok/s (9.05 ms/token, p50 8.30 p99 20.11, 256 tokens)
+[bs1] ft_offload_r0.375 problem 26: 90.30 tok/s (11.07 ms/token, p50 10.26 p99 23.06, 256 tokens)
+[bs1] ft_offload_r0.375 problem 27: 82.27 tok/s (12.16 ms/token, p50 11.26 p99 24.46, 256 tokens)
+[bs1] ft_offload_r0.375 problem 28: 91.49 tok/s (10.93 ms/token, p50 10.38 p99 24.78, 256 tokens)
+[bs1] ft_offload_r0.375 problem 29: 87.66 tok/s (11.41 ms/token, p50 10.87 p99 23.45, 256 tokens)
++ echo 'ft_offload_r0.375 launch 1 rc=0'
+ft_offload_r0.375 launch 1 rc=0
++ ft hybrid 0.375 1 0.95
++ cd /work/ft
++ cl ft_hybrid_r0.375 1 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.375 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L1.log --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label ft_hybrid_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L1.log --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '45987', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.375', '--text-model-only']
+[bs1] ft_hybrid_r0.375 problem 0: 98.07 tok/s (10.20 ms/token, p50 9.59 p99 21.11, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 1: 94.75 tok/s (10.55 ms/token, p50 9.68 p99 27.98, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 2: 95.62 tok/s (10.46 ms/token, p50 10.12 p99 19.68, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 3: 92.14 tok/s (10.85 ms/token, p50 10.38 p99 18.77, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 4: 94.75 tok/s (10.55 ms/token, p50 9.93 p99 20.92, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 5: 104.11 tok/s (9.60 ms/token, p50 9.05 p99 19.44, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 6: 98.89 tok/s (10.11 ms/token, p50 9.57 p99 18.26, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 7: 97.52 tok/s (10.25 ms/token, p50 9.90 p99 15.92, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 8: 98.76 tok/s (10.13 ms/token, p50 9.64 p99 19.20, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 9: 99.42 tok/s (10.06 ms/token, p50 9.59 p99 16.79, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 10: 93.52 tok/s (10.69 ms/token, p50 10.08 p99 21.24, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 11: 97.15 tok/s (10.29 ms/token, p50 9.63 p99 26.15, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 12: 91.90 tok/s (10.88 ms/token, p50 10.05 p99 23.82, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 13: 99.76 tok/s (10.02 ms/token, p50 9.43 p99 19.43, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 14: 101.37 tok/s (9.86 ms/token, p50 9.28 p99 17.27, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 15: 96.49 tok/s (10.36 ms/token, p50 9.92 p99 18.46, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 16: 94.04 tok/s (10.63 ms/token, p50 10.51 p99 16.38, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 17: 99.87 tok/s (10.01 ms/token, p50 9.45 p99 18.31, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 18: 94.21 tok/s (10.62 ms/token, p50 10.14 p99 18.12, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 19: 97.58 tok/s (10.25 ms/token, p50 9.56 p99 19.45, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 20: 106.09 tok/s (9.43 ms/token, p50 8.92 p99 17.07, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 21: 92.25 tok/s (10.84 ms/token, p50 10.45 p99 18.31, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 22: 99.87 tok/s (10.01 ms/token, p50 9.42 p99 17.11, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 23: 98.54 tok/s (10.15 ms/token, p50 9.78 p99 16.02, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 24: 105.55 tok/s (9.47 ms/token, p50 8.96 p99 17.10, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 25: 112.85 tok/s (8.86 ms/token, p50 8.34 p99 15.10, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 26: 104.25 tok/s (9.59 ms/token, p50 9.08 p99 17.23, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 27: 87.78 tok/s (11.39 ms/token, p50 11.01 p99 21.28, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 28: 96.57 tok/s (10.36 ms/token, p50 9.96 p99 19.31, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 29: 95.01 tok/s (10.53 ms/token, p50 10.17 p99 16.26, 256 tokens)
++ echo 'ft_hybrid_r0.375 launch 1 rc=0'
+ft_hybrid_r0.375 launch 1 rc=0
++ for n in 35 30 25
++ cl llama_n35 1 '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 35}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 35 --port {port}'
++ local lab=llama_n35 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 35}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n35 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 35}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n35_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 35 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n35 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 35}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n35_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 35 --port {port}'
+[bs1] llama_n35: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 35 --port 38869
+[bs1] llama_n35 problem 0: 29.75 tok/s (33.61 ms/token, p50 33.37 p99 36.35, 256 tokens)
+[bs1] llama_n35 problem 1: 29.81 tok/s (33.54 ms/token, p50 33.46 p99 35.52, 256 tokens)
+[bs1] llama_n35 problem 2: 29.92 tok/s (33.43 ms/token, p50 33.34 p99 35.43, 256 tokens)
+[bs1] llama_n35 problem 3: 29.98 tok/s (33.36 ms/token, p50 33.26 p99 35.94, 256 tokens)
+[bs1] llama_n35 problem 4: 29.91 tok/s (33.43 ms/token, p50 33.24 p99 36.04, 256 tokens)
+[bs1] llama_n35 problem 5: 30.27 tok/s (33.03 ms/token, p50 33.26 p99 36.54, 256 tokens)
+[bs1] llama_n35 problem 6: 29.87 tok/s (33.48 ms/token, p50 33.35 p99 35.41, 256 tokens)
+[bs1] llama_n35 problem 7: 29.91 tok/s (33.43 ms/token, p50 33.11 p99 35.71, 256 tokens)
+[bs1] llama_n35 problem 8: 30.27 tok/s (33.04 ms/token, p50 33.00 p99 34.99, 256 tokens)
+[bs1] llama_n35 problem 9: 30.11 tok/s (33.21 ms/token, p50 33.13 p99 35.25, 256 tokens)
+[bs1] llama_n35 problem 10: 29.33 tok/s (34.09 ms/token, p50 33.27 p99 35.54, 256 tokens)
+[bs1] llama_n35 problem 11: 29.99 tok/s (33.34 ms/token, p50 33.31 p99 36.08, 256 tokens)
+[bs1] llama_n35 problem 12: 30.45 tok/s (32.84 ms/token, p50 32.92 p99 34.85, 256 tokens)
+[bs1] llama_n35 problem 13: 29.91 tok/s (33.44 ms/token, p50 33.22 p99 36.33, 256 tokens)
+[bs1] llama_n35 problem 14: 30.07 tok/s (33.25 ms/token, p50 33.21 p99 35.45, 256 tokens)
+[bs1] llama_n35 problem 15: 30.13 tok/s (33.19 ms/token, p50 33.09 p99 35.02, 256 tokens)
+[bs1] llama_n35 problem 16: 30.31 tok/s (32.99 ms/token, p50 32.94 p99 35.03, 256 tokens)
+[bs1] llama_n35 problem 17: 30.66 tok/s (32.61 ms/token, p50 32.31 p99 35.59, 256 tokens)
+[bs1] llama_n35 problem 18: 30.71 tok/s (32.57 ms/token, p50 32.31 p99 34.23, 256 tokens)
+[bs1] llama_n35 problem 19: 30.11 tok/s (33.21 ms/token, p50 33.16 p99 35.32, 256 tokens)
+[bs1] llama_n35 problem 20: 30.24 tok/s (33.07 ms/token, p50 32.92 p99 35.73, 256 tokens)
+[bs1] llama_n35 problem 21: 30.03 tok/s (33.30 ms/token, p50 33.23 p99 35.96, 256 tokens)
+[bs1] llama_n35 problem 22: 30.13 tok/s (33.19 ms/token, p50 33.12 p99 36.15, 256 tokens)
+[bs1] llama_n35 problem 23: 30.94 tok/s (32.32 ms/token, p50 32.24 p99 34.16, 256 tokens)
+[bs1] llama_n35 problem 24: 31.02 tok/s (32.23 ms/token, p50 32.20 p99 34.17, 256 tokens)
+[bs1] llama_n35 problem 25: 30.40 tok/s (32.89 ms/token, p50 33.09 p99 34.73, 256 tokens)
+[bs1] llama_n35 problem 26: 30.21 tok/s (33.10 ms/token, p50 33.00 p99 35.12, 256 tokens)
+[bs1] llama_n35 problem 27: 29.88 tok/s (33.47 ms/token, p50 33.40 p99 35.68, 256 tokens)
+[bs1] llama_n35 problem 28: 30.90 tok/s (32.36 ms/token, p50 32.29 p99 33.86, 256 tokens)
+[bs1] llama_n35 problem 29: 30.87 tok/s (32.40 ms/token, p50 32.35 p99 34.06, 256 tokens)
++ echo 'llama_n35 launch 1 rc=0'
+llama_n35 launch 1 rc=0
++ for n in 35 30 25
++ cl llama_n30 1 '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 30}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 30 --port {port}'
++ local lab=llama_n30 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 30}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n30 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 30}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n30_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 30 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n30 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 30}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n30_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 30 --port {port}'
+[bs1] llama_n30: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 30 --port 38937
+[bs1] llama_n30 problem 0: 34.18 tok/s (29.25 ms/token, p50 29.17 p99 31.27, 256 tokens)
+[bs1] llama_n30 problem 1: 33.94 tok/s (29.46 ms/token, p50 29.39 p99 32.09, 256 tokens)
+[bs1] llama_n30 problem 2: 34.08 tok/s (29.34 ms/token, p50 29.23 p99 31.23, 256 tokens)
+[bs1] llama_n30 problem 3: 34.44 tok/s (29.04 ms/token, p50 29.01 p99 30.70, 256 tokens)
+[bs1] llama_n30 problem 4: 34.49 tok/s (29.00 ms/token, p50 28.90 p99 31.43, 256 tokens)
+[bs1] llama_n30 problem 5: 34.28 tok/s (29.17 ms/token, p50 28.98 p99 31.24, 256 tokens)
+[bs1] llama_n30 problem 6: 34.51 tok/s (28.97 ms/token, p50 28.91 p99 30.82, 256 tokens)
+[bs1] llama_n30 problem 7: 33.98 tok/s (29.43 ms/token, p50 29.32 p99 32.35, 256 tokens)
+[bs1] llama_n30 problem 8: 34.47 tok/s (29.01 ms/token, p50 28.95 p99 31.08, 256 tokens)
+[bs1] llama_n30 problem 9: 33.96 tok/s (29.45 ms/token, p50 29.25 p99 32.09, 256 tokens)
+[bs1] llama_n30 problem 10: 33.98 tok/s (29.43 ms/token, p50 29.31 p99 31.45, 256 tokens)
+[bs1] llama_n30 problem 11: 34.07 tok/s (29.35 ms/token, p50 29.01 p99 32.75, 256 tokens)
+[bs1] llama_n30 problem 12: 34.18 tok/s (29.26 ms/token, p50 29.19 p99 32.21, 256 tokens)
+[bs1] llama_n30 problem 13: 33.94 tok/s (29.47 ms/token, p50 29.30 p99 31.33, 256 tokens)
+[bs1] llama_n30 problem 14: 34.16 tok/s (29.27 ms/token, p50 29.18 p99 32.13, 256 tokens)
+[bs1] llama_n30 problem 15: 34.46 tok/s (29.02 ms/token, p50 28.92 p99 30.82, 256 tokens)
+[bs1] llama_n30 problem 16: 33.72 tok/s (29.65 ms/token, p50 29.59 p99 32.52, 256 tokens)
+[bs1] llama_n30 problem 17: 34.80 tok/s (28.74 ms/token, p50 28.51 p99 32.98, 256 tokens)
+[bs1] llama_n30 problem 18: 35.01 tok/s (28.56 ms/token, p50 28.50 p99 30.11, 256 tokens)
+[bs1] llama_n30 problem 19: 35.08 tok/s (28.50 ms/token, p50 28.40 p99 30.06, 256 tokens)
+[bs1] llama_n30 problem 20: 35.07 tok/s (28.51 ms/token, p50 28.47 p99 30.22, 256 tokens)
+[bs1] llama_n30 problem 21: 34.58 tok/s (28.92 ms/token, p50 28.91 p99 30.54, 256 tokens)
+[bs1] llama_n30 problem 22: 33.69 tok/s (29.68 ms/token, p50 29.60 p99 32.68, 256 tokens)
+[bs1] llama_n30 problem 23: 34.45 tok/s (29.03 ms/token, p50 28.95 p99 30.89, 256 tokens)
+[bs1] llama_n30 problem 24: 34.31 tok/s (29.14 ms/token, p50 29.07 p99 31.31, 256 tokens)
+[bs1] llama_n30 problem 25: 34.23 tok/s (29.21 ms/token, p50 29.15 p99 31.37, 256 tokens)
+[bs1] llama_n30 problem 26: 34.03 tok/s (29.39 ms/token, p50 29.43 p99 32.59, 256 tokens)
+[bs1] llama_n30 problem 27: 35.19 tok/s (28.42 ms/token, p50 28.37 p99 30.04, 256 tokens)
+[bs1] llama_n30 problem 28: 35.16 tok/s (28.45 ms/token, p50 28.40 p99 30.01, 256 tokens)
+[bs1] llama_n30 problem 29: 35.11 tok/s (28.48 ms/token, p50 28.42 p99 30.08, 256 tokens)
++ echo 'llama_n30 launch 1 rc=0'
+llama_n30 launch 1 rc=0
++ for n in 35 30 25
++ cl llama_n25 1 '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 25}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 25 --port {port}'
++ local lab=llama_n25 L=1 'meta={"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 25}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n25_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 25 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label llama_n25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "llama.cpp", "ncmoe": 25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_llama_n25_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 25 --port {port}'
+[bs1] llama_n25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ncmoe 25 --port 41075
+[bs1] llama_n25 problem 0: 39.83 tok/s (25.11 ms/token, p50 25.01 p99 27.98, 256 tokens)
+[bs1] llama_n25 problem 1: 39.80 tok/s (25.13 ms/token, p50 25.03 p99 27.23, 256 tokens)
+[bs1] llama_n25 problem 2: 39.91 tok/s (25.06 ms/token, p50 25.00 p99 27.13, 256 tokens)
+[bs1] llama_n25 problem 3: 39.64 tok/s (25.22 ms/token, p50 25.14 p99 27.30, 256 tokens)
+[bs1] llama_n25 problem 4: 39.66 tok/s (25.21 ms/token, p50 25.15 p99 28.01, 256 tokens)
+[bs1] llama_n25 problem 5: 39.97 tok/s (25.02 ms/token, p50 25.00 p99 26.28, 256 tokens)
+[bs1] llama_n25 problem 6: 39.90 tok/s (25.06 ms/token, p50 25.02 p99 27.05, 256 tokens)
+[bs1] llama_n25 problem 7: 39.85 tok/s (25.10 ms/token, p50 25.03 p99 27.00, 256 tokens)
+[bs1] llama_n25 problem 8: 39.66 tok/s (25.22 ms/token, p50 25.15 p99 27.22, 256 tokens)
+[bs1] llama_n25 problem 9: 39.93 tok/s (25.04 ms/token, p50 25.00 p99 27.07, 256 tokens)
+[bs1] llama_n25 problem 10: 40.31 tok/s (24.81 ms/token, p50 24.93 p99 27.00, 256 tokens)
+[bs1] llama_n25 problem 11: 40.69 tok/s (24.57 ms/token, p50 24.49 p99 26.53, 256 tokens)
+[bs1] llama_n25 problem 12: 40.63 tok/s (24.61 ms/token, p50 24.54 p99 26.57, 256 tokens)
+[bs1] llama_n25 problem 13: 39.51 tok/s (25.31 ms/token, p50 25.29 p99 28.24, 256 tokens)
+[bs1] llama_n25 problem 14: 39.44 tok/s (25.36 ms/token, p50 25.53 p99 27.50, 256 tokens)
+[bs1] llama_n25 problem 15: 39.08 tok/s (25.59 ms/token, p50 25.54 p99 28.38, 256 tokens)
+[bs1] llama_n25 problem 16: 39.19 tok/s (25.51 ms/token, p50 25.50 p99 28.25, 256 tokens)
+[bs1] llama_n25 problem 17: 39.75 tok/s (25.16 ms/token, p50 25.10 p99 27.68, 256 tokens)
+[bs1] llama_n25 problem 18: 39.53 tok/s (25.30 ms/token, p50 25.24 p99 27.44, 256 tokens)
+[bs1] llama_n25 problem 19: 40.07 tok/s (24.96 ms/token, p50 24.89 p99 26.75, 256 tokens)
+[bs1] llama_n25 problem 20: 39.23 tok/s (25.49 ms/token, p50 25.43 p99 28.20, 256 tokens)
+[bs1] llama_n25 problem 21: 39.59 tok/s (25.26 ms/token, p50 25.12 p99 27.34, 256 tokens)
+[bs1] llama_n25 problem 22: 40.01 tok/s (24.99 ms/token, p50 24.95 p99 27.48, 256 tokens)
+[bs1] llama_n25 problem 23: 40.19 tok/s (24.88 ms/token, p50 24.81 p99 27.22, 256 tokens)
+[bs1] llama_n25 problem 24: 40.08 tok/s (24.95 ms/token, p50 24.92 p99 27.01, 256 tokens)
+[bs1] llama_n25 problem 25: 39.91 tok/s (25.05 ms/token, p50 24.99 p99 27.80, 256 tokens)
+[bs1] llama_n25 problem 26: 39.61 tok/s (25.24 ms/token, p50 25.19 p99 27.46, 256 tokens)
+[bs1] llama_n25 problem 27: 39.80 tok/s (25.12 ms/token, p50 25.05 p99 27.73, 256 tokens)
+[bs1] llama_n25 problem 28: 39.69 tok/s (25.19 ms/token, p50 25.14 p99 27.23, 256 tokens)
+[bs1] llama_n25 problem 29: 39.56 tok/s (25.28 ms/token, p50 25.21 p99 27.86, 256 tokens)
++ echo 'llama_n25 launch 1 rc=0'
+llama_n25 launch 1 rc=0
++ for trip in 32:0.125:0.9 64:0.25:0.9 96:0.375:0.95
++ C=32
++ rest=0.125:0.9
++ r=0.125
++ mr=0.9
+++ pick ours_C32_cur ours_C32_law
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ours_C32_cur ours_C32_law
++ w=ours_C32_law
++ t=law
+++ pick ft_offload_r0.125 ft_hybrid_r0.125
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ft_offload_r0.125 ft_hybrid_r0.125
++ fb=ft_hybrid_r0.125
+++ echo ft_hybrid_r0.125
+++ cut -d_ -f2
++ b=hybrid
++ echo 'qwen3.6 C32: ours law, FreeToken hybrid'
++ tee -a /w/results/086_qwen36@vast/selection.txt
+qwen3.6 C32: ours law, FreeToken hybrid
++ ours 32 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C32_law 2 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C32_law L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C32_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C32_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 37683
+[bs1] ours_C32_law problem 0: 58.74 tok/s (17.03 ms/token, p50 16.92 p99 27.33, 256 tokens)
+[bs1] ours_C32_law problem 1: 57.15 tok/s (17.50 ms/token, p50 17.26 p99 27.09, 256 tokens)
+[bs1] ours_C32_law problem 2: 58.37 tok/s (17.13 ms/token, p50 16.98 p99 26.83, 256 tokens)
+[bs1] ours_C32_law problem 3: 57.78 tok/s (17.31 ms/token, p50 16.91 p99 26.83, 256 tokens)
+[bs1] ours_C32_law problem 4: 60.19 tok/s (16.61 ms/token, p50 16.31 p99 26.16, 256 tokens)
+[bs1] ours_C32_law problem 5: 61.08 tok/s (16.37 ms/token, p50 16.00 p99 25.84, 256 tokens)
+[bs1] ours_C32_law problem 6: 61.41 tok/s (16.29 ms/token, p50 15.84 p99 26.37, 256 tokens)
+[bs1] ours_C32_law problem 7: 59.19 tok/s (16.90 ms/token, p50 16.71 p99 28.95, 256 tokens)
+[bs1] ours_C32_law problem 8: 59.63 tok/s (16.77 ms/token, p50 16.27 p99 28.23, 256 tokens)
+[bs1] ours_C32_law problem 9: 59.86 tok/s (16.70 ms/token, p50 16.04 p99 29.58, 256 tokens)
+[bs1] ours_C32_law problem 10: 58.87 tok/s (16.99 ms/token, p50 16.70 p99 27.00, 256 tokens)
+[bs1] ours_C32_law problem 11: 64.88 tok/s (15.41 ms/token, p50 14.53 p99 28.46, 256 tokens)
+[bs1] ours_C32_law problem 12: 60.10 tok/s (16.64 ms/token, p50 16.15 p99 29.20, 256 tokens)
+[bs1] ours_C32_law problem 13: 59.63 tok/s (16.77 ms/token, p50 16.63 p99 28.73, 256 tokens)
+[bs1] ours_C32_law problem 14: 61.67 tok/s (16.22 ms/token, p50 15.75 p99 28.89, 256 tokens)
+[bs1] ours_C32_law problem 15: 59.38 tok/s (16.84 ms/token, p50 16.75 p99 27.39, 256 tokens)
+[bs1] ours_C32_law problem 16: 57.95 tok/s (17.26 ms/token, p50 16.96 p99 25.60, 256 tokens)
+[bs1] ours_C32_law problem 17: 62.30 tok/s (16.05 ms/token, p50 15.09 p99 28.72, 256 tokens)
+[bs1] ours_C32_law problem 18: 58.17 tok/s (17.19 ms/token, p50 16.85 p99 27.05, 256 tokens)
+[bs1] ours_C32_law problem 19: 58.53 tok/s (17.09 ms/token, p50 16.70 p99 28.31, 256 tokens)
+[bs1] ours_C32_law problem 20: 59.69 tok/s (16.75 ms/token, p50 16.55 p99 26.81, 256 tokens)
+[bs1] ours_C32_law problem 21: 58.15 tok/s (17.20 ms/token, p50 17.06 p99 24.81, 256 tokens)
+[bs1] ours_C32_law problem 22: 62.76 tok/s (15.93 ms/token, p50 15.65 p99 26.97, 256 tokens)
+[bs1] ours_C32_law problem 23: 57.41 tok/s (17.42 ms/token, p50 17.41 p99 26.79, 256 tokens)
+[bs1] ours_C32_law problem 24: 61.21 tok/s (16.34 ms/token, p50 15.87 p99 25.67, 256 tokens)
+[bs1] ours_C32_law problem 25: 66.37 tok/s (15.07 ms/token, p50 14.47 p99 26.69, 256 tokens)
+[bs1] ours_C32_law problem 26: 58.15 tok/s (17.20 ms/token, p50 16.69 p99 26.74, 256 tokens)
+[bs1] ours_C32_law problem 27: 56.11 tok/s (17.82 ms/token, p50 17.84 p99 28.30, 256 tokens)
+[bs1] ours_C32_law problem 28: 57.71 tok/s (17.33 ms/token, p50 17.19 p99 27.76, 256 tokens)
+[bs1] ours_C32_law problem 29: 57.98 tok/s (17.25 ms/token, p50 17.15 p99 27.76, 256 tokens)
++ echo 'ours_C32_law launch 2 rc=0'
+ours_C32_law launch 2 rc=0
++ ft hybrid 0.125 2 0.9
++ cd /work/ft
++ cl ft_hybrid_r0.125 2 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.125 L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L2.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.125 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L2.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '42597', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125', '--text-model-only']
+[bs1] ft_hybrid_r0.125 problem 0: 56.65 tok/s (17.65 ms/token, p50 17.58 p99 26.34, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 1: 54.37 tok/s (18.39 ms/token, p50 18.10 p99 29.71, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 2: 57.90 tok/s (17.27 ms/token, p50 17.02 p99 25.70, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 3: 55.94 tok/s (17.88 ms/token, p50 17.54 p99 26.00, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 4: 58.84 tok/s (17.00 ms/token, p50 16.61 p99 27.13, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 5: 58.56 tok/s (17.08 ms/token, p50 16.89 p99 26.79, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 6: 59.76 tok/s (16.73 ms/token, p50 16.69 p99 27.33, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 7: 56.72 tok/s (17.63 ms/token, p50 17.27 p99 27.90, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 8: 58.24 tok/s (17.17 ms/token, p50 16.89 p99 26.60, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 9: 57.63 tok/s (17.35 ms/token, p50 16.88 p99 25.70, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 10: 56.78 tok/s (17.61 ms/token, p50 17.34 p99 27.40, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 11: 60.47 tok/s (16.54 ms/token, p50 15.76 p99 30.05, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 12: 57.73 tok/s (17.32 ms/token, p50 16.79 p99 28.28, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 13: 61.34 tok/s (16.30 ms/token, p50 15.93 p99 26.48, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 14: 58.03 tok/s (17.23 ms/token, p50 16.41 p99 27.75, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 15: 58.38 tok/s (17.13 ms/token, p50 16.51 p99 26.08, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 16: 55.21 tok/s (18.11 ms/token, p50 17.65 p99 27.19, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 17: 61.32 tok/s (16.31 ms/token, p50 15.60 p99 25.43, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 18: 56.99 tok/s (17.55 ms/token, p50 17.08 p99 26.76, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 19: 56.30 tok/s (17.76 ms/token, p50 17.48 p99 28.61, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 20: 56.04 tok/s (17.84 ms/token, p50 17.48 p99 26.97, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 21: 56.67 tok/s (17.65 ms/token, p50 17.17 p99 26.52, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 22: 60.82 tok/s (16.44 ms/token, p50 16.09 p99 25.39, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 23: 55.55 tok/s (18.00 ms/token, p50 17.86 p99 25.44, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 24: 61.04 tok/s (16.38 ms/token, p50 16.06 p99 25.64, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 25: 65.02 tok/s (15.38 ms/token, p50 14.87 p99 25.47, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 26: 57.33 tok/s (17.44 ms/token, p50 17.04 p99 26.14, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 27: 54.54 tok/s (18.33 ms/token, p50 18.28 p99 26.50, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 28: 56.59 tok/s (17.67 ms/token, p50 17.33 p99 25.81, 256 tokens)
+[bs1] ft_hybrid_r0.125 problem 29: 57.05 tok/s (17.53 ms/token, p50 17.32 p99 29.42, 256 tokens)
++ echo 'ft_hybrid_r0.125 launch 2 rc=0'
+ft_hybrid_r0.125 launch 2 rc=0
++ for trip in 32:0.125:0.9 64:0.25:0.9 96:0.375:0.95
++ C=64
++ rest=0.25:0.9
++ r=0.25
++ mr=0.9
+++ pick ours_C64_cur ours_C64_law
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ours_C64_cur ours_C64_law
++ w=ours_C64_law
++ t=law
+++ pick ft_offload_r0.25 ft_hybrid_r0.25
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ft_offload_r0.25 ft_hybrid_r0.25
++ fb=ft_hybrid_r0.25
+++ echo ft_hybrid_r0.25
+++ cut -d_ -f2
++ b=hybrid
++ echo 'qwen3.6 C64: ours law, FreeToken hybrid'
++ tee -a /w/results/086_qwen36@vast/selection.txt
+qwen3.6 C64: ours law, FreeToken hybrid
++ ours 64 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C64_law 2 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C64_law L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C64_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C64_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 64, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C64_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C64_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=64 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C64_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 46567
+[bs1] ours_C64_law problem 0: 78.21 tok/s (12.79 ms/token, p50 12.26 p99 20.26, 256 tokens)
+[bs1] ours_C64_law problem 1: 77.87 tok/s (12.84 ms/token, p50 12.41 p99 22.69, 256 tokens)
+[bs1] ours_C64_law problem 2: 75.85 tok/s (13.18 ms/token, p50 12.85 p99 20.48, 256 tokens)
+[bs1] ours_C64_law problem 3: 73.47 tok/s (13.61 ms/token, p50 13.25 p99 22.54, 256 tokens)
+[bs1] ours_C64_law problem 4: 75.71 tok/s (13.21 ms/token, p50 12.79 p99 21.13, 256 tokens)
+[bs1] ours_C64_law problem 5: 82.75 tok/s (12.08 ms/token, p50 11.63 p99 21.43, 256 tokens)
+[bs1] ours_C64_law problem 6: 80.15 tok/s (12.48 ms/token, p50 11.98 p99 23.51, 256 tokens)
+[bs1] ours_C64_law problem 7: 76.70 tok/s (13.04 ms/token, p50 12.54 p99 21.80, 256 tokens)
+[bs1] ours_C64_law problem 8: 79.05 tok/s (12.65 ms/token, p50 12.12 p99 21.21, 256 tokens)
+[bs1] ours_C64_law problem 9: 84.17 tok/s (11.88 ms/token, p50 11.38 p99 21.82, 256 tokens)
+[bs1] ours_C64_law problem 10: 78.12 tok/s (12.80 ms/token, p50 12.28 p99 21.16, 256 tokens)
+[bs1] ours_C64_law problem 11: 87.98 tok/s (11.37 ms/token, p50 10.69 p99 22.43, 256 tokens)
+[bs1] ours_C64_law problem 12: 82.45 tok/s (12.13 ms/token, p50 11.55 p99 23.22, 256 tokens)
+[bs1] ours_C64_law problem 13: 81.00 tok/s (12.35 ms/token, p50 11.84 p99 21.57, 256 tokens)
+[bs1] ours_C64_law problem 14: 79.66 tok/s (12.55 ms/token, p50 12.04 p99 22.67, 256 tokens)
+[bs1] ours_C64_law problem 15: 81.73 tok/s (12.24 ms/token, p50 11.78 p99 22.35, 256 tokens)
+[bs1] ours_C64_law problem 16: 77.08 tok/s (12.97 ms/token, p50 12.54 p99 23.99, 256 tokens)
+[bs1] ours_C64_law problem 17: 83.60 tok/s (11.96 ms/token, p50 11.23 p99 22.61, 256 tokens)
+[bs1] ours_C64_law problem 18: 73.97 tok/s (13.52 ms/token, p50 12.90 p99 22.77, 256 tokens)
+[bs1] ours_C64_law problem 19: 78.33 tok/s (12.77 ms/token, p50 12.31 p99 22.93, 256 tokens)
+[bs1] ours_C64_law problem 20: 80.07 tok/s (12.49 ms/token, p50 11.85 p99 20.02, 256 tokens)
+[bs1] ours_C64_law problem 21: 76.22 tok/s (13.12 ms/token, p50 12.73 p99 21.49, 256 tokens)
+[bs1] ours_C64_law problem 22: 82.58 tok/s (12.11 ms/token, p50 11.66 p99 20.96, 256 tokens)
+[bs1] ours_C64_law problem 23: 76.99 tok/s (12.99 ms/token, p50 12.74 p99 19.94, 256 tokens)
+[bs1] ours_C64_law problem 24: 86.93 tok/s (11.50 ms/token, p50 11.01 p99 20.30, 256 tokens)
+[bs1] ours_C64_law problem 25: 90.78 tok/s (11.02 ms/token, p50 10.34 p99 20.15, 256 tokens)
+[bs1] ours_C64_law problem 26: 77.35 tok/s (12.93 ms/token, p50 12.53 p99 21.51, 256 tokens)
+[bs1] ours_C64_law problem 27: 72.64 tok/s (13.77 ms/token, p50 13.27 p99 21.67, 256 tokens)
+[bs1] ours_C64_law problem 28: 77.22 tok/s (12.95 ms/token, p50 12.65 p99 24.19, 256 tokens)
+[bs1] ours_C64_law problem 29: 75.24 tok/s (13.29 ms/token, p50 13.06 p99 23.16, 256 tokens)
++ echo 'ours_C64_law launch 2 rc=0'
+ours_C64_law launch 2 rc=0
++ ft hybrid 0.25 2 0.9
++ cd /work/ft
++ cl ft_hybrid_r0.25 2 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.25 L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.25 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '40831', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25', '--text-model-only']
+[bs1] ft_hybrid_r0.25 problem 0: 81.02 tok/s (12.34 ms/token, p50 11.80 p99 21.06, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 1: 79.82 tok/s (12.53 ms/token, p50 12.19 p99 22.87, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 2: 78.85 tok/s (12.68 ms/token, p50 12.25 p99 21.94, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 3: 75.83 tok/s (13.19 ms/token, p50 12.77 p99 21.58, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 4: 76.65 tok/s (13.05 ms/token, p50 12.60 p99 20.31, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 5: 83.42 tok/s (11.99 ms/token, p50 11.33 p99 20.15, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 6: 80.50 tok/s (12.42 ms/token, p50 11.73 p99 22.38, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 7: 77.03 tok/s (12.98 ms/token, p50 12.63 p99 20.33, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 8: 77.33 tok/s (12.93 ms/token, p50 12.63 p99 19.89, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 9: 78.41 tok/s (12.75 ms/token, p50 12.10 p99 23.27, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 10: 73.99 tok/s (13.52 ms/token, p50 12.79 p99 23.74, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 11: 82.40 tok/s (12.14 ms/token, p50 11.18 p99 25.88, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 12: 79.38 tok/s (12.60 ms/token, p50 11.87 p99 25.50, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 13: 84.88 tok/s (11.78 ms/token, p50 11.23 p99 20.55, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 14: 76.34 tok/s (13.10 ms/token, p50 12.28 p99 23.54, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 15: 78.59 tok/s (12.72 ms/token, p50 11.95 p99 22.75, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 16: 75.54 tok/s (13.24 ms/token, p50 12.67 p99 26.87, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 17: 82.69 tok/s (12.09 ms/token, p50 11.44 p99 24.21, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 18: 72.20 tok/s (13.85 ms/token, p50 13.30 p99 21.82, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 19: 75.52 tok/s (13.24 ms/token, p50 12.53 p99 23.01, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 20: 81.49 tok/s (12.27 ms/token, p50 12.01 p99 21.95, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 21: 73.34 tok/s (13.63 ms/token, p50 13.26 p99 22.54, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 22: 81.93 tok/s (12.21 ms/token, p50 11.57 p99 20.06, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 23: 78.49 tok/s (12.74 ms/token, p50 12.48 p99 18.92, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 24: 84.23 tok/s (11.87 ms/token, p50 11.24 p99 21.08, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 25: 89.42 tok/s (11.18 ms/token, p50 10.57 p99 21.08, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 26: 76.78 tok/s (13.02 ms/token, p50 12.32 p99 25.24, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 27: 71.57 tok/s (13.97 ms/token, p50 13.34 p99 21.56, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 28: 76.65 tok/s (13.05 ms/token, p50 12.67 p99 23.24, 256 tokens)
+[bs1] ft_hybrid_r0.25 problem 29: 76.85 tok/s (13.01 ms/token, p50 12.84 p99 20.42, 256 tokens)
++ echo 'ft_hybrid_r0.25 launch 2 rc=0'
+ft_hybrid_r0.25 launch 2 rc=0
++ for trip in 32:0.125:0.9 64:0.25:0.9 96:0.375:0.95
++ C=96
++ rest=0.375:0.95
++ r=0.375
++ mr=0.95
+++ pick ours_C96_cur ours_C96_law
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ours_C96_cur ours_C96_law
++ w=ours_C96_law
++ t=law
+++ pick ft_offload_r0.375 ft_hybrid_r0.375
+++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast/bs1.jsonl ft_offload_r0.375 ft_hybrid_r0.375
++ fb=ft_hybrid_r0.375
+++ echo ft_hybrid_r0.375
+++ cut -d_ -f2
++ b=hybrid
++ echo 'qwen3.6 C96: ours law, FreeToken hybrid'
++ tee -a /w/results/086_qwen36@vast/selection.txt
+qwen3.6 C96: ours law, FreeToken hybrid
++ ours 96 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,3,3,4,4
++ cl ours_C96_law 2 '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local lab=ours_C96_law L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C96_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ours_C96_law --meta '{"model": "Qwen3.6-35B-A3B", "system": "ours v2", "C": 96, "table": "0,0,1,1,2,3,3,4,4"}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ours_C96_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] ours_C96_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_SLOTS=96 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,4 LLAMA_EC_STATS=/w/results/086_qwen36@vast/srv_ours_C96_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3.6-35B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 53027
+[bs1] ours_C96_law problem 0: 99.24 tok/s (10.08 ms/token, p50 9.72 p99 16.66, 256 tokens)
+[bs1] ours_C96_law problem 1: 100.92 tok/s (9.91 ms/token, p50 9.31 p99 19.17, 256 tokens)
+[bs1] ours_C96_law problem 2: 95.18 tok/s (10.51 ms/token, p50 10.26 p99 17.42, 256 tokens)
+[bs1] ours_C96_law problem 3: 92.89 tok/s (10.77 ms/token, p50 10.61 p99 17.43, 256 tokens)
+[bs1] ours_C96_law problem 4: 93.88 tok/s (10.65 ms/token, p50 10.02 p99 17.44, 256 tokens)
+[bs1] ours_C96_law problem 5: 105.05 tok/s (9.52 ms/token, p50 9.04 p99 15.61, 256 tokens)
+[bs1] ours_C96_law problem 6: 100.06 tok/s (9.99 ms/token, p50 9.53 p99 18.03, 256 tokens)
+[bs1] ours_C96_law problem 7: 94.88 tok/s (10.54 ms/token, p50 10.16 p99 16.90, 256 tokens)
+[bs1] ours_C96_law problem 8: 97.87 tok/s (10.22 ms/token, p50 9.53 p99 17.44, 256 tokens)
+[bs1] ours_C96_law problem 9: 102.65 tok/s (9.74 ms/token, p50 9.35 p99 16.62, 256 tokens)
+[bs1] ours_C96_law problem 10: 94.78 tok/s (10.55 ms/token, p50 10.17 p99 18.29, 256 tokens)
+[bs1] ours_C96_law problem 11: 104.11 tok/s (9.61 ms/token, p50 9.08 p99 18.58, 256 tokens)
+[bs1] ours_C96_law problem 12: 101.23 tok/s (9.88 ms/token, p50 9.40 p99 18.20, 256 tokens)
+[bs1] ours_C96_law problem 13: 98.82 tok/s (10.12 ms/token, p50 9.86 p99 17.77, 256 tokens)
+[bs1] ours_C96_law problem 14: 100.08 tok/s (9.99 ms/token, p50 9.66 p99 17.20, 256 tokens)
+[bs1] ours_C96_law problem 15: 101.23 tok/s (9.88 ms/token, p50 9.51 p99 16.35, 256 tokens)
+[bs1] ours_C96_law problem 16: 95.29 tok/s (10.49 ms/token, p50 10.30 p99 17.54, 256 tokens)
+[bs1] ours_C96_law problem 17: 102.19 tok/s (9.79 ms/token, p50 9.29 p99 22.29, 256 tokens)
+[bs1] ours_C96_law problem 18: 93.21 tok/s (10.73 ms/token, p50 10.32 p99 17.77, 256 tokens)
+[bs1] ours_C96_law problem 19: 98.63 tok/s (10.14 ms/token, p50 9.61 p99 18.75, 256 tokens)
+[bs1] ours_C96_law problem 20: 103.45 tok/s (9.67 ms/token, p50 9.25 p99 16.70, 256 tokens)
+[bs1] ours_C96_law problem 21: 95.26 tok/s (10.50 ms/token, p50 10.35 p99 15.95, 256 tokens)
+[bs1] ours_C96_law problem 22: 101.09 tok/s (9.89 ms/token, p50 9.55 p99 16.78, 256 tokens)
+[bs1] ours_C96_law problem 23: 96.38 tok/s (10.38 ms/token, p50 10.00 p99 15.75, 256 tokens)
+[bs1] ours_C96_law problem 24: 107.21 tok/s (9.33 ms/token, p50 8.76 p99 16.82, 256 tokens)
+[bs1] ours_C96_law problem 25: 109.08 tok/s (9.17 ms/token, p50 8.62 p99 17.59, 256 tokens)
+[bs1] ours_C96_law problem 26: 98.02 tok/s (10.20 ms/token, p50 9.70 p99 17.66, 256 tokens)
+[bs1] ours_C96_law problem 27: 88.74 tok/s (11.27 ms/token, p50 10.94 p99 17.06, 256 tokens)
+[bs1] ours_C96_law problem 28: 96.92 tok/s (10.32 ms/token, p50 10.03 p99 18.51, 256 tokens)
+[bs1] ours_C96_law problem 29: 93.61 tok/s (10.68 ms/token, p50 10.52 p99 17.65, 256 tokens)
++ echo 'ours_C96_law launch 2 rc=0'
+ours_C96_law launch 2 rc=0
++ ft hybrid 0.375 2 0.95
++ cd /work/ft
++ cl ft_hybrid_r0.375 2 '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local lab=ft_hybrid_r0.375 L=2 'meta={"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}'
++ shift 3
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=18
++ '[' 18 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L2.log --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3.6-35B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label ft_hybrid_r0.375 --meta '{"model": "Qwen3.6-35B-A3B", "system": "FreeToken hybrid", "rate": 0.375}' --json /w/results/086_qwen36@vast/bs1.jsonl --log /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L2.log --ft hybrid --cache-rate 0.375 --mem-ratio 0.95 --ft-extra=--text-model-only
+[bs1] ft_hybrid_r0.375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3.6-35B-A3B', '--host', '127.0.0.1', '--port', '48681', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.375', '--text-model-only']
+[bs1] ft_hybrid_r0.375 problem 0: 99.35 tok/s (10.07 ms/token, p50 9.43 p99 21.04, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 1: 98.73 tok/s (10.13 ms/token, p50 9.63 p99 18.08, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 2: 96.39 tok/s (10.37 ms/token, p50 10.06 p99 19.59, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 3: 94.28 tok/s (10.61 ms/token, p50 10.25 p99 16.01, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 4: 95.34 tok/s (10.49 ms/token, p50 9.97 p99 18.71, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 5: 104.33 tok/s (9.58 ms/token, p50 8.94 p99 18.92, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 6: 99.03 tok/s (10.10 ms/token, p50 9.58 p99 18.26, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 7: 97.84 tok/s (10.22 ms/token, p50 9.76 p99 15.86, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 8: 98.53 tok/s (10.15 ms/token, p50 9.63 p99 19.93, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 9: 96.29 tok/s (10.38 ms/token, p50 9.72 p99 23.39, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 10: 94.45 tok/s (10.59 ms/token, p50 10.06 p99 18.94, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 11: 100.78 tok/s (9.92 ms/token, p50 9.26 p99 17.24, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 12: 97.85 tok/s (10.22 ms/token, p50 9.56 p99 20.79, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 13: 101.19 tok/s (9.88 ms/token, p50 9.42 p99 18.47, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 14: 102.21 tok/s (9.78 ms/token, p50 9.33 p99 16.85, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 15: 97.62 tok/s (10.24 ms/token, p50 9.84 p99 18.26, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 16: 93.57 tok/s (10.69 ms/token, p50 10.58 p99 16.37, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 17: 99.23 tok/s (10.08 ms/token, p50 9.43 p99 17.76, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 18: 93.77 tok/s (10.66 ms/token, p50 10.21 p99 18.62, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 19: 94.03 tok/s (10.64 ms/token, p50 9.81 p99 19.98, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 20: 104.78 tok/s (9.54 ms/token, p50 8.91 p99 17.30, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 21: 92.23 tok/s (10.84 ms/token, p50 10.49 p99 18.45, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 22: 100.72 tok/s (9.93 ms/token, p50 9.37 p99 16.80, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 23: 98.84 tok/s (10.12 ms/token, p50 9.62 p99 16.13, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 24: 105.04 tok/s (9.52 ms/token, p50 8.88 p99 17.11, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 25: 111.38 tok/s (8.98 ms/token, p50 8.33 p99 15.97, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 26: 104.35 tok/s (9.58 ms/token, p50 9.07 p99 17.24, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 27: 89.33 tok/s (11.19 ms/token, p50 10.79 p99 18.17, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 28: 95.88 tok/s (10.43 ms/token, p50 10.01 p99 19.93, 256 tokens)
+[bs1] ft_hybrid_r0.375 problem 29: 94.84 tok/s (10.54 ms/token, p50 10.13 p99 17.69, 256 tokens)
++ echo 'ft_hybrid_r0.375 launch 2 rc=0'
+ft_hybrid_r0.375 launch 2 rc=0
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_auto_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.125_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.25_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_hybrid_r0.375_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_offload_r0.125_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_offload_r0.25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ft_offload_r0.375_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_llama_n25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_llama_n30_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_llama_n35_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C32_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C32_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C32_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C64_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C64_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C64_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C96_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C96_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/086_qwen36@vast/srv_ours_C96_law_L2.log
++ find /w/results/086_qwen36@vast -name 'srv_*.log' -delete
++ /work/ft/.venv/bin/python - /w/results/086_qwen36@vast
++ tee /w/results/086_qwen36@vast/summary.txt
+ft_auto                  L1:  93.82 (n=30)  vram [28.9]
+ours_C32_law             L1:  59.91 (n=30) L2:  59.68 (n=30)  vram [12.6]
+ours_C32_cur             L1:  55.93 (n=30)  vram [12.6]
+ours_C64_law             L1:  79.88 (n=30) L2:  79.46 (n=30)  vram [20.1]
+ours_C64_cur             L1:  75.36 (n=30)  vram [20.1]
+ours_C96_law             L1:  99.75 (n=30) L2:  98.73 (n=30)  vram [27.6, 27.7]
+ours_C96_cur             L1:  94.40 (n=30)  vram [27.6]
+ft_offload_r0.125        L1:  46.80 (n=30)  vram [28.7]
+ft_hybrid_r0.125         L1:  57.83 (n=30) L2:  57.93 (n=30)  vram [28.7]
+ft_offload_r0.25         L1:  68.28 (n=30)  vram [28.7]
+ft_hybrid_r0.25          L1:  78.94 (n=30) L2:  78.70 (n=30)  vram [28.7]
+ft_offload_r0.375        L1:  94.62 (n=30)  vram [30.2]
+ft_hybrid_r0.375         L1:  97.96 (n=30) L2:  98.41 (n=30)  vram [30.2]
+llama_n35                L1:  30.20 (n=30)  vram [12.6]
+llama_n30                L1:  34.39 (n=30)  vram [20.1]
+llama_n25                L1:  39.80 (n=30)  vram [27.6]
+srv_ours_C32_cur_L1.json           table 0,1,1,2,3,3,4,5,6 hit 0.619 misses/token 121.8 fetches 82.6
+srv_ours_C32_law_L1.json           table 0,0,1,1,2,3,3,4,4 hit 0.608 misses/token 125.3 fetches 58.8
+srv_ours_C32_law_L2.json           table 0,0,1,1,2,3,3,4,4 hit 0.608 misses/token 125.3 fetches 58.8
+srv_ours_C64_cur_L1.json           table 0,1,1,2,3,3,4,5,6 hit 0.772 misses/token 73.0 fetches 50.3
+srv_ours_C64_law_L1.json           table 0,0,1,1,2,3,3,4,4 hit 0.763 misses/token 75.9 fetches 31.2
+srv_ours_C64_law_L2.json           table 0,0,1,1,2,3,3,4,4 hit 0.763 misses/token 75.9 fetches 31.2
+srv_ours_C96_cur_L1.json           table 0,1,1,2,3,3,4,5,6 hit 0.859 misses/token 45.0 fetches 32.1
+srv_ours_C96_law_L1.json           table 0,0,1,1,2,3,3,4,4 hit 0.852 misses/token 47.2 fetches 16.7
+srv_ours_C96_law_L2.json           table 0,0,1,1,2,3,3,4,4 hit 0.852 misses/token 47.2 fetches 16.7

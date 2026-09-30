@@ -85,10 +85,6 @@ cat $OUT/dl_gguf.txt $OUT/dl_hf.txt $OUT/dl_qwen3.txt
 F=$M/gpt-oss-120b-MXFP4.gguf
 [ -f "$HFD/config.json" ] && echo "HF checkpoint ok" || echo "HF checkpoint MISSING"
 [ -s "$F" ] && echo "GGUF ok $(stat -c %s $F) bytes" || echo "GGUF MISSING"
-GQ=$M/Qwen3-30B-A3B-BF16.gguf
-( t0=$(date +%s); PYTHONPATH=$WORK/lc-stock/gguf-py $PY $WORK/lc-stock/convert_hf_to_gguf.py "$HFQ" --outtype bf16 --outfile $GQ
-  echo "convert rc=$? in $(( $(date +%s) - t0 )) s"; ls -la $GQ ) > $OUT/convert_qwen3.txt 2>&1
-tail -2 $OUT/convert_qwen3.txt
 # --- the host
 platform
 ( cd $FT && R 25m $FTBIN bench bw ) > $OUT/ft_bench_bw.txt 2>&1; cp ~/.cache/freetoken/benchbw/*.json $OUT/ 2>/dev/null
@@ -142,7 +138,12 @@ for pair in 14:0.111 32:0.25 51:0.40; do
   echo "gpt-oss C$C: ours $t, FreeToken $b" | tee -a $OUT/selection.txt
   oursg $C $t 2; ftg $b $r 2
 done
-# ---- Qwen3-30B-A3B BF16, 12.5%
+# ---- Qwen3-30B-A3B BF16, 12.5% (gpt-oss files removed first for disk; the conversion runs with no server up)
+rm -rf "$HFD" "$F"; df -h $WORK | tail -1
+GQ=$M/Qwen3-30B-A3B-BF16.gguf
+( t0=$(date +%s); PYTHONPATH=$WORK/lc-stock/gguf-py $PY $WORK/lc-stock/convert_hf_to_gguf.py "$HFQ" --outtype bf16 --outfile $GQ
+  echo "convert rc=$? in $(( $(date +%s) - t0 )) s"; ls -la $GQ ) > $OUT/convert_qwen3.txt 2>&1
+tail -2 $OUT/convert_qwen3.txt
 LSQ="-m $GQ -ngl 99 -fa on -lm none -t $CORES -np 1 -c 2048 --no-webui --jinja"
 oursq() {  # table-name launch
   local t=$CURQ; [ $1 = law ] && t=$LAWQ

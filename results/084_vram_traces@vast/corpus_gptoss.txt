@@ -1,0 +1,23 @@
++ local g=/work/models/gpt-oss-120b-MXFP4.gguf flags= out=/w/results/084_vram_traces@vast/aime25_prompts_gptoss.jsonl port=8199
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
++ local pid=16569
++ eval '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 0 --no-warmup -c 4096 -np 1 --no-webui  --port 8199'
+++ seq 180
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ sleep 2
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ break
++ /work/venv/bin/python - 8199 /w/results/084_vram_traces@vast/aime25_prompts_gptoss.jsonl
+problem 0 prompt: '<|start|>system<|message|>You are ChatGPT, a large language model trained by OpenAI.\nKnowledge cutoff: 2024-06\nCurrent date: 2026-09-30\n\nReasoning: medium\n\n# Valid channels: analysis, commentary, final. Channel must be included for every message.<|end|><|start|>user<|message|>Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$\nPlease reason step by step, and put your f' ... 109 tokens
+corpus rows: 30
++ kill 16569
++ wait 16569

@@ -1,0 +1,100 @@
+\section{Scientific benchmarking checklist}\label{app:rules}
+How this paper follows the twelve rules of Hoefler and Belli~\cite{hoefler2015benchmarking}.
+
+\begin{longtable}{p{0.33\textwidth}p{0.62\textwidth}}\toprule
+Rule & Where and how \\\midrule\endhead
+1. Report the base case of a speed-up and its absolute performance. & Every ratio in \cref{tab:headline} is next to both absolute speeds; llama.cpp is configured with per-layer expert offload at equal expert memory, the setting its users run. \\
+2. Explain subsets of benchmarks or resources. & Two models chosen for size and precision (MXFP4, BF16), a third that is FreeToken's own headline model; budgets span what fits a 32\,GB card; the 43.75\% budget is omitted where it does not fit. All 30 AIME-25 problems are used. \\
+3. Arithmetic mean for costs, harmonic mean for rates. & Every problem decodes the same number of tokens, so the harmonic mean of rates is total tokens over total time; ratios of total time agree with the reported ratios of mean rates within 0.002. \\
+4. Avoid summarising ratios. & Ratios are computed from mean speeds, never averaged across budgets or models; ranges list the per-budget values. \\
+5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval. \\
+6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
+7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means; the variant a system is scored with is picked on a separate launch. \\
+8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
+9. Document all factors and the setup. & Machines, probes, power limits, software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
+10. Report measurement, synchronisation and summarisation. & One client times every system from streamed token arrivals; no server-side timers enter a comparison (\cref{sec:setting}). \\
+11. Show upper performance bounds. & The speed limit (\cref{sec:limit}) and all-in-VRAM speed are columns of \cref{tab:headline}. \\
+12. Plot enough to interpret; connect points only for trends. & \Cref{fig:gap,fig:ablation} are bar and step charts; no interpolation. \\
+\bottomrule
+\end{longtable}
+
+\section{Prediction log}\label{app:prereg}
+Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed and pushed
+before the machine started; git history orders every prediction before its measurement. Outcome notes with the
+statistics are in \texttt{prereg/}. Of the 33 predictions of jobs 073--081, 27 held; job 082 scored 2 of 5, with one
+not scorable.
+
+\begin{longtable}{p{0.06\textwidth}p{0.47\textwidth}p{0.42\textwidth}}\toprule
+Job & Prediction & Outcome \\\midrule\endhead
+073 & Ours+FETCH ahead of FreeToken by $\ge$5\% at 11/25\%, within $\pm$5\% at 40\% (gpt-oss) & Failed: +10.9, +8.4\%, but $-5.9$\% at 40\% \\
+073 & Ours+FETCH $\ge1.8\times$ llama.cpp at every budget & Held: 1.83 / 2.36 / 2.65$\times$ \\
+073 & Warm-up on the measured problem reads 5--15\% faster & Failed: $-0.9$\% (ours), $-0.3$\% (FreeToken) \\
+073 & $\ge$80\% of greedy outputs identical to llama.cpp's & Failed: 27--47\%; kernels round differently \\
+074 & Host launch $\le$0.25\,ms & Held \\
+074 & 40\%: $\ge$127\,tok/s and ahead of FreeToken & Failed: 95.1 vs 114.4 \\
+074 & $\ge$59 / $\ge$91\,tok/s at 11 / 25\% & Failed: 41.5, 65.3 (host memory 33\% slower than assumed) \\
+074 & Admission half-life 64 within $\pm$2\% & Held \\
+074b & GPU sampling cuts between-step time by $\ge$1\,ms & Held: 2.01$\to$0.42\,ms \\
+074b & Ours gains $\ge$10\% at 40\% & Held: +11.7\% \\
+074b & With FETCH and GPU sampling, ours beats FreeToken offload at 40\% & Held \\
+075 & 40\% (RTX PRO 6000): ours ahead of FreeToken, CI $>1$ & Held: +12.2\% \\
+075 & 60\%: ours within $-3$ to $+10$\% of FreeToken & Failed, favourably: +11.8\% \\
+075 & 60\%: ours $\ge$55\% of all-in-VRAM speed & Held: 72.7\% \\
+076 & Ours ahead of FreeToken at 11/25/40\% & Held: 1.21 / 1.22 / 1.12 \\
+076 & Ours $\ge1.8\times$ llama.cpp & Held \\
+076 & The law within 8\% on the machine & Held: $-0.9$, $-0.6$, $-5.0$\%, FETCH +4.1\% \\
+077 & Pipelined Sharding and leloch's cache run and beat stock llama.cpp & Held \\
+077 & Ours ahead of both at every budget & Held \\
+078 & Qwen3: ours ahead of FreeToken at 12.5 and 25\% & Held: +7\% \\
+078 & Ours ahead of KTransformers at every budget & Held: 2.2--4.4$\times$ \\
+078 & Ours $\ge1.5\times$ llama.cpp & Held: 2.1 / 3.1 / 4.5$\times$ \\
+079 & Our host-side time per step is small & Held: 0.27\,ms \\
+079 & We launch more kernels than FreeToken & Held: 1.60$\times$ \\
+079 & Parity with FreeToken at 43.75\% on this host & Held: 0.991 [0.975, 1.009] \\
+080 & Law table beats fixed by $\ge$3\% at 43.75\% & Held: +4.8\% \\
+080 & Law table within 2\% of the sweep's best & Held: 0.9\% \\
+080 & Best table leads FreeToken at 43.75\% & Held: +4.9\% \\
+080 & Law table beats fixed at 25\% & Held: +6.7\% \\
+081 & Law table beats fixed on gpt-oss at every budget & Held: +7.9, +5.4, +3.3\% \\
+081 & Ours leads FreeToken on gpt-oss at 11/25/40\% & Held \\
+081 & Qwen3 12.5\%: law beats fixed; ours leads FreeToken & Held: +8.0\%; +3.2\% \\
+081 & Ours $\ge1.8\times$ llama.cpp (gpt-oss), $\ge2\times$ (Qwen3 12.5\%) & Held \\
+082 & gpt-oss steady-state lead at 2{,}048 tokens & Not scorable: easy prompts ended early \\
+082 & FreeToken gains more than ours after 256 tokens & Failed: ours gained more \\
+082 & Qwen3 43.75\% steady state: FreeToken ahead & Failed, favourably: ours +5.4\% \\
+082 & Every ablation step $\ge-1$\%; ours $\ge2\times$ stock & Failed: the static step is 0.72 / 0.74$\times$ \\
+082 & Parity: $\ge$98\% top-1, $|\Delta$NLL$|\le$1\% & Held \\
+082 & llama.cpp Qwen3 within 5\% of the law & Held: +3.6, +4.0\% \\
+083 & Hard problems still reasoning at 2{,}048 tokens on $\ge$8 of 10 & Held: 9--10 of 10 \\
+083 & Ours within 15\% of its Table 1 rate on long outputs & Held: +3.3 to +4.6\% \\
+083 & Ours leads FreeToken at 11/25/40\% (CI $>1$) & Held: 1.36 / 1.32 / 1.19 \\
+083 & Lead $\ge$15\% at 11 and 25\% & Held \\
+084 & Qwen3 BF16 all in VRAM at 120--190\,tok/s & \pend \\
+084 & gpt-oss all in VRAM within 5\% of 261.4\,tok/s & \pend \\
+084 & Ours with every expert in slots within 5\% of stock all-in-VRAM & \pend \\
+084 & Trace-simulated hit rate within 5 points of the engine's; ours at 20--50\% of the limit & \pend \\
+085 & The law's tables fetch less than on the headline machine & \pend \\
+085 & Law beats fixed at every budget, by more than on the headline machine & \pend \\
+085 & Ours leads FreeToken at every budget & \pend \\
+085 & Ours' lead larger than on the headline machine at $\ge$4 of 6 budgets & \pend \\
+085 & llama.cpp at 25\% within 5\% of the law & \pend \\
+086 & FreeToken as shipped within 15\% of its paper's 77--83\,tok/s & \pend \\
+086 & Ours leads FreeToken at 12.5/25/37.5\% & \pend \\
+086 & Ours $\ge2\times$ llama.cpp & \pend \\
+086 & Law table beats fixed at every budget & \pend \\
+\bottomrule
+\end{longtable}
+
+\section{Artifact description}\label{app:artifact}
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{System.} A patch to llama.cpp commit \texttt{4da6337} (the expert cache, FETCH, the mailbox and the
+\texttt{llama-ec-bench} instrumentation: teacher-forced loss, logit dumps, routing lookahead records); built with CUDA 13.0
+for compute capability 12.0.
+\item \textbf{Jobs.} One shell script per job; each installs FreeToken at commit \texttt{0d652e7}, downloads the
+models from Hugging Face, runs the bandwidth probes, writes any on-machine prediction, runs the client, and stores raw
+rows (one JSON line per problem), server logs and engine counters. A small runner rents a Vast instance, streams a
+heartbeat, fetches the results and only then destroys the instance.
+\item \textbf{Analysis.} \texttt{scripts/*\_stats.py} compute every interval from the raw rows; \texttt{scripts/wsg\_tables.py}
+generates every table, figure and number in this paper from the outcome files.
+\item \textbf{Cost.} \pend{} (Vast balance at submission).
+\end{itemize}

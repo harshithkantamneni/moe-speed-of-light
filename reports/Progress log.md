@@ -3,6 +3,31 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, afternoon: gpt-oss long outputs on hard problems (job `083_gptoss_hard_long@vast`)
+
+**Setup:** listing A (job 079's 9950X3D machine; listing B was rented out). 10 held-out AIME 2022 problems (11–15 of
+both exams) × 2,048 tokens. `prereg/hard_outcome_083.md` has the outcome.
+
+- **Ours leads FreeToken on long outputs by more than in Table 1:** 1.36 / 1.32 / 1.19 at 11 / 25 / 40% over all
+  tokens, and 1.37 / 1.33 / 1.19 over tokens 257–2,048 (every CI above 1).
+- **The runs are valid:** both engines stream exactly one event per token, and at most 1 of 10 requests reaches an
+  answer in 2,048 tokens.
+- **Ours runs +3–5% faster than its Table 1 rate,** with no post-answer speed-up.
+- **Predictions:** 4 of 4 held. This replaces job 082's void gpt-oss long runs.
+
+## 30 September, afternoon: all in VRAM and routing traces, void (job `084_vram_traces@vast`)
+
+- **The RTX PRO 6000 was throttled:**
+  - gpt-oss-120b all in VRAM ran at 93 tok/s, against 261 in job 075 on the same card model;
+  - device read was 1,304 against 1,641 GB/s.
+- **Nothing is scored.** `prereg/vram_outcome_084.md` has the details.
+- **Two harness bugs, fixed:**
+  - The tokenising server was started through `eval`, so it survived `kill` and tokenised the next model's prompts.
+  - A lookahead record over 8 MB is dropped by the result channel.
+- **Reruns:**
+  - 084b: another PRO 6000, with bandwidth and speed gates at start.
+  - 084c: the gpt-oss trace on 084's own greedy text, which survived.
+
 ## 30 September, morning: the review's run 1 (job `082_review_run1@vast`)
 
 **Setup:** the headline machine; `prereg/run1_outcome_082.md` has the outcome.

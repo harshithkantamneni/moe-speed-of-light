@@ -1,6 +1,6 @@
 #!/bin/bash
-# Job 085b: the Qwen3 half of job 085 (contrasting machine), on another PCIe 4.0-class RTX 5090 host with an Intel
-# hybrid-core CPU (Vast offer 51748728: Core i9-13900KF, DDR5, listed at 24.9 GB/s). Job 085's gpt-oss half ran on
+# Job 085b: the Qwen3 half of job 085 (contrasting machine), on another PCIe 4.0-class RTX 5090 host (Vast offer
+# 53537780: Ryzen 9 7900, DDR5, listed at 27.5 GB/s; offer 51748728, first chosen, was taken). Job 085's gpt-oss half ran on
 # offer 46880906 (i9-14900K); its Qwen3 GGUF conversion then hung with the CPU idle, so the Qwen3 half runs here, with
 # the conversion done by a separate CPU-torch environment (as in jobs 084b and 087). Table 1 protocol, Qwen3-30B-A3B
 # BF16 at C 16 / 32 / 56 (FreeToken 0.125 / 0.25 / 0.4375); launch 1: ours with the law's table computed on this machine

@@ -33,7 +33,7 @@ launch). Numbers are in `prereg/qwen3_profile_079.json` and the gpu branch `resu
 | **Token (wall)** | **10.92** | **10.45** |
 | Kernels per token | 1436 | 894 |
 
-In ours, 0.63 ms of kernel time runs concurrently on a second stream (admission copies), so our rows add up to more
+In ours, 0.63 ms of kernel time overlaps other kernels (concurrent streams; not attributed further), so our rows add up to more
 than the wall time. FreeToken's rows add up to its wall time.
 
 1. **Held.** Our host-side time per step is 0.27 ms (app 48, pre 2, inputs 79, launch 103, post 33 µs), 2.7% of the

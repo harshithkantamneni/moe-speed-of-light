@@ -3,6 +3,32 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, evening: the ablation ladder with a real static cache (job `087_ablation_static@vast`)
+
+**Setup:** listing A, 25%, AIME-25 problems 0–14. `prereg/ablation_outcome_087.md` has the outcome.
+
+- **Placement is the first gain.** A static cache of each layer's 32 most requested experts, profiled on the models'
+  MATH-500 outputs, runs 1.31× (gpt-oss) and 1.89× (Qwen3) stock llama.cpp.
+- **The decayed-frequency policy matches the hindsight-best static placement:** 0.98 [0.95, 1.01] and
+  1.01 [0.98, 1.04] of it, online and without a profile. It is 1.58× / 1.12× the profiled static cache.
+- **LRU is the wrong online policy.** It admits every miss, and on Qwen3 it is 0.88× the static cache.
+- **The rest of the ladder is as in job 082:** 2–9% per step, and ours runs 2.68× / 2.81× stock.
+- **Predictions:** 1 and 3 held; 2 failed on gpt-oss (the profile from other text matched poorly); 4 failed on Qwen3
+  (the LRU step).
+
+## 30 September, evening: FreeToken's own headline model (job `086_qwen36@vast`)
+
+**Setup:** Qwen3.6-35B-A3B BF16 on listing A, Table 1 protocol. `prereg/qwen36_outcome_086.md` has the outcome.
+
+- **Ours and FreeToken are close:** +3.0% [2.3, 3.8] at 12.5%, +1.0% [−0.2, 2.1] at 25%, +0.3% [−0.6, 1.3] at 37.5%
+  (FreeToken hybrid at every budget).
+- **Against llama.cpp:** 1.98 / 2.31 / 2.48×.
+- **The law's table beats the fixed one** by +5.7–7.1%.
+- **FreeToken as shipped runs 93.8 tok/s,** the top of its paper's 77–83. The comparison does not handicap it.
+- **Our lead is model-dependent:** large for gpt-oss (few large experts), small or nil for this model (125 misses per
+  token at 12.5%, experts half the size).
+- **Predictions:** 1 and 4 held; 2 and 3 failed (3 by 1.98 against 2×).
+
 ## 30 September, afternoon: gpt-oss long outputs on hard problems (job `083_gptoss_hard_long@vast`)
 
 **Setup:** listing A (job 079's 9950X3D machine; listing B was rented out). 10 held-out AIME 2022 problems (11–15 of

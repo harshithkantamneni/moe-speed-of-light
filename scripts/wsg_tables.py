@@ -109,23 +109,27 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
 
 
 def ablation():
-    r1 = load("run1_082.json")
-    names = ["Stock llama.cpp", "Cache, no expert resident", "+ LRU replacement", "+ decayed-frequency policy",
+    ab, r1 = load("ablation_087.json"), load("run1_082.json")
+    names = ["Stock llama.cpp", "Static cache (profiled on other text)", "+ LRU replacement", "+ decayed-frequency policy",
              "+ GPU-signalled CPU helpers", "+ slot maps on the GPU", "+ GPU-side sampling", "+ FETCH, fixed split",
              "+ FETCH, the machine's split"]
-    g, q = r1["ladder"]["g"], r1["ladder"]["q"]
+    g, q = ab["ladder"]["g"], ab["ladder"]["q"]
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(3.4, 2.6))
-    y = np.arange(len(names))[::-1]
-    for d, lab, col, off in ((g, "gpt-oss-120b", "#1f5fa8", 0.2), (q, "Qwen3-30B-A3B", "#c0572b", -0.2)):
-        v = [s["tok_s"] for s in d]
-        ax.barh(y + off, v, height=0.38, color=col, label=lab)
-        for yy, vv in zip(y + off, v):
+    fig, ax = plt.subplots(figsize=(3.4, 2.8))
+    rows = names[:2] + ["(static, profiled in hindsight)"] + names[2:]
+    y = np.arange(len(rows))[::-1]
+    for d, lab, col, off, key in ((g, "gpt-oss-120b", "#1f5fa8", 0.2, "g"), (q, "Qwen3-30B-A3B", "#c0572b", -0.2, "q")):
+        v = [s_["tok_s"] for s_ in d]
+        v = v[:2] + [ab["extra"][key]["abl_1h_static_hindsight"]["tok_s"]] + v[2:]
+        for i, (yy, vv) in enumerate(zip(y + off, v)):
+            ax.barh(yy, vv, height=0.38, color="white" if i == 2 else col, edgecolor=col, hatch="////" if i == 2 else None,
+                    lw=0.6, label=lab if i == 0 else None)
             ax.text(vv + 1.5, yy, f"{vv:.0f}", va="center", fontsize=6)
     ax.set_yticks(y)
-    ax.set_yticklabels(names, fontsize=6.5)
+    ax.set_yticklabels(rows, fontsize=6.3)
+    ax.get_yticklabels()[2].set_color("0.35")
     ax.set_xlabel("tok/s, 25% of experts on the GPU", fontsize=7)
     ax.tick_params(axis="x", labelsize=6.5)
     ax.legend(fontsize=6.5, frameon=False, loc="lower center", bbox_to_anchor=(0.35, 1.0), ncol=2)
@@ -141,12 +145,21 @@ def ablation():
     M("ablQwenOurs", f"{q[-1]['tok_s']:.1f}")
     M("ablGptX", f"{g[-1]['over_stock'][0]:.2f}")
     M("ablQwenX", f"{q[-1]['over_stock'][0]:.2f}")
+    M("ablStaticGpt", f"{g[1]['over_prev'][0]:.2f}")
+    M("ablStaticQwen", f"{q[1]['over_prev'][0]:.2f}")
+    M("ablStaticHitGpt", f"{100 * g[1]['hit']:.0f}")
+    M("ablStaticHitQwen", f"{100 * q[1]['hit']:.0f}")
     M("ablLruGpt", f"{g[2]['over_prev'][0]:.2f}")
     M("ablLruQwen", f"{q[2]['over_prev'][0]:.2f}")
     M("ablDfaGpt", f"{100 * (g[3]['over_prev'][0] - 1):.0f}")
     M("ablDfaQwen", f"{100 * (q[3]['over_prev'][0] - 1):.0f}")
-    M("ablStaticGpt", f"{g[1]['over_prev'][0]:.2f}")
-    M("ablStaticQwen", f"{q[1]['over_prev'][0]:.2f}")
+    M("ablDfaStaticGpt", f"{g[3]['tok_s'] / g[1]['tok_s']:.2f}")
+    M("ablDfaStaticQwen", f"{q[3]['tok_s'] / q[1]['tok_s']:.2f}")
+    for key, nm in (("g", "Gpt"), ("q", "Qwen")):
+        ex = ab["extra"][key]
+        M(f"ablHind{nm}", ci(ex["abl_1h_static_hindsight"]["over_dfa"], 2))
+        M(f"ablHindHit{nm}", f"{100 * ex['abl_1h_static_hindsight']['hit']:.0f}")
+        M(f"ablNone{nm}", f"{ex['abl_1a_nocache']['over_stock'][0]:.2f}")
     par = r1["parity"]
     M("parTopGpt", f"{100 * par['g']['ours']['top1_agree']:.1f}")
     M("parTopQwen", f"{100 * par['q']['ours']['top1_agree']:.1f}")

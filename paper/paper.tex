@@ -217,18 +217,25 @@ job starts.
 
 \begin{figure}[t]\centering
 \includegraphics[width=\linewidth]{figs/ablation.pdf}
-\caption{Ablation at 25\% of experts on the GPU (15 AIME-25 problems, 256 tokens; job 082). Each step adds one
-component; every step after the second is faster than the one before, with the 95\% interval above 1.}
+\caption{Ablation at 25\% of experts on the GPU (15 AIME-25 problems, 256 tokens, one machine; job 087). Each step
+adds one component to the one above; the hatched row is not a step but the best any static placement could do, profiled
+on the measured problems themselves.}
 \label{fig:ablation}
 \end{figure}
 
-\paragraph{Where the gain comes from.} \Cref{fig:ablation} builds the system up from stock llama.cpp. The cache's
-host-driven CPU path with no expert resident is slower than stock (\ablStaticGpt$\times$, \ablStaticQwen$\times$), which
-pins whole layers and runs the rest on the CPU without per-layer hand-offs. Filling the slots, here with LRU
-replacement, is the largest step (\ablLruGpt$\times$ and \ablLruQwen$\times$), and the decayed-frequency policy adds
-\ablDfaGpt\% and \ablDfaQwen\%. A static cache of each layer's most requested experts, profiled on other text, \pend{}
-(job 087; the ablation's original static step loaded no experts). The mailbox, GPU slot maps, GPU sampling and FETCH add 2--10\% each. The full system runs
-\ablGptX$\times$ (gpt-oss) and \ablQwenX$\times$ (Qwen3) stock llama.cpp.
+\paragraph{Where the gain comes from.} \Cref{fig:ablation} builds the system up from stock llama.cpp on one machine
+(job 087). Placing each layer's hot experts is the first gain: a static cache of the 32 experts per layer most
+requested on other text (the models' own MATH-500 outputs) runs \ablStaticGpt$\times$ and \ablStaticQwen$\times$ stock,
+which pins whole layers instead. Its hit rate (\ablStaticHitGpt\% and \ablStaticHitQwen\%) depends on how well the
+profile matches the workload: profiled in hindsight on the measured problems it hits \ablHindHitGpt\% and
+\ablHindHitQwen\% and runs much faster (hatched). Replacing experts online closes that gap without a profile: LRU
+admits every miss and pays for it in host reads (\ablLruGpt$\times$ and \ablLruQwen$\times$ the static cache), while the
+decayed-frequency policy runs \ablDfaStaticGpt$\times$ and \ablDfaStaticQwen$\times$ the profiled static cache and matches
+the hindsight one (\ablHindGpt{} and \ablHindQwen{} as fast). The GPU-signalled CPU helpers, GPU slot maps, GPU
+sampling and FETCH add 2--9\% each, and the law's FETCH table 5--8\% over the fixed one. The full system runs
+\ablGptX$\times$ (gpt-oss) and \ablQwenX$\times$ (Qwen3) stock llama.cpp. (An earlier run of this ladder, job 082, had a
+``static'' step that loaded no experts; with nothing resident the cache runs \ablNoneGpt$\times$ and
+\ablNoneQwen$\times$ stock.)
 
 \paragraph{Head to head.} \Cref{tab:headline} compares the three systems at six budgets on one machine. Ours leads
 FreeToken at every budget, by \ftLeadGptMin--\ftLeadGptMax\% on gpt-oss and \ftLeadQwenMin--\ftLeadQwenMax\% on Qwen3,

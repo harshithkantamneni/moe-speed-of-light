@@ -39,9 +39,11 @@ both exams) × 2,048 tokens. `prereg/hard_outcome_083.md` has the outcome.
 - **gpt-oss long runs are not comparable.** The easy prompts end early, `ignore_eos` then forces post-answer text,
   and ours' hit rate jumps from 58% to 77%. A rerun on hard held-out problems (AIME 2022–2024) is needed.
 - **Ablation at 25%:** stock 40.5 → ours 107.6 tok/s (gpt-oss) and 22.0 → 61.7 (Qwen3).
-  - Dynamic caching gives 2.2–2.3× over a static cache; the decayed-frequency policy +20–27%.
+  - Dynamic caching gives 2.2–2.3× over a static cache; the decayed-frequency policy +20–27%. **Erratum:** the
+    "static" step loaded no experts (`LLAMA_EC_INIT` unset), so it measured "no expert resident". Job 087 reruns the
+    ladder with a real static cache.
   - Mailbox, maps, GPU sampling, fixed FETCH and the law's table add 2–10% each.
-  - The static cache is slower than stock.
+  - The "static" step (in fact no expert resident) is slower than stock.
 - **Teacher-forced parity:** top-1 agreement with stock is 98.6% (gpt-oss) and 99.3% (Qwen3); NLL moves −0.22% and
   +0.31%. Stock against its own second placement: 99.6% / 99.9%.
 - **Missing Table 1 cells:** llama.cpp Qwen3 at 25% / 43.75% runs 22.1 / 28.4 tok/s, within 3.6 / 4.0% of the law's

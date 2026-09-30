@@ -80,12 +80,14 @@ Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals; the
 the launch that picked each system's variant. \emph{Speed limit}: the fastest any exact-routing system with the same
 slots per layer can decode on this machine (\cref{sec:limit}). \emph{All in VRAM}: stock llama.cpp with every weight
 on an RTX PRO 6000 (same memory bandwidth as the RTX 5090, 96\,GB).
-$^\dagger$FreeToken's backend was picked on the launch it is scored on, which favours it.}\label{tab:headline}
+$^\dagger$Launch 1 for both systems (job 080): FreeToken's backend was picked on the launch it is scored on, which
+favours it, and the row has no confirmation launch.}\label{tab:headline}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrrr}\toprule
 Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Speed & Ours, \% & All in \\
  & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & limit & of limit & VRAM \\\midrule
 """ + body + r"""
-\bottomrule\end{tabular}\end{table*}
+\bottomrule\end{tabular}}\end{table*}
 """
     open(P("paper", "tab_headline.tex"), "w").write(tex)
     g = [x for x in rows if x["model"].startswith("gpt")]
@@ -108,7 +110,7 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
 
 def ablation():
     r1 = load("run1_082.json")
-    names = ["Stock llama.cpp", "Static expert cache", "+ LRU replacement", "+ decayed-frequency policy",
+    names = ["Stock llama.cpp", "Cache, no expert resident", "+ LRU replacement", "+ decayed-frequency policy",
              "+ GPU-signalled CPU helpers", "+ slot maps on the GPU", "+ GPU-side sampling", "+ FETCH, fixed split",
              "+ FETCH, the machine's split"]
     g, q = r1["ladder"]["g"], r1["ladder"]["q"]
@@ -189,6 +191,48 @@ def simcheck():
         M(f"vramFrac{nm}", f"{100 * v['vram'][key] * row['gpu_only_ms'] / 1e3:.0f}")
 
 
+def foresight():
+    sys_path = os.path.dirname(__file__)
+    import sys as _s
+    _s.path.insert(0, sys_path)
+    from fig_foresight import curves, w_at
+    fits = {}
+    for arm in ("S", "G", "D"):
+        rows = [r for r in curves(P("prereg", "foresight", f"foresight_{arm}.json")) if "job 063" not in r["model"]]
+        x = np.array([r["ck"] for r in rows])
+        y = np.array([w_at(r["g"], 0.5) for r in rows])
+        ok = np.isfinite(y)
+        b, c0 = np.polyfit(np.log(x[ok]), np.log(y[ok]), 1)
+        rr = np.corrcoef(np.log(x[ok]), np.log(y[ok]))[0, 1]
+        fits[arm] = (np.exp(c0), b, rr, int(ok.sum()), rows)
+    a0, b0, r0, n0, rows = fits["S"]
+    save = [1 - r["ratio"] for r in rows]
+    M("fsSaveMin", f"{100 * min(save):.0f}")
+    M("fsSaveMax", f"{100 * max(save):.0f}")
+    M("fsSaveMed", f"{100 * float(np.median(save)):.0f}")
+    M("fsPoints", str(len(rows)))
+    M("fsModels", str(len({r["model"] for r in rows})))
+    M("fsPre", f"{a0:.2f}")
+    M("fsExp", f"{b0:.2f}")
+    M("fsR", f"{r0:.3f}")
+    M("fsFitN", str(n0))
+    M("fsExpG", f"{fits['G'][1]:.2f}")
+    M("fsExpD", f"{fits['D'][1]:.2f}")
+    w90 = [w_at(r["g"], 0.9) / r["ck"] for r in rows]
+    w90 = [w for w in w90 if np.isfinite(w)]
+    M("fsNinety", f"{float(np.median(w90)):.1f}")
+    for r in rows:
+        if r["model"] == "gpt-oss-120b" and r["C"] == 32:
+            M("fsGptQuarter", f"{w_at(r['g'], 0.5):.0f}")
+        if r["model"] == "gpt-oss-120b" and r["C"] == 64:
+            M("fsGptHalf", f"{w_at(r['g'], 0.5):.0f}")
+    g = load("gap_listingb.json")
+    if g:
+        sp = [c["measured_ms"] / (c["measured_ms"] - dict(c["steps_ms"])["no foresight"]) for c in g["cells"]]
+        M("fsSpeedMin", f"{min(sp):.2f}")
+        M("fsSpeedMax", f"{max(sp):.2f}")
+
+
 def gap():
     g = load("gap_listingb.json")
     if not g:
@@ -208,6 +252,9 @@ def gap():
     c = {x["cell"]: x for x in g["cells"]}
     q = c["Qwen3 12.5%"]
     M("gapQlowReads", f"{q['engine_reads']:.0f}")
+    bw = q["engine_reads"] * 9437184 * q["measured_tok_s"] / 1e9
+    M("qlowBW", f"{bw:.0f}")
+    M("qlowBWpct", f"{100 * bw / g['B'][2]:.0f}")
 
 
 def law():
@@ -227,14 +274,16 @@ def law():
              "AMD Ryzen 9 9950X3D 16-Core Processor": "Ryzen 9 9950X3D", "AMD Ryzen 9 7950X 16-Core Processor": "Ryzen 9 7950X",
              "AMD Ryzen 9 9950X 16-Core Processor": "Ryzen 9 9950X"}
     lines, cache_err, desk_err = [], [], []
+    per_cfg = {}
     for (cpu, job), v in sorted(hosts.items(), key=lambda kv: kv[0][1]):
         c = [abs(r["err"]) for r in v if r["engine"] == "cache"]
         l = [r["err"] for r in v if r["engine"] != "cache"]
         if not c and not l:
             continue
         cache_err += c
-        if "9655" not in cpu:
-            desk_err += c
+        for r in v:
+            if r["engine"] == "cache":
+                per_cfg.setdefault((cpu, job, r["config"]), []).append(r["err"])
         name = short.get(cpu, cpu) + (" (A)" if job.startswith("073") else " (B)" if job.startswith("082") else "")
         lines.append(f"{name} & {job.split('_')[0]} & {len(c)} & "
                      + (f"{100 * st.median(c):.1f} & {100 * max(c):.1f}" if c else "-- & --") + " & "
@@ -243,14 +292,20 @@ def law():
 \caption{The law predicted blind: each machine wrote its prediction from its own bandwidth probe, with constants frozen
 in the public repository, before any model run. Error of predicted over measured speed, gpt-oss-120b (cache rows) and
 llama.cpp \texttt{--n-cpu-moe} (last column, \%).}\label{tab:law}
-\setlength\tabcolsep{3pt}
+\setlength\tabcolsep{3pt}\resizebox{\linewidth}{!}{%
 \begin{tabular}{llrrrl}\toprule
 Host CPU & Job & $n$ & Median & Max & llama.cpp \\
  & & & $|$err$|$ \% & $|$err$|$ \% & err \% \\\midrule
 """ + "\n".join(lines) + r"""
-\bottomrule\end{tabular}\end{table}
+\bottomrule\end{tabular}}\end{table}
 """
     open(P("paper", "tab_law.tex"), "w").write(tex)
+    cfg = {k: float(np.mean(v)) for k, v in per_cfg.items()}
+    allc = [abs(e) for e in cfg.values()]
+    desk_err = [abs(e) for (cpu, job, c), e in cfg.items() if "9655" not in cpu]
+    M("lawMeas", str(len(cache_err)))
+    M("lawCfg", str(len(allc)))
+    M("lawCfgMedian", f"{100 * st.median(allc):.1f}")
     M("lawN", str(len(cache_err)))
     M("lawHosts", str(len({k for k, v in hosts.items() if any(r["engine"] == "cache" for r in v)})))
     M("lawHostsAll", str(len(hosts)))
@@ -264,7 +319,7 @@ Host CPU & Job & $n$ & Median & Max & llama.cpp \\
     M("secondMax", f"{100 * max(ry):.0f}")
     M("secondUltra", f"{100 * gains['069c_profile_270k']:.0f}")
     M("secondEpyc", f"{100 * gains['069c_profile_epyc7352']:.0f}")
-    M("lawMedian", f"{100 * st.median(cache_err):.1f}")
+    M("lawMedian", f"{100 * st.median(allc):.1f}")
     M("lawDeskN", str(len(desk_err)))
     M("lawDeskMedian", f"{100 * st.median(desk_err):.1f}")
     M("lawDeskPninety", f"{100 * np.percentile(desk_err, 90):.1f}")
@@ -284,11 +339,11 @@ def split():
     tex = r"""\begin{table}[t]\centering\small
 \caption{FETCH tables at 43.75\% on Qwen3-30B-A3B (launch 1): entry $n$ is how many of a layer's $n$ missed experts are
 copied over PCIe; the rest run on the CPU. Ratio to the fixed table, paired, 95\% CI.}\label{tab:split}
-\setlength\tabcolsep{3pt}
+\setlength\tabcolsep{3pt}\resizebox{\linewidth}{!}{%
 \begin{tabular}{llrc}\toprule
 Table & $f(1..8)$ & tok/s & vs fixed \\\midrule
 """ + "\n".join(lines) + r"""
-\bottomrule\end{tabular}\end{table}
+\bottomrule\end{tabular}}\end{table}
 """
     open(P("paper", "tab_split.tex"), "w").write(tex)
     M("splitFOne", f"{100 * (m['ours_C56_law L1'] / m['ours_C56_law_f1 L1'] - 1):.1f}")
@@ -301,6 +356,7 @@ def main():
     split()
     hard()
     gap()
+    foresight()
     simcheck()
     for k in PENDING:   # results of jobs still running print as a red marker
         macros.setdefault(k, "\\pend{}")

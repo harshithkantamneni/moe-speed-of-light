@@ -1,15 +1,15 @@
 \section{Scientific benchmarking checklist}\label{app:rules}
 How this paper follows the twelve rules of Hoefler and Belli~\cite{hoefler2015benchmarking}.
 
-\begin{longtable}{p{0.33\textwidth}p{0.62\textwidth}}\toprule
+\begin{longtable}{p{0.32\textwidth}p{0.61\textwidth}}\toprule
 Rule & Where and how \\\midrule\endhead
 1. Report the base case of a speed-up and its absolute performance. & Every ratio in \cref{tab:headline} is next to both absolute speeds; llama.cpp is configured with per-layer expert offload at equal expert memory, the setting its users run. \\
 2. Explain subsets of benchmarks or resources. & Two models chosen for size and precision (MXFP4, BF16), a third that is FreeToken's own headline model; budgets span what fits a 32\,GB card; the 43.75\% budget is omitted where it does not fit. All 30 AIME-25 problems are used. \\
-3. Arithmetic mean for costs, harmonic mean for rates. & Every problem decodes the same number of tokens, so the harmonic mean of rates is total tokens over total time; ratios of total time agree with the reported ratios of mean rates within 0.002. \\
+3. Arithmetic mean for costs, harmonic mean for rates. & Every problem decodes the same number of tokens, so the harmonic mean of rates is total tokens over total time; ratios of total time agree with the reported ratios of mean rates within 0.003. \\
 4. Avoid summarising ratios. & Ratios are computed from mean speeds, never averaged across budgets or models; ranges list the per-budget values. \\
 5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval. \\
 6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
-7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means; the variant a system is scored with is picked on a separate launch. \\
+7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
 8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
 9. Document all factors and the setup. & Machines, probes, power limits, software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
 10. Report measurement, synchronisation and summarisation. & One client times every system from streamed token arrivals; no server-side timers enter a comparison (\cref{sec:setting}). \\
@@ -22,9 +22,9 @@ Rule & Where and how \\\midrule\endhead
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed and pushed
 before the machine started; git history orders every prediction before its measurement. Outcome notes with the
 statistics are in \texttt{prereg/}. Of the 33 predictions of jobs 073--081, 27 held; job 082 scored 2 of 5, with one
-not scorable. Job 084 ran on a throttled card and was rerun unchanged as 084b/084c.
+not scorable. Job 084 ran on a throttled card and was rerun, with its predictions unchanged, as 084b/084c.
 
-\begin{longtable}{p{0.06\textwidth}p{0.47\textwidth}p{0.42\textwidth}}\toprule
+\begin{longtable}{p{0.06\textwidth}p{0.46\textwidth}p{0.40\textwidth}}\toprule
 Job & Prediction & Outcome \\\midrule\endhead
 073 & Ours+FETCH ahead of FreeToken by $\ge$5\% at 11/25\%, within $\pm$5\% at 40\% (gpt-oss) & Failed: +10.9, +8.4\%, but $-5.9$\% at 40\% \\
 073 & Ours+FETCH $\ge1.8\times$ llama.cpp at every budget & Held: 1.83 / 2.36 / 2.65$\times$ \\
@@ -62,7 +62,7 @@ Job & Prediction & Outcome \\\midrule\endhead
 082 & gpt-oss steady-state lead at 2{,}048 tokens & Not scorable: easy prompts ended early \\
 082 & FreeToken gains more than ours after 256 tokens & Failed: ours gained more \\
 082 & Qwen3 43.75\% steady state: FreeToken ahead & Failed, favourably: ours +5.4\% \\
-082 & Every ablation step $\ge-1$\%; ours $\ge2\times$ stock & Failed: the static step is 0.72 / 0.74$\times$ \\
+082 & Every ablation step $\ge-1$\%; ours $\ge2\times$ stock & Failed: the ``static'' step, 0.72 / 0.74$\times$, loaded no experts (rerun as 087) \\
 082 & Parity: $\ge$98\% top-1, $|\Delta$NLL$|\le$1\% & Held \\
 082 & llama.cpp Qwen3 within 5\% of the law & Held: +3.6, +4.0\% \\
 083 & Hard problems still reasoning at 2{,}048 tokens on $\ge$8 of 10 & Held: 9--10 of 10 \\

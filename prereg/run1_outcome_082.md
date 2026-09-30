@@ -91,3 +91,20 @@ per-layer hand-offs.
    2.66× / 2.80× stock.
 5. **Held.** Top-1 agreement is 98.6% / 99.3% and |ΔNLL| is 0.22% / 0.31%.
 6. **Held.** The law is within 3.6% and 4.0% on both missing cells.
+
+## Erratum (found by an independent check of the paper, 30 September)
+
+**The "static cache" step of section B loaded no experts.**
+- The static policy takes its resident set from `LLAMA_EC_INIT`, which the job did not set.
+- Its counters show 0 hits in both models (`srv_{g,q}_abl_1_static.json`), so every expert ran on the CPU through the
+  cache's host-driven path.
+- The step measures "no expert resident", not a static cache.
+- The conclusions drawn from it are withdrawn: "dynamic caching gives 2.2–2.3× over a static cache" and "the static
+  cache is slower than stock".
+
+**Prediction 4 stays failed as scored,** but not for the reason given.
+
+**Trace simulation says per-layer placement carries most of the gain.** On the AIME-25 traces of job 084, a hindsight
+static cache hits 75.0% / 71.9% of expert uses, against 77.5% / 73.7% for LRU (gpt-oss / Qwen3).
+
+**Job 087 reruns the ladder** with a real static cache: one profiled on other text, and one in hindsight.

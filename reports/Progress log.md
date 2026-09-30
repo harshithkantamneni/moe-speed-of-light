@@ -3,6 +3,25 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 29 September, late night: a second model, Qwen3-30B-A3B BF16 (job `078_qwen3_4way@vast`)
+
+**Setup:** RTX 5090 + Ryzen 9 9950X with slow host DRAM (CPU 44.7 GB/s, link 46.7 GB/s), equal measured GPU memory,
+one launch each.
+
+| Experts on GPU | llama.cpp | KTransformers | FreeToken | ours v2 | ours ÷ FreeToken (95% CI) |
+|---|---|---|---|---|---|
+| 12.5% | 13.4 | 13.1 | 26.5 | **28.4** | +7.1% [+6.3, +8.0] |
+| 25% | 15.4 | 15.3 | 43.9 | **46.8** | +6.7% [+4.3, +9.4] |
+| 43.75% | 20.0 | 20.2 | **94.1** | 89.2 | −5.2% [−6.5, −3.8] |
+
+- **All three predictions held.** `prereg/qwen3_outcome_078.md` has the outcome.
+- **FreeToken leads at 43.75%.** That was not predicted, and it is the gpt-oss crossover again. Our fixed cost is
+  5.44 ms per token, plus 0.194 ms per miss. At ~30 misses per token FreeToken's lower fixed cost wins, and on this host
+  the CPU path is no faster than the link.
+- **KTransformers (BF16 on Zen 5, no AMX) equals llama.cpp.** Both are static placements, and the CPU expert bytes over
+  STREAM bandwidth explain 91–95% of their token time (post-hoc).
+- **The BF16 CPU helper path works end to end:** coherent text, and the same opening as stock on 29–30 of 30 problems.
+
 ## 29 September, night: two more entrants on gpt-oss-120b (job `077_competitors_gptoss@vast`)
 
 **Setup:** RTX 5090 + 9950X3D, equal measured GPU memory, one launch each.

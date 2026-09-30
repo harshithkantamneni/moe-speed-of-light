@@ -1,0 +1,1456 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/085b_half_pcie_qwen3@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ usable_cores
+++ python3 -
++ CORES=12
++ tee /w/results/085b_half_pcie_qwen3@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 12 (nproc 24)'
+usable physical cores 12 (nproc 24)
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
++ nvcc --version
++ tail -2
++ tee /w/results/085b_half_pcie_qwen3@vast/nvcc_version.txt
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
++ echo 'FreeToken install rc=0'
+FreeToken install rc=0
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ /work/ft/.venv/bin/python -c 'import freetoken, huggingface_hub'
++ /work/ft/.venv/bin/ft --version
++ mkdir -p /work/models
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6233
++ /work/ft/.venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ wc -l /work/aime25.jsonl
++ tee /w/results/085b_half_pcie_qwen3@vast/aime25_count.txt
+30 /work/aime25.jsonl
++ /work/ft/.venv/bin/python - /work/warmup.txt
++ cat /w/results/085b_half_pcie_qwen3@vast/warmup_source.txt
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+no math-ai/aime24 test.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd6413-6bced94422bedf8057bd8f7a;fba9955b-9574-448f-a809-72f8652d6366)\n\nEntry Not Found for url: https://huggingface.co/datasets/math
+no HuggingFaceH4/aime_2024 train.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd6413-516dcdb900482098389505bc;0e7d9f0e-b790-464a-893a-0fa0d4f3bbd3)\n\nEntry Not Found for url: https://huggingface.co/datasets/Hugg
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/085b_half_pcie_qwen3@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j24 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/085b_half_pcie_qwen3@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ wait 6233
++ cat /w/results/085b_half_pcie_qwen3@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790796818
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:04,  5.51it/s]Fetching 26 files:  12%|█▏        | 3/26 [00:00<00:02, 11.10it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:19<00:01, 11.10it/s]Fetching 26 files:  27%|██▋       | 7/26 [03:56<12:41, 40.07s/it]Fetching 26 files:  31%|███       | 8/26 [04:02<10:03, 33.54s/it]Fetching 26 files:  35%|███▍      | 9/26 [04:17<08:20, 29.47s/it]Fetching 26 files:  38%|███▊      | 10/26 [04:22<06:16, 23.55s/it]Fetching 26 files:  42%|████▏     | 11/26 [04:26<04:38, 18.59s/it]Fetching 26 files:  46%|████▌     | 12/26 [04:29<03:22, 14.47s/it]Fetching 26 files:  50%|█████     | 13/26 [04:32<02:29, 11.50s/it]Fetching 26 files:  54%|█████▍    | 14/26 [04:35<01:46,  8.86s/it]Fetching 26 files:  58%|█████▊    | 15/26 [06:13<06:19, 34.53s/it]Fetching 26 files:  62%|██████▏   | 16/26 [06:14<04:07, 24.76s/it]Fetching 26 files:  65%|██████▌   | 17/26 [06:22<02:58, 19.82s/it]Fetching 26 files:  69%|██████▉   | 18/26 [06:22<01:53, 14.13s/it]Fetching 26 files:  73%|███████▎  | 19/26 [06:23<01:12, 10.31s/it]Fetching 26 files:  77%|███████▋  | 20/26 [06:24<00:44,  7.39s/it]Fetching 26 files:  81%|████████  | 21/26 [07:12<01:37, 19.54s/it]Fetching 26 files:  85%|████████▍ | 22/26 [07:33<01:19, 19.84s/it]Fetching 26 files:  88%|████████▊ | 23/26 [07:42<00:50, 16.79s/it]Fetching 26 files:  92%|█████████▏| 24/26 [07:44<00:24, 12.32s/it]Fetching 26 files:  96%|█████████▌| 25/26 [07:45<00:08,  8.82s/it]Fetching 26 files: 100%|██████████| 26/26 [07:46<00:00,  6.62s/it]Fetching 26 files: 100%|██████████| 26/26 [07:46<00:00, 17.95s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 468 s'
+qwen3 hf download rc=0 in 468 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ cp /root/.cache/freetoken/benchbw/GPU-eecf00ca-44b0-935f-8716-cfefee62dc4e.json /w/results/085b_half_pcie_qwen3@vast/
++ H=10
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/085b_half_pcie_qwen3@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/085b_half_pcie_qwen3@vast/concur.txt 10 9437184 8 /w/results/085b_half_pcie_qwen3@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,1,2,2,3,3,4
++ CURG=0,1,1,2,3
++ CURQ=0,1,1,2,3,3,4,5,6
++ NONEG=0,0,0,0,0
++ NONEQ=0,0,0,0,0,0,0,0,0
++ tee /w/results/085b_half_pcie_qwen3@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-09-30T19:46:11Z): qwen3 0,0,1,1,2,2,3,3,4 (fixed 0,1,1,2,3,3,4,5,6)'
+law table (2026-09-30T19:46:11Z): qwen3 0,0,1,1,2,2,3,3,4 (fixed 0,1,1,2,3,3,4,5,6)
++ '[' -n 0,0,1,1,2,2,3,3,4 ']'
++ python3 - /w/results/085b_half_pcie_qwen3@vast/concur.txt 12
++ cat /w/results/085b_half_pcie_qwen3@vast/law_llama.json
+{"time_utc": "2026-09-30T19:46:11Z", "B_c": 44.75, "threads": 12, "predicted_tok_s": {"qwen3_llama_n36": 15.38}}
++ LXB='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ ECENV='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10'
++ df -h /work
++ tail -1
+overlay         180G   72G  109G  40% /
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ VE=/work/venv
++ tail -2 /w/results/085b_half_pcie_qwen3@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Sep 30 19:49 /work/models/Qwen3-30B-A3B-BF16.gguf
++ LSQ='-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja'
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ for C in 16 32 56
++ oursq 16 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C16_law 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C16_law L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C16_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C16_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C16_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 56583
+[bs1] q_ours_C16_law problem 0: 25.36 tok/s (39.43 ms/token, p50 39.76 p99 61.89, 256 tokens)
+[bs1] q_ours_C16_law problem 1: 25.64 tok/s (39.00 ms/token, p50 39.41 p99 58.82, 256 tokens)
+[bs1] q_ours_C16_law problem 2: 25.24 tok/s (39.63 ms/token, p50 38.96 p99 68.94, 256 tokens)
+[bs1] q_ours_C16_law problem 3: 27.25 tok/s (36.69 ms/token, p50 37.48 p99 66.89, 256 tokens)
+[bs1] q_ours_C16_law problem 4: 24.68 tok/s (40.51 ms/token, p50 40.73 p99 62.03, 256 tokens)
+[bs1] q_ours_C16_law problem 5: 26.01 tok/s (38.45 ms/token, p50 37.89 p99 59.55, 256 tokens)
+[bs1] q_ours_C16_law problem 6: 25.48 tok/s (39.25 ms/token, p50 38.17 p99 65.05, 256 tokens)
+[bs1] q_ours_C16_law problem 7: 27.79 tok/s (35.98 ms/token, p50 35.73 p99 60.59, 256 tokens)
+[bs1] q_ours_C16_law problem 8: 27.16 tok/s (36.82 ms/token, p50 37.00 p99 85.71, 256 tokens)
+[bs1] q_ours_C16_law problem 9: 26.30 tok/s (38.03 ms/token, p50 37.41 p99 65.11, 256 tokens)
+[bs1] q_ours_C16_law problem 10: 26.10 tok/s (38.32 ms/token, p50 37.97 p99 63.62, 256 tokens)
+[bs1] q_ours_C16_law problem 11: 26.61 tok/s (37.58 ms/token, p50 37.96 p99 65.09, 256 tokens)
+[bs1] q_ours_C16_law problem 12: 26.89 tok/s (37.18 ms/token, p50 37.06 p99 68.32, 256 tokens)
+[bs1] q_ours_C16_law problem 13: 25.58 tok/s (39.10 ms/token, p50 38.24 p99 67.30, 256 tokens)
+[bs1] q_ours_C16_law problem 14: 25.98 tok/s (38.49 ms/token, p50 38.28 p99 67.99, 256 tokens)
+[bs1] q_ours_C16_law problem 15: 25.00 tok/s (39.99 ms/token, p50 40.24 p99 70.19, 256 tokens)
+[bs1] q_ours_C16_law problem 16: 27.41 tok/s (36.48 ms/token, p50 36.83 p99 59.91, 256 tokens)
+[bs1] q_ours_C16_law problem 17: 27.24 tok/s (36.72 ms/token, p50 35.85 p99 60.47, 256 tokens)
+[bs1] q_ours_C16_law problem 18: 27.99 tok/s (35.73 ms/token, p50 35.07 p99 62.46, 256 tokens)
+[bs1] q_ours_C16_law problem 19: 26.25 tok/s (38.10 ms/token, p50 39.08 p99 81.24, 256 tokens)
+[bs1] q_ours_C16_law problem 20: 25.96 tok/s (38.52 ms/token, p50 37.95 p99 90.18, 256 tokens)
+[bs1] q_ours_C16_law problem 21: 26.98 tok/s (37.07 ms/token, p50 36.74 p99 66.54, 256 tokens)
+[bs1] q_ours_C16_law problem 22: 24.98 tok/s (40.02 ms/token, p50 40.11 p99 61.68, 256 tokens)
+[bs1] q_ours_C16_law problem 23: 27.41 tok/s (36.48 ms/token, p50 37.04 p99 65.43, 256 tokens)
+[bs1] q_ours_C16_law problem 24: 27.90 tok/s (35.84 ms/token, p50 34.98 p99 59.74, 256 tokens)
+[bs1] q_ours_C16_law problem 25: 28.01 tok/s (35.71 ms/token, p50 35.14 p99 60.58, 256 tokens)
+[bs1] q_ours_C16_law problem 26: 26.18 tok/s (38.19 ms/token, p50 38.29 p99 69.18, 256 tokens)
+[bs1] q_ours_C16_law problem 27: 26.37 tok/s (37.93 ms/token, p50 38.36 p99 63.36, 256 tokens)
+[bs1] q_ours_C16_law problem 28: 25.78 tok/s (38.79 ms/token, p50 39.01 p99 64.49, 256 tokens)
+[bs1] q_ours_C16_law problem 29: 27.44 tok/s (36.45 ms/token, p50 35.99 p99 61.34, 256 tokens)
++ echo 'q_ours_C16_law launch 1 rc=0'
+q_ours_C16_law launch 1 rc=0
++ oursq 16 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ '[' cur = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C16_cur 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C16_cur L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C16_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C16_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C16_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 46607
+[bs1] q_ours_C16_cur problem 0: 21.22 tok/s (47.14 ms/token, p50 47.00 p99 75.53, 256 tokens)
+[bs1] q_ours_C16_cur problem 1: 21.52 tok/s (46.47 ms/token, p50 47.05 p99 76.61, 256 tokens)
+[bs1] q_ours_C16_cur problem 2: 20.98 tok/s (47.66 ms/token, p50 47.03 p99 88.85, 256 tokens)
+[bs1] q_ours_C16_cur problem 3: 22.84 tok/s (43.79 ms/token, p50 43.53 p99 81.12, 256 tokens)
+[bs1] q_ours_C16_cur problem 4: 20.64 tok/s (48.46 ms/token, p50 48.36 p99 76.41, 256 tokens)
+[bs1] q_ours_C16_cur problem 5: 21.85 tok/s (45.77 ms/token, p50 45.05 p99 73.64, 256 tokens)
+[bs1] q_ours_C16_cur problem 6: 21.35 tok/s (46.85 ms/token, p50 45.68 p99 86.53, 256 tokens)
+[bs1] q_ours_C16_cur problem 7: 23.40 tok/s (42.74 ms/token, p50 41.42 p99 74.46, 256 tokens)
+[bs1] q_ours_C16_cur problem 8: 22.97 tok/s (43.54 ms/token, p50 43.17 p99 102.61, 256 tokens)
+[bs1] q_ours_C16_cur problem 9: 21.92 tok/s (45.62 ms/token, p50 44.33 p99 83.45, 256 tokens)
+[bs1] q_ours_C16_cur problem 10: 22.12 tok/s (45.20 ms/token, p50 44.48 p99 79.07, 256 tokens)
+[bs1] q_ours_C16_cur problem 11: 22.74 tok/s (43.97 ms/token, p50 43.87 p99 76.20, 256 tokens)
+[bs1] q_ours_C16_cur problem 12: 22.94 tok/s (43.59 ms/token, p50 43.27 p99 84.44, 256 tokens)
+[bs1] q_ours_C16_cur problem 13: 21.99 tok/s (45.47 ms/token, p50 44.47 p99 80.90, 256 tokens)
+[bs1] q_ours_C16_cur problem 14: 22.34 tok/s (44.75 ms/token, p50 43.94 p99 78.11, 256 tokens)
+[bs1] q_ours_C16_cur problem 15: 21.39 tok/s (46.75 ms/token, p50 46.16 p99 76.31, 256 tokens)
+[bs1] q_ours_C16_cur problem 16: 22.93 tok/s (43.61 ms/token, p50 43.50 p99 77.19, 256 tokens)
+[bs1] q_ours_C16_cur problem 17: 23.20 tok/s (43.10 ms/token, p50 41.50 p99 76.72, 256 tokens)
+[bs1] q_ours_C16_cur problem 18: 23.38 tok/s (42.76 ms/token, p50 41.56 p99 79.53, 256 tokens)
+[bs1] q_ours_C16_cur problem 19: 21.98 tok/s (45.49 ms/token, p50 46.12 p99 99.02, 256 tokens)
+[bs1] q_ours_C16_cur problem 20: 21.65 tok/s (46.19 ms/token, p50 44.31 p99 108.63, 256 tokens)
+[bs1] q_ours_C16_cur problem 21: 22.55 tok/s (44.34 ms/token, p50 43.14 p99 81.59, 256 tokens)
+[bs1] q_ours_C16_cur problem 22: 21.00 tok/s (47.62 ms/token, p50 47.49 p99 78.58, 256 tokens)
+[bs1] q_ours_C16_cur problem 23: 23.03 tok/s (43.42 ms/token, p50 43.61 p99 83.96, 256 tokens)
+[bs1] q_ours_C16_cur problem 24: 23.86 tok/s (41.91 ms/token, p50 40.36 p99 71.97, 256 tokens)
+[bs1] q_ours_C16_cur problem 25: 23.65 tok/s (42.29 ms/token, p50 41.85 p99 74.38, 256 tokens)
+[bs1] q_ours_C16_cur problem 26: 22.10 tok/s (45.24 ms/token, p50 44.93 p99 88.20, 256 tokens)
+[bs1] q_ours_C16_cur problem 27: 23.58 tok/s (42.40 ms/token, p50 42.56 p99 81.39, 256 tokens)
+[bs1] q_ours_C16_cur problem 28: 21.27 tok/s (47.02 ms/token, p50 47.91 p99 81.76, 256 tokens)
+[bs1] q_ours_C16_cur problem 29: 23.23 tok/s (43.04 ms/token, p50 42.44 p99 77.76, 256 tokens)
++ echo 'q_ours_C16_cur launch 1 rc=0'
+q_ours_C16_cur launch 1 rc=0
++ for C in 16 32 56
++ oursq 32 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C32_law 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C32_law L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 46303
+[bs1] q_ours_C32_law problem 0: 38.18 tok/s (26.19 ms/token, p50 25.70 p99 47.76, 256 tokens)
+[bs1] q_ours_C32_law problem 1: 42.28 tok/s (23.65 ms/token, p50 22.84 p99 44.87, 256 tokens)
+[bs1] q_ours_C32_law problem 2: 40.88 tok/s (24.46 ms/token, p50 22.00 p99 61.64, 256 tokens)
+[bs1] q_ours_C32_law problem 3: 40.75 tok/s (24.54 ms/token, p50 23.20 p99 51.92, 256 tokens)
+[bs1] q_ours_C32_law problem 4: 38.89 tok/s (25.71 ms/token, p50 25.41 p99 44.86, 256 tokens)
+[bs1] q_ours_C32_law problem 5: 41.98 tok/s (23.82 ms/token, p50 22.77 p99 42.81, 256 tokens)
+[bs1] q_ours_C32_law problem 6: 43.26 tok/s (23.12 ms/token, p50 21.43 p99 48.35, 256 tokens)
+[bs1] q_ours_C32_law problem 7: 42.88 tok/s (23.32 ms/token, p50 21.66 p99 43.65, 256 tokens)
+[bs1] q_ours_C32_law problem 8: 41.54 tok/s (24.07 ms/token, p50 23.05 p99 48.10, 256 tokens)
+[bs1] q_ours_C32_law problem 9: 43.39 tok/s (23.05 ms/token, p50 21.79 p99 48.80, 256 tokens)
+[bs1] q_ours_C32_law problem 10: 40.93 tok/s (24.43 ms/token, p50 24.38 p99 47.87, 256 tokens)
+[bs1] q_ours_C32_law problem 11: 43.25 tok/s (23.12 ms/token, p50 22.74 p99 43.62, 256 tokens)
+[bs1] q_ours_C32_law problem 12: 45.77 tok/s (21.85 ms/token, p50 20.45 p99 45.83, 256 tokens)
+[bs1] q_ours_C32_law problem 13: 41.40 tok/s (24.15 ms/token, p50 23.08 p99 49.66, 256 tokens)
+[bs1] q_ours_C32_law problem 14: 43.10 tok/s (23.20 ms/token, p50 22.37 p99 47.25, 256 tokens)
+[bs1] q_ours_C32_law problem 15: 42.53 tok/s (23.51 ms/token, p50 22.03 p99 46.81, 256 tokens)
+[bs1] q_ours_C32_law problem 16: 44.95 tok/s (22.25 ms/token, p50 21.38 p99 43.89, 256 tokens)
+[bs1] q_ours_C32_law problem 17: 47.12 tok/s (21.22 ms/token, p50 19.63 p99 47.60, 256 tokens)
+[bs1] q_ours_C32_law problem 18: 44.73 tok/s (22.36 ms/token, p50 19.53 p99 50.84, 256 tokens)
+[bs1] q_ours_C32_law problem 19: 41.25 tok/s (24.24 ms/token, p50 24.24 p99 53.68, 256 tokens)
+[bs1] q_ours_C32_law problem 20: 42.74 tok/s (23.40 ms/token, p50 22.45 p99 63.45, 256 tokens)
+[bs1] q_ours_C32_law problem 21: 43.51 tok/s (22.99 ms/token, p50 21.34 p99 50.83, 256 tokens)
+[bs1] q_ours_C32_law problem 22: 39.66 tok/s (25.21 ms/token, p50 24.19 p99 47.25, 256 tokens)
+[bs1] q_ours_C32_law problem 23: 43.14 tok/s (23.18 ms/token, p50 22.44 p99 49.15, 256 tokens)
+[bs1] q_ours_C32_law problem 24: 55.77 tok/s (17.93 ms/token, p50 16.17 p99 42.70, 256 tokens)
+[bs1] q_ours_C32_law problem 25: 50.51 tok/s (19.80 ms/token, p50 18.18 p99 40.27, 256 tokens)
+[bs1] q_ours_C32_law problem 26: 39.45 tok/s (25.35 ms/token, p50 24.42 p99 49.75, 256 tokens)
+[bs1] q_ours_C32_law problem 27: 42.78 tok/s (23.38 ms/token, p50 22.53 p99 45.05, 256 tokens)
+[bs1] q_ours_C32_law problem 28: 39.96 tok/s (25.02 ms/token, p50 24.41 p99 48.49, 256 tokens)
+[bs1] q_ours_C32_law problem 29: 45.99 tok/s (21.74 ms/token, p50 20.16 p99 45.40, 256 tokens)
++ echo 'q_ours_C32_law launch 1 rc=0'
+q_ours_C32_law launch 1 rc=0
++ oursq 32 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ '[' cur = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C32_cur 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C32_cur L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C32_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 46327
+[bs1] q_ours_C32_cur problem 0: 33.37 tok/s (29.96 ms/token, p50 29.24 p99 59.19, 256 tokens)
+[bs1] q_ours_C32_cur problem 1: 36.71 tok/s (27.24 ms/token, p50 26.29 p99 53.43, 256 tokens)
+[bs1] q_ours_C32_cur problem 2: 34.34 tok/s (29.12 ms/token, p50 26.79 p99 72.66, 256 tokens)
+[bs1] q_ours_C32_cur problem 3: 36.26 tok/s (27.58 ms/token, p50 25.74 p99 62.14, 256 tokens)
+[bs1] q_ours_C32_cur problem 4: 33.97 tok/s (29.44 ms/token, p50 29.02 p99 54.61, 256 tokens)
+[bs1] q_ours_C32_cur problem 5: 36.82 tok/s (27.16 ms/token, p50 25.90 p99 51.56, 256 tokens)
+[bs1] q_ours_C32_cur problem 6: 37.58 tok/s (26.61 ms/token, p50 24.41 p99 55.13, 256 tokens)
+[bs1] q_ours_C32_cur problem 7: 37.27 tok/s (26.83 ms/token, p50 25.13 p99 51.69, 256 tokens)
+[bs1] q_ours_C32_cur problem 8: 36.21 tok/s (27.62 ms/token, p50 26.66 p99 59.19, 256 tokens)
+[bs1] q_ours_C32_cur problem 9: 38.48 tok/s (25.99 ms/token, p50 24.76 p99 60.69, 256 tokens)
+[bs1] q_ours_C32_cur problem 10: 35.91 tok/s (27.85 ms/token, p50 27.37 p99 56.53, 256 tokens)
+[bs1] q_ours_C32_cur problem 11: 37.46 tok/s (26.70 ms/token, p50 25.70 p99 49.46, 256 tokens)
+[bs1] q_ours_C32_cur problem 12: 40.59 tok/s (24.64 ms/token, p50 22.71 p99 55.10, 256 tokens)
+[bs1] q_ours_C32_cur problem 13: 35.88 tok/s (27.87 ms/token, p50 25.97 p99 60.88, 256 tokens)
+[bs1] q_ours_C32_cur problem 14: 37.39 tok/s (26.74 ms/token, p50 25.50 p99 58.13, 256 tokens)
+[bs1] q_ours_C32_cur problem 15: 36.97 tok/s (27.05 ms/token, p50 25.39 p99 57.73, 256 tokens)
+[bs1] q_ours_C32_cur problem 16: 38.65 tok/s (25.87 ms/token, p50 24.94 p99 53.61, 256 tokens)
+[bs1] q_ours_C32_cur problem 17: 42.05 tok/s (23.78 ms/token, p50 21.66 p99 52.74, 256 tokens)
+[bs1] q_ours_C32_cur problem 18: 38.35 tok/s (26.08 ms/token, p50 23.00 p99 56.76, 256 tokens)
+[bs1] q_ours_C32_cur problem 19: 35.71 tok/s (28.00 ms/token, p50 27.60 p99 60.65, 256 tokens)
+[bs1] q_ours_C32_cur problem 20: 37.16 tok/s (26.91 ms/token, p50 25.72 p99 80.00, 256 tokens)
+[bs1] q_ours_C32_cur problem 21: 37.53 tok/s (26.65 ms/token, p50 24.31 p99 59.50, 256 tokens)
+[bs1] q_ours_C32_cur problem 22: 34.42 tok/s (29.05 ms/token, p50 27.68 p99 57.00, 256 tokens)
+[bs1] q_ours_C32_cur problem 23: 37.19 tok/s (26.89 ms/token, p50 25.60 p99 59.94, 256 tokens)
+[bs1] q_ours_C32_cur problem 24: 49.85 tok/s (20.06 ms/token, p50 18.31 p99 50.14, 256 tokens)
+[bs1] q_ours_C32_cur problem 25: 42.95 tok/s (23.29 ms/token, p50 21.58 p99 50.50, 256 tokens)
+[bs1] q_ours_C32_cur problem 26: 34.87 tok/s (28.68 ms/token, p50 27.38 p99 61.10, 256 tokens)
+[bs1] q_ours_C32_cur problem 27: 34.81 tok/s (28.73 ms/token, p50 27.16 p99 56.98, 256 tokens)
+[bs1] q_ours_C32_cur problem 28: 35.81 tok/s (27.93 ms/token, p50 27.31 p99 53.80, 256 tokens)
+[bs1] q_ours_C32_cur problem 29: 40.34 tok/s (24.79 ms/token, p50 23.17 p99 56.50, 256 tokens)
++ echo 'q_ours_C32_cur launch 1 rc=0'
+q_ours_C32_cur launch 1 rc=0
++ for C in 16 32 56
++ oursq 56 law 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C56_law 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C56_law L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C56_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C56_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C56_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 59227
+[bs1] q_ours_C56_law problem 0: 72.66 tok/s (13.76 ms/token, p50 13.36 p99 28.12, 256 tokens)
+[bs1] q_ours_C56_law problem 1: 79.55 tok/s (12.57 ms/token, p50 11.57 p99 29.20, 256 tokens)
+[bs1] q_ours_C56_law problem 2: 74.75 tok/s (13.38 ms/token, p50 10.97 p99 37.78, 256 tokens)
+[bs1] q_ours_C56_law problem 3: 72.85 tok/s (13.73 ms/token, p50 12.57 p99 29.97, 256 tokens)
+[bs1] q_ours_C56_law problem 4: 76.24 tok/s (13.12 ms/token, p50 12.19 p99 29.55, 256 tokens)
+[bs1] q_ours_C56_law problem 5: 77.78 tok/s (12.86 ms/token, p50 11.82 p99 30.31, 256 tokens)
+[bs1] q_ours_C56_law problem 6: 81.51 tok/s (12.27 ms/token, p50 10.59 p99 27.49, 256 tokens)
+[bs1] q_ours_C56_law problem 7: 77.31 tok/s (12.94 ms/token, p50 11.82 p99 28.12, 256 tokens)
+[bs1] q_ours_C56_law problem 8: 73.65 tok/s (13.58 ms/token, p50 12.88 p99 28.83, 256 tokens)
+[bs1] q_ours_C56_law problem 9: 76.63 tok/s (13.05 ms/token, p50 11.28 p99 32.33, 256 tokens)
+[bs1] q_ours_C56_law problem 10: 76.83 tok/s (13.02 ms/token, p50 12.12 p99 27.65, 256 tokens)
+[bs1] q_ours_C56_law problem 11: 80.93 tok/s (12.36 ms/token, p50 11.60 p99 29.23, 256 tokens)
+[bs1] q_ours_C56_law problem 12: 85.62 tok/s (11.68 ms/token, p50 10.10 p99 28.69, 256 tokens)
+[bs1] q_ours_C56_law problem 13: 75.27 tok/s (13.29 ms/token, p50 11.98 p99 29.71, 256 tokens)
+[bs1] q_ours_C56_law problem 14: 80.68 tok/s (12.40 ms/token, p50 11.59 p99 30.73, 256 tokens)
+[bs1] q_ours_C56_law problem 15: 81.16 tok/s (12.32 ms/token, p50 11.36 p99 29.10, 256 tokens)
+[bs1] q_ours_C56_law problem 16: 82.58 tok/s (12.11 ms/token, p50 11.31 p99 25.31, 256 tokens)
+[bs1] q_ours_C56_law problem 17: 89.17 tok/s (11.21 ms/token, p50 9.61 p99 28.72, 256 tokens)
+[bs1] q_ours_C56_law problem 18: 73.69 tok/s (13.57 ms/token, p50 11.59 p99 35.91, 256 tokens)
+[bs1] q_ours_C56_law problem 19: 76.25 tok/s (13.11 ms/token, p50 12.41 p99 31.98, 256 tokens)
+[bs1] q_ours_C56_law problem 20: 82.25 tok/s (12.16 ms/token, p50 10.98 p99 31.87, 256 tokens)
+[bs1] q_ours_C56_law problem 21: 78.98 tok/s (12.66 ms/token, p50 11.59 p99 31.71, 256 tokens)
+[bs1] q_ours_C56_law problem 22: 76.90 tok/s (13.00 ms/token, p50 11.44 p99 31.06, 256 tokens)
+[bs1] q_ours_C56_law problem 23: 78.55 tok/s (12.73 ms/token, p50 11.88 p99 28.88, 256 tokens)
+[bs1] q_ours_C56_law problem 24: 101.05 tok/s (9.90 ms/token, p50 8.13 p99 26.48, 256 tokens)
+[bs1] q_ours_C56_law problem 25: 95.05 tok/s (10.52 ms/token, p50 9.47 p99 24.95, 256 tokens)
+[bs1] q_ours_C56_law problem 26: 73.59 tok/s (13.59 ms/token, p50 12.56 p99 31.70, 256 tokens)
+[bs1] q_ours_C56_law problem 27: 78.66 tok/s (12.71 ms/token, p50 12.21 p99 27.64, 256 tokens)
+[bs1] q_ours_C56_law problem 28: 74.47 tok/s (13.43 ms/token, p50 12.42 p99 30.82, 256 tokens)
+[bs1] q_ours_C56_law problem 29: 85.00 tok/s (11.77 ms/token, p50 10.55 p99 24.27, 256 tokens)
++ echo 'q_ours_C56_law launch 1 rc=0'
+q_ours_C56_law launch 1 rc=0
++ oursq 56 cur 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' cur = law ']'
++ '[' cur = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C56_cur 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,1,1,2,3,3,4,5,6"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C56_cur L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,1,1,2,3,3,4,5,6"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C56_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C56_cur --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,1,1,2,3,3,4,5,6"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C56_cur: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,1,1,2,3,3,4,5,6 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 55785
+[bs1] q_ours_C56_cur problem 0: 65.37 tok/s (15.30 ms/token, p50 14.54 p99 31.37, 256 tokens)
+[bs1] q_ours_C56_cur problem 1: 72.65 tok/s (13.76 ms/token, p50 12.87 p99 34.22, 256 tokens)
+[bs1] q_ours_C56_cur problem 2: 69.82 tok/s (14.32 ms/token, p50 12.01 p99 46.05, 256 tokens)
+[bs1] q_ours_C56_cur problem 3: 66.20 tok/s (15.11 ms/token, p50 13.81 p99 34.59, 256 tokens)
+[bs1] q_ours_C56_cur problem 4: 69.38 tok/s (14.41 ms/token, p50 13.29 p99 32.09, 256 tokens)
+[bs1] q_ours_C56_cur problem 5: 72.03 tok/s (13.88 ms/token, p50 12.76 p99 31.07, 256 tokens)
+[bs1] q_ours_C56_cur problem 6: 75.01 tok/s (13.33 ms/token, p50 11.62 p99 29.69, 256 tokens)
+[bs1] q_ours_C56_cur problem 7: 70.20 tok/s (14.24 ms/token, p50 13.41 p99 32.31, 256 tokens)
+[bs1] q_ours_C56_cur problem 8: 66.18 tok/s (15.11 ms/token, p50 14.14 p99 33.76, 256 tokens)
+[bs1] q_ours_C56_cur problem 9: 70.81 tok/s (14.12 ms/token, p50 12.23 p99 37.99, 256 tokens)
+[bs1] q_ours_C56_cur problem 10: 68.82 tok/s (14.53 ms/token, p50 13.69 p99 30.56, 256 tokens)
+[bs1] q_ours_C56_cur problem 11: 74.17 tok/s (13.48 ms/token, p50 12.70 p99 29.70, 256 tokens)
+[bs1] q_ours_C56_cur problem 12: 80.25 tok/s (12.46 ms/token, p50 10.68 p99 33.20, 256 tokens)
+[bs1] q_ours_C56_cur problem 13: 69.16 tok/s (14.46 ms/token, p50 13.15 p99 33.28, 256 tokens)
+[bs1] q_ours_C56_cur problem 14: 72.87 tok/s (13.72 ms/token, p50 12.74 p99 35.16, 256 tokens)
+[bs1] q_ours_C56_cur problem 15: 74.97 tok/s (13.34 ms/token, p50 11.89 p99 35.84, 256 tokens)
+[bs1] q_ours_C56_cur problem 16: 74.73 tok/s (13.38 ms/token, p50 12.55 p99 28.38, 256 tokens)
+[bs1] q_ours_C56_cur problem 17: 82.76 tok/s (12.08 ms/token, p50 10.46 p99 32.54, 256 tokens)
+[bs1] q_ours_C56_cur problem 18: 67.02 tok/s (14.92 ms/token, p50 12.89 p99 42.55, 256 tokens)
+[bs1] q_ours_C56_cur problem 19: 69.47 tok/s (14.39 ms/token, p50 13.49 p99 35.99, 256 tokens)
+[bs1] q_ours_C56_cur problem 20: 73.15 tok/s (13.67 ms/token, p50 12.12 p99 39.91, 256 tokens)
+[bs1] q_ours_C56_cur problem 21: 71.19 tok/s (14.05 ms/token, p50 12.89 p99 38.43, 256 tokens)
+[bs1] q_ours_C56_cur problem 22: 69.81 tok/s (14.32 ms/token, p50 12.73 p99 35.75, 256 tokens)
+[bs1] q_ours_C56_cur problem 23: 70.51 tok/s (14.18 ms/token, p50 13.16 p99 29.70, 256 tokens)
+[bs1] q_ours_C56_cur problem 24: 97.45 tok/s (10.26 ms/token, p50 8.62 p99 28.41, 256 tokens)
+[bs1] q_ours_C56_cur problem 25: 86.81 tok/s (11.52 ms/token, p50 10.16 p99 27.57, 256 tokens)
+[bs1] q_ours_C56_cur problem 26: 66.65 tok/s (15.00 ms/token, p50 13.75 p99 39.88, 256 tokens)
+[bs1] q_ours_C56_cur problem 27: 69.26 tok/s (14.44 ms/token, p50 13.85 p99 31.09, 256 tokens)
+[bs1] q_ours_C56_cur problem 28: 70.28 tok/s (14.23 ms/token, p50 13.47 p99 28.22, 256 tokens)
+[bs1] q_ours_C56_cur problem 29: 77.79 tok/s (12.85 ms/token, p50 11.43 p99 27.29, 256 tokens)
++ echo 'q_ours_C56_cur launch 1 rc=0'
+q_ours_C56_cur launch 1 rc=0
++ oursq 32 none 1
++ local t=0,1,1,2,3,3,4,5,6
++ '[' none = law ']'
++ '[' none = none ']'
++ t=0,0,0,0,0,0,0,0,0
++ cl /work/models/Qwen3-30B-A3B q_ours_C32_none 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,0,0,0,0,0,0,0"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,0,0,0,0,0,0 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C32_none L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,0,0,0,0,0,0,0"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_none --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,0,0,0,0,0,0,0"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,0,0,0,0,0,0 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C32_none --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,0,0,0,0,0,0,0"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,0,0,0,0,0,0 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C32_none: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,0,0,0,0,0,0 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 40441
+[bs1] q_ours_C32_none problem 0: 34.29 tok/s (29.16 ms/token, p50 28.79 p99 58.83, 256 tokens)
+[bs1] q_ours_C32_none problem 1: 37.09 tok/s (26.96 ms/token, p50 25.43 p99 58.93, 256 tokens)
+[bs1] q_ours_C32_none problem 2: 34.15 tok/s (29.28 ms/token, p50 26.34 p99 68.91, 256 tokens)
+[bs1] q_ours_C32_none problem 3: 34.11 tok/s (29.32 ms/token, p50 28.83 p99 59.00, 256 tokens)
+[bs1] q_ours_C32_none problem 4: 33.33 tok/s (30.00 ms/token, p50 28.71 p99 56.31, 256 tokens)
+[bs1] q_ours_C32_none problem 5: 35.94 tok/s (27.83 ms/token, p50 26.47 p99 57.62, 256 tokens)
+[bs1] q_ours_C32_none problem 6: 37.35 tok/s (26.78 ms/token, p50 24.54 p99 59.67, 256 tokens)
+[bs1] q_ours_C32_none problem 7: 35.89 tok/s (27.86 ms/token, p50 26.25 p99 58.91, 256 tokens)
+[bs1] q_ours_C32_none problem 8: 34.82 tok/s (28.72 ms/token, p50 27.24 p99 67.02, 256 tokens)
+[bs1] q_ours_C32_none problem 9: 35.63 tok/s (28.07 ms/token, p50 25.19 p99 65.12, 256 tokens)
+[bs1] q_ours_C32_none problem 10: 34.46 tok/s (29.02 ms/token, p50 27.74 p99 55.28, 256 tokens)
+[bs1] q_ours_C32_none problem 11: 36.38 tok/s (27.49 ms/token, p50 26.27 p99 55.37, 256 tokens)
+[bs1] q_ours_C32_none problem 12: 38.94 tok/s (25.68 ms/token, p50 22.99 p99 58.61, 256 tokens)
+[bs1] q_ours_C32_none problem 13: 34.30 tok/s (29.16 ms/token, p50 27.95 p99 62.93, 256 tokens)
+[bs1] q_ours_C32_none problem 14: 34.19 tok/s (29.25 ms/token, p50 28.64 p99 58.83, 256 tokens)
+[bs1] q_ours_C32_none problem 15: 35.37 tok/s (28.27 ms/token, p50 25.79 p99 55.11, 256 tokens)
+[bs1] q_ours_C32_none problem 16: 38.87 tok/s (25.73 ms/token, p50 24.86 p99 49.63, 256 tokens)
+[bs1] q_ours_C32_none problem 17: 41.30 tok/s (24.21 ms/token, p50 21.12 p99 58.58, 256 tokens)
+[bs1] q_ours_C32_none problem 18: 37.40 tok/s (26.74 ms/token, p50 22.31 p99 69.03, 256 tokens)
+[bs1] q_ours_C32_none problem 19: 35.23 tok/s (28.38 ms/token, p50 27.84 p99 70.39, 256 tokens)
+[bs1] q_ours_C32_none problem 20: 37.30 tok/s (26.81 ms/token, p50 25.90 p99 70.23, 256 tokens)
+[bs1] q_ours_C32_none problem 21: 36.37 tok/s (27.50 ms/token, p50 24.61 p99 58.53, 256 tokens)
+[bs1] q_ours_C32_none problem 22: 33.29 tok/s (30.04 ms/token, p50 28.04 p99 59.02, 256 tokens)
+[bs1] q_ours_C32_none problem 23: 36.25 tok/s (27.58 ms/token, p50 26.67 p99 57.14, 256 tokens)
+[bs1] q_ours_C32_none problem 24: 45.77 tok/s (21.85 ms/token, p50 19.97 p99 61.25, 256 tokens)
+[bs1] q_ours_C32_none problem 25: 42.71 tok/s (23.41 ms/token, p50 20.89 p99 54.46, 256 tokens)
+[bs1] q_ours_C32_none problem 26: 32.61 tok/s (30.66 ms/token, p50 29.07 p99 64.64, 256 tokens)
+[bs1] q_ours_C32_none problem 27: 35.61 tok/s (28.08 ms/token, p50 26.30 p99 63.82, 256 tokens)
+[bs1] q_ours_C32_none problem 28: 34.18 tok/s (29.26 ms/token, p50 27.67 p99 61.23, 256 tokens)
+[bs1] q_ours_C32_none problem 29: 39.68 tok/s (25.20 ms/token, p50 23.02 p99 50.18, 256 tokens)
++ echo 'q_ours_C32_none launch 1 rc=0'
+q_ours_C32_none launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.4375:0.95
++ r=0.125
++ mr=0.9
++ ftq offload 0.125 1 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_offload_r0.125 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.125}' --ft offload --cache-rate 0.125 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_offload_r0.125 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.125}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.125_L1.log --ft offload --cache-rate 0.125 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.125_L1.log --ft offload --cache-rate 0.125 --mem-ratio 0.9
+[bs1] q_ft_offload_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '36307', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125']
+[bs1] q_ft_offload_r0.125 problem 0: 14.58 tok/s (68.60 ms/token, p50 68.85 p99 123.48, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 1: 13.79 tok/s (72.54 ms/token, p50 73.49 p99 123.74, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 2: 15.29 tok/s (65.41 ms/token, p50 65.79 p99 120.70, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 3: 16.62 tok/s (60.18 ms/token, p50 58.38 p99 109.91, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 4: 14.36 tok/s (69.63 ms/token, p50 69.45 p99 121.12, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 5: 14.85 tok/s (67.32 ms/token, p50 66.05 p99 120.21, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 6: 14.76 tok/s (67.73 ms/token, p50 68.91 p99 118.57, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 7: 15.83 tok/s (63.16 ms/token, p50 61.34 p99 116.59, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 8: 15.92 tok/s (62.83 ms/token, p50 62.36 p99 117.84, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 9: 14.96 tok/s (66.86 ms/token, p50 67.62 p99 116.18, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 10: 15.34 tok/s (65.20 ms/token, p50 62.00 p99 120.60, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 11: 16.97 tok/s (58.91 ms/token, p50 56.99 p99 121.23, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 12: 15.74 tok/s (63.52 ms/token, p50 61.69 p99 122.48, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 13: 15.70 tok/s (63.71 ms/token, p50 62.15 p99 118.92, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 14: 15.78 tok/s (63.37 ms/token, p50 63.33 p99 121.09, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 15: 15.19 tok/s (65.83 ms/token, p50 67.19 p99 113.93, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 16: 16.00 tok/s (62.52 ms/token, p50 60.94 p99 117.58, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 17: 15.47 tok/s (64.66 ms/token, p50 64.37 p99 107.50, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 18: 16.13 tok/s (61.99 ms/token, p50 60.52 p99 115.24, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 19: 15.90 tok/s (62.90 ms/token, p50 62.91 p99 115.64, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 20: 14.63 tok/s (68.37 ms/token, p50 67.09 p99 120.43, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 21: 15.27 tok/s (65.51 ms/token, p50 64.00 p99 125.20, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 22: 14.60 tok/s (68.49 ms/token, p50 67.85 p99 121.42, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 23: 16.27 tok/s (61.48 ms/token, p50 58.19 p99 116.83, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 24: 15.72 tok/s (63.62 ms/token, p50 63.02 p99 117.08, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 25: 16.09 tok/s (62.15 ms/token, p50 60.28 p99 117.28, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 26: 15.88 tok/s (62.98 ms/token, p50 61.12 p99 125.45, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 27: 16.14 tok/s (61.97 ms/token, p50 59.53 p99 116.27, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 28: 15.01 tok/s (66.64 ms/token, p50 68.05 p99 118.69, 256 tokens)
+[bs1] q_ft_offload_r0.125 problem 29: 15.42 tok/s (64.85 ms/token, p50 62.74 p99 114.58, 256 tokens)
++ echo 'q_ft_offload_r0.125 launch 1 rc=0'
+q_ft_offload_r0.125 launch 1 rc=0
++ ftq hybrid 0.125 1 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.125 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.125 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29266
++ '[' 29266 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29244
++ '[' 29244 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L1.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L1.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
+[bs1] q_ft_hybrid_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '38711', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125']
+[bs1] q_ft_hybrid_r0.125 problem 0: 23.18 tok/s (43.14 ms/token, p50 42.50 p99 69.95, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 1: 23.91 tok/s (41.83 ms/token, p50 41.47 p99 63.76, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 2: 23.93 tok/s (41.79 ms/token, p50 41.32 p99 71.23, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 3: 25.92 tok/s (38.58 ms/token, p50 37.42 p99 66.87, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 4: 23.43 tok/s (42.68 ms/token, p50 42.29 p99 68.03, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 5: 23.83 tok/s (41.96 ms/token, p50 41.54 p99 69.22, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 6: 23.05 tok/s (43.38 ms/token, p50 42.91 p99 71.72, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 7: 25.28 tok/s (39.56 ms/token, p50 38.25 p99 63.92, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 8: 25.22 tok/s (39.65 ms/token, p50 39.77 p99 70.33, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 9: 23.93 tok/s (41.79 ms/token, p50 40.68 p99 71.58, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 10: 23.98 tok/s (41.70 ms/token, p50 40.46 p99 67.15, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 11: 25.53 tok/s (39.16 ms/token, p50 39.40 p99 68.22, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 12: 24.90 tok/s (40.16 ms/token, p50 39.49 p99 66.90, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 13: 25.31 tok/s (39.52 ms/token, p50 38.43 p99 69.26, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 14: 24.12 tok/s (41.46 ms/token, p50 41.00 p99 75.99, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 15: 25.06 tok/s (39.90 ms/token, p50 39.44 p99 66.05, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 16: 25.85 tok/s (38.68 ms/token, p50 38.41 p99 68.76, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 17: 25.49 tok/s (39.23 ms/token, p50 38.90 p99 64.01, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 18: 26.15 tok/s (38.25 ms/token, p50 37.63 p99 66.37, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 19: 24.72 tok/s (40.45 ms/token, p50 39.88 p99 64.36, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 20: 24.12 tok/s (41.46 ms/token, p50 41.23 p99 65.69, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 21: 24.23 tok/s (41.27 ms/token, p50 40.50 p99 71.84, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 22: 23.38 tok/s (42.78 ms/token, p50 42.57 p99 65.66, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 23: 25.34 tok/s (39.46 ms/token, p50 38.45 p99 69.59, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 24: 25.40 tok/s (39.37 ms/token, p50 37.16 p99 68.36, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 25: 25.65 tok/s (38.98 ms/token, p50 38.39 p99 69.74, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 26: 24.59 tok/s (40.66 ms/token, p50 39.93 p99 69.59, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 27: 25.86 tok/s (38.67 ms/token, p50 38.56 p99 66.41, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 28: 24.09 tok/s (41.51 ms/token, p50 41.31 p99 65.41, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 29: 25.60 tok/s (39.07 ms/token, p50 38.16 p99 66.83, 256 tokens)
++ echo 'q_ft_hybrid_r0.125 launch 1 rc=0'
+q_ft_hybrid_r0.125 launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.4375:0.95
++ r=0.25
++ mr=0.9
++ ftq offload 0.25 1 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_offload_r0.25 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.25}' --ft offload --cache-rate 0.25 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_offload_r0.25 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29270
++ '[' 29270 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25 --mem-ratio 0.9
+[bs1] q_ft_offload_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '33803', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] q_ft_offload_r0.25 problem 0: 24.31 tok/s (41.14 ms/token, p50 38.51 p99 99.26, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 1: 26.76 tok/s (37.37 ms/token, p50 35.38 p99 87.05, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 2: 25.94 tok/s (38.56 ms/token, p50 35.55 p99 98.10, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 3: 27.43 tok/s (36.46 ms/token, p50 31.60 p99 96.97, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 4: 24.28 tok/s (41.19 ms/token, p50 38.10 p99 94.22, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 5: 24.60 tok/s (40.66 ms/token, p50 37.68 p99 95.29, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 6: 25.45 tok/s (39.29 ms/token, p50 35.38 p99 99.41, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 7: 28.00 tok/s (35.71 ms/token, p50 32.35 p99 84.32, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 8: 27.04 tok/s (36.99 ms/token, p50 32.43 p99 99.27, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 9: 25.76 tok/s (38.82 ms/token, p50 35.62 p99 89.95, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 10: 26.15 tok/s (38.25 ms/token, p50 34.56 p99 96.61, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 11: 28.02 tok/s (35.69 ms/token, p50 31.56 p99 87.32, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 12: 28.44 tok/s (35.16 ms/token, p50 31.58 p99 100.07, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 13: 29.39 tok/s (34.03 ms/token, p50 29.11 p99 93.93, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 14: 25.78 tok/s (38.79 ms/token, p50 36.26 p99 97.13, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 15: 28.64 tok/s (34.92 ms/token, p50 31.80 p99 79.83, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 16: 28.17 tok/s (35.50 ms/token, p50 30.89 p99 92.36, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 17: 30.44 tok/s (32.85 ms/token, p50 31.00 p99 76.72, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 18: 29.53 tok/s (33.87 ms/token, p50 30.17 p99 78.66, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 19: 27.16 tok/s (36.82 ms/token, p50 33.01 p99 90.87, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 20: 25.85 tok/s (38.69 ms/token, p50 36.59 p99 92.85, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 21: 25.49 tok/s (39.24 ms/token, p50 35.61 p99 98.63, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 22: 24.52 tok/s (40.78 ms/token, p50 38.00 p99 94.74, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 23: 27.01 tok/s (37.03 ms/token, p50 33.87 p99 85.01, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 24: 29.21 tok/s (34.23 ms/token, p50 29.30 p99 96.05, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 25: 30.42 tok/s (32.87 ms/token, p50 30.18 p99 86.67, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 26: 25.11 tok/s (39.83 ms/token, p50 35.43 p99 92.32, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 27: 26.63 tok/s (37.55 ms/token, p50 34.26 p99 98.25, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 28: 25.30 tok/s (39.52 ms/token, p50 38.89 p99 90.96, 256 tokens)
+[bs1] q_ft_offload_r0.25 problem 29: 28.87 tok/s (34.64 ms/token, p50 31.29 p99 95.19, 256 tokens)
++ echo 'q_ft_offload_r0.25 launch 1 rc=0'
+q_ft_offload_r0.25 launch 1 rc=0
++ ftq hybrid 0.25 1 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.25 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.25 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29264
++ '[' 29264 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29226
++ '[' 29226 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
+[bs1] q_ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '59951', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] q_ft_hybrid_r0.25 problem 0: 36.74 tok/s (27.22 ms/token, p50 26.25 p99 48.32, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 1: 39.29 tok/s (25.45 ms/token, p50 24.07 p99 52.58, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 2: 38.03 tok/s (26.30 ms/token, p50 24.35 p99 57.06, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 3: 38.89 tok/s (25.72 ms/token, p50 23.78 p99 59.81, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 4: 36.23 tok/s (27.60 ms/token, p50 27.15 p99 51.20, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 5: 37.10 tok/s (26.95 ms/token, p50 25.78 p99 53.25, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 6: 39.51 tok/s (25.31 ms/token, p50 23.42 p99 55.25, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 7: 39.25 tok/s (25.48 ms/token, p50 23.81 p99 52.25, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 8: 37.31 tok/s (26.80 ms/token, p50 24.76 p99 58.33, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 9: 39.80 tok/s (25.12 ms/token, p50 23.47 p99 50.81, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 10: 39.98 tok/s (25.01 ms/token, p50 23.69 p99 53.98, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 11: 42.05 tok/s (23.78 ms/token, p50 22.24 p99 53.23, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 12: 42.87 tok/s (23.33 ms/token, p50 20.78 p99 52.71, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 13: 40.46 tok/s (24.72 ms/token, p50 23.03 p99 57.04, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 14: 37.73 tok/s (26.50 ms/token, p50 25.53 p99 46.60, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 15: 42.27 tok/s (23.66 ms/token, p50 22.25 p99 46.92, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 16: 40.93 tok/s (24.43 ms/token, p50 22.89 p99 51.51, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 17: 45.50 tok/s (21.98 ms/token, p50 20.84 p99 46.79, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 18: 42.34 tok/s (23.62 ms/token, p50 20.71 p99 55.44, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 19: 40.68 tok/s (24.58 ms/token, p50 22.61 p99 50.78, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 20: 39.48 tok/s (25.33 ms/token, p50 24.01 p99 54.66, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 21: 38.79 tok/s (25.78 ms/token, p50 23.86 p99 54.75, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 22: 38.22 tok/s (26.16 ms/token, p50 23.98 p99 56.11, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 23: 39.43 tok/s (25.36 ms/token, p50 23.87 p99 51.95, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 24: 50.31 tok/s (19.88 ms/token, p50 17.19 p99 47.93, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 25: 45.11 tok/s (22.17 ms/token, p50 20.25 p99 51.12, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 26: 36.90 tok/s (27.10 ms/token, p50 25.74 p99 55.87, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 27: 38.57 tok/s (25.93 ms/token, p50 24.17 p99 53.72, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 28: 38.04 tok/s (26.29 ms/token, p50 25.35 p99 55.19, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 29: 40.75 tok/s (24.54 ms/token, p50 22.72 p99 59.78, 256 tokens)
++ echo 'q_ft_hybrid_r0.25 launch 1 rc=0'
+q_ft_hybrid_r0.25 launch 1 rc=0
++ for rm_ in 0.125:0.9 0.25:0.9 0.4375:0.95
++ r=0.4375
++ mr=0.95
++ ftq offload 0.4375 1 0.95
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_offload_r0.4375 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.4375}' --ft offload --cache-rate 0.4375 --mem-ratio 0.95
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_offload_r0.4375 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.4375}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29268
++ '[' 29268 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29268
++ '[' 29268 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.4375_L1.log --ft offload --cache-rate 0.4375 --mem-ratio 0.95
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_offload_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken offload", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.4375_L1.log --ft offload --cache-rate 0.4375 --mem-ratio 0.95
+[bs1] q_ft_offload_r0.4375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '52865', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4375']
+[bs1] q_ft_offload_r0.4375 problem 0: 59.08 tok/s (16.93 ms/token, p50 15.09 p99 50.50, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 1: 64.17 tok/s (15.58 ms/token, p50 13.52 p99 47.02, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 2: 58.31 tok/s (17.15 ms/token, p50 14.17 p99 68.47, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 3: 55.09 tok/s (18.15 ms/token, p50 14.87 p99 58.82, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 4: 61.27 tok/s (16.32 ms/token, p50 13.91 p99 48.75, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 5: 62.94 tok/s (15.89 ms/token, p50 13.31 p99 44.60, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 6: 66.00 tok/s (15.15 ms/token, p50 12.46 p99 41.61, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 7: 63.92 tok/s (15.65 ms/token, p50 13.56 p99 42.30, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 8: 59.70 tok/s (16.75 ms/token, p50 14.08 p99 42.09, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 9: 66.78 tok/s (14.97 ms/token, p50 12.63 p99 43.22, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 10: 66.85 tok/s (14.96 ms/token, p50 12.29 p99 51.05, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 11: 70.65 tok/s (14.15 ms/token, p50 12.36 p99 38.07, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 12: 71.54 tok/s (13.98 ms/token, p50 10.33 p99 55.97, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 13: 66.38 tok/s (15.06 ms/token, p50 12.02 p99 54.70, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 14: 63.73 tok/s (15.69 ms/token, p50 13.92 p99 42.77, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 15: 69.33 tok/s (14.42 ms/token, p50 11.76 p99 47.47, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 16: 64.91 tok/s (15.41 ms/token, p50 13.87 p99 45.86, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 17: 77.53 tok/s (12.90 ms/token, p50 10.36 p99 37.99, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 18: 61.94 tok/s (16.15 ms/token, p50 13.26 p99 53.53, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 19: 64.94 tok/s (15.40 ms/token, p50 12.29 p99 41.86, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 20: 70.03 tok/s (14.28 ms/token, p50 12.21 p99 39.31, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 21: 64.29 tok/s (15.55 ms/token, p50 12.86 p99 44.97, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 22: 62.58 tok/s (15.98 ms/token, p50 12.68 p99 47.95, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 23: 62.53 tok/s (15.99 ms/token, p50 13.52 p99 50.21, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 24: 80.42 tok/s (12.43 ms/token, p50 9.59 p99 35.44, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 25: 82.54 tok/s (12.12 ms/token, p50 9.60 p99 37.68, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 26: 62.12 tok/s (16.10 ms/token, p50 14.34 p99 41.49, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 27: 56.53 tok/s (17.69 ms/token, p50 14.91 p99 55.37, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 28: 63.15 tok/s (15.84 ms/token, p50 13.52 p99 38.43, 256 tokens)
+[bs1] q_ft_offload_r0.4375 problem 29: 67.06 tok/s (14.91 ms/token, p50 12.21 p99 41.70, 256 tokens)
++ echo 'q_ft_offload_r0.4375 launch 1 rc=0'
+q_ft_offload_r0.4375 launch 1 rc=0
++ ftq hybrid 0.4375 1 0.95
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.4375 1 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.4375 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=30844
++ '[' 30844 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=30734
++ '[' 30734 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L1.log --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ft_hybrid_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L1.log --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
+[bs1] q_ft_hybrid_r0.4375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '43883', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4375']
+[bs1] q_ft_hybrid_r0.4375 problem 0: 74.71 tok/s (13.38 ms/token, p50 12.49 p99 25.92, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 1: 78.11 tok/s (12.80 ms/token, p50 11.90 p99 31.71, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 2: 67.78 tok/s (14.75 ms/token, p50 13.64 p99 36.79, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 3: 78.11 tok/s (12.80 ms/token, p50 12.04 p99 25.41, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 4: 78.44 tok/s (12.75 ms/token, p50 11.82 p99 26.75, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 5: 77.30 tok/s (12.94 ms/token, p50 11.55 p99 28.82, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 6: 78.10 tok/s (12.80 ms/token, p50 11.43 p99 27.99, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 7: 76.93 tok/s (13.00 ms/token, p50 11.99 p99 30.62, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 8: 74.77 tok/s (13.38 ms/token, p50 12.40 p99 28.07, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 9: 76.94 tok/s (13.00 ms/token, p50 11.76 p99 26.31, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 10: 79.15 tok/s (12.63 ms/token, p50 11.69 p99 27.57, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 11: 82.20 tok/s (12.16 ms/token, p50 11.55 p99 24.83, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 12: 78.40 tok/s (12.76 ms/token, p50 11.26 p99 30.73, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 13: 75.00 tok/s (13.33 ms/token, p50 12.00 p99 33.50, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 14: 76.53 tok/s (13.07 ms/token, p50 12.14 p99 26.57, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 15: 79.09 tok/s (12.64 ms/token, p50 11.41 p99 27.47, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 16: 83.67 tok/s (11.95 ms/token, p50 11.19 p99 22.36, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 17: 78.28 tok/s (12.78 ms/token, p50 11.67 p99 29.49, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 18: 66.73 tok/s (14.99 ms/token, p50 13.44 p99 33.68, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 19: 73.57 tok/s (13.59 ms/token, p50 12.59 p99 30.21, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 20: 76.98 tok/s (12.99 ms/token, p50 11.74 p99 31.23, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 21: 73.66 tok/s (13.58 ms/token, p50 12.27 p99 29.57, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 22: 72.23 tok/s (13.85 ms/token, p50 12.71 p99 31.74, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 23: 74.53 tok/s (13.42 ms/token, p50 12.14 p99 28.86, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 24: 85.71 tok/s (11.67 ms/token, p50 10.20 p99 24.72, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 25: 89.17 tok/s (11.21 ms/token, p50 10.24 p99 26.19, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 26: 72.71 tok/s (13.75 ms/token, p50 12.73 p99 28.19, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 27: 78.94 tok/s (12.67 ms/token, p50 11.86 p99 27.18, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 28: 76.14 tok/s (13.13 ms/token, p50 12.07 p99 26.37, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 29: 73.85 tok/s (13.54 ms/token, p50 12.40 p99 32.99, 256 tokens)
++ echo 'q_ft_hybrid_r0.4375 launch 1 rc=0'
+q_ft_hybrid_r0.4375 launch 1 rc=0
++ cl /work/models/Qwen3-30B-A3B q_llama_n36 1 '{"model": "Qwen3-30B-A3B", "system": "llama.cpp", "ncmoe": 36}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ncmoe 36 --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_llama_n36 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "llama.cpp", "ncmoe": 36}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=30848
++ '[' 30848 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=30848
++ '[' 30848 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_llama_n36 --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp", "ncmoe": 36}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_llama_n36_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ncmoe 36 --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_llama_n36 --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp", "ncmoe": 36}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_llama_n36_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ncmoe 36 --port {port}'
+[bs1] q_llama_n36: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ncmoe 36 --port 54417
+[bs1] q_llama_n36 problem 0: 15.01 tok/s (66.63 ms/token, p50 66.89 p99 70.21, 256 tokens)
+[bs1] q_llama_n36 problem 1: 15.05 tok/s (66.44 ms/token, p50 66.84 p99 69.56, 256 tokens)
+[bs1] q_llama_n36 problem 2: 14.90 tok/s (67.11 ms/token, p50 67.15 p99 71.43, 256 tokens)
+[bs1] q_llama_n36 problem 3: 14.91 tok/s (67.06 ms/token, p50 67.29 p99 70.94, 256 tokens)
+[bs1] q_llama_n36 problem 4: 15.05 tok/s (66.46 ms/token, p50 66.73 p99 70.08, 256 tokens)
+[bs1] q_llama_n36 problem 5: 15.06 tok/s (66.40 ms/token, p50 66.79 p99 69.85, 256 tokens)
+[bs1] q_llama_n36 problem 6: 15.02 tok/s (66.60 ms/token, p50 66.88 p99 69.98, 256 tokens)
+[bs1] q_llama_n36 problem 7: 15.03 tok/s (66.55 ms/token, p50 66.84 p99 70.25, 256 tokens)
+[bs1] q_llama_n36 problem 8: 14.97 tok/s (66.81 ms/token, p50 67.19 p99 134.67, 256 tokens)
+[bs1] q_llama_n36 problem 9: 14.93 tok/s (67.00 ms/token, p50 67.38 p99 70.26, 256 tokens)
+[bs1] q_llama_n36 problem 10: 14.76 tok/s (67.73 ms/token, p50 67.66 p99 76.45, 256 tokens)
+[bs1] q_llama_n36 problem 11: 14.81 tok/s (67.53 ms/token, p50 67.92 p99 70.64, 256 tokens)
+[bs1] q_llama_n36 problem 12: 15.01 tok/s (66.64 ms/token, p50 66.59 p99 72.82, 256 tokens)
+[bs1] q_llama_n36 problem 13: 15.15 tok/s (66.02 ms/token, p50 66.32 p99 69.33, 256 tokens)
+[bs1] q_llama_n36 problem 14: 15.01 tok/s (66.64 ms/token, p50 67.11 p99 70.95, 256 tokens)
+[bs1] q_llama_n36 problem 15: 14.90 tok/s (67.11 ms/token, p50 67.39 p99 70.70, 256 tokens)
+[bs1] q_llama_n36 problem 16: 14.93 tok/s (66.97 ms/token, p50 67.32 p99 69.75, 256 tokens)
+[bs1] q_llama_n36 problem 17: 14.95 tok/s (66.90 ms/token, p50 67.30 p99 69.85, 256 tokens)
+[bs1] q_llama_n36 problem 18: 14.93 tok/s (66.97 ms/token, p50 67.30 p99 70.53, 256 tokens)
+[bs1] q_llama_n36 problem 19: 14.92 tok/s (67.00 ms/token, p50 67.38 p99 134.47, 256 tokens)
+[bs1] q_llama_n36 problem 20: 15.12 tok/s (66.16 ms/token, p50 66.51 p99 133.18, 256 tokens)
+[bs1] q_llama_n36 problem 21: 15.02 tok/s (66.56 ms/token, p50 66.47 p99 71.30, 256 tokens)
+[bs1] q_llama_n36 problem 22: 14.88 tok/s (67.23 ms/token, p50 67.65 p99 71.26, 256 tokens)
+[bs1] q_llama_n36 problem 23: 14.78 tok/s (67.65 ms/token, p50 67.15 p99 76.93, 256 tokens)
+[bs1] q_llama_n36 problem 24: 14.96 tok/s (66.85 ms/token, p50 67.15 p99 70.54, 256 tokens)
+[bs1] q_llama_n36 problem 25: 15.02 tok/s (66.58 ms/token, p50 66.95 p99 69.79, 256 tokens)
+[bs1] q_llama_n36 problem 26: 14.99 tok/s (66.73 ms/token, p50 66.90 p99 72.36, 256 tokens)
+[bs1] q_llama_n36 problem 27: 15.12 tok/s (66.15 ms/token, p50 66.43 p99 69.26, 256 tokens)
+[bs1] q_llama_n36 problem 28: 15.16 tok/s (65.97 ms/token, p50 66.30 p99 69.10, 256 tokens)
+[bs1] q_llama_n36 problem 29: 14.99 tok/s (66.72 ms/token, p50 67.13 p99 71.09, 256 tokens)
++ echo 'q_llama_n36 launch 1 rc=0'
+q_llama_n36 launch 1 rc=0
++ for trip in 16:0.125:0.9 32:0.25:0.9 56:0.4375:0.95
++ C=16
++ rest=0.125:0.9
++ r=0.125
++ mr=0.9
+++ pick q_ours_C16_cur q_ours_C16_law
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ours_C16_cur q_ours_C16_law
++ w=q_ours_C16_law
++ t=law
+++ pick q_ft_offload_r0.125 q_ft_hybrid_r0.125
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ft_offload_r0.125 q_ft_hybrid_r0.125
++ fb=q_ft_hybrid_r0.125
+++ echo q_ft_hybrid_r0.125
+++ cut -d_ -f3
++ b=hybrid
++ echo 'qwen3 C16: ours law, FreeToken hybrid'
++ tee -a /w/results/085b_half_pcie_qwen3@vast/selection.txt
+qwen3 C16: ours law, FreeToken hybrid
++ oursq 16 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C16_law 2 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C16_law L=2 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C16_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C16_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 16, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C16_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=16 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 60977
+[bs1] q_ours_C16_law problem 0: 25.16 tok/s (39.75 ms/token, p50 40.17 p99 62.43, 256 tokens)
+[bs1] q_ours_C16_law problem 1: 25.60 tok/s (39.07 ms/token, p50 39.36 p99 59.19, 256 tokens)
+[bs1] q_ours_C16_law problem 2: 25.03 tok/s (39.96 ms/token, p50 39.38 p99 69.11, 256 tokens)
+[bs1] q_ours_C16_law problem 3: 27.17 tok/s (36.80 ms/token, p50 36.84 p99 66.97, 256 tokens)
+[bs1] q_ours_C16_law problem 4: 24.51 tok/s (40.80 ms/token, p50 41.02 p99 62.65, 256 tokens)
+[bs1] q_ours_C16_law problem 5: 25.98 tok/s (38.49 ms/token, p50 38.02 p99 60.63, 256 tokens)
+[bs1] q_ours_C16_law problem 6: 25.46 tok/s (39.28 ms/token, p50 38.34 p99 64.95, 256 tokens)
+[bs1] q_ours_C16_law problem 7: 27.81 tok/s (35.95 ms/token, p50 35.79 p99 60.55, 256 tokens)
+[bs1] q_ours_C16_law problem 8: 27.05 tok/s (36.97 ms/token, p50 37.33 p99 85.57, 256 tokens)
+[bs1] q_ours_C16_law problem 9: 26.24 tok/s (38.12 ms/token, p50 37.21 p99 65.22, 256 tokens)
+[bs1] q_ours_C16_law problem 10: 26.15 tok/s (38.24 ms/token, p50 38.02 p99 63.24, 256 tokens)
+[bs1] q_ours_C16_law problem 11: 26.74 tok/s (37.40 ms/token, p50 38.03 p99 64.10, 256 tokens)
+[bs1] q_ours_C16_law problem 12: 26.80 tok/s (37.31 ms/token, p50 37.25 p99 68.08, 256 tokens)
+[bs1] q_ours_C16_law problem 13: 25.98 tok/s (38.49 ms/token, p50 37.63 p99 65.16, 256 tokens)
+[bs1] q_ours_C16_law problem 14: 26.56 tok/s (37.65 ms/token, p50 37.41 p99 67.29, 256 tokens)
+[bs1] q_ours_C16_law problem 15: 25.69 tok/s (38.92 ms/token, p50 38.40 p99 63.92, 256 tokens)
+[bs1] q_ours_C16_law problem 16: 27.23 tok/s (36.73 ms/token, p50 37.08 p99 60.31, 256 tokens)
+[bs1] q_ours_C16_law problem 17: 27.09 tok/s (36.91 ms/token, p50 36.02 p99 61.46, 256 tokens)
+[bs1] q_ours_C16_law problem 18: 28.00 tok/s (35.72 ms/token, p50 35.07 p99 62.35, 256 tokens)
+[bs1] q_ours_C16_law problem 19: 26.23 tok/s (38.13 ms/token, p50 39.20 p99 79.40, 256 tokens)
+[bs1] q_ours_C16_law problem 20: 25.91 tok/s (38.60 ms/token, p50 38.09 p99 89.39, 256 tokens)
+[bs1] q_ours_C16_law problem 21: 26.93 tok/s (37.14 ms/token, p50 36.77 p99 66.61, 256 tokens)
+[bs1] q_ours_C16_law problem 22: 24.95 tok/s (40.08 ms/token, p50 40.21 p99 61.75, 256 tokens)
+[bs1] q_ours_C16_law problem 23: 27.58 tok/s (36.26 ms/token, p50 37.14 p99 65.43, 256 tokens)
+[bs1] q_ours_C16_law problem 24: 27.86 tok/s (35.90 ms/token, p50 35.00 p99 59.99, 256 tokens)
+[bs1] q_ours_C16_law problem 25: 28.12 tok/s (35.56 ms/token, p50 34.97 p99 58.60, 256 tokens)
+[bs1] q_ours_C16_law problem 26: 26.11 tok/s (38.30 ms/token, p50 38.68 p99 68.04, 256 tokens)
+[bs1] q_ours_C16_law problem 27: 26.18 tok/s (38.20 ms/token, p50 38.60 p99 62.45, 256 tokens)
+[bs1] q_ours_C16_law problem 28: 25.64 tok/s (39.00 ms/token, p50 39.10 p99 64.75, 256 tokens)
+[bs1] q_ours_C16_law problem 29: 27.40 tok/s (36.50 ms/token, p50 36.23 p99 62.46, 256 tokens)
++ echo 'q_ours_C16_law launch 2 rc=0'
+q_ours_C16_law launch 2 rc=0
++ ftq hybrid 0.125 2 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.125 2 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.125 L=2 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L2.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.125 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.125}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L2.log --ft hybrid --cache-rate 0.125 --mem-ratio 0.9
+[bs1] q_ft_hybrid_r0.125: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '48097', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.125']
+[bs1] q_ft_hybrid_r0.125 problem 0: 23.14 tok/s (43.22 ms/token, p50 42.77 p99 70.83, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 1: 23.90 tok/s (41.84 ms/token, p50 41.53 p99 64.13, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 2: 23.67 tok/s (42.24 ms/token, p50 41.76 p99 71.27, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 3: 25.63 tok/s (39.02 ms/token, p50 37.86 p99 67.54, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 4: 23.53 tok/s (42.50 ms/token, p50 42.13 p99 66.61, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 5: 23.76 tok/s (42.09 ms/token, p50 41.33 p99 69.85, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 6: 22.98 tok/s (43.52 ms/token, p50 42.61 p99 75.86, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 7: 25.25 tok/s (39.61 ms/token, p50 38.71 p99 64.41, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 8: 25.30 tok/s (39.52 ms/token, p50 38.93 p99 68.63, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 9: 24.10 tok/s (41.49 ms/token, p50 40.88 p99 69.94, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 10: 24.01 tok/s (41.64 ms/token, p50 40.23 p99 66.57, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 11: 25.59 tok/s (39.07 ms/token, p50 39.09 p99 69.22, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 12: 25.02 tok/s (39.97 ms/token, p50 38.72 p99 72.94, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 13: 25.29 tok/s (39.54 ms/token, p50 38.67 p99 69.90, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 14: 24.18 tok/s (41.36 ms/token, p50 40.74 p99 76.37, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 15: 25.39 tok/s (39.38 ms/token, p50 37.96 p99 66.02, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 16: 26.05 tok/s (38.38 ms/token, p50 37.41 p99 69.54, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 17: 25.59 tok/s (39.07 ms/token, p50 37.80 p99 68.74, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 18: 26.20 tok/s (38.16 ms/token, p50 37.23 p99 64.99, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 19: 24.59 tok/s (40.66 ms/token, p50 40.54 p99 64.28, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 20: 23.92 tok/s (41.81 ms/token, p50 40.65 p99 70.41, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 21: 24.35 tok/s (41.06 ms/token, p50 40.27 p99 68.78, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 22: 23.51 tok/s (42.53 ms/token, p50 42.23 p99 64.19, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 23: 25.67 tok/s (38.95 ms/token, p50 38.41 p99 66.50, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 24: 25.37 tok/s (39.41 ms/token, p50 37.12 p99 70.31, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 25: 25.88 tok/s (38.64 ms/token, p50 37.77 p99 67.10, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 26: 25.25 tok/s (39.60 ms/token, p50 38.55 p99 69.43, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 27: 26.04 tok/s (38.40 ms/token, p50 38.17 p99 66.62, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 28: 24.14 tok/s (41.42 ms/token, p50 41.49 p99 68.69, 256 tokens)
+[bs1] q_ft_hybrid_r0.125 problem 29: 25.79 tok/s (38.77 ms/token, p50 38.02 p99 67.17, 256 tokens)
++ echo 'q_ft_hybrid_r0.125 launch 2 rc=0'
+q_ft_hybrid_r0.125 launch 2 rc=0
++ for trip in 16:0.125:0.9 32:0.25:0.9 56:0.4375:0.95
++ C=32
++ rest=0.25:0.9
++ r=0.25
++ mr=0.9
+++ pick q_ours_C32_cur q_ours_C32_law
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ours_C32_cur q_ours_C32_law
++ w=q_ours_C32_law
++ t=law
+++ pick q_ft_offload_r0.25 q_ft_hybrid_r0.25
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ft_offload_r0.25 q_ft_hybrid_r0.25
++ fb=q_ft_hybrid_r0.25
+++ echo q_ft_hybrid_r0.25
+++ cut -d_ -f3
++ b=hybrid
++ echo 'qwen3 C32: ours law, FreeToken hybrid'
++ tee -a /w/results/085b_half_pcie_qwen3@vast/selection.txt
+qwen3 C32: ours law, FreeToken hybrid
++ oursq 32 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C32_law 2 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C32_law L=2 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29270
++ '[' 29270 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C32_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C32_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 32, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 47829
+[bs1] q_ours_C32_law problem 0: 38.74 tok/s (25.81 ms/token, p50 25.48 p99 46.69, 256 tokens)
+[bs1] q_ours_C32_law problem 1: 42.69 tok/s (23.42 ms/token, p50 22.67 p99 43.32, 256 tokens)
+[bs1] q_ours_C32_law problem 2: 41.15 tok/s (24.30 ms/token, p50 21.68 p99 61.46, 256 tokens)
+[bs1] q_ours_C32_law problem 3: 41.10 tok/s (24.33 ms/token, p50 22.92 p99 51.74, 256 tokens)
+[bs1] q_ours_C32_law problem 4: 38.82 tok/s (25.76 ms/token, p50 25.55 p99 44.92, 256 tokens)
+[bs1] q_ours_C32_law problem 5: 41.90 tok/s (23.87 ms/token, p50 22.80 p99 42.72, 256 tokens)
+[bs1] q_ours_C32_law problem 6: 43.01 tok/s (23.25 ms/token, p50 21.57 p99 48.66, 256 tokens)
+[bs1] q_ours_C32_law problem 7: 42.56 tok/s (23.50 ms/token, p50 21.88 p99 44.10, 256 tokens)
+[bs1] q_ours_C32_law problem 8: 41.69 tok/s (23.99 ms/token, p50 23.05 p99 49.09, 256 tokens)
+[bs1] q_ours_C32_law problem 9: 43.31 tok/s (23.09 ms/token, p50 21.78 p99 48.87, 256 tokens)
+[bs1] q_ours_C32_law problem 10: 41.05 tok/s (24.36 ms/token, p50 24.23 p99 47.64, 256 tokens)
+[bs1] q_ours_C32_law problem 11: 43.65 tok/s (22.91 ms/token, p50 22.45 p99 43.86, 256 tokens)
+[bs1] q_ours_C32_law problem 12: 45.71 tok/s (21.88 ms/token, p50 20.27 p99 45.85, 256 tokens)
+[bs1] q_ours_C32_law problem 13: 41.21 tok/s (24.27 ms/token, p50 23.25 p99 49.81, 256 tokens)
+[bs1] q_ours_C32_law problem 14: 43.10 tok/s (23.20 ms/token, p50 22.38 p99 49.78, 256 tokens)
+[bs1] q_ours_C32_law problem 15: 42.58 tok/s (23.49 ms/token, p50 22.11 p99 46.70, 256 tokens)
+[bs1] q_ours_C32_law problem 16: 44.92 tok/s (22.26 ms/token, p50 21.42 p99 44.47, 256 tokens)
+[bs1] q_ours_C32_law problem 17: 47.60 tok/s (21.01 ms/token, p50 19.40 p99 47.07, 256 tokens)
+[bs1] q_ours_C32_law problem 18: 44.53 tok/s (22.46 ms/token, p50 19.56 p99 51.66, 256 tokens)
+[bs1] q_ours_C32_law problem 19: 41.19 tok/s (24.28 ms/token, p50 24.31 p99 54.76, 256 tokens)
+[bs1] q_ours_C32_law problem 20: 42.57 tok/s (23.49 ms/token, p50 22.64 p99 63.26, 256 tokens)
+[bs1] q_ours_C32_law problem 21: 43.40 tok/s (23.04 ms/token, p50 21.43 p99 51.00, 256 tokens)
+[bs1] q_ours_C32_law problem 22: 39.86 tok/s (25.09 ms/token, p50 23.98 p99 46.97, 256 tokens)
+[bs1] q_ours_C32_law problem 23: 43.07 tok/s (23.22 ms/token, p50 22.59 p99 49.09, 256 tokens)
+[bs1] q_ours_C32_law problem 24: 56.04 tok/s (17.84 ms/token, p50 15.94 p99 41.93, 256 tokens)
+[bs1] q_ours_C32_law problem 25: 50.00 tok/s (20.00 ms/token, p50 18.32 p99 40.57, 256 tokens)
+[bs1] q_ours_C32_law problem 26: 39.43 tok/s (25.36 ms/token, p50 24.52 p99 50.12, 256 tokens)
+[bs1] q_ours_C32_law problem 27: 42.61 tok/s (23.47 ms/token, p50 22.63 p99 45.61, 256 tokens)
+[bs1] q_ours_C32_law problem 28: 39.86 tok/s (25.09 ms/token, p50 24.52 p99 48.53, 256 tokens)
+[bs1] q_ours_C32_law problem 29: 46.38 tok/s (21.56 ms/token, p50 19.94 p99 45.06, 256 tokens)
++ echo 'q_ours_C32_law launch 2 rc=0'
+q_ours_C32_law launch 2 rc=0
++ ftq hybrid 0.25 2 0.9
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.25 2 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.25 L=2 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.25 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25 --mem-ratio 0.9
+[bs1] q_ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '36815', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] q_ft_hybrid_r0.25 problem 0: 36.35 tok/s (27.51 ms/token, p50 26.18 p99 49.14, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 1: 38.91 tok/s (25.70 ms/token, p50 24.16 p99 52.24, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 2: 38.20 tok/s (26.17 ms/token, p50 24.71 p99 60.62, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 3: 38.48 tok/s (25.99 ms/token, p50 24.26 p99 59.70, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 4: 35.89 tok/s (27.87 ms/token, p50 26.52 p99 54.67, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 5: 37.20 tok/s (26.88 ms/token, p50 25.43 p99 52.07, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 6: 39.68 tok/s (25.20 ms/token, p50 23.23 p99 51.55, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 7: 39.22 tok/s (25.49 ms/token, p50 23.76 p99 51.95, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 8: 38.60 tok/s (25.91 ms/token, p50 24.16 p99 50.77, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 9: 39.92 tok/s (25.05 ms/token, p50 23.47 p99 52.08, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 10: 39.85 tok/s (25.10 ms/token, p50 23.40 p99 54.05, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 11: 42.31 tok/s (23.64 ms/token, p50 22.09 p99 50.46, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 12: 42.77 tok/s (23.38 ms/token, p50 20.84 p99 57.71, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 13: 40.38 tok/s (24.76 ms/token, p50 23.29 p99 57.00, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 14: 37.97 tok/s (26.34 ms/token, p50 25.47 p99 46.46, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 15: 42.51 tok/s (23.52 ms/token, p50 22.16 p99 47.06, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 16: 40.58 tok/s (24.64 ms/token, p50 22.89 p99 52.32, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 17: 45.35 tok/s (22.05 ms/token, p50 20.93 p99 46.89, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 18: 42.56 tok/s (23.50 ms/token, p50 20.22 p99 56.14, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 19: 40.60 tok/s (24.63 ms/token, p50 22.62 p99 51.07, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 20: 39.11 tok/s (25.57 ms/token, p50 24.36 p99 56.64, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 21: 38.73 tok/s (25.82 ms/token, p50 23.88 p99 52.91, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 22: 38.06 tok/s (26.27 ms/token, p50 24.58 p99 52.57, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 23: 39.43 tok/s (25.36 ms/token, p50 23.98 p99 53.17, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 24: 50.28 tok/s (19.89 ms/token, p50 17.00 p99 48.93, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 25: 45.06 tok/s (22.19 ms/token, p50 20.43 p99 54.07, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 26: 36.74 tok/s (27.22 ms/token, p50 26.08 p99 49.62, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 27: 38.84 tok/s (25.75 ms/token, p50 24.28 p99 54.00, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 28: 38.55 tok/s (25.94 ms/token, p50 24.74 p99 54.65, 256 tokens)
+[bs1] q_ft_hybrid_r0.25 problem 29: 40.05 tok/s (24.97 ms/token, p50 23.72 p99 59.45, 256 tokens)
++ echo 'q_ft_hybrid_r0.25 launch 2 rc=0'
+q_ft_hybrid_r0.25 launch 2 rc=0
++ for trip in 16:0.125:0.9 32:0.25:0.9 56:0.4375:0.95
++ C=56
++ rest=0.4375:0.95
++ r=0.4375
++ mr=0.95
+++ pick q_ours_C56_cur q_ours_C56_law
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ours_C56_cur q_ours_C56_law
++ w=q_ours_C56_law
++ t=law
+++ pick q_ft_offload_r0.4375 q_ft_hybrid_r0.4375
+++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl q_ft_offload_r0.4375 q_ft_hybrid_r0.4375
++ fb=q_ft_hybrid_r0.4375
+++ echo q_ft_hybrid_r0.4375
+++ cut -d_ -f3
++ b=hybrid
++ echo 'qwen3 C56: ours law, FreeToken hybrid'
++ tee -a /w/results/085b_half_pcie_qwen3@vast/selection.txt
+qwen3 C56: ours law, FreeToken hybrid
++ oursq 56 law 2
++ local t=0,1,1,2,3,3,4,5,6
++ '[' law = law ']'
++ t=0,0,1,1,2,2,3,3,4
++ '[' law = none ']'
++ cl /work/models/Qwen3-30B-A3B q_ours_C56_law 2 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C56_law L=2 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29268
++ '[' 29268 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=29268
++ '[' 29268 -lt 1500 ']'
++ sleep 2
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C56_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ours_C56_law --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 56, "table": "0,0,1,1,2,2,3,3,4"}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C56_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=10 LLAMA_EC_SLOTS=56 LLAMA_EC_FETCH=0,0,1,1,2,2,3,3,4 LLAMA_EC_STATS=/w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 12 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 33903
+[bs1] q_ours_C56_law problem 0: 72.77 tok/s (13.74 ms/token, p50 13.30 p99 28.24, 256 tokens)
+[bs1] q_ours_C56_law problem 1: 79.64 tok/s (12.56 ms/token, p50 11.64 p99 29.09, 256 tokens)
+[bs1] q_ours_C56_law problem 2: 75.16 tok/s (13.31 ms/token, p50 10.93 p99 37.34, 256 tokens)
+[bs1] q_ours_C56_law problem 3: 72.64 tok/s (13.77 ms/token, p50 12.67 p99 29.99, 256 tokens)
+[bs1] q_ours_C56_law problem 4: 76.40 tok/s (13.09 ms/token, p50 12.23 p99 29.47, 256 tokens)
+[bs1] q_ours_C56_law problem 5: 77.88 tok/s (12.84 ms/token, p50 11.84 p99 30.15, 256 tokens)
+[bs1] q_ours_C56_law problem 6: 81.84 tok/s (12.22 ms/token, p50 10.61 p99 27.36, 256 tokens)
+[bs1] q_ours_C56_law problem 7: 76.44 tok/s (13.08 ms/token, p50 11.97 p99 27.20, 256 tokens)
+[bs1] q_ours_C56_law problem 8: 73.36 tok/s (13.63 ms/token, p50 12.90 p99 28.80, 256 tokens)
+[bs1] q_ours_C56_law problem 9: 76.49 tok/s (13.07 ms/token, p50 11.24 p99 32.32, 256 tokens)
+[bs1] q_ours_C56_law problem 10: 75.79 tok/s (13.19 ms/token, p50 12.31 p99 28.40, 256 tokens)
+[bs1] q_ours_C56_law problem 11: 80.73 tok/s (12.39 ms/token, p50 11.68 p99 29.04, 256 tokens)
+[bs1] q_ours_C56_law problem 12: 85.95 tok/s (11.63 ms/token, p50 10.02 p99 28.61, 256 tokens)
+[bs1] q_ours_C56_law problem 13: 75.85 tok/s (13.18 ms/token, p50 11.83 p99 29.68, 256 tokens)
+[bs1] q_ours_C56_law problem 14: 80.56 tok/s (12.41 ms/token, p50 11.57 p99 31.02, 256 tokens)
+[bs1] q_ours_C56_law problem 15: 81.39 tok/s (12.29 ms/token, p50 11.25 p99 28.98, 256 tokens)
+[bs1] q_ours_C56_law problem 16: 83.11 tok/s (12.03 ms/token, p50 11.22 p99 25.45, 256 tokens)
+[bs1] q_ours_C56_law problem 17: 89.45 tok/s (11.18 ms/token, p50 9.54 p99 28.97, 256 tokens)
+[bs1] q_ours_C56_law problem 18: 72.73 tok/s (13.75 ms/token, p50 11.83 p99 35.06, 256 tokens)
+[bs1] q_ours_C56_law problem 19: 74.93 tok/s (13.35 ms/token, p50 12.62 p99 32.52, 256 tokens)
+[bs1] q_ours_C56_law problem 20: 80.87 tok/s (12.37 ms/token, p50 11.16 p99 32.29, 256 tokens)
+[bs1] q_ours_C56_law problem 21: 77.36 tok/s (12.93 ms/token, p50 11.83 p99 32.36, 256 tokens)
+[bs1] q_ours_C56_law problem 22: 76.11 tok/s (13.14 ms/token, p50 11.55 p99 30.83, 256 tokens)
+[bs1] q_ours_C56_law problem 23: 77.43 tok/s (12.92 ms/token, p50 12.02 p99 28.79, 256 tokens)
+[bs1] q_ours_C56_law problem 24: 102.30 tok/s (9.78 ms/token, p50 8.00 p99 25.81, 256 tokens)
+[bs1] q_ours_C56_law problem 25: 96.86 tok/s (10.32 ms/token, p50 9.27 p99 24.87, 256 tokens)
+[bs1] q_ours_C56_law problem 26: 75.12 tok/s (13.31 ms/token, p50 12.22 p99 31.96, 256 tokens)
+[bs1] q_ours_C56_law problem 27: 79.11 tok/s (12.64 ms/token, p50 12.09 p99 26.69, 256 tokens)
+[bs1] q_ours_C56_law problem 28: 75.15 tok/s (13.31 ms/token, p50 12.29 p99 30.87, 256 tokens)
+[bs1] q_ours_C56_law problem 29: 85.95 tok/s (11.63 ms/token, p50 10.31 p99 24.18, 256 tokens)
++ echo 'q_ours_C56_law launch 2 rc=0'
+q_ours_C56_law launch 2 rc=0
++ ftq hybrid 0.4375 2 0.95
++ cd /work/ft
++ cl /work/models/Qwen3-30B-A3B q_ft_hybrid_r0.4375 2 '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ft_hybrid_r0.4375 L=2 'meta={"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=8
++ '[' 8 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L2.log --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
++ local t=60m
++ shift
++ timeout 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_ft_hybrid_r0.4375 --meta '{"model": "Qwen3-30B-A3B", "system": "FreeToken hybrid", "rate": 0.4375}' --json /w/results/085b_half_pcie_qwen3@vast/bs1.jsonl --log /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L2.log --ft hybrid --cache-rate 0.4375 --mem-ratio 0.95
+[bs1] q_ft_hybrid_r0.4375: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/Qwen3-30B-A3B', '--host', '127.0.0.1', '--port', '54463', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.95', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4375']
+[bs1] q_ft_hybrid_r0.4375 problem 0: 73.19 tok/s (13.66 ms/token, p50 12.87 p99 29.31, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 1: 75.54 tok/s (13.24 ms/token, p50 12.42 p99 32.25, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 2: 66.43 tok/s (15.05 ms/token, p50 13.88 p99 37.84, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 3: 74.55 tok/s (13.41 ms/token, p50 12.44 p99 32.49, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 4: 77.60 tok/s (12.89 ms/token, p50 11.96 p99 26.84, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 5: 72.66 tok/s (13.76 ms/token, p50 12.03 p99 33.24, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 6: 76.19 tok/s (13.13 ms/token, p50 11.74 p99 37.89, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 7: 76.11 tok/s (13.14 ms/token, p50 12.07 p99 31.39, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 8: 76.25 tok/s (13.12 ms/token, p50 12.13 p99 26.64, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 9: 77.47 tok/s (12.91 ms/token, p50 11.77 p99 26.13, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 10: 78.76 tok/s (12.70 ms/token, p50 11.76 p99 27.75, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 11: 83.08 tok/s (12.04 ms/token, p50 11.52 p99 24.90, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 12: 79.00 tok/s (12.66 ms/token, p50 11.27 p99 29.61, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 13: 74.65 tok/s (13.40 ms/token, p50 11.94 p99 33.98, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 14: 76.86 tok/s (13.01 ms/token, p50 11.82 p99 26.60, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 15: 79.91 tok/s (12.51 ms/token, p50 11.37 p99 27.35, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 16: 83.08 tok/s (12.04 ms/token, p50 11.25 p99 22.58, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 17: 80.08 tok/s (12.49 ms/token, p50 11.52 p99 27.88, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 18: 67.77 tok/s (14.76 ms/token, p50 13.44 p99 31.64, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 19: 74.29 tok/s (13.46 ms/token, p50 12.49 p99 29.72, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 20: 78.90 tok/s (12.67 ms/token, p50 11.41 p99 29.29, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 21: 73.63 tok/s (13.58 ms/token, p50 12.48 p99 31.24, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 22: 71.73 tok/s (13.94 ms/token, p50 12.87 p99 32.08, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 23: 74.96 tok/s (13.34 ms/token, p50 12.13 p99 28.19, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 24: 85.22 tok/s (11.73 ms/token, p50 10.27 p99 24.59, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 25: 90.13 tok/s (11.09 ms/token, p50 10.16 p99 26.26, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 26: 72.87 tok/s (13.72 ms/token, p50 13.06 p99 27.25, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 27: 79.43 tok/s (12.59 ms/token, p50 11.76 p99 27.26, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 28: 77.04 tok/s (12.98 ms/token, p50 12.04 p99 25.76, 256 tokens)
+[bs1] q_ft_hybrid_r0.4375 problem 29: 75.17 tok/s (13.30 ms/token, p50 12.23 p99 29.74, 256 tokens)
++ echo 'q_ft_hybrid_r0.4375 launch 2 rc=0'
+q_ft_hybrid_r0.4375 launch 2 rc=0
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.125_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.25_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_hybrid_r0.4375_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.125_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ft_offload_r0.4375_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_llama_n36_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C16_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C32_none_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_cur_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/085b_half_pcie_qwen3@vast/srv_q_ours_C56_law_L2.log
++ find /w/results/085b_half_pcie_qwen3@vast -name 'srv_*.log' -delete
++ /work/ft/.venv/bin/python - /w/results/085b_half_pcie_qwen3@vast
++ tee /w/results/085b_half_pcie_qwen3@vast/summary.txt
+q_ours_C16_law           L1:  26.43 (n=30) L2:  26.44 (n=30)  vram [10.5]
+q_ours_C16_cur           L1:  22.32 (n=30)  vram [10.5]
+q_ours_C32_law           L1:  43.09 (n=30) L2:  43.12 (n=30)  vram [17.2]
+q_ours_C32_cur           L1:  37.50 (n=30)  vram [17.2]
+q_ours_C56_law           L1:  79.65 (n=30) L2:  79.65 (n=30)  vram [27.3]
+q_ours_C56_cur           L1:  72.83 (n=30)  vram [27.3]
+q_ours_C32_none          L1:  36.43 (n=30)  vram [17.2]
+q_ft_offload_r0.125      L1:  15.47 (n=30)  vram [28.6]
+q_ft_hybrid_r0.125       L1:  24.70 (n=30) L2:  24.77 (n=30)  vram [28.6]
+q_ft_offload_r0.25       L1:  26.99 (n=30)  vram [28.6]
+q_ft_hybrid_r0.25        L1:  40.09 (n=30) L2:  40.07 (n=30)  vram [28.6]
+q_ft_offload_r0.4375     L1:  65.54 (n=30)  vram [30.1]
+q_ft_hybrid_r0.4375      L1:  76.92 (n=30) L2:  76.75 (n=30)  vram [30.1]
+q_llama_n36              L1:  14.98 (n=30)  vram [17.2]
+srv_q_ours_C16_cur_L1.json         table 0,1,1,2,3,3,4,5,6 misses/token 153.7 fetches 103.2
+srv_q_ours_C16_law_L1.json         table 0,0,1,1,2,2,3,3,4 misses/token 160.1 fetches 68.1
+srv_q_ours_C16_law_L2.json         table 0,0,1,1,2,2,3,3,4 misses/token 160.1 fetches 68.1
+srv_q_ours_C32_cur_L1.json         table 0,1,1,2,3,3,4,5,6 misses/token 82.1 fetches 56.6
+srv_q_ours_C32_law_L1.json         table 0,0,1,1,2,2,3,3,4 misses/token 86.9 fetches 32.4
+srv_q_ours_C32_law_L2.json         table 0,0,1,1,2,2,3,3,4 misses/token 86.9 fetches 32.4
+srv_q_ours_C32_none_L1.json        table 0,0,0,0,0,0,0,0,0 misses/token 96.1 fetches 0.0
+srv_q_ours_C56_cur_L1.json         table 0,1,1,2,3,3,4,5,6 misses/token 29.8 fetches 22.4
+srv_q_ours_C56_law_L1.json         table 0,0,1,1,2,2,3,3,4 misses/token 32.9 fetches 9.2
+srv_q_ours_C56_law_L2.json         table 0,0,1,1,2,2,3,3,4 misses/token 32.9 fetches 9.2

@@ -48,7 +48,7 @@ def stream(origin, model_id, problem, sampling, decode, extra):
     }
     req = urllib.request.Request(f"{origin}/v1/chat/completions", data=json.dumps(body).encode(),
                                  headers={"Content-Type": "application/json"})
-    stamps, pieces, usage, timings = [], [], None, None
+    stamps, pieces, usage, timings, kinds = [], [], None, None, []
     t0 = time.perf_counter()
     with urllib.request.urlopen(req, timeout=1800) as resp:
         for raw in resp:
@@ -72,11 +72,12 @@ def stream(origin, model_id, problem, sampling, decode, extra):
                 if text:
                     stamps.append(now)
                     pieces.append(text)
+                    kinds.append("r" if delta.get("reasoning_content") else "c")
     if usage is None and timings:
         usage = {"completion_tokens": timings.get("predicted_n"), "prompt_tokens": timings.get("prompt_n")}
     if usage is None:
         raise RuntimeError("stream ended without usage")
-    return {"t0": t0, "stamps": stamps, "text": "".join(pieces), "usage": usage, "timings": timings}
+    return {"t0": t0, "stamps": stamps, "text": "".join(pieces), "usage": usage, "timings": timings, "kinds": kinds}
 
 
 def window_rates(stamps, completion):
@@ -226,7 +227,10 @@ def main():
                    "completion_tokens": completion, "sampling": sampling, "extra": extra,
                    "output_sha1": hashlib.sha1(r["text"].encode()).hexdigest()[:12], "load_s": load_s,
                    "server_timings": r["timings"], "text_head": r["text"][:160],
-                   "windows": window_rates(stamps, completion) if completion > 300 else None}
+                   "windows": window_rates(stamps, completion) if completion > 300 else None,
+                   "n_reasoning_events": r["kinds"].count("r"), "n_content_events": r["kinds"].count("c"),
+                   "first_content_event": r["kinds"].index("c") if "c" in r["kinds"] else None,
+                   "text_tail": r["text"][-200:]}
             rows.append(row)
             print(f"[bs1] {a.label} problem {p}: {row['decode_tok_s']:.2f} tok/s ({row['ms_per_token']:.2f} ms/token, "
                   f"p50 {row['event_ms_p50']:.2f} p99 {row['event_ms_p99']:.2f}, {completion} tokens)", flush=True)

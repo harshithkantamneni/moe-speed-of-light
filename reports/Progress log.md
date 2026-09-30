@@ -3,6 +3,21 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, night: the contrasting machines (jobs `085_half_pcie@vast` and `085b_half_pcie_qwen3@vast`)
+
+**Setup:** RTX 5090s in PCIe 4.0-class slots (about 27 GB/s): gpt-oss next to a Core i9-14900K (085), Qwen3 next to a
+Ryzen 9 7900 (085b). Job 085's Qwen3 conversion hung with the CPU idle until the 6-hour timeout, so its Qwen3 half ran
+as 085b. `prereg/halfpcie_outcome_085.md` has the outcome.
+
+- **The law's tables fetch less:** gpt-oss 0,0,0,1,1 and Qwen3 0,0,1,1,2,2,3,3,4.
+- **The law's table beats the fixed one by more:** +21–34% (gpt-oss) and +9–18% (Qwen3), two to four times the gain on
+  the headline machine.
+- **Ours ÷ FreeToken:** 2.03 / 1.70 / 1.43 on gpt-oss, where FreeToken's offload sends every miss over the slow link
+  and its hybrid backend ran at 11 tok/s; 1.07 / 1.08 / 1.04 on Qwen3.
+- **With the fixed table** ours would have trailed FreeToken at Qwen3 12.5%.
+- **llama.cpp against the law:** within 2.7% on the Ryzen; +22% on the Core i9 (hybrid cores, as in job 069c).
+- **Predictions:** 4 of 5 held.
+
 ## 30 September, evening: the ablation ladder with a real static cache (job `087_ablation_static@vast`)
 
 **Setup:** listing A, 25%, AIME-25 problems 0–14. `prereg/ablation_outcome_087.md` has the outcome.

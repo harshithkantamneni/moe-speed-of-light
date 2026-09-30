@@ -3,6 +3,25 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, night: the headline table with the law's split (job `081_headline_law@vast`)
+
+**Setup:** RTX 5090 + 9950X3D (the job 080 listing), both models on one machine. The law's table was used at every
+budget and confirmed on launch 2.
+
+| Model | Experts on GPU | llama.cpp | FreeToken | ours | ours ÷ FreeToken |
+|---|---|---|---|---|---|
+| gpt-oss-120b | 11% | 34.9 | 54.0 | **69.9** | +29.4% [27.8, 31.2] |
+| gpt-oss-120b | 25% | 40.0 | 85.6 | **109.2** | +27.5% [25.4, 29.5] |
+| gpt-oss-120b | 40% | 47.7 | 132.2 | **152.5** | +15.4% [13.4, 17.2] |
+| Qwen3 BF16 | 12.5% | 19.5 | 38.7 | **40.0** | +3.2% [2.2, 4.2] |
+| Qwen3 BF16 | 25% (080) | — | 54.8 | **63.1** | +15.3% [13.4, 17.3] |
+| Qwen3 BF16 | 43.75% (080) | — | 103.1 | **108.2** | +4.9% [3.5, 6.4] |
+
+- **All four predictions held;** `prereg/headline_outcome_081.md` has the outcome.
+- **The law's table against the fixed one:** +3.3% to +8.0% on every budget of both models.
+- **Ours against llama.cpp:** 2.0–3.2× on gpt-oss, 2.05× on Qwen3 at 12.5%.
+- **This is the candidate Table 1:** one machine, two models, every budget ahead of FreeToken.
+
 ## 30 September, early: a per-host FETCH split from the law (job `080_fetch_split@vast`)
 
 **Setup:** RTX 5090 + 9950X3D (CPU 70.9 / PCIe 53.2 / both 80.7 GB/s), Qwen3 BF16. The law picks the FETCH table from

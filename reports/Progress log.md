@@ -3,6 +3,23 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, early: a per-host FETCH split from the law (job `080_fetch_split@vast`)
+
+**Setup:** RTX 5090 + 9950X3D (CPU 70.9 / PCIe 53.2 / both 80.7 GB/s), Qwen3 BF16. The law picks the FETCH table from
+the machine's own probe: 0,0,1,1,2,3,3,4,5 against the fixed 0,1,1,2,3,3,4,5,6.
+
+| Experts on GPU | ours, current table | ours, law table | FreeToken (better) | law vs current | ours (law) vs FreeToken |
+|---|---|---|---|---|---|
+| 43.75% | 103.1 | **108.0** | 103.2 | +4.8% [4.1, 5.5] | **+4.9% [3.5, 6.4]** (confirmation launch) |
+| 25% | 59.2 | **63.1** | 54.8 | +6.7% [6.2, 7.1] | +15.3% [13.4, 17.3] |
+
+- **All four predictions held;** `prereg/split_outcome_080.md` has the outcome.
+- **The deciding entry:** a single missed expert runs on the CPU instead of being fetched, worth +3.7% by itself.
+  - The best table in the sweep (lite) is within 1% of the law's table.
+  - Fetching everything is the worst table.
+- **The per-layer model ranks the nine runs with r = 0.96,** but overstates the differences by ~1.8×.
+- **The 43.75% tie with FreeToken (job 079) is now a +4.9% lead.**
+
 ## 30 September, early: profile of Qwen3 at 43.75% (job `079_qwen3_profile@vast`)
 
 **Setup:** RTX 5090 + 9950X3D (CPU 66.9 / PCIe 57.9 GB/s), Nsight per-token profiles plus the unprofiled

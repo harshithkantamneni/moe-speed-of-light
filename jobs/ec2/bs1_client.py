@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -133,6 +134,11 @@ def main():
     ap.add_argument("--launch", type=int, default=0, help="launch index, copied into every row")
     ap.add_argument("--ready", default="health", help="health: GET /health == {status: ok} (llama-server); models: GET "
                     "/v1/models answers (SGLang, whose /health runs a generation)")
+    ap.add_argument("--wrap", help="command prefix for the server (e.g. `nsys launch --session-new=S ...`)")
+    ap.add_argument("--before-cmd", help="shell command run after the warm-up, before the first measured problem "
+                    "(e.g. `nsys start --session=S ...`)")
+    ap.add_argument("--stop-wait", type=float, default=120, help="seconds to wait for the server to exit after SIGINT")
+    ap.add_argument("--after-cmd", help="shell command run right after the first measured problem (e.g. `nsys stop`)")
     a = ap.parse_args()
     sampling, src = B.resolve_sampling(a.model, a.greedy)
     extra, meta = json.loads(a.extra), json.loads(a.meta)
@@ -144,6 +150,8 @@ def main():
         cmd, shell = B.serve_cmd(ns, a.ft, port), False
     else:
         cmd, shell = a.cmd.format(port=port), True
+    if a.wrap:
+        cmd = (a.wrap + " " + cmd) if shell else shlex.split(a.wrap) + cmd
     print(f"[bs1] {a.label}: sampling {sampling} <- {src}; cmd {cmd}", flush=True)
     log_f = open(a.log, "wb")
     t_start = time.perf_counter()
@@ -160,12 +168,20 @@ def main():
         if a.warmup == "once":
             wp = open(a.warmup_prompt).read().strip()
             stream(origin, model_id, wp, sampling, a.decode, extra)                 # one held-out warm-up
-        for p in [int(x) for x in a.problems.split(",")]:
+        for i, p in enumerate(int(x) for x in a.problems.split(",")):
             problem, answer = B.load_problem(a.aime, p)
             try:
                 if a.warmup == "same":
                     stream(origin, model_id, problem, sampling, a.decode, extra)   # warm-up, as theirs
+                if i == 0 and a.before_cmd:
+                    rc = subprocess.run(a.before_cmd, shell=True).returncode
+                    print(f"[bs1] {a.label} before-cmd rc={rc}", flush=True)
+                    time.sleep(3)
                 r = stream(origin, model_id, problem, sampling, a.decode, extra)
+                if i == 0 and a.after_cmd:
+                    t_a = time.perf_counter()
+                    rc = subprocess.run(a.after_cmd, shell=True).returncode
+                    print(f"[bs1] {a.label} after-cmd rc={rc} in {time.perf_counter() - t_a:.0f} s", flush=True)
             except Exception as e:  # keep the other problems
                 print(f"[bs1] {a.label} problem {p} failed: {e!r}", flush=True)
                 continue
@@ -175,6 +191,7 @@ def main():
             dt = stamps[-1] - stamps[0] if len(stamps) >= 2 else 0.0
             gaps = sorted((y - x) * 1e3 for x, y in zip(stamps, stamps[1:])) or [0.0]
             row = {"label": a.label, **meta, "launch": a.launch, "warmup": a.warmup, "problem": p,
+                   "profiled": bool(i == 0 and a.before_cmd),
                    "prompt_tokens": usage.get("prompt_tokens"), "output_sha1_full": hashlib.sha1(r["text"].encode()).hexdigest(),
                    "decode_steps": steps, "decode_tok_s": steps / dt if dt > 0 else 0.0,
                    "ms_per_token": dt / steps * 1e3 if steps > 0 else 0.0,
@@ -195,7 +212,7 @@ def main():
         else:
             try:
                 os.killpg(proc.pid, signal.SIGINT)   # llama-server shuts down cleanly (writes LLAMA_EC_STATS)
-                proc.wait(timeout=120)
+                proc.wait(timeout=a.stop_wait)
             except Exception:
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)

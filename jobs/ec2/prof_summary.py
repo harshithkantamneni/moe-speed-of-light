@@ -13,6 +13,7 @@ pairs are merged by --launches-per-token), otherwise GPU gaps longer than --gap-
 Standard library only.
 """
 import argparse
+import bisect
 import csv
 import gzip
 import json
@@ -67,6 +68,8 @@ def main():
     ap.add_argument("--short-us", type=float, default=20.0)
     ap.add_argument("--launches-per-token", type=int, default=0, help="0: infer (1 or 2) from launch spacing")
     ap.add_argument("--keep-tail", action="store_true")
+    ap.add_argument("--decode-steps", type=int, default=0, help="decode steps in the trace (profiled window of one "
+                    "request); if given, launches per token = round(graph launches / decode steps)")
     a = ap.parse_args()
     gp = os.path.join(a.work, f"prof_{a.label}_cuda_gpu_trace.csv")
     apip = os.path.join(a.work, f"prof_{a.label}_cuda_api_trace.csv")
@@ -88,13 +91,21 @@ def main():
         launches = sorted(int(float(col(r, "Start"))) for r in rows(apip) if "cudaGraphLaunch" in col(r, "Name"))
         kind = "graph launches"
     lpt = a.launches_per_token
+    if launches and lpt == 0 and a.decode_steps > 0:
+        lpt = max(1, round(len(launches) / a.decode_steps))
+        kind = f"graph launches ({len(launches)} for {a.decode_steps} decode steps)"
+        if lpt > 2:  # group from the end: every token's first launch
+            starts = launches[len(launches) % lpt:][::lpt]
+            launches, lpt = starts, 1
     if launches and lpt == 0:
         # two launches per token show as alternating short/long spacings; compare the two interleaved medians
         dl = [b - x for x, b in zip(launches[-81:-1], launches[-80:])]
         m0, m1 = st.median(dl[0::2]), st.median(dl[1::2])
         lpt = 2 if min(m0, m1) < 0.5 * max(m0, m1) else 1
     starts = launches
-    if launches and lpt == 2:
+    if launches and lpt == 2 and a.decode_steps > 0:
+        starts = launches[len(launches) % 2:][::2]
+    elif launches and lpt == 2:
         thr = (m0 + m1) / 2
         starts = [launches[i] for i in range(1, len(launches)) if launches[i] - launches[i - 1] > thr]
     if len(starts) >= a.tokens + 1 and lpt > 0:
@@ -110,9 +121,12 @@ def main():
     per = []
     names = {}
     tail_rows = []
+    ev_starts = [x[0] for x in ev]
+    maxdur = max((e - s for s, e, _, _, _ in ev), default=0)
     for t0, t1 in zip(bounds[:-1], bounds[1:]):
         cats, iv, nk, waits = {}, [], 0, []
-        for s, e, n, gx, gy in ev:
+        lo, hi = bisect.bisect_left(ev_starts, t0 - maxdur), bisect.bisect_left(ev_starts, t1)
+        for s, e, n, gx, gy in ev[lo:hi]:
             if e <= t0 or s >= t1:
                 continue
             s2, e2 = max(s, t0), min(e, t1)

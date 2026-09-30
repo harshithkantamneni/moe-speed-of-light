@@ -1,0 +1,30 @@
++ local g=/work/models/Qwen3-30B-A3B-BF16.gguf flags=--jinja out=/w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl port=8199
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
++ local pid=15848
++ /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 0 --no-warmup -c 4096 -np 1 --no-webui --jinja --port 8199
+++ seq 180
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ sleep 2
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ sleep 2
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ break
++ /work/venv/bin/python - 8199 /w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl
+problem 0 prompt: '<|im_start|>user\nFind the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$\nPlease reason step by step, and put your final answer within \\boxed{}.<|im_end|>\n<|im_start|>assistant\n' ... 52 tokens
+corpus rows: 30
++ kill 15848
++ wait 15848
+++ seq 30
++ for i in $(seq 30)
++ curl -sf localhost:8199/health
++ break

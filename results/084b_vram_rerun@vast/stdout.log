@@ -1,0 +1,578 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/084b_vram_rerun@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
++ nvidia-smi -q
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/084b_vram_rerun@vast/bw_gate.txt
++ DR=1637
++ echo 'device read 1637 GB/s'
++ tee /w/results/084b_vram_rerun@vast/gate.txt
+device read 1637 GB/s
++ '[' 1637 -ge 1500 ']'
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
+++ usable_cores
+++ python3 -
++ CORES=23
++ tee /w/results/084b_vram_rerun@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 23 (nproc 24)'
+usable physical cores 23 (nproc 24)
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
++ VE=/work/venv
++ echo 'venv install rc=0'
+venv install rc=0
++ PY=/work/venv/bin/python
++ /work/venv/bin/python -c 'import torch, transformers, huggingface_hub; print(torch.__version__, transformers.__version__)'
++ tee /w/results/084b_vram_rerun@vast/venv_ok.txt
+2.14.1+cpu 5.17.0
++ mkdir -p /work/models
++ HFD=/work/models/gpt-oss-120b
++ DLG=6222
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6223
++ /work/venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ wc -l /work/aime25.jsonl
++ tee /w/results/084b_vram_rerun@vast/aime25_count.txt
+30 /work/aime25.jsonl
++ /work/venv/bin/python - /work/warmup.txt
++ cat /w/results/084b_vram_rerun@vast/warmup_source.txt
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+no math-ai/aime24 test.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd38e1-6a6791536e4d71fa7b3fd363;a9359918-d0aa-48c3-938a-9e3f47486e0a)\n\nEntry Not Found for url: https://huggingface.co/datasets/math
+no HuggingFaceH4/aime_2024 train.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abd38e1-4a08fb1e7401d2ee10d5d3b3;9b5430a4-e542-41f7-abae-d3efb339fbd2)\n\nEntry Not Found for url: https://huggingface.co/datasets/Hugg
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/084b_vram_rerun@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j24 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/084b_vram_rerun@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ wait 6222 6223
++ cat /w/results/084b_vram_rerun@vast/dl_gguf.txt /w/results/084b_vram_rerun@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790785760
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''openai/gpt-oss-120b'\'', local_dir=sys.argv[1], allow_patterns=['\''*.json'\'', '\''*.jinja'\'', '\''*.txt'\''])' /work/models/gpt-oss-120b
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 10 files:  10%|█         | 1/10 [00:00<00:01,  6.80it/s]Fetching 10 files:  90%|█████████ | 9/10 [00:00<00:00, 37.31it/s]Fetching 10 files: 100%|██████████| 10/10 [00:01<00:00,  9.29it/s]
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 175 s'
+gguf hf download rc=0 in 175 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Sep 30 16:32 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ t0=1790785760
++ /work/venv/bin/python -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:02,  8.93it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:00<00:00, 31.16it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:20<00:00, 31.16it/s]Fetching 26 files:  27%|██▋       | 7/26 [00:40<02:31,  8.00s/it]Fetching 26 files:  31%|███       | 8/26 [00:40<01:52,  6.24s/it]Fetching 26 files:  42%|████▏     | 11/26 [00:41<00:51,  3.42s/it]Fetching 26 files:  50%|█████     | 13/26 [00:42<00:32,  2.52s/it]Fetching 26 files:  54%|█████▍    | 14/26 [00:43<00:27,  2.25s/it]Fetching 26 files:  58%|█████▊    | 15/26 [01:00<00:59,  5.38s/it]Fetching 26 files:  62%|██████▏   | 16/26 [01:02<00:44,  4.41s/it]Fetching 26 files:  65%|██████▌   | 17/26 [01:05<00:37,  4.13s/it]Fetching 26 files:  69%|██████▉   | 18/26 [01:05<00:24,  3.08s/it]Fetching 26 files:  73%|███████▎  | 19/26 [01:06<00:16,  2.39s/it]Fetching 26 files:  77%|███████▋  | 20/26 [01:06<00:10,  1.76s/it]Fetching 26 files:  81%|████████  | 21/26 [01:09<00:11,  2.27s/it]Fetching 26 files:  85%|████████▍ | 22/26 [01:13<00:10,  2.61s/it]Fetching 26 files:  88%|████████▊ | 23/26 [01:13<00:05,  1.98s/it]Fetching 26 files:  92%|█████████▏| 24/26 [01:13<00:02,  1.44s/it]Fetching 26 files:  96%|█████████▌| 25/26 [01:15<00:01,  1.41s/it]Fetching 26 files: 100%|██████████| 26/26 [01:15<00:00,  1.18s/it]Fetching 26 files: 100%|██████████| 26/26 [01:15<00:00,  2.91s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 77 s'
+qwen3 hf download rc=0 in 77 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
++ echo 'GGUF ok 63387346208 bytes'
+GGUF ok 63387346208 bytes
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/084b_vram_rerun@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Sep 30 16:35 /work/models/Qwen3-30B-A3B-BF16.gguf
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=21
++ LXB='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ ECENV='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21'
++ LSG='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui'
++ cl /work/models/gpt-oss-120b g_vram 1 '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_vram L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_vram --meta '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_vram_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_vram --meta '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_vram_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
+[bs1] g_vram: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port 44013
+[bs1] g_vram problem 0: 253.05 tok/s (3.95 ms/token, p50 3.97 p99 4.88, 256 tokens)
+[bs1] g_vram problem 1: 251.87 tok/s (3.97 ms/token, p50 3.98 p99 4.26, 256 tokens)
+[bs1] g_vram problem 2: 251.95 tok/s (3.97 ms/token, p50 3.99 p99 4.31, 256 tokens)
+[bs1] g_vram problem 3: 262.71 tok/s (3.81 ms/token, p50 3.85 p99 4.02, 256 tokens)
+[bs1] g_vram problem 4: 262.27 tok/s (3.81 ms/token, p50 3.85 p99 5.22, 256 tokens)
+[bs1] g_vram problem 5: 261.97 tok/s (3.82 ms/token, p50 3.86 p99 5.23, 256 tokens)
+[bs1] g_vram problem 6: 261.31 tok/s (3.83 ms/token, p50 3.87 p99 3.99, 256 tokens)
+[bs1] g_vram problem 7: 261.41 tok/s (3.83 ms/token, p50 3.86 p99 4.53, 256 tokens)
+[bs1] g_vram problem 8: 261.73 tok/s (3.82 ms/token, p50 3.86 p99 4.63, 256 tokens)
+[bs1] g_vram problem 9: 258.77 tok/s (3.86 ms/token, p50 3.90 p99 4.03, 256 tokens)
+[bs1] g_vram problem 10: 258.51 tok/s (3.87 ms/token, p50 3.90 p99 4.03, 256 tokens)
+[bs1] g_vram problem 11: 260.54 tok/s (3.84 ms/token, p50 3.86 p99 5.22, 256 tokens)
+[bs1] g_vram problem 12: 262.87 tok/s (3.80 ms/token, p50 3.84 p99 4.03, 256 tokens)
+[bs1] g_vram problem 13: 255.45 tok/s (3.91 ms/token, p50 3.95 p99 4.22, 256 tokens)
+[bs1] g_vram problem 14: 253.32 tok/s (3.95 ms/token, p50 3.96 p99 7.88, 256 tokens)
+[bs1] g_vram problem 15: 254.08 tok/s (3.94 ms/token, p50 3.95 p99 4.23, 256 tokens)
+[bs1] g_vram problem 16: 252.85 tok/s (3.95 ms/token, p50 3.97 p99 7.90, 256 tokens)
+[bs1] g_vram problem 17: 255.27 tok/s (3.92 ms/token, p50 3.94 p99 5.08, 256 tokens)
+[bs1] g_vram problem 18: 261.83 tok/s (3.82 ms/token, p50 3.86 p99 3.97, 256 tokens)
+[bs1] g_vram problem 19: 258.59 tok/s (3.87 ms/token, p50 3.91 p99 4.65, 256 tokens)
+[bs1] g_vram problem 20: 257.96 tok/s (3.88 ms/token, p50 3.91 p99 4.52, 256 tokens)
+[bs1] g_vram problem 21: 261.92 tok/s (3.82 ms/token, p50 3.86 p99 4.15, 256 tokens)
+[bs1] g_vram problem 22: 260.41 tok/s (3.84 ms/token, p50 3.88 p99 4.00, 256 tokens)
+[bs1] g_vram problem 23: 261.68 tok/s (3.82 ms/token, p50 3.86 p99 4.04, 256 tokens)
+[bs1] g_vram problem 24: 261.44 tok/s (3.82 ms/token, p50 3.86 p99 4.20, 256 tokens)
+[bs1] g_vram problem 25: 261.85 tok/s (3.82 ms/token, p50 3.86 p99 3.94, 256 tokens)
+[bs1] g_vram problem 26: 259.05 tok/s (3.86 ms/token, p50 3.87 p99 4.82, 256 tokens)
+[bs1] g_vram problem 27: 261.45 tok/s (3.82 ms/token, p50 3.87 p99 4.74, 256 tokens)
+[bs1] g_vram problem 28: 261.60 tok/s (3.82 ms/token, p50 3.86 p99 4.48, 256 tokens)
+[bs1] g_vram problem 29: 261.61 tok/s (3.82 ms/token, p50 3.86 p99 4.66, 256 tokens)
++ echo 'g_vram launch 1 rc=0'
+g_vram launch 1 rc=0
+++ /work/venv/bin/python -c 'import json,statistics as s; v=[json.loads(l)['\''decode_tok_s'\''] for l in open('\''/w/results/084b_vram_rerun@vast/bs1.jsonl'\'') if '\''"g_vram"'\'' in l]; print(int(s.mean(v)) if v else 0)'
++ GV=258
++ tee -a /w/results/084b_vram_rerun@vast/gate.txt
++ echo 'gpt-oss all in VRAM, launch 1: 258 tok/s'
+gpt-oss all in VRAM, launch 1: 258 tok/s
++ '[' 258 -ge 200 ']'
++ cl /work/models/gpt-oss-120b g_vram 2 '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_vram L=2 'meta={"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_vram --meta '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_vram_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_vram --meta '{"model": "gpt-oss-120b", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_vram_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port {port}'
+[bs1] g_vram: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui --port 50051
+[bs1] g_vram problem 0: 262.22 tok/s (3.81 ms/token, p50 3.85 p99 4.57, 256 tokens)
+[bs1] g_vram problem 1: 261.17 tok/s (3.83 ms/token, p50 3.87 p99 3.98, 256 tokens)
+[bs1] g_vram problem 2: 261.58 tok/s (3.82 ms/token, p50 3.86 p99 4.65, 256 tokens)
+[bs1] g_vram problem 3: 262.08 tok/s (3.82 ms/token, p50 3.85 p99 4.29, 256 tokens)
+[bs1] g_vram problem 4: 261.89 tok/s (3.82 ms/token, p50 3.86 p99 5.30, 256 tokens)
+[bs1] g_vram problem 5: 261.59 tok/s (3.82 ms/token, p50 3.86 p99 4.67, 256 tokens)
+[bs1] g_vram problem 6: 261.07 tok/s (3.83 ms/token, p50 3.87 p99 3.96, 256 tokens)
+[bs1] g_vram problem 7: 261.39 tok/s (3.83 ms/token, p50 3.86 p99 4.53, 256 tokens)
+[bs1] g_vram problem 8: 261.11 tok/s (3.83 ms/token, p50 3.87 p99 5.10, 256 tokens)
+[bs1] g_vram problem 9: 252.24 tok/s (3.96 ms/token, p50 3.99 p99 4.25, 256 tokens)
+[bs1] g_vram problem 10: 252.47 tok/s (3.96 ms/token, p50 3.99 p99 4.25, 256 tokens)
+[bs1] g_vram problem 11: 252.19 tok/s (3.97 ms/token, p50 3.98 p99 4.62, 256 tokens)
+[bs1] g_vram problem 12: 252.28 tok/s (3.96 ms/token, p50 3.98 p99 4.23, 256 tokens)
+[bs1] g_vram problem 13: 252.67 tok/s (3.96 ms/token, p50 3.98 p99 4.27, 256 tokens)
+[bs1] g_vram problem 14: 253.31 tok/s (3.95 ms/token, p50 3.96 p99 7.87, 256 tokens)
+[bs1] g_vram problem 15: 252.32 tok/s (3.96 ms/token, p50 3.99 p99 4.37, 256 tokens)
+[bs1] g_vram problem 16: 252.25 tok/s (3.96 ms/token, p50 3.96 p99 7.92, 256 tokens)
+[bs1] g_vram problem 17: 251.71 tok/s (3.97 ms/token, p50 3.99 p99 4.92, 256 tokens)
+[bs1] g_vram problem 18: 252.65 tok/s (3.96 ms/token, p50 3.98 p99 4.40, 256 tokens)
+[bs1] g_vram problem 19: 252.52 tok/s (3.96 ms/token, p50 4.00 p99 4.27, 256 tokens)
+[bs1] g_vram problem 20: 252.01 tok/s (3.97 ms/token, p50 3.99 p99 5.02, 256 tokens)
+[bs1] g_vram problem 21: 252.88 tok/s (3.95 ms/token, p50 3.98 p99 4.43, 256 tokens)
+[bs1] g_vram problem 22: 252.27 tok/s (3.96 ms/token, p50 3.98 p99 4.72, 256 tokens)
+[bs1] g_vram problem 23: 252.92 tok/s (3.95 ms/token, p50 3.97 p99 4.84, 256 tokens)
+[bs1] g_vram problem 24: 252.37 tok/s (3.96 ms/token, p50 3.99 p99 4.24, 256 tokens)
+[bs1] g_vram problem 25: 252.41 tok/s (3.96 ms/token, p50 3.97 p99 4.21, 256 tokens)
+[bs1] g_vram problem 26: 252.85 tok/s (3.95 ms/token, p50 3.97 p99 4.69, 256 tokens)
+[bs1] g_vram problem 27: 252.54 tok/s (3.96 ms/token, p50 3.96 p99 4.57, 256 tokens)
+[bs1] g_vram problem 28: 253.20 tok/s (3.95 ms/token, p50 3.97 p99 4.21, 256 tokens)
+[bs1] g_vram problem 29: 254.21 tok/s (3.93 ms/token, p50 3.96 p99 4.67, 256 tokens)
++ echo 'g_vram launch 2 rc=0'
+g_vram launch 2 rc=0
++ cl /work/models/gpt-oss-120b g_ours_C128 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 128}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_g_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C128 L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 128}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C128 --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 128}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_ours_C128_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_g_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C128 --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 128}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_g_ours_C128_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_g_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C128: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_g_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 52845
+[bs1] g_ours_C128 problem 0: 263.76 tok/s (3.79 ms/token, p50 3.82 p99 3.96, 256 tokens)
+[bs1] g_ours_C128 problem 1: 262.87 tok/s (3.80 ms/token, p50 3.84 p99 4.87, 256 tokens)
+[bs1] g_ours_C128 problem 2: 253.06 tok/s (3.95 ms/token, p50 3.98 p99 6.85, 256 tokens)
+[bs1] g_ours_C128 problem 3: 263.79 tok/s (3.79 ms/token, p50 3.83 p99 4.88, 256 tokens)
+[bs1] g_ours_C128 problem 4: 262.01 tok/s (3.82 ms/token, p50 3.84 p99 6.93, 256 tokens)
+[bs1] g_ours_C128 problem 5: 262.39 tok/s (3.81 ms/token, p50 3.84 p99 5.04, 256 tokens)
+[bs1] g_ours_C128 problem 6: 261.74 tok/s (3.82 ms/token, p50 3.85 p99 5.07, 256 tokens)
+[bs1] g_ours_C128 problem 7: 257.81 tok/s (3.88 ms/token, p50 3.86 p99 5.14, 256 tokens)
+[bs1] g_ours_C128 problem 8: 255.59 tok/s (3.91 ms/token, p50 3.93 p99 7.28, 256 tokens)
+[bs1] g_ours_C128 problem 9: 252.34 tok/s (3.96 ms/token, p50 4.00 p99 4.31, 256 tokens)
+[bs1] g_ours_C128 problem 10: 254.84 tok/s (3.92 ms/token, p50 3.95 p99 6.02, 256 tokens)
+[bs1] g_ours_C128 problem 11: 253.64 tok/s (3.94 ms/token, p50 3.97 p99 5.25, 256 tokens)
+[bs1] g_ours_C128 problem 12: 259.25 tok/s (3.86 ms/token, p50 3.88 p99 4.04, 256 tokens)
+[bs1] g_ours_C128 problem 13: 260.33 tok/s (3.84 ms/token, p50 3.84 p99 6.01, 256 tokens)
+[bs1] g_ours_C128 problem 14: 260.74 tok/s (3.84 ms/token, p50 3.86 p99 7.67, 256 tokens)
+[bs1] g_ours_C128 problem 15: 256.68 tok/s (3.90 ms/token, p50 3.92 p99 5.24, 256 tokens)
+[bs1] g_ours_C128 problem 16: 255.75 tok/s (3.91 ms/token, p50 3.93 p99 7.87, 256 tokens)
+[bs1] g_ours_C128 problem 17: 257.69 tok/s (3.88 ms/token, p50 3.89 p99 6.00, 256 tokens)
+[bs1] g_ours_C128 problem 18: 255.20 tok/s (3.92 ms/token, p50 3.93 p99 6.09, 256 tokens)
+[bs1] g_ours_C128 problem 19: 256.63 tok/s (3.90 ms/token, p50 3.92 p99 5.80, 256 tokens)
+[bs1] g_ours_C128 problem 20: 257.63 tok/s (3.88 ms/token, p50 3.92 p99 4.07, 256 tokens)
+[bs1] g_ours_C128 problem 21: 261.17 tok/s (3.83 ms/token, p50 3.86 p99 5.70, 256 tokens)
+[bs1] g_ours_C128 problem 22: 255.41 tok/s (3.92 ms/token, p50 3.95 p99 4.67, 256 tokens)
+[bs1] g_ours_C128 problem 23: 252.97 tok/s (3.95 ms/token, p50 3.98 p99 7.42, 256 tokens)
+[bs1] g_ours_C128 problem 24: 262.06 tok/s (3.82 ms/token, p50 3.86 p99 4.81, 256 tokens)
+[bs1] g_ours_C128 problem 25: 253.48 tok/s (3.95 ms/token, p50 3.97 p99 7.00, 256 tokens)
+[bs1] g_ours_C128 problem 26: 258.57 tok/s (3.87 ms/token, p50 3.89 p99 5.29, 256 tokens)
+[bs1] g_ours_C128 problem 27: 261.35 tok/s (3.83 ms/token, p50 3.86 p99 4.00, 256 tokens)
+[bs1] g_ours_C128 problem 28: 259.25 tok/s (3.86 ms/token, p50 3.89 p99 5.18, 256 tokens)
+[bs1] g_ours_C128 problem 29: 261.43 tok/s (3.83 ms/token, p50 3.85 p99 5.12, 256 tokens)
++ echo 'g_ours_C128 launch 1 rc=0'
+g_ours_C128 launch 1 rc=0
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ LSQ='-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja'
++ for L in 1 2
++ cl /work/models/Qwen3-30B-A3B q_vram 1 '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_vram L=1 'meta={"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_vram --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_vram_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_vram --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_vram_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
+[bs1] q_vram: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port 47383
+[bs1] q_vram problem 0: 179.03 tok/s (5.59 ms/token, p50 5.61 p99 6.51, 256 tokens)
+[bs1] q_vram problem 1: 179.42 tok/s (5.57 ms/token, p50 5.61 p99 6.38, 256 tokens)
+[bs1] q_vram problem 2: 179.39 tok/s (5.57 ms/token, p50 5.61 p99 6.27, 256 tokens)
+[bs1] q_vram problem 3: 179.64 tok/s (5.57 ms/token, p50 5.60 p99 5.75, 256 tokens)
+[bs1] q_vram problem 4: 179.35 tok/s (5.58 ms/token, p50 5.61 p99 6.02, 256 tokens)
+[bs1] q_vram problem 5: 179.62 tok/s (5.57 ms/token, p50 5.60 p99 5.76, 256 tokens)
+[bs1] q_vram problem 6: 174.17 tok/s (5.74 ms/token, p50 5.76 p99 6.03, 256 tokens)
+[bs1] q_vram problem 7: 179.00 tok/s (5.59 ms/token, p50 5.61 p99 5.93, 256 tokens)
+[bs1] q_vram problem 8: 179.11 tok/s (5.58 ms/token, p50 5.61 p99 11.23, 256 tokens)
+[bs1] q_vram problem 9: 177.09 tok/s (5.65 ms/token, p50 5.68 p99 6.38, 256 tokens)
+[bs1] q_vram problem 10: 176.71 tok/s (5.66 ms/token, p50 5.69 p99 6.79, 256 tokens)
+[bs1] q_vram problem 11: 179.12 tok/s (5.58 ms/token, p50 5.61 p99 6.56, 256 tokens)
+[bs1] q_vram problem 12: 179.27 tok/s (5.58 ms/token, p50 5.61 p99 6.80, 256 tokens)
+[bs1] q_vram problem 13: 179.35 tok/s (5.58 ms/token, p50 5.61 p99 5.76, 256 tokens)
+[bs1] q_vram problem 14: 179.52 tok/s (5.57 ms/token, p50 5.61 p99 6.89, 256 tokens)
+[bs1] q_vram problem 15: 179.26 tok/s (5.58 ms/token, p50 5.61 p99 6.65, 256 tokens)
+[bs1] q_vram problem 16: 179.62 tok/s (5.57 ms/token, p50 5.60 p99 5.96, 256 tokens)
+[bs1] q_vram problem 17: 178.46 tok/s (5.60 ms/token, p50 5.63 p99 6.49, 256 tokens)
+[bs1] q_vram problem 18: 178.88 tok/s (5.59 ms/token, p50 5.62 p99 6.80, 256 tokens)
+[bs1] q_vram problem 19: 177.58 tok/s (5.63 ms/token, p50 5.67 p99 11.31, 256 tokens)
+[bs1] q_vram problem 20: 177.39 tok/s (5.64 ms/token, p50 5.67 p99 11.39, 256 tokens)
+[bs1] q_vram problem 21: 177.31 tok/s (5.64 ms/token, p50 5.63 p99 6.25, 256 tokens)
+[bs1] q_vram problem 22: 174.79 tok/s (5.72 ms/token, p50 5.72 p99 6.79, 256 tokens)
+[bs1] q_vram problem 23: 174.99 tok/s (5.71 ms/token, p50 5.72 p99 6.67, 256 tokens)
+[bs1] q_vram problem 24: 174.88 tok/s (5.72 ms/token, p50 5.71 p99 6.35, 256 tokens)
+[bs1] q_vram problem 25: 177.73 tok/s (5.63 ms/token, p50 5.64 p99 6.48, 256 tokens)
+[bs1] q_vram problem 26: 179.11 tok/s (5.58 ms/token, p50 5.62 p99 6.59, 256 tokens)
+[bs1] q_vram problem 27: 179.20 tok/s (5.58 ms/token, p50 5.61 p99 5.72, 256 tokens)
+[bs1] q_vram problem 28: 179.44 tok/s (5.57 ms/token, p50 5.61 p99 6.56, 256 tokens)
+[bs1] q_vram problem 29: 179.46 tok/s (5.57 ms/token, p50 5.61 p99 5.73, 256 tokens)
++ echo 'q_vram launch 1 rc=0'
+q_vram launch 1 rc=0
++ for L in 1 2
++ cl /work/models/Qwen3-30B-A3B q_vram 2 '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_vram L=2 'meta={"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_vram --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_vram_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label q_vram --meta '{"model": "Qwen3-30B-A3B", "system": "llama.cpp, all in VRAM"}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_vram_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port {port}'
+[bs1] q_vram: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja --port 55043
+[bs1] q_vram problem 0: 173.90 tok/s (5.75 ms/token, p50 5.76 p99 7.02, 256 tokens)
+[bs1] q_vram problem 1: 174.84 tok/s (5.72 ms/token, p50 5.71 p99 6.51, 256 tokens)
+[bs1] q_vram problem 2: 174.91 tok/s (5.72 ms/token, p50 5.71 p99 6.01, 256 tokens)
+[bs1] q_vram problem 3: 175.43 tok/s (5.70 ms/token, p50 5.71 p99 6.10, 256 tokens)
+[bs1] q_vram problem 4: 174.57 tok/s (5.73 ms/token, p50 5.74 p99 6.11, 256 tokens)
+[bs1] q_vram problem 5: 175.32 tok/s (5.70 ms/token, p50 5.71 p99 6.07, 256 tokens)
+[bs1] q_vram problem 6: 174.94 tok/s (5.72 ms/token, p50 5.72 p99 6.12, 256 tokens)
+[bs1] q_vram problem 7: 175.76 tok/s (5.69 ms/token, p50 5.70 p99 6.01, 256 tokens)
+[bs1] q_vram problem 8: 179.33 tok/s (5.58 ms/token, p50 5.62 p99 11.24, 256 tokens)
+[bs1] q_vram problem 9: 177.36 tok/s (5.64 ms/token, p50 5.67 p99 6.32, 256 tokens)
+[bs1] q_vram problem 10: 176.93 tok/s (5.65 ms/token, p50 5.68 p99 5.88, 256 tokens)
+[bs1] q_vram problem 11: 179.00 tok/s (5.59 ms/token, p50 5.62 p99 6.62, 256 tokens)
+[bs1] q_vram problem 12: 179.24 tok/s (5.58 ms/token, p50 5.62 p99 5.79, 256 tokens)
+[bs1] q_vram problem 13: 179.14 tok/s (5.58 ms/token, p50 5.62 p99 6.74, 256 tokens)
+[bs1] q_vram problem 14: 179.16 tok/s (5.58 ms/token, p50 5.61 p99 6.91, 256 tokens)
+[bs1] q_vram problem 15: 179.37 tok/s (5.57 ms/token, p50 5.61 p99 5.77, 256 tokens)
+[bs1] q_vram problem 16: 178.79 tok/s (5.59 ms/token, p50 5.62 p99 6.79, 256 tokens)
+[bs1] q_vram problem 17: 177.41 tok/s (5.64 ms/token, p50 5.64 p99 6.23, 256 tokens)
+[bs1] q_vram problem 18: 179.40 tok/s (5.57 ms/token, p50 5.61 p99 5.94, 256 tokens)
+[bs1] q_vram problem 19: 177.58 tok/s (5.63 ms/token, p50 5.68 p99 11.30, 256 tokens)
+[bs1] q_vram problem 20: 177.31 tok/s (5.64 ms/token, p50 5.67 p99 11.36, 256 tokens)
+[bs1] q_vram problem 21: 179.32 tok/s (5.58 ms/token, p50 5.61 p99 6.24, 256 tokens)
+[bs1] q_vram problem 22: 178.80 tok/s (5.59 ms/token, p50 5.63 p99 5.83, 256 tokens)
+[bs1] q_vram problem 23: 179.26 tok/s (5.58 ms/token, p50 5.61 p99 6.59, 256 tokens)
+[bs1] q_vram problem 24: 179.04 tok/s (5.59 ms/token, p50 5.62 p99 6.62, 256 tokens)
+[bs1] q_vram problem 25: 179.47 tok/s (5.57 ms/token, p50 5.60 p99 5.75, 256 tokens)
+[bs1] q_vram problem 26: 179.19 tok/s (5.58 ms/token, p50 5.62 p99 6.61, 256 tokens)
+[bs1] q_vram problem 27: 179.07 tok/s (5.58 ms/token, p50 5.62 p99 6.51, 256 tokens)
+[bs1] q_vram problem 28: 179.41 tok/s (5.57 ms/token, p50 5.61 p99 5.75, 256 tokens)
+[bs1] q_vram problem 29: 179.42 tok/s (5.57 ms/token, p50 5.61 p99 5.79, 256 tokens)
++ echo 'q_vram launch 2 rc=0'
+q_vram launch 2 rc=0
++ cl /work/models/Qwen3-30B-A3B q_ours_C128 1 '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 128}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,5 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_q_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/Qwen3-30B-A3B lab=q_ours_C128 L=1 'meta={"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 128}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ seq -s, 0 29
++ R 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C128 --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 128}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_ours_C128_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,5 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_q_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local t=60m
++ shift
++ timeout 60m /work/venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/Qwen3-30B-A3B --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label q_ours_C128 --meta '{"model": "Qwen3-30B-A3B", "system": "ours v2", "C": 128}' --json /w/results/084b_vram_rerun@vast/bs1.jsonl --log /w/results/084b_vram_rerun@vast/srv_q_ours_C128_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,5 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_q_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] q_ours_C128: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=21 LLAMA_EC_SLOTS=128 LLAMA_EC_FETCH=0,0,1,1,2,3,3,4,5 LLAMA_EC_STATS=/w/results/084b_vram_rerun@vast/srv_q_ours_C128.json /work/lc-ec/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 23 -np 1 -c 2048 --no-webui --jinja -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 34905
+[bs1] q_ours_C128 problem 0: 188.34 tok/s (5.31 ms/token, p50 5.33 p99 6.17, 256 tokens)
+[bs1] q_ours_C128 problem 1: 187.99 tok/s (5.32 ms/token, p50 5.36 p99 6.27, 256 tokens)
+[bs1] q_ours_C128 problem 2: 187.43 tok/s (5.34 ms/token, p50 5.36 p99 6.33, 256 tokens)
+[bs1] q_ours_C128 problem 3: 187.55 tok/s (5.33 ms/token, p50 5.35 p99 5.61, 256 tokens)
+[bs1] q_ours_C128 problem 4: 187.75 tok/s (5.33 ms/token, p50 5.35 p99 6.79, 256 tokens)
+[bs1] q_ours_C128 problem 5: 188.02 tok/s (5.32 ms/token, p50 5.34 p99 7.48, 256 tokens)
+[bs1] q_ours_C128 problem 6: 188.21 tok/s (5.31 ms/token, p50 5.35 p99 6.06, 256 tokens)
+[bs1] q_ours_C128 problem 7: 187.77 tok/s (5.33 ms/token, p50 5.35 p99 6.80, 256 tokens)
+[bs1] q_ours_C128 problem 8: 188.05 tok/s (5.32 ms/token, p50 5.35 p99 10.70, 256 tokens)
+[bs1] q_ours_C128 problem 9: 180.69 tok/s (5.53 ms/token, p50 5.55 p99 7.23, 256 tokens)
+[bs1] q_ours_C128 problem 10: 183.86 tok/s (5.44 ms/token, p50 5.47 p99 6.95, 256 tokens)
+[bs1] q_ours_C128 problem 11: 182.53 tok/s (5.48 ms/token, p50 5.48 p99 6.58, 256 tokens)
+[bs1] q_ours_C128 problem 12: 187.73 tok/s (5.33 ms/token, p50 5.34 p99 6.67, 256 tokens)
+[bs1] q_ours_C128 problem 13: 187.40 tok/s (5.34 ms/token, p50 5.37 p99 6.76, 256 tokens)
+[bs1] q_ours_C128 problem 14: 187.60 tok/s (5.33 ms/token, p50 5.35 p99 6.67, 256 tokens)
+[bs1] q_ours_C128 problem 15: 187.19 tok/s (5.34 ms/token, p50 5.35 p99 6.56, 256 tokens)
+[bs1] q_ours_C128 problem 16: 187.63 tok/s (5.33 ms/token, p50 5.36 p99 6.67, 256 tokens)
+[bs1] q_ours_C128 problem 17: 187.66 tok/s (5.33 ms/token, p50 5.36 p99 6.74, 256 tokens)
+[bs1] q_ours_C128 problem 18: 187.79 tok/s (5.33 ms/token, p50 5.36 p99 5.49, 256 tokens)
+[bs1] q_ours_C128 problem 19: 185.75 tok/s (5.38 ms/token, p50 5.43 p99 10.84, 256 tokens)
+[bs1] q_ours_C128 problem 20: 185.52 tok/s (5.39 ms/token, p50 5.42 p99 10.87, 256 tokens)
+[bs1] q_ours_C128 problem 21: 187.98 tok/s (5.32 ms/token, p50 5.35 p99 6.19, 256 tokens)
+[bs1] q_ours_C128 problem 22: 187.32 tok/s (5.34 ms/token, p50 5.36 p99 6.77, 256 tokens)
+[bs1] q_ours_C128 problem 23: 183.64 tok/s (5.45 ms/token, p50 5.46 p99 7.60, 256 tokens)
+[bs1] q_ours_C128 problem 24: 187.17 tok/s (5.34 ms/token, p50 5.34 p99 6.87, 256 tokens)
+[bs1] q_ours_C128 problem 25: 183.52 tok/s (5.45 ms/token, p50 5.46 p99 6.96, 256 tokens)
+[bs1] q_ours_C128 problem 26: 184.11 tok/s (5.43 ms/token, p50 5.44 p99 7.17, 256 tokens)
+[bs1] q_ours_C128 problem 27: 187.92 tok/s (5.32 ms/token, p50 5.35 p99 7.02, 256 tokens)
+[bs1] q_ours_C128 problem 28: 187.57 tok/s (5.33 ms/token, p50 5.36 p99 7.00, 256 tokens)
+[bs1] q_ours_C128 problem 29: 188.11 tok/s (5.32 ms/token, p50 5.35 p99 6.61, 256 tokens)
++ echo 'q_ours_C128 launch 1 rc=0'
+q_ours_C128 launch 1 rc=0
++ traces qwen3 /work/models/Qwen3-30B-A3B-BF16.gguf --jinja
++ local tag=qwen3 g=/work/models/Qwen3-30B-A3B-BF16.gguf flags=--jinja
++ corpus /work/models/Qwen3-30B-A3B-BF16.gguf --jinja /w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl
++ cat /w/results/084b_vram_rerun@vast/corpus_qwen3.txt
++ local g=/work/models/Qwen3-30B-A3B-BF16.gguf flags=--jinja out=/w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl port=8199
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
++ local pid=15848
++ /work/lc-stock/build/bin/llama-server -m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 0 --no-warmup -c 4096 -np 1 --no-webui --jinja --port 8199
+++ seq 180
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ sleep 2
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ sleep 2
++ for i in $(seq 180)
++ curl -sf localhost:8199/health
++ break
++ /work/venv/bin/python - 8199 /w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl
+problem 0 prompt: '<|im_start|>user\nFind the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$\nPlease reason step by step, and put your final answer within \\boxed{}.<|im_end|>\n<|im_start|>assistant\n' ... 52 tokens
+corpus rows: 30
++ kill 15848
++ wait 15848
+++ seq 30
++ for i in $(seq 30)
++ curl -sf localhost:8199/health
++ break
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
++ R 40m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/results/084b_vram_rerun@vast/aime25_prompts_qwen3.jsonl -t 23 --n-prefill 1024 --n-decode 256 --gen-temp 0.0001 --gen-seed 0 --gen-out /w/results/084b_vram_rerun@vast/aime25_owntext_qwen3.jsonl
+++ wc -l
++ echo 'qwen3 generation rc=0 rows 30'
+qwen3 generation rc=0 rows 30
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/results/084b_vram_rerun@vast/aime25_owntext_qwen3.jsonl -t 23 --n-prefill 1024 --n-decode 256 --lookahead /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin
+++ ls -la /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin
++ echo 'qwen3 lookahead rc=0 -rw-r--r-- 1 root root 29521920 Sep 30 16:47 /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin'
+qwen3 lookahead rc=0 -rw-r--r-- 1 root root 29521920 Sep 30 16:47 /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin
++ tail -n 3 /w/results/084b_vram_rerun@vast/la_qwen3.err
+ggml_backend_cuda_graph_compute: CUDA graph warmup complete
+~llama_context:      CUDA0 compute buffer size is 684.5234 MiB, matches expectation of 684.5234 MiB
+~llama_context:  CUDA_Host compute buffer size is  19.0273 MiB, matches expectation of  19.0273 MiB
++ /work/venv/bin/python - /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin /w/results/084b_vram_rerun@vast/route_aime25_qwen3.npz
+routes (7680, 48, 8) -> /w/results/084b_vram_rerun@vast/route_aime25_qwen3.npz
++ rm -f /w/results/084b_vram_rerun@vast/la_aime25_qwen3.bin
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_g_ours_C128_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_g_vram_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_g_vram_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_q_ours_C128_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_q_vram_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 60 /w/results/084b_vram_rerun@vast/srv_q_vram_L2.log
++ find /w/results/084b_vram_rerun@vast -name 'srv_*.log' -delete
++ /work/venv/bin/python - /w/results/084b_vram_rerun@vast
++ tee /w/results/084b_vram_rerun@vast/summary.txt
+g_ours_C128      launch 1:  258.31 tok/s (n=30), VRAM 60.171875
+g_vram           launch 1:  258.98 tok/s (n=30), VRAM 59.560546875
+g_vram           launch 2:  255.28 tok/s (n=30), VRAM 59.560546875
+q_ours_C128      launch 1:  186.66 tok/s (n=30), VRAM 57.775390625
+q_vram           launch 1:  178.26 tok/s (n=30), VRAM 57.302734375
+q_vram           launch 2:  177.76 tok/s (n=30), VRAM 57.30078125
+qwen3: teacher-forced own text, 30 sequences, NLL 0.090 nats/token

@@ -6,6 +6,7 @@ variants run once. Ratios of mean speeds, paired by problem, 95% percentile inte
 (seed 0).
 
     python scripts/samemachine_stats.py --job 085 --out prereg/halfpcie_085.json
+    python scripts/samemachine_stats.py --job 085b --out prereg/halfpcie_085b.json
     python scripts/samemachine_stats.py --job 086 --out prereg/qwen36_086.json
 """
 import argparse
@@ -24,7 +25,8 @@ JOBS = {
         # model, budget, ours prefix+C, FreeToken label stem, llama label or None
         ("gpt-oss-120b", "11%", "g_ours_C14", "g_ft_{}_r0.111", None),
         ("gpt-oss-120b", "25%", "g_ours_C32", "g_ft_{}_r0.25", "g_llama_n27"),
-        ("gpt-oss-120b", "40%", "g_ours_C51", "g_ft_{}_r0.40", None),
+        ("gpt-oss-120b", "40%", "g_ours_C51", "g_ft_{}_r0.40", None)]),
+    "085b": dict(dir=f"{R}/085b_half_pcie_qwen3@vast", cells=[
         ("Qwen3-30B-A3B", "12.5%", "q_ours_C16", "q_ft_{}_r0.125", None),
         ("Qwen3-30B-A3B", "25%", "q_ours_C32", "q_ft_{}_r0.25", "q_llama_n36"),
         ("Qwen3-30B-A3B", "43.75%", "q_ours_C56", "q_ft_{}_r0.4375", None)]),

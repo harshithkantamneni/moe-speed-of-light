@@ -57,12 +57,13 @@ def points():
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "law", r["ours_over_ft_L2"][0], "headline_081.json")
         ftb = max(r["ft_L1"].values())
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "fixed", r["ours_cur_L1"] / ftb, "headline_081.json (launch 1)")
-    hp = load("halfpcie_085.json")
-    if hp:
-        for r in hp["rows"]:
-            if "ours_over_ft_L2" in r:
-                add("085_half_pcie@vast", "14900K, PCIe 4", r["model"], r["budget"], r["ours_variant"].replace("cur", "fixed"),
-                    r["ours_over_ft_L2"][0], "halfpcie_085.json")
+    for name, job, host in (("halfpcie_085.json", "085_half_pcie@vast", "14900K, PCIe 4"),
+                            ("halfpcie_085b.json", "085b_half_pcie_qwen3@vast", "7900, PCIe 4")):
+        hp = load(name)
+        if hp:
+            for r in hp["rows"]:
+                if "ours_over_ft_L2" in r:
+                    add(job, host, r["model"], r["budget"], r["ours_variant"].replace("cur", "fixed"), r["ours_over_ft_L2"][0], name)
     return pts
 
 
@@ -92,10 +93,10 @@ def main():
             ax.spines[sp].set_visible(False)
     axs[0].set_ylabel("ours / FreeToken", fontsize=6.5)
     from matplotlib.lines import Line2D
-    h = [Line2D([], [], ls="", marker="o", color=c, label=l, markersize=4) for l, c in (("small", "#1f5fa8"), ("25%", "#2f9e44"), ("large", "#c0572b"))]
+    h = [Line2D([], [], ls="", marker="o", color=c, label=l, markersize=4) for l, c in (("11 or 12.5%", "#1f5fa8"), ("25%", "#2f9e44"), ("40 or 43.75%", "#c0572b"))]
     h += [Line2D([], [], ls="", marker="o", color="k", label="law's table", markersize=4),
           Line2D([], [], ls="", marker="o", color="k", markerfacecolor="none", label="fixed table", markersize=4)]
-    fig.legend(handles=h, fontsize=5.5, frameon=False, ncol=5, loc="lower center", bbox_to_anchor=(0.5, -0.02))
+    fig.legend(handles=h, fontsize=5.2, frameon=False, ncol=5, loc="lower center", bbox_to_anchor=(0.5, -0.02), columnspacing=0.8, handletextpad=0.2)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     fig.savefig(a.out)

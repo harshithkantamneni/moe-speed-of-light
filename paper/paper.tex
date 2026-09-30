@@ -31,8 +31,9 @@ largest or tied-largest cost (\gapFsMin--\gapFsMax\% of each token), with serial
 \textbf{(3) A system the law implies.} We built an expert cache into llama.cpp. It runs misses on the CPU and sets,
 per machine, how many of a layer's missed experts to copy over PCIe instead. At equal GPU memory on one RTX 5090 machine
 it decodes gpt-oss-120b \ftLeadGptMin--\ftLeadGptMax\% faster than FreeToken and Qwen3-30B-A3B
-\ftLeadQwenMin--\ftLeadQwenMax\% faster, and runs \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp; the lead holds over 2{,}048-token outputs,
-but on FreeToken's own headline model, Qwen3.6-35B-A3B, the two systems tie at two of three budgets.
+\ftLeadQwenMin--\ftLeadQwenMax\% faster, and runs \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp; the lead holds over 2{,}048-token outputs and grows to
+\hpGptFtMin--\hpGptFtMax$\times$ on gpt-oss behind a PCIe~4.0 link, where the per-machine split is worth up to
+\hpGptLawMax\%, but on FreeToken's own headline model, Qwen3.6-35B-A3B, the two systems tie at two of three budgets.
 \textbf{(4) Foresight.} The optimum reads \fsSaveMin--\fsSaveMax\% fewer experts from host memory than the best online
 policy. The lookahead that closes half of that gap grows as ${\approx}\fsPre\,(C/k)^{\fsExp}$ tokens across \fsModels{} models.
 Every prediction was committed before the measurement it predicts.
@@ -258,7 +259,23 @@ than be copied (about 225\,$\mu$s, on the critical path); that entry alone is wo
 FreeToken's offload strategy expressed in our engine, is the worst table, and running everything on the CPU the second
 worst. The law's table was within 1\% of the best of five alternatives on launch 1 and tied with it on launch 2. Given
 each run's measured misses, \cref{eq:split} ranks the tables correctly except law against lite, which are within 1\%,
-and overstates their differences about 1.8$\times$. On a contrasting machine, an RTX 5090 in a PCIe~4.0-class slot next to a Core i9-14900K, \pend{} (job 085).
+and overstates their differences about 1.8$\times$. \Cref{fig:ratio} puts every same-machine comparison on one axis, the machine's CPU-to-PCIe read ratio.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/ratio.pdf}
+\caption{Ours over FreeToken's better backend on every machine we compared them on, against the machine's CPU-to-PCIe
+read ratio (FreeToken's own probe). Filled: FETCH table from the law on that machine; hollow: the fixed table. The
+rightmost points are the PCIe~4.0-class machines (jobs 085, 085b).}\label{fig:ratio}
+\end{figure}
+
+\paragraph{A machine with half the link.} On RTX 5090s in PCIe~4.0-class slots (jobs 085 and 085b: gpt-oss next to a
+Core i9-14900K, Qwen3 next to a Ryzen 9 7900; about 27\,GB/s over PCIe instead of 53), the law's tables fetch less
+(gpt-oss \texttt{\hpTableGpt}, Qwen3 \texttt{\hpTableQwen}) and beat the fixed table by \hpGptLawMin--\hpGptLawMax\% on
+gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, two to four times the gain on the headline machine. Ours then leads
+FreeToken by \hpGptFtMin--\hpGptFtMax$\times$ on gpt-oss, whose offload backend sends every miss over the slow link, and
+by \hpQwenFtMin--\hpQwenFtMax$\times$ on Qwen3; with the fixed table ours would trail FreeToken at Qwen3 12.5\%. The law
+predicted llama.cpp on the Ryzen within \hpLlamaQwen\% but not on the Core i9 (\hpLlamaGpt\%), the hybrid-core failure of
+\cref{sec:law} again.
 
 \paragraph{Long outputs.} Our lead does not come from the first 256 tokens. On gpt-oss, on ten held-out hard
 problems (AIME 2022, problems 11--15 of both exams) that neither system has finished reasoning about after 2{,}048

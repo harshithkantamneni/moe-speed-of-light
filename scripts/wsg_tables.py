@@ -257,6 +257,30 @@ def qwen36():
     M("qsixAuto", f"{q['ft_auto']:.1f}")
 
 
+def halfpcie():
+    a, b = load("halfpcie_085.json"), load("halfpcie_085b.json")
+    if not a or not b:
+        return
+    g, q = a["rows"], b["rows"]
+    M("hpGptLawMin", f"{100 * (min(r['law_over_fixed_L1'][0] for r in g) - 1):.0f}")
+    M("hpGptLawMax", f"{100 * (max(r['law_over_fixed_L1'][0] for r in g) - 1):.0f}")
+    M("hpQwenLawMin", f"{100 * (min(r['law_over_fixed_L1'][0] for r in q) - 1):.0f}")
+    M("hpQwenLawMax", f"{100 * (max(r['law_over_fixed_L1'][0] for r in q) - 1):.0f}")
+    M("hpGptFtMin", f"{min(r['ours_over_ft_L2'][0] for r in g):.2f}")
+    M("hpGptFtMax", f"{max(r['ours_over_ft_L2'][0] for r in g):.2f}")
+    M("hpQwenFtMin", f"{min(r['ours_over_ft_L2'][0] for r in q):.2f}")
+    M("hpQwenFtMax", f"{max(r['ours_over_ft_L2'][0] for r in q):.2f}")
+    import json as _j
+    la = _j.loads(a["law_llama.json"])
+    lb = _j.loads(b["law_llama.json"])
+    mg = next(r for r in g if "llama" in r)["llama"]
+    mq = next(r for r in q if "llama" in r)["llama"]
+    M("hpLlamaGpt", f"{100 * (la['predicted_tok_s']['gptoss_llama_n27'] / mg - 1):+.0f}")
+    M("hpLlamaQwen", f"{100 * (lb['predicted_tok_s']['qwen3_llama_n36'] / mq - 1):+.1f}")
+    M("hpTableGpt", a["tables.txt"].split("gpt-oss ")[1].split(" ")[0])
+    M("hpTableQwen", b["tables.txt"].split("qwen3 ")[1].split(" ")[0])
+
+
 def gap():
     g = load("gap_listingb.json")
     if not g:
@@ -380,6 +404,7 @@ def main():
     split()
     hard()
     qwen36()
+    halfpcie()
     gap()
     foresight()
     simcheck()

@@ -13,6 +13,9 @@
 #   3. ours leads FreeToken at all three budgets on the all-token rate (paired CI > 1), and on tokens 257-2,048 wherever
 #      both stream about one event per token;
 #   4. the lead at 11% and 25% is >= 15%.
+# Host change before launch: offer 51046112 was rented out, so this runs on offer 51051777 (job 079's listing: the same
+# RTX 5090 + Ryzen 9 9950X3D). Predictions 1, 3 and 4 are within-machine; prediction 2 compares with Table 1 speeds
+# measured on 51046112, and the 15% tolerance stands.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

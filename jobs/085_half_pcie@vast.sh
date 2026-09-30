@@ -1,7 +1,8 @@
 #!/bin/bash
-# Job 085: the contrasting machine. The same GPU and CPU as the headline machine (RTX 5090 + Ryzen 9 9950X3D) but about
-# half its PCIe rate (Vast offer 53405183 lists 27.5 GB/s against 54-55 GB/s): the one host parameter that sets how a
-# miss should be served changes, everything else stays. Table 1 protocol (30 AIME-25 problems, 256 tokens, greedy,
+# Job 085: the contrasting machine. An RTX 5090 in a PCIe 4.0-class slot (Vast offer 46880906: Core i9-14900K, DDR5,
+# listed at 23.4 GB/s against the headline machine's 54-55 GB/s) with a CPU of similar memory bandwidth: the ratio of
+# CPU to PCIe rate, which sets how a miss should be served, roughly triples. (The first choice, offer 53405183, the
+# headline CPU with half the PCIe rate, was rented out before launch.) Table 1 protocol (30 AIME-25 problems, 256 tokens, greedy,
 # held-out warm-up, session, GPU-side sampling for llama-server), both models at the Table 1 budgets:
 #   gpt-oss-120b C 14 / 32 / 51 (FreeToken rates 0.111 / 0.25 / 0.40), Qwen3-30B-A3B BF16 C 16 / 32 / 56
 #   (0.125 / 0.25 / 0.4375). Launch 1: ours with the law's table computed on this machine before any model run, ours

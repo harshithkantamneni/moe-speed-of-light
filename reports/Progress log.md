@@ -3,6 +3,31 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 1 October, evening: two reviews (6 and 6.5 of 10), the rewrite, and the foresight measurement (job `093_foresight@vast`)
+
+- **Two independent reviews of the grid draft** (`reports/Review round 2 (1 October).md`): 6 and 6.5 / 10. Agreed
+  causes: the writing hides the contribution (430-word abstract, job IDs in prose, a three-page system section);
+  two of the accounting's five terms are definitions (the GPU term closes the model on the measured time; "overlap"
+  includes rebalancing onto the CPU) and the text did not say so; abstract-versus-body overclaims (the bound's class,
+  "never largest", the 9.5%-versus-25-42% juxtaposition, the hit rate); and the largest term, foresight, was named and
+  never measured. Both: fix the writing and the framing for an 8; measure foresight for a 9.
+- **The rewrite (main at 4aed1e1).** Abstract to about 220 words with the prereg hit rate and the ceilings named; five
+  contributions; Table 1 shows both RTX 5090 hosts (listing B and the stock-clock host) with the faster system in bold;
+  the instrument moved after the audit and cut to about 1.7 pages (the split table, the half-link hosts, long outputs,
+  FreeToken's own model, other systems, parity and prompts/batches now in a new appendix section); job IDs out of the
+  main text; the accounting's two definitional terms stated and reconciled with the Nsight profile; the bound scoped to
+  per-layer budgets; the law's evidence stated (three fast-link rows; FreeToken not predicted; per-measurement median
+  3.4% beside the per-configuration 3.7%). Main text 9.1 pages before the foresight paragraph.
+- **Job 093, foresight measured (RTX 5090 + Ryzen 9 9950X, offer 48822557, $0.70/h; running).** The engine gets an
+  oracle policy (`llama.cpp-expert-cache-4da6337-oracle.patch`): the routing of the next W steps from a lookahead file
+  recorded on the machine over the same teacher-forced text; Belady admissions within the window on the normal copy
+  path (paced, 16 MB pieces). Tested on a CPU build with a 4-layer toy model (hit rate 81% dfa -> 98% oracle). The job
+  runs base, paced, oracle W = 2 / 4 / 16 / 64 / all, oracle unpaced, no-overlap and all-CPU at the four host-bound
+  cells, and base / oracle / no-overlap at the two GPU-bound ones, teacher-forced on the trace corpora (30 x 256
+  steps), after a lookahead pass per model. Seven predictions in the header (the law's point values +38 / +34 / +65 /
+  +76% at W = all; bands 20-80%; W = 16 captures half; 45-65% of the limit; hit rate within 3 points of the optimum's;
+  no-overlap 5-25% slower; GPU-bound gain below 15%). `scripts/foresight_stats.py` and `foresight_paper.py` ready.
+
 ## 1 October, late morning: the grid lands (jobs `091_grid_4090@vast` and `092_grid_3090@vast`); tranche 1 complete
 
 - **Job 091, RTX 4090 next to a Core i5-12400 (3.5 h, 1.9 USD).** The host reads 37 GB/s (CPU 34, link 25, both 37);

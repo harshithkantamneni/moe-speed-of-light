@@ -40,7 +40,8 @@ more than the optimum; four tokens of foresight beat all of them; static placeme
 \bkFreeMin--\bkFreeMax\% of reads at best, so speculation is not foresight.
 \textbf{A system.} An expert cache in llama.cpp that acts on the fixable items decodes gpt-oss-120b
 \ftLeadGptMin--\ftLeadGptMax\% and Qwen3-30B-A3B \ftLeadQwenMin--\ftLeadQwenMax\% faster than FreeToken at equal GPU
-memory and \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp, with the gain attributed by ablation.
+memory and \llamaXMin--\llamaXMax$\times$ as fast as llama.cpp, \slFtMin--\slFtMax$\times$ FreeToken behind a link of
+half the bandwidth, with the gain attributed by ablation.
 Every prediction was committed before the measurement it predicts; \scClauses{} clauses are scored in the appendix.
 \end{abstract}
 
@@ -340,23 +341,32 @@ and overstates their differences about 1.8$\times$.
 \begin{figure}[t]\centering
 \includegraphics[width=\linewidth]{figs/ratio.pdf}
 \caption{Ours over FreeToken's better backend in every same-machine comparison of the current engine (jobs
-076--085b), against the machine's CPU-to-PCIe read ratio (FreeToken's own probe). Filled: FETCH table from the law on
-that machine; hollow: the fixed table. The rightmost gpt-oss points are the Core i9-14900K, where FreeToken's CPU
-backend failed (\cref{sec:system}); the rightmost Qwen3 points are the Ryzen 9 7900.}\label{fig:ratio}
+076--088), against the machine's CPU-to-PCIe read ratio (FreeToken's own probe). Filled: FETCH table from the law on
+that machine; hollow: the fixed table. The rightmost gpt-oss points are the Core i9-14900K with FreeToken's executor
+on its performance cores (job 088; the confounded job 085 points are omitted); the rightmost Qwen3 points are the
+Ryzen 9 7900.}\label{fig:ratio}
 \end{figure}
 
-\paragraph{Machines with half the link.} On RTX 5090s whose links we measured at about 27\,GB/s instead of 53 (jobs
-085 and 085b: gpt-oss next to a Core i9-14900K, Qwen3 next to a Ryzen 9 7900 in a PCIe~4.0 slot), the law's tables fetch less
+\paragraph{Machines with half the link.} On RTX 5090s whose links we measured at 27--30\,GB/s instead of 53 (jobs
+085, 085b and 088: gpt-oss next to a Core i9-14900K, Qwen3 next to a Ryzen 9 7900 in a PCIe~4.0 slot), the law's tables fetch less
 (gpt-oss \texttt{\hpTableGpt}, Qwen3 \texttt{\hpTableQwen}) and beat the fixed table by \hpGptLawMin--\hpGptLawMax\% on
 gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, about twice the gain on listing B for Qwen3 and four to six times
 for gpt-oss: the per-machine split matters most where the link is slow. On the Ryzen, ours leads FreeToken by
-\hpQwenFtMin--\hpQwenFtMax$\times$; with the fixed table it would trail at 12.5\%. On the Core i9 the comparison is
-confounded: FreeToken's hybrid backend ran gpt-oss at \iNineHybridMin--\iNineHybridMax\,tok/s, below its own offload backend (\iNineOffloadMin--\iNineOffloadMax), because
-its CPU executor spread 23 threads across the performance and efficiency cores and its calibration then sent two
-thirds of the misses over the slow link, the same failure \cref{sec:law} reports for llama.cpp. Our
-\hpGptFtMin--\hpGptFtMax$\times$ over its better backend there measures that configuration as much as the link, and we
-do not count it. The law predicted llama.cpp on the Ryzen within \hpLlamaQwen\% but not on the Core i9
-(\hpLlamaGpt\%). \Cref{fig:ratio} puts every same-machine comparison on one axis.
+\hpQwenFtMin--\hpQwenFtMax$\times$; with the fixed table it would trail at 12.5\%. On the Core i9 the first comparison
+(job 085) was confounded: FreeToken's hybrid backend ran gpt-oss at \iNineHybridMin--\iNineHybridMax\,tok/s, below its
+own offload backend (\iNineOffloadMin--\iNineOffloadMax), because its CPU executor spread 23 threads across the 8
+performance and 16 efficiency cores and its calibration then sent two thirds of the misses over the slow link, the
+same failure \cref{sec:law} reports for llama.cpp; the 1.4--2.0$\times$ lead that gave us measured a thread
+configuration. We reran it (job 088, a second rental of the same CPU model) with FreeToken's executor on 8 threads
+pinned to the performance cores: its hybrid backend then runs \slHybGainMin--\slHybGainMax$\times$ faster than before
+(\slHybLow, \slHybMid{} and \slHybHigh\,tok/s; its calibration now copies \slFetchFrac\% of misses), beating its own
+offload backend at 11 and 25\% and tying it at 40\%, and ours leads its better configuration by \slFtLow, \slFtMid{}
+and \slFtHigh$\times$ (lowest interval bound \slFtLoMin). Restricted to the CPU alone, FreeToken's 8-thread executor
+decodes \slFzeroMid\,tok/s at every budget. llama.cpp on the same rental runs \slLlamaTeight\,tok/s with one thread
+per performance core (\slLlamaErrTeight\% from the law's prediction) and \slLlamaTall{} with all 24 threads
+(\slLlamaErrTall\%): the hybrid-core failure is a thread-count choice, and the law holds once the choice is right. The
+law predicted llama.cpp on the Ryzen within \hpLlamaQwen\%. \Cref{fig:ratio} puts every same-machine comparison on one
+axis.
 
 \paragraph{Long outputs.} Our lead does not come from the first 256 tokens. On gpt-oss, on ten held-out hard
 problems (AIME 2022, problems 11--15 of both exams) that neither system has finished reasoning about after 2{,}048
@@ -499,7 +509,8 @@ hosts, rented; GPU clocks could not be locked, power limits differed (400--575\,
 greedy decoding; 130--186-token prompts. Long outputs are measured on held-out problems. Prompts, batches above one
 and speculative verification bypass the cache and are not measured.
 \item \textbf{Competitor settings.} FreeToken ran its faster backend per budget with its own bandwidth calibration,
-default thread count and fetch cap, while our FETCH table was swept; its CPU backend failed on a hybrid-core host.
+default thread count and fetch cap, while our FETCH table was swept; its CPU backend failed on a hybrid-core host at its default
+thread count and was rerun on the performance cores.
 Each comparison uses one confirmation launch, except Qwen3 at 25\%, which is from the selection launch for both
 systems.
 \item \textbf{The bound and the audit.} Exact routing only: expert skipping, substitution or deferral change the model

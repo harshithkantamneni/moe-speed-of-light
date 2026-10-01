@@ -3,6 +3,26 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 1 October, early: tranche 1 lands (jobs 088 and 090; 089 running; 091/092 launched)
+
+- **Job 090, parity (RTX PRO 6000, 1.9 h, 1.8 USD).** Full-vocabulary KL of our cache (25%) against stock llama.cpp
+  with every weight in VRAM: mean 0.0019 nats (gpt-oss) and 0.0005 (Qwen3), 99.9th percentile 0.12 / 0.06, top-1
+  agreement 98.5% / 99.3%, loss +0.16% / +0.19%; stock's own `--n-cpu-moe` placement diverges by the same amount.
+  3 of 3 predictions held. The first rental (offer 31632904) was a 40 GB A100 and the gate stopped it in a minute.
+- **Job 088, the slow link done fairly (i9-14900K, 3.2 h, 1.6 USD).** FreeToken's hybrid on 8 P-core threads runs
+  37.5 / 62.1 / 92.5 tok/s (3.1x / 2.0x / 1.4x job 085's 23-thread hybrid; its calibration copies 51.7% of misses
+  instead of 65.5%); ours leads its better configuration 1.58 / 1.52 / 1.51x (CIs above 1.47). llama.cpp `-t 8`
+  40.0 tok/s, within 10% of the law; `-t 24` 32.8 (+26% off): the hybrid-core failure is a thread-count choice.
+  Prediction 3's band (1.10-1.50x) failed by 0.01-0.08; the other four held. `prereg/slowlink_outcome_088.md`.
+- **Job 089, Table 1 on a stock-clock card.** The first host (offer 51871552) passed both gates and then had no
+  network: every download failed, every run died at load, 1.2 USD lost. Relaunched on a verified 9950X (offer
+  49539124, 0.79/h); running.
+- **Jobs 091 (RTX 4090) and 092 (RTX 3090 + Mixtral-8x7B)** launched: the grid. Qwen3 43.75% does not fit a 24 GB
+  card (28 GB of slots), so both cards run Qwen3 at 12.5 and 25% and gpt-oss at 11% (and 25% on the 4090).
+- **Paper:** parity paragraph rewritten around the KL result; the slow-link paragraph reports 088 and marks 085's
+  gpt-oss comparison as confounded; Fig. 3 uses 088's points; the abstract carries 1.51-1.58x; the scorecard has an
+  "after the reviews" era (088 onward: 5 held, 3 held on the point, 3 failed).
+
 ## 30 September, late: six persona reviews, then the accounting revision (no GPU)
 
 **Reviews.** Six persona reviews of the draft (benchmarking, MLSys PC, competitor author, llama.cpp maintainer,

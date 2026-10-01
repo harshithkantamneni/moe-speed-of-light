@@ -388,7 +388,9 @@ def scorecard():
     M("scHeld", str(t["held"])); M("scHeldPoint", str(t["held (point)"])); M("scFailed", str(t["failed"]))
     M("scUntested", str(t["untested"])); M("scVoid", str(t["void"])); M("scClauses", str(t["clauses"]))
     M("scHeldAnyPct", pct(t["held_any_share_of_scored"]))
-    for era, nm in (("073-075", "Early"), ("076-081", "Mid"), ("082-087", "Late")):
+    for era, nm in (("073-075", "Early"), ("076-081", "Mid"), ("082-087", "Late"), ("088-092", "Rev")):
+        if era not in s["by_era"]:
+            continue
         e = s["by_era"][era]
         M(f"sc{nm}Held", str(e["held"])); M(f"sc{nm}HeldPoint", str(e["held (point)"])); M(f"sc{nm}Failed", str(e["failed"]))
         M(f"sc{nm}Clauses", str(e["clauses"])); M(f"sc{nm}Scored", str(e["scored"]))
@@ -406,6 +408,34 @@ def crossrental():
     of = [h[f"g_ft_offload_r{b} L1"] for b in ("0.111", "0.25", "0.40")]
     M("iNineHybridMin", f"{min(hy):.0f}"); M("iNineHybridMax", f"{max(hy):.0f}")
     M("iNineOffloadMin", f"{min(of):.0f}"); M("iNineOffloadMax", f"{max(of):.0f}")
+
+
+def slowlink():
+    d = load("slowlink_088.json")
+    rows = {r["budget"]: r for r in d["rows"]}
+    rat = [rows[b]["ours_over_ft_L2"] for b in ("11%", "25%", "40%")]
+    M("slFtMin", f"{min(r[0] for r in rat):.2f}"); M("slFtMax", f"{max(r[0] for r in rat):.2f}")
+    M("slFtLoMin", f"{min(r[1] for r in rat):.2f}")
+    for b, tag in (("11%", "Low"), ("25%", "Mid"), ("40%", "High")):
+        r = rows[b]
+        M(f"slFt{tag}", f"{r['ours_over_ft_L2'][0]:.2f}"); M(f"slFtVar{tag}", r["ft_variant"].replace("hybrid8", "hybrid"))
+        M(f"slOurs{tag}", f"{r['ours']:.1f}"); M(f"slFtSpeed{tag}", f"{r['ft']:.1f}")
+        M(f"slHyb{tag}", f"{r['launch1']['hybrid8']:.1f}"); M(f"slOff{tag}", f"{r['launch1']['offload']:.1f}")
+        M(f"slFzero{tag}", f"{r['launch1']['hybrid8f0']:.1f}")
+    hy = [rows[b]["ft_hybrid8_over_085_hybrid"] for b in ("11%", "25%", "40%")]
+    M("slHybGainMin", f"{min(hy):.1f}"); M("slHybGainMax", f"{max(hy):.1f}")
+    fb = [rows[b]["ft_best_over_085_best"] for b in ("11%", "25%", "40%")]
+    M("slBestGainMin", f"{min(fb):.2f}"); M("slBestGainMax", f"{max(fb):.2f}")
+    ll = d["llama"]
+    M("slLlamaTeight", f"{ll['t8']:.1f}"); M("slLlamaTall", f"{ll['tall']:.1f}")
+    M("slLlamaErrTeight", f"{100 * ll['err_t8']:+.1f}"); M("slLlamaErrTall", f"{100 * ll['err_tall']:+.1f}")
+    M("slLlamaTratio", f"{ll['t8_over_tall'][0]:.2f}")
+    M("slOursHostGain", f"{100 * (rows['11%']['ours'] / rows['11%']['job085']['ours'] - 1):.0f}")
+    import re
+    fl = d.get("ft_lines.txt", "")
+    m = re.search(r"fetching ([\d.]+)% of each decode step", fl)
+    M("slFetchFrac", m.group(1) if m else "--")
+    M("slFtProbeCpu", f"{d['ft_probe']['cpu']:.1f}"); M("slFtProbePcie", f"{d['ft_probe']['pcie']:.1f}")
 
 
 def parity():
@@ -462,6 +492,7 @@ def main():
     audit()
     scorecard()
     crossrental()
+    slowlink()
     parity()
     clocks()
     with open(P("paper", "wsg_numbers2.tex"), "w") as f:

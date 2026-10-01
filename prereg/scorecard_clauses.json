@@ -1,295 +1,2377 @@
 {
-  "meta": {
-    "written": "2026-09-30",
-    "purpose": "Every committed prediction of GPU jobs 073-087, split into its separable clauses and scored under one stated interval rule. Hand-encoded from the job-script headers on the gpu branch, the prereg/*.json statistics and the prereg/*_outcome_*.md notes. Read by scripts/scorecard.py, which writes prereg/scorecard.json and paper/tab_scorecard.tex.",
-    "ci_rule": "A clause is 'held' only when its point estimate is on the predicted side and its 95% paired-bootstrap interval excludes the threshold (for a band, lies entirely inside it); a clause whose point estimate is on the predicted side but whose interval includes the threshold, or for which no interval exists, is 'held (point)'; a clause whose point estimate is on the wrong side is 'failed'; 'untested' means the clause could not be evaluated; 'void' means the job was voided. Deterministic clauses (tables, counts of problems, whether a run completed) have no interval and are held or failed outright.",
-    "types": {
-      "sign": "a direction only: A ahead of / beats / leads B (threshold 1 on a ratio of means)",
-      "threshold": "a numeric bar other than a bare direction: >= 1.8x, >= 5%, <= 0.25 ms, >= 8 of 10",
-      "band": "an interval: within +-5%, within -3 to +10%, 120-190 tok/s",
-      "equality": "a deterministic or structural outcome: identical text, a table's entries, a run completing"
-    },
-    "statuses": ["held", "held (point)", "failed", "untested", "void"],
-    "eras": {"073-075": ["073", "074", "074b", "075"], "076-081": ["076", "077", "078", "079", "080", "081"], "082-087": ["082", "083", "084", "084b", "084c", "085", "085b", "086", "087"]},
-    "supplementary_intervals": "Where a prereg JSON has no interval for a clause, one was computed for this scorecard from the job's raw rows (results/<job>/bs1.jsonl) with scripts/samehost_stats.boot_ratio (paired by problem, 10,000 resamples, seed 0) or the same bootstrap of a single mean; the source field says so.",
-    "paper_log_field": "paper_log is the status the paper's prediction log (paper/app_wsg.tex, one line per prediction) gives the prediction the clause belongs to."
+ "meta": {
+  "written": "2026-09-30",
+  "purpose": "Every committed prediction of GPU jobs 073-092, split into its separable clauses and scored under one stated interval rule. Hand-encoded from the job-script headers on the gpu branch, the prereg/*.json statistics and the prereg/*_outcome_*.md notes. Read by scripts/scorecard.py, which writes prereg/scorecard.json and paper/tab_scorecard.tex.",
+  "ci_rule": "A clause is 'held' only when its point estimate is on the predicted side and its 95% paired-bootstrap interval excludes the threshold (for a band, lies entirely inside it); a clause whose point estimate is on the predicted side but whose interval includes the threshold, or for which no interval exists, is 'held (point)'; a clause whose point estimate is on the wrong side is 'failed'; 'untested' means the clause could not be evaluated; 'void' means the job was voided. Deterministic clauses (tables, counts of problems, whether a run completed) have no interval and are held or failed outright.",
+  "types": {
+   "sign": "a direction only: A ahead of / beats / leads B (threshold 1 on a ratio of means)",
+   "threshold": "a numeric bar other than a bare direction: >= 1.8x, >= 5%, <= 0.25 ms, >= 8 of 10",
+   "band": "an interval: within +-5%, within -3 to +10%, 120-190 tok/s",
+   "equality": "a deterministic or structural outcome: identical text, a table's entries, a run completing"
   },
-  "jobs": [
+  "statuses": [
+   "held",
+   "held (point)",
+   "failed",
+   "untested",
+   "void"
+  ],
+  "eras": {
+   "073-075": [
+    "073",
+    "074",
+    "074b",
+    "075"
+   ],
+   "076-081": [
+    "076",
+    "077",
+    "078",
+    "079",
+    "080",
+    "081"
+   ],
+   "082-087": [
+    "082",
+    "083",
+    "084",
+    "084b",
+    "084c",
+    "085",
+    "085b",
+    "086",
+    "087"
+   ],
+   "088-092": [
+    "088",
+    "089",
+    "090",
+    "091",
+    "092"
+   ]
+  },
+  "supplementary_intervals": "Where a prereg JSON has no interval for a clause, one was computed for this scorecard from the job's raw rows (results/<job>/bs1.jsonl) with scripts/samehost_stats.boot_ratio (paired by problem, 10,000 resamples, seed 0) or the same bootstrap of a single mean; the source field says so.",
+  "paper_log_field": "paper_log is the status the paper's prediction log (paper/app_wsg.tex, one line per prediction) gives the prediction the clause belongs to.",
+  "era_labels": {}
+ },
+ "jobs": [
+  {
+   "job": "073",
+   "era": "073-075",
+   "script": "jobs/073_samehost_v2@vast.sh",
+   "commit": "a44221b",
+   "host": "RTX 5090 + Ryzen 9 9950X3D (CPU / link / both 69.1 / 53.1 / 80.9 GB/s)",
+   "outcome_note": "prereg/samehost_v2_outcome.md",
+   "clauses": [
     {
-      "job": "073",
-      "era": "073-075",
-      "script": "jobs/073_samehost_v2@vast.sh",
-      "commit": "a44221b",
-      "host": "RTX 5090 + Ryzen 9 9950X3D (CPU / link / both 69.1 / 53.1 / 80.9 GB/s)",
-      "outcome_note": "prereg/samehost_v2_outcome.md",
-      "clauses": [
-        {"id": "073-P1a", "short": "ours+FETCH >= 5% ahead of FreeToken, 11%", "prediction": 1, "clause": "ours+FETCH is ahead of FreeToken's better backend at C14 [...] by >= 5%, the 95% paired-bootstrap CI excluding 0", "type": "threshold", "quantity": "ours+FETCH / FreeToken hybrid 0.111, 11%", "threshold": ">= 1.05", "source": "prereg/samehost_v2.json comparisons[0].ours_over_ft", "measured": 1.109, "ci": [1.098, 1.120], "status": "held", "paper_log": "failed", "note": "The paper's log scores prediction 1 as one unit (failed on its C51 clause)."},
-        {"id": "073-P1b", "short": "ours+FETCH >= 5% ahead of FreeToken, 25%", "prediction": 1, "clause": "ours+FETCH is ahead of FreeToken's better backend at [...] C32 by >= 5%, the 95% paired-bootstrap CI excluding 0", "type": "threshold", "quantity": "ours+FETCH / FreeToken hybrid 0.25, 25%", "threshold": ">= 1.05", "source": "prereg/samehost_v2.json comparisons[1].ours_over_ft", "measured": 1.084, "ci": [1.076, 1.092], "status": "held", "paper_log": "failed", "note": ""},
-        {"id": "073-P1c", "short": "ours+FETCH within +-5% of FreeToken, 40%", "prediction": 1, "clause": "at C51 the difference is within +-5%", "type": "band", "quantity": "ours+FETCH / FreeToken offload 0.40, 40%", "threshold": "[0.95, 1.05]", "source": "prereg/samehost_v2.json comparisons[2].ours_over_ft", "measured": 0.941, "ci": [0.933, 0.951], "status": "failed", "paper_log": "failed", "note": "Ours without FETCH: 0.978 [0.965, 0.991]."},
-        {"id": "073-P2", "short": "ours+FETCH >= 1.8x llama.cpp, every budget", "prediction": 2, "clause": "ours+FETCH is >= 1.8x llama.cpp at every budget", "type": "threshold", "quantity": "ours+FETCH / llama.cpp at 11 / 25 / 40%", "threshold": ">= 1.8 at every budget", "source": "prereg/samehost_v2.json comparisons[*].ours_over_llama", "measured": [1.832, 2.358, 2.647], "ci": [[1.808, 1.856], [2.322, 2.396], [2.605, 2.686]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "073-P3a", "short": "same-problem warm-up reads 5-15% faster, the two caches", "prediction": 3, "clause": "The old protocol (warm-up on the measured problem) reads 5-15% faster than the session protocol for the two caching systems", "type": "band", "quantity": "old-protocol / session rate, 5 problems, ours+FETCH C32 and FreeToken offload 0.25", "threshold": "[1.05, 1.15] for both", "source": "prereg/samehost_v2.json old_vs_session; intervals computed for this scorecard from results/073_samehost_v2@vast/bs1.jsonl (5 problems, launch 1 of the session, as the script does)", "measured": [0.991, 0.997], "ci": [[0.962, 1.028], [0.986, 1.008]], "status": "failed", "paper_log": "failed", "note": ""},
-        {"id": "073-P3b", "short": "same-problem warm-up within +-2%, llama.cpp", "prediction": 3, "clause": "and within +-2% for llama.cpp (its placement is static)", "type": "band", "quantity": "old-protocol / session rate, llama.cpp -ncmoe 27, 5 problems", "threshold": "[0.98, 1.02]", "source": "prereg/samehost_v2.json old_vs_session.llama_n27; interval computed for this scorecard from results/073_samehost_v2@vast/bs1.jsonl", "measured": 0.962, "ci": [0.934, 0.979], "status": "failed", "paper_log": "failed", "note": "Interval computed as for 073-P3a; the whole interval is below the band."},
-        {"id": "073-P4", "short": ">= 80% of greedy outputs identical to llama.cpp's, every system", "prediction": 4, "clause": "Greedy outputs: >= 80% of problems give the same text as llama.cpp's for every system (numerics differ)", "type": "equality", "quantity": "share of the 30 problems whose full 256-token output hash equals llama.cpp -ncmoe 27's", "threshold": ">= 0.80 for every system", "source": "prereg/samehost_v2.json same_text_as_llama_n27", "measured": {"ours (6 configurations)": "0.000-0.033", "FreeToken (6 configurations)": "0.000", "llama.cpp -ncmoe 32 / 22": "0.700 / 0.400"}, "ci": null, "status": "failed", "paper_log": "failed", "note": "The paper's log reports 27-47%, which is agreement on the first 160 characters (text_head in bs1.jsonl: ours 0.30-0.47, FreeToken 0.23-0.33); fully identical outputs are 0-3% for ours and 0% for FreeToken. llama.cpp's own other placements agree with it on 40-70% of full outputs (87-93% of first-160-character heads)."}
-      ]
+     "id": "073-P1a",
+     "short": "ours+FETCH >= 5% ahead of FreeToken, 11%",
+     "prediction": 1,
+     "clause": "ours+FETCH is ahead of FreeToken's better backend at C14 [...] by >= 5%, the 95% paired-bootstrap CI excluding 0",
+     "type": "threshold",
+     "quantity": "ours+FETCH / FreeToken hybrid 0.111, 11%",
+     "threshold": ">= 1.05",
+     "source": "prereg/samehost_v2.json comparisons[0].ours_over_ft",
+     "measured": 1.109,
+     "ci": [
+      1.098,
+      1.12
+     ],
+     "status": "held",
+     "paper_log": "failed",
+     "note": "The paper's log scores prediction 1 as one unit (failed on its C51 clause)."
     },
     {
-      "job": "074",
-      "era": "073-075",
-      "script": "jobs/074_fix40@vast.sh",
-      "commit": "c4aee57",
-      "host": "RTX 5090 + Ryzen 9 7950X (CPU / link / both 46.2 / 47.3 / 51.8 GB/s; attempt 2, the 9950X3D host of attempt 1 stopped the instance)",
-      "outcome_note": "prereg/fix40_outcome_074.md",
-      "clauses": [
-        {"id": "074-P1", "short": "ec-bench launch time <= 0.25 ms, C51", "prediction": 1, "clause": "ec-bench, C51: host_us_per_step.launch falls from ~0.7 ms to <= 0.25 ms with the maps on the GPU", "type": "threshold", "quantity": "host_us_per_step.launch, ec-bench C51 (ms)", "threshold": "<= 0.25", "source": "results/074_fix40@vast/ref_C51_r1.json host_us_per_step.launch (201.3 us); maps on the CPU: ref_C51mc_r1.json (714.7 us)", "measured": 0.201, "ci": null, "status": "held (point)", "paper_log": "held", "note": "A timer mean over 1,524 steps; no interval."},
-        {"id": "074-P2a", "short": "ours v2 >= 127 tok/s, C51", "prediction": 2, "clause": "chat, C51: ours v2 >= 127 tok/s", "type": "threshold", "quantity": "ours v2 C51 mean tok/s over 3 launches", "threshold": ">= 127", "source": "prereg/fix40_outcome_074.md (97.3 / 94.6 / 93.6); results/074_fix40@vast/bs1.jsonl", "measured": 95.1, "ci": null, "status": "failed", "paper_log": "failed", "note": "The absolute target carried job 073's host; this host's memory is 33% slower."},
-        {"id": "074-P2b", "short": "ours v2 ahead of FreeToken offload, C51", "prediction": 2, "clause": "and ahead of FreeToken offload 0.40 in the same session (paired CI > 1)", "type": "sign", "quantity": "ours v2 C51 / FreeToken offload 0.40", "threshold": "> 1", "source": "prereg/fix40_outcome_074.md (-16.9% [-18.3, -15.5]); recomputed for this scorecard from results/074_fix40@vast/bs1.jsonl", "measured": 0.831, "ci": [0.817, 0.845], "status": "failed", "paper_log": "failed", "note": "With FETCH (launch 1 only): 104.8 tok/s, -8.4% [-9.3, -7.5]."},
-        {"id": "074-P3a", "short": "ours v2 >= 59 tok/s, C14", "prediction": 3, "clause": "chat: ours v2 >= 59 tok/s at C14", "type": "threshold", "quantity": "ours v2 C14 mean tok/s", "threshold": ">= 59", "source": "prereg/fix40_outcome_074.md; results/074_fix40@vast/bs1.jsonl", "measured": 41.5, "ci": null, "status": "failed", "paper_log": "failed", "note": ""},
-        {"id": "074-P3b", "short": "ours v2 >= 91 tok/s, C32", "prediction": 3, "clause": "and >= 91 tok/s at C32 (073: 57.6 / 88.2 without FETCH)", "type": "threshold", "quantity": "ours v2 C32 mean tok/s", "threshold": ">= 91", "source": "prereg/fix40_outcome_074.md; results/074_fix40@vast/bs1.jsonl", "measured": 65.3, "ci": null, "status": "failed", "paper_log": "failed", "note": ""},
-        {"id": "074-P4", "short": "half-life 64 within +-2% of half-life 16, C51", "prediction": 4, "clause": "half-life 64 instead of 16 at C51: within +-2%", "type": "band", "quantity": "ours v2 C51 half-life 64 / half-life 16, launch 1", "threshold": "[0.98, 1.02]", "source": "prereg/fix40_outcome_074.md (+1.2%); interval computed for this scorecard from results/074_fix40@vast/bs1.jsonl", "measured": 1.012, "ci": [0.997, 1.027], "status": "held (point)", "paper_log": "held", "note": "The interval crosses the band's upper edge."}
-      ]
+     "id": "073-P1b",
+     "short": "ours+FETCH >= 5% ahead of FreeToken, 25%",
+     "prediction": 1,
+     "clause": "ours+FETCH is ahead of FreeToken's better backend at [...] C32 by >= 5%, the 95% paired-bootstrap CI excluding 0",
+     "type": "threshold",
+     "quantity": "ours+FETCH / FreeToken hybrid 0.25, 25%",
+     "threshold": ">= 1.05",
+     "source": "prereg/samehost_v2.json comparisons[1].ours_over_ft",
+     "measured": 1.084,
+     "ci": [
+      1.076,
+      1.092
+     ],
+     "status": "held",
+     "paper_log": "failed",
+     "note": ""
     },
     {
-      "job": "074b",
-      "era": "073-075",
-      "script": "jobs/074b_server_overhead@vast.sh",
-      "commit": "65ed351",
-      "host": "RTX 5090 + Ryzen 9 7950X (CPU / link / both 46.2 / 46.8 / 52.1 GB/s)",
-      "outcome_note": "prereg/server_overhead_outcome_074b.md",
-      "clauses": [
-        {"id": "074b-P1", "short": "GPU sampling cuts between-step host time by >= 1 ms", "prediction": 1, "clause": "backend sampling cuts the cache's between-step host time (host_us_per_step.app) by >= 1 ms", "type": "threshold", "quantity": "host_us_per_step.app without minus with backend sampling, ours v2 C51 (ms)", "threshold": ">= 1.0", "source": "results/074b_server_overhead@vast/srv_v2_C51_L1.json (2007.2 us) vs srv_v2_C51_bs_L1.json (404.6 us); with FETCH srv_v2f_C51_L1.json (1667.8) vs srv_v2f_C51_bs_L1.json (235.8)", "measured": 1.60, "ci": null, "status": "held (point)", "paper_log": "held", "note": "1.43 ms with FETCH. Timer means over 7,904 steps; no interval."},
-        {"id": "074b-P2a", "short": "ours v2 >= 10% faster with GPU sampling, C51", "prediction": 2, "clause": "with backend sampling, ours v2 at C51 is >= 10% faster than without", "type": "threshold", "quantity": "ours v2 C51 with backend sampling (launches 1-2) / without (launch 1)", "threshold": ">= 1.10", "source": "prereg/server_overhead_outcome_074b.md (+11.7% [+10.9, +12.5]); recomputed for this scorecard from results/074b_server_overhead@vast/bs1.jsonl", "measured": 1.117, "ci": [1.109, 1.125], "status": "held", "paper_log": "held", "note": "With FETCH: 1.170 [1.166, 1.174]."},
-        {"id": "074b-P2b", "short": "stock llama.cpp >= 3% faster with GPU sampling", "prediction": 2, "clause": "and stock llama.cpp >= 3% faster", "type": "threshold", "quantity": "stock llama.cpp -ncmoe 22 with / without backend sampling", "threshold": ">= 1.03", "source": "results/074b_server_overhead@vast/bs1.jsonl has rows for llama_n22_bs only (31.3 tok/s); prereg/server_overhead_outcome_074b.md: the run without backend sampling failed to load (out of GPU memory: FreeToken had not yet released its memory)", "measured": null, "ci": null, "status": "untested", "paper_log": "held", "note": "The paper's log scores prediction 2 as 'Held: +11.7%' and omits this clause."},
-        {"id": "074b-P3", "short": "ours v2+FETCH with GPU sampling >= FreeToken offload, C51", "prediction": 3, "clause": "with backend sampling and FETCH, ours v2 at C51 is at least as fast as FreeToken offload 0.40 in this session", "type": "sign", "quantity": "ours v2+FETCH C51 with backend sampling / FreeToken offload 0.40 (launches 1-2)", "threshold": ">= 1", "source": "prereg/server_overhead_outcome_074b.md (+7.4% [+6.3, +8.5]); recomputed for this scorecard from results/074b_server_overhead@vast/bs1.jsonl", "measured": 1.074, "ci": [1.063, 1.085], "status": "held", "paper_log": "held", "note": ""}
-      ]
+     "id": "073-P1c",
+     "short": "ours+FETCH within +-5% of FreeToken, 40%",
+     "prediction": 1,
+     "clause": "at C51 the difference is within +-5%",
+     "type": "band",
+     "quantity": "ours+FETCH / FreeToken offload 0.40, 40%",
+     "threshold": "[0.95, 1.05]",
+     "source": "prereg/samehost_v2.json comparisons[2].ours_over_ft",
+     "measured": 0.941,
+     "ci": [
+      0.933,
+      0.951
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Ours without FETCH: 0.978 [0.965, 0.991]."
     },
     {
-      "job": "075",
-      "era": "073-075",
-      "script": "jobs/075_pro6000_40_60@vast.sh",
-      "commit": "0fc6622",
-      "host": "RTX PRO 6000 Blackwell (96 GB) + Ryzen 9 9950X (CPU / link / both 62.3 / 53.0 / 71.3 GB/s)",
-      "outcome_note": "prereg/pro6000_outcome_075.md",
-      "clauses": [
-        {"id": "075-P1", "short": "ours ahead of FreeToken at 40% (RTX PRO 6000)", "prediction": 1, "clause": "40%: ours ahead of FreeToken, paired 95% CI above 1 on the confirmation launches", "type": "sign", "quantity": "ours v2+FETCH C51 / FreeToken offload 0.40, launches 2-3", "threshold": "> 1", "source": "prereg/pro6000_outcome_075.md (1.122 [1.107, 1.137]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl", "measured": 1.122, "ci": [1.107, 1.137], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "075-P2", "short": "ours within -3 to +10% of FreeToken at 60%", "prediction": 2, "clause": "60%: ours within -3% to +10% of FreeToken", "type": "band", "quantity": "ours v2 C77 / FreeToken offload 0.60, launches 2-3", "threshold": "[0.97, 1.10]", "source": "prereg/pro6000_outcome_075.md (1.118 [1.109, 1.127]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl", "measured": 1.118, "ci": [1.109, 1.127], "status": "failed", "paper_log": "failed", "note": "Failed on the favourable side: the whole interval is above the band."},
-        {"id": "075-P3", "short": "ours at 60% >= 55% of the all-in-VRAM speed", "prediction": 3, "clause": "ours at 60% reaches >= 55% of llama.cpp's all-in-VRAM speed on this card", "type": "threshold", "quantity": "ours v2 C77 (launches 2-3) / llama.cpp -ncmoe 0", "threshold": ">= 0.55", "source": "prereg/pro6000_outcome_075.md (72.7% [71.8, 73.6]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl", "measured": 0.726, "ci": [0.717, 0.735], "status": "held", "paper_log": "held", "note": "FreeToken reaches 0.649 [0.643, 0.656]."}
+     "id": "073-P2",
+     "short": "ours+FETCH >= 1.8x llama.cpp, every budget",
+     "prediction": 2,
+     "clause": "ours+FETCH is >= 1.8x llama.cpp at every budget",
+     "type": "threshold",
+     "quantity": "ours+FETCH / llama.cpp at 11 / 25 / 40%",
+     "threshold": ">= 1.8 at every budget",
+     "source": "prereg/samehost_v2.json comparisons[*].ours_over_llama",
+     "measured": [
+      1.832,
+      2.358,
+      2.647
+     ],
+     "ci": [
+      [
+       1.808,
+       1.856
+      ],
+      [
+       2.322,
+       2.396
+      ],
+      [
+       2.605,
+       2.686
       ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
     },
     {
-      "job": "076",
-      "era": "076-081",
-      "script": "jobs/076_table_5090@vast.sh",
-      "commit": "a8ddf7a",
-      "host": "RTX 5090 + Ryzen 9 9950X (CPU / link / both 62.3 / 53.0 / 73.0 GB/s)",
-      "outcome_note": "prereg/table_outcome_076.md",
-      "clauses": [
-        {"id": "076-P1", "short": "ours ahead of FreeToken at 11/25/40%", "prediction": 1, "clause": "ours ahead of FreeToken at 11%, 25% and 40%, paired 95% CI above 1 on the confirmation launches", "type": "sign", "quantity": "ours v2+FETCH / FreeToken's better backend (hybrid, offload, offload), launches 2-3", "threshold": "> 1 at every budget", "source": "prereg/table_outcome_076.md; recomputed for this scorecard from results/076_table_5090@vast/bs1.jsonl", "measured": [1.205, 1.217, 1.118], "ci": [[1.190, 1.220], [1.201, 1.234], [1.108, 1.129]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "076-P2", "short": "ours >= 1.8x llama.cpp, every budget", "prediction": 2, "clause": "ours >= 1.8x llama.cpp at every budget", "type": "threshold", "quantity": "ours v2+FETCH (launches 2-3) / llama.cpp at 11 / 25 / 40%", "threshold": ">= 1.8 at every budget", "source": "prereg/table_outcome_076.md (1.93 / 2.68 / 3.19); intervals computed for this scorecard from results/076_table_5090@vast/bs1.jsonl", "measured": [1.924, 2.683, 3.191], "ci": [[1.894, 1.956], [2.631, 2.735], [3.130, 3.250]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "076-P3", "short": "the law within 8% on own-text runs (four configurations)", "prediction": 3, "clause": "the law, predicted on the machine, within 8% for the cache's own-text runs (base and FETCH, C14/C32/C56)", "type": "band", "quantity": "measured own-text rate / the law's prediction written before the runs, for C14, C32, C56 and C32+FETCH (12 sequences each)", "threshold": "[0.92, 1.08] for all four", "source": "results/076_table_5090@vast/law_prediction.json predicted_tok_s vs ref_ec.jsonl (stats-tagged rows); intervals computed for this scorecard by bootstrap over the 12 sequences", "measured": [1.009, 1.006, 1.052, 0.960], "ci": [[0.962, 1.066], [0.947, 1.086], [0.960, 1.164], [0.909, 1.024]], "status": "held (point)", "paper_log": "held", "note": "The 12-sequence intervals are wider than the band (C32 and C56 cross it)."}
+     "id": "073-P3a",
+     "short": "same-problem warm-up reads 5-15% faster, the two caches",
+     "prediction": 3,
+     "clause": "The old protocol (warm-up on the measured problem) reads 5-15% faster than the session protocol for the two caching systems",
+     "type": "band",
+     "quantity": "old-protocol / session rate, 5 problems, ours+FETCH C32 and FreeToken offload 0.25",
+     "threshold": "[1.05, 1.15] for both",
+     "source": "prereg/samehost_v2.json old_vs_session; intervals computed for this scorecard from results/073_samehost_v2@vast/bs1.jsonl (5 problems, launch 1 of the session, as the script does)",
+     "measured": [
+      0.991,
+      0.997
+     ],
+     "ci": [
+      [
+       0.962,
+       1.028
+      ],
+      [
+       0.986,
+       1.008
       ]
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": ""
     },
     {
-      "job": "077",
-      "era": "076-081",
-      "script": "jobs/077_competitors_gptoss@vast.sh",
-      "commit": "23a4a38",
-      "host": "RTX 5090 + Ryzen 9 9950X3D",
-      "outcome_note": "prereg/competitors_outcome_077.md",
-      "clauses": [
-        {"id": "077-P1a", "short": "both entrants run end to end on gpt-oss-120b", "prediction": 1, "clause": "both new entrants run end to end on gpt-oss-120b", "type": "equality", "quantity": "Pipelined Sharding and leloch's cache complete all 30 problems at 11 / 25 / 40%", "threshold": "all runs complete", "source": "results/077_competitors_gptoss@vast/bs1.jsonl (30 rows per configuration for pipeshard_n32/27/22 and leloch_E14/32/51)", "measured": "30 of 30 problems at every budget for both", "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "077-P1b", "short": "both entrants faster than llama.cpp at 25/40%", "prediction": 1, "clause": "and are faster than stock llama.cpp at 25% and 40%", "type": "sign", "quantity": "Pipelined Sharding / llama.cpp and leloch / llama.cpp at 25% and 40%", "threshold": "> 1 for both at both budgets", "source": "prereg/competitors_outcome_077.md (1.28-1.45x); intervals computed for this scorecard from results/077_competitors_gptoss@vast/bs1.jsonl", "measured": {"pipeshard 25 / 40%": [1.348, 1.417], "leloch 25 / 40%": [1.446, 1.280]}, "ci": {"pipeshard 25 / 40%": [[1.336, 1.360], [1.399, 1.435]], "leloch 25 / 40%": [[1.431, 1.461], [1.269, 1.291]]}, "status": "held", "paper_log": "held", "note": "Also at 11%: 1.327 [1.306, 1.349] and 1.416 [1.382, 1.451]."},
-        {"id": "077-P2", "short": "ours ahead of both entrants, every budget", "prediction": 2, "clause": "ours v2 (the faster of its two settings) is ahead of both at every budget", "type": "sign", "quantity": "ours v2+FETCH / the better new entrant at 11 / 25 / 40%", "threshold": "> 1 at every budget", "source": "prereg/competitors_outcome_077.md (1.42x / 1.90x / 2.34x); intervals computed for this scorecard from results/077_competitors_gptoss@vast/bs1.jsonl", "measured": [1.421, 1.896, 2.343], "ci": [[1.403, 1.439], [1.871, 1.921], [2.293, 2.391]], "status": "held", "paper_log": "held", "note": "Against the other entrant at each budget: 1.516, 2.033, 2.593."}
-      ]
+     "id": "073-P3b",
+     "short": "same-problem warm-up within +-2%, llama.cpp",
+     "prediction": 3,
+     "clause": "and within +-2% for llama.cpp (its placement is static)",
+     "type": "band",
+     "quantity": "old-protocol / session rate, llama.cpp -ncmoe 27, 5 problems",
+     "threshold": "[0.98, 1.02]",
+     "source": "prereg/samehost_v2.json old_vs_session.llama_n27; interval computed for this scorecard from results/073_samehost_v2@vast/bs1.jsonl",
+     "measured": 0.962,
+     "ci": [
+      0.934,
+      0.979
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Interval computed as for 073-P3a; the whole interval is below the band."
     },
     {
-      "job": "078",
-      "era": "076-081",
-      "script": "jobs/078_qwen3_4way@vast.sh",
-      "commit": "23a4a38",
-      "host": "RTX 5090 + Ryzen 9 9950X (CPU STREAM 44.7, PCIe 46.7 GB/s: the CPU path no faster than the link)",
-      "outcome_note": "prereg/qwen3_outcome_078.md",
-      "clauses": [
-        {"id": "078-P1", "short": "ours ahead of FreeToken at 12.5/25% (Qwen3)", "prediction": 1, "clause": "ours (better of FETCH on/off) ahead of FreeToken's better backend at 12.5% and 25%", "type": "sign", "quantity": "ours v2+FETCH / FreeToken (hybrid at 12.5%, offload at 25%)", "threshold": "> 1 at both budgets", "source": "prereg/qwen3_078.json comparisons[0-1].ours_over_ft", "measured": [1.071, 1.067], "ci": [[1.063, 1.080], [1.043, 1.094]], "status": "held", "paper_log": "held", "note": "Not predicted: at 43.75% FreeToken leads, 0.948 [0.935, 0.962]."},
-        {"id": "078-P2", "short": "ours ahead of KTransformers, every budget", "prediction": 2, "clause": "ours ahead of KTransformers at every budget", "type": "sign", "quantity": "ours v2+FETCH / KTransformers at 12.5 / 25 / 43.75%", "threshold": "> 1 at every budget", "source": "prereg/qwen3_078.json comparisons[*].ours_over_kt", "measured": [2.168, 3.059, 4.420], "ci": [[2.140, 2.197], [2.975, 3.162], [4.310, 4.550]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "078-P3", "short": "ours >= 1.5x llama.cpp, every budget", "prediction": 3, "clause": "ours >= 1.5x stock llama.cpp at every budget", "type": "threshold", "quantity": "ours v2+FETCH / llama.cpp at 12.5 / 25 / 43.75%", "threshold": ">= 1.5 at every budget", "source": "prereg/qwen3_078.json comparisons[*].ours_over_llama", "measured": [2.122, 3.051, 4.470], "ci": [[2.092, 2.151], [2.967, 3.152], [4.350, 4.609]], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "079",
-      "era": "076-081",
-      "script": "jobs/079_qwen3_profile@vast.sh",
-      "commit": "48f0529",
-      "host": "RTX 5090 + Ryzen 9 9950X3D (CPU STREAM 66.9, PCIe 57.9 GB/s)",
-      "outcome_note": "prereg/qwen3_profile_outcome_079.md",
-      "clauses": [
-        {"id": "079-P1a", "short": "host-side time per step < 1 ms", "prediction": 1, "clause": "our host-side time per decode step (app + pre + inputs + launch + post, from the cache's own timer, C56+FETCH) is below 1 ms", "type": "threshold", "quantity": "sum of the five host timer fields, ours C56+FETCH, unprofiled (ms)", "threshold": "< 1.0", "source": "results/079_qwen3_profile@vast/srv_oursv2f_C56.json host_us_per_step (48.3 + 2.0 + 79.0 + 103.0 + 33.2 us)", "measured": 0.266, "ci": null, "status": "held (point)", "paper_log": "held", "note": "Timer mean over 7,874 steps; no interval."},
-        {"id": "079-P1b", "short": "host-side time < 10% of the token time", "prediction": 1, "clause": "and below 10% of the token time", "type": "threshold", "quantity": "host-side time / mean token time (0.266 ms / 9.99 ms)", "threshold": "< 0.10", "source": "results/079_qwen3_profile@vast/srv_oursv2f_C56.json and bs1.jsonl (oursv2f_C56 mean 100.1 tok/s)", "measured": 0.027, "ci": null, "status": "held (point)", "paper_log": "held", "note": ""},
-        {"id": "079-P2", "short": ">= 1.5x FreeToken's kernels per token", "prediction": 2, "clause": "ours runs at least 1.5x as many GPU kernels per decode token as FreeToken offload (profile medians)", "type": "threshold", "quantity": "kernels per token, ours C56+FETCH / FreeToken offload 0.4375 (1436 / 894)", "threshold": ">= 1.5", "source": "prereg/qwen3_profile_outcome_079.md (results/079_qwen3_profile@vast/prof_*.json, medians over 200 tokens)", "measured": 1.606, "ci": null, "status": "held (point)", "paper_log": "held", "note": "A median of a profile; no interval."},
-        {"id": "079-P3", "short": "ours within +-5% of FreeToken at 43.75%", "prediction": 3, "clause": "on this host, ours (better of FETCH on/off) at 43.75% is within +-5% of FreeToken's better backend (paired ratio 0.95-1.05)", "type": "band", "quantity": "ours C56+FETCH / FreeToken hybrid 0.4375", "threshold": "[0.95, 1.05]", "source": "prereg/qwen3_profile_079.json ratios['oursv2f_C56/ft_hybrid_r0.4375']", "measured": 0.991, "ci": [0.975, 1.009], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "080",
-      "era": "076-081",
-      "script": "jobs/080_fetch_split@vast.sh",
-      "commit": "b2ef1a1",
-      "host": "RTX 5090 + Ryzen 9 9950X3D (CPU / PCIe / both 70.9 / 53.2 / 80.7 GB/s)",
-      "outcome_note": "prereg/split_outcome_080.md",
-      "clauses": [
-        {"id": "080-P1", "short": "law table >= 3% over the current table, 43.75%", "prediction": 1, "clause": "at 43.75%, the law table beats the current table by >= 3% (launch 1, paired, CI lower bound > 1)", "type": "threshold", "quantity": "ours C56 law table / current table, launch 1", "threshold": ">= 1.03", "source": "prereg/split_080.json ratios['law / cur (L1)']", "measured": 1.048, "ci": [1.041, 1.055], "status": "held", "paper_log": "held", "note": "Scored against 1.03, the committed margin, not the bare 'CI lower bound > 1'."},
-        {"id": "080-P2", "short": "law table within 2% of the sweep's best, 43.75%", "prediction": 2, "clause": "at 43.75%, the law table is within 2% of the best table in the sweep (launch 1)", "type": "band", "quantity": "law table / best table (lite), launch 1", "threshold": "[0.98, 1.02]", "source": "prereg/split_080.json ratios['law / best ours_C56_lite (L1)']", "measured": 0.991, "ci": [0.986, 0.996], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "080-P3", "short": "best table leads FreeToken, 43.75%", "prediction": 3, "clause": "at 43.75%, with the best table, ours leads FreeToken's better backend (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours C56 (law and lite tie at 108.2 on launch 2) / FreeToken offload 0.4375, launch 2", "threshold": "> 1", "source": "prereg/split_080.json ratios['ours_C56_law / ft_offload_r0.4375 (L2)'] (lite: 1.049 [1.035, 1.064])", "measured": 1.049, "ci": [1.036, 1.064], "status": "held", "paper_log": "held", "note": "With the current table it was a tie: 1.000 [0.987, 1.014]."},
-        {"id": "080-P4", "short": "law table beats the current table, 25%", "prediction": 4, "clause": "at 25%, the law table beats the current table (launch 1, paired CI > 1)", "type": "sign", "quantity": "ours C32 law table / current table, launch 1", "threshold": "> 1", "source": "prereg/split_080.json ratios['C32 law / cur (L1)']", "measured": 1.067, "ci": [1.062, 1.071], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "081",
-      "era": "076-081",
-      "script": "jobs/081_headline_law@vast.sh",
-      "commit": "2f1ac92, 79b9cd8",
-      "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51046112 (listing B; CPU / PCIe / both 71.6 / 53.2 / 77.7 GB/s)",
-      "outcome_note": "prereg/headline_outcome_081.md",
-      "clauses": [
-        {"id": "081-P1", "short": "law table beats current, gpt-oss, every budget", "prediction": 1, "clause": "gpt-oss: the law's table beats the current table (0,1,1,2,3) at every budget (launch 1, paired CI > 1)", "type": "sign", "quantity": "law / current table at 11 / 25 / 40%, launch 1", "threshold": "> 1 at every budget", "source": "prereg/headline_081.json rows[0-2].law_over_cur_L1", "measured": [1.079, 1.054, 1.033], "ci": [[1.072, 1.085], [1.041, 1.066], [1.021, 1.044]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "081-P2", "short": "ours leads FreeToken, gpt-oss 11/25/40%", "prediction": 2, "clause": "gpt-oss: ours leads FreeToken's better backend at 11, 25 and 40% (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours (law) / FreeToken (hybrid, hybrid, offload), launch 2", "threshold": "> 1 at every budget", "source": "prereg/headline_081.json rows[0-2].ours_over_ft_L2", "measured": [1.294, 1.275, 1.154], "ci": [[1.278, 1.312], [1.254, 1.295], [1.134, 1.172]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "081-P3a", "short": "law table beats current, Qwen3 12.5%", "prediction": 3, "clause": "Qwen3 12.5%: the law's table beats the current table (0,1,1,2,3,3,4,5,6) (launch 1, paired CI > 1)", "type": "sign", "quantity": "law / current table, Qwen3 C16, launch 1", "threshold": "> 1", "source": "prereg/headline_081.json rows[3].law_over_cur_L1", "measured": 1.080, "ci": [1.073, 1.084], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "081-P3b", "short": "ours leads FreeToken, Qwen3 12.5%", "prediction": 3, "clause": "and ours leads FreeToken's better backend (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours (law) / FreeToken hybrid 0.125, Qwen3 12.5%, launch 2", "threshold": "> 1", "source": "prereg/headline_081.json rows[3].ours_over_ft_L2", "measured": 1.032, "ci": [1.022, 1.042], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "081-P4a", "short": "ours >= 1.8x llama.cpp, gpt-oss, every budget", "prediction": 4, "clause": "ours >= 1.8x llama.cpp on gpt-oss at every budget", "type": "threshold", "quantity": "ours (law, launch 2) / llama.cpp at 11 / 25 / 40%", "threshold": ">= 1.8 at every budget", "source": "prereg/headline_081.json rows[0-2].ours_over_llama", "measured": [2.001, 2.731, 3.196], "ci": [[1.964, 2.041], [2.668, 2.795], [3.133, 3.259]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "081-P4b", "short": "ours >= 2x llama.cpp, Qwen3 12.5%", "prediction": 4, "clause": "and >= 2x on Qwen3 at 12.5%", "type": "threshold", "quantity": "ours (law, launch 2) / llama.cpp, Qwen3 12.5%", "threshold": ">= 2.0", "source": "prereg/headline_081.json rows[3].ours_over_llama", "measured": 2.051, "ci": [2.026, 2.077], "status": "held", "paper_log": "held", "note": "The interval's lower bound clears 2.0 by 1.3%."}
-      ]
-    },
-    {
-      "job": "082",
-      "era": "082-087",
-      "script": "jobs/082_review_run1@vast.sh",
-      "commit": "cb97196",
-      "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51046112 (listing B)",
-      "outcome_note": "prereg/run1_outcome_082.md",
-      "clauses": [
-        {"id": "082-P1", "short": "steady-state lead over FreeToken, gpt-oss, held-out prompts", "prediction": 1, "clause": "steady state (tokens 257-2048, held-out prompts): ours leads FreeToken on gpt-oss at 11, 25 and 40% (paired CI > 1)", "type": "sign", "quantity": "ours / FreeToken, tokens 257-2048, 10 MATH-500 problems", "threshold": "> 1 at every budget", "source": "prereg/run1_082.json long[0-2].ours_over_ft_257-end (2.669, 2.117, 1.486; every CI > 1) but the comparison is invalid: the easy problems were answered inside 2,048 tokens, ignore_eos then forced post-answer text of each engine's choosing (ours reaches 224 tok/s at 11%), and FreeToken streamed as few as 431 events for 2,048 tokens, so its window rates cannot be measured", "measured": null, "ci": null, "status": "untested", "paper_log": "not scorable", "note": "Rerun on hard held-out problems as job 083."},
-        {"id": "082-P2", "short": "FreeToken gains more after 256 tokens than ours, every budget", "prediction": 2, "clause": "FreeToken gains more from the first 256 tokens to the steady state than ours at every budget (its 257-2048 / 1-256 rate ratio is higher)", "type": "sign", "quantity": "steady-state / first-256 rate ratio, FreeToken vs ours, Qwen3 12.5 / 25 / 43.75% (gpt-oss not evaluable, see 082-P1)", "threshold": "FreeToken's ratio > ours' at every budget", "source": "prereg/run1_082.json long[3-5].gain_ft vs gain_ours", "measured": {"FreeToken": [1.017, 1.065, 1.071], "ours": [1.038, 1.094, 1.117]}, "ci": null, "status": "failed", "paper_log": "failed", "note": "Ours gained more at every Qwen3 budget."},
-        {"id": "082-P3", "short": "FreeToken ahead in steady state, Qwen3 43.75%", "prediction": 3, "clause": "at Qwen3 43.75%, FreeToken's steady-state rate is above ours (ratio ours / FreeToken < 1)", "type": "sign", "quantity": "ours / FreeToken offload 0.4375, tokens 257-2048", "threshold": "< 1", "source": "prereg/run1_082.json long[5].ours_over_ft_257-end", "measured": 1.054, "ci": [1.025, 1.086], "status": "failed", "paper_log": "failed", "note": "Failed on the favourable side."},
-        {"id": "082-P4a", "short": "every ablation step >= -1%", "prediction": 4, "clause": "every ablation step is non-negative within 1%", "type": "threshold", "quantity": "each ladder step / the previous step, gpt-oss and Qwen3 at 25%", "threshold": ">= 0.99 for every step", "source": "prereg/run1_082.json ladder.g[1].over_prev, ladder.q[1].over_prev (the 'static cache' step)", "measured": [0.723, 0.744], "ci": [[0.712, 0.733], [0.740, 0.748]], "status": "failed", "paper_log": "failed", "note": "The failing step loaded no experts (LLAMA_EC_INIT unset; erratum in the outcome note); every later step is above 1. Rerun with a real static cache as job 087."},
-        {"id": "082-P4b", "short": "ours >= 2x stock at 25%, both models", "prediction": 4, "clause": "and ours runs >= 2x stock llama.cpp at 25% on both models", "type": "threshold", "quantity": "ours (law's table) / stock llama.cpp at 25%, gpt-oss and Qwen3", "threshold": ">= 2.0 on both", "source": "prereg/run1_082.json ladder.g[8].over_stock, ladder.q[8].over_stock", "measured": [2.658, 2.800], "ci": [[2.566, 2.749], [2.743, 2.858]], "status": "held", "paper_log": "failed", "note": "The paper's log scores prediction 4 as one unit (failed on its first clause)."},
-        {"id": "082-P5a", "short": "parity: >= 98% top-1 agreement, both models", "prediction": 5, "clause": "parity: ours agrees with stock llama.cpp on >= 98% of teacher-forced next tokens [...] on both models", "type": "threshold", "quantity": "top-1 agreement over 12 x 128 teacher-forced steps, gpt-oss and Qwen3", "threshold": ">= 0.98 on both", "source": "prereg/run1_082.json parity.g.ours.top1_agree, parity.q.ours.top1_agree", "measured": [0.986, 0.993], "ci": null, "status": "held", "paper_log": "held", "note": "An exact count over a fixed corpus; stock's own second placement agrees on 0.996 / 0.999."},
-        {"id": "082-P5b", "short": "parity: |dNLL| <= 1%, both models", "prediction": 5, "clause": "with |dNLL| <= 1% on both models", "type": "threshold", "quantity": "relative change of teacher-forced NLL against stock, gpt-oss and Qwen3", "threshold": "|dNLL| <= 0.01 on both", "source": "prereg/run1_082.json parity.g.ours.dnll, parity.q.ours.dnll", "measured": [-0.0022, 0.0031], "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "082-P6", "short": "llama.cpp Qwen3 25/43.75% within 5% of the law", "prediction": 6, "clause": "llama.cpp on Qwen3 at 25% and 43.75% runs within 5% of CPU expert bytes / B_c + 4.3 ms (B_c: this machine's probe at the thread count used; the prediction is written before the runs)", "type": "band", "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 36 and 27", "threshold": "[0.95, 1.05] for both", "source": "prereg/run1_082.json llama.q_stock_n36, llama.q_stock_n27 (22.09 vs 22.87; 28.39 vs 29.53); intervals computed for this scorecard from results/082_review_run1@vast/bs1.jsonl", "measured": [0.966, 0.962], "ci": [[0.962, 0.969], [0.958, 0.965]], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "083",
-      "era": "082-087",
-      "script": "jobs/083_gptoss_hard_long@vast.sh",
-      "commit": "b20eb88, bee66ce",
-      "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A; the host change from 51046112 was committed before launch)",
-      "outcome_note": "prereg/hard_outcome_083.md",
-      "clauses": [
-        {"id": "083-P1", "short": "still reasoning at 2,048 tokens on >= 8 of 10, both systems", "prediction": 1, "clause": "both systems are still reasoning at token 2,048 on >= 8 of 10 problems (no answer events for ours)", "type": "threshold", "quantity": "problems of 10 without answer text at 2,048 tokens, ours and FreeToken, 11 / 25 / 40%", "threshold": ">= 8 of 10 for both at every budget", "source": "prereg/hard_083.json rows[*].ours.answered, rows[*].freetoken.answered", "measured": {"ours": [9, 9, 10], "FreeToken": [10, 9, 10]}, "ci": null, "status": "held", "paper_log": "held", "note": "The parenthetical 'no answer events for ours' did not strictly hold: one problem of 10 had answer text at 11% and at 25%; the committed bar is 8 of 10."},
-        {"id": "083-P2", "short": "ours within 15% of its Table 1 rate", "prediction": 2, "clause": "ours' rate over all 2,048 tokens is within 15% of its Table 1 rate (69.9 / 109.2 / 152.5 tok/s)", "type": "band", "quantity": "ours all-token rate on 10 hard problems / Table 1 rate (measured on listing B)", "threshold": "[0.85, 1.15] at every budget", "source": "prereg/hard_083.json rows[*].ours_vs_table1; intervals computed for this scorecard from results/083_gptoss_hard_long@vast/bs1.jsonl (10 problems)", "measured": [1.046, 1.037, 1.033], "ci": [[1.019, 1.072], [1.013, 1.060], [1.003, 1.061]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "083-P3a", "short": "ours leads FreeToken, all tokens, 11/25/40%", "prediction": 3, "clause": "ours leads FreeToken at all three budgets on the all-token rate (paired CI > 1)", "type": "sign", "quantity": "ours / FreeToken (hybrid, hybrid, offload), all 2,048 tokens", "threshold": "> 1 at every budget", "source": "prereg/hard_083.json rows[*].ours_over_ft_all", "measured": [1.358, 1.322, 1.191], "ci": [[1.338, 1.378], [1.303, 1.342], [1.172, 1.212]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "083-P3b", "short": "ours leads FreeToken, tokens 257-2,048", "prediction": 3, "clause": "and on tokens 257-2,048 wherever both stream about one event per token", "type": "sign", "quantity": "ours / FreeToken, tokens 257-2,048 (events per token 0.996-0.997 for both)", "threshold": "> 1 at every budget", "source": "prereg/hard_083.json rows[*].ours_over_ft_257-end", "measured": [1.366, 1.328, 1.194], "ci": [[1.343, 1.389], [1.310, 1.350], [1.175, 1.215]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "083-P4", "short": "lead >= 15% at 11 and 25%", "prediction": 4, "clause": "the lead at 11% and 25% is >= 15%", "type": "threshold", "quantity": "ours / FreeToken, all tokens, 11% and 25%", "threshold": ">= 1.15 at both", "source": "prereg/hard_083.json rows[0-1].ours_over_ft_all", "measured": [1.358, 1.322], "ci": [[1.338, 1.378], [1.303, 1.342]], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "084",
-      "era": "082-087",
-      "script": "jobs/084_vram_traces@vast.sh",
-      "commit": "995681b",
-      "host": "RTX PRO 6000 Blackwell Workstation + Core Ultra 9 285K, Vast offer 37184228 (throttled: device read 1,304 GB/s, gpt-oss all in VRAM 93 tok/s against 261.4 in job 075)",
-      "outcome_note": "prereg/vram_outcome_084.md",
-      "clauses": [
-        {"id": "084-P1", "short": "Qwen3 all in VRAM at 120-190 tok/s", "prediction": 1, "clause": "Qwen3-30B-A3B BF16 all in VRAM runs at 120-190 tok/s", "type": "band", "quantity": "stock llama.cpp, every weight in VRAM, Qwen3", "threshold": "[120, 190]", "source": "prereg/vram_outcome_084.md: the card was throttled, so none of its speeds is a ceiling; rerun as 084b with the predictions unchanged", "measured": null, "ci": null, "status": "void", "paper_log": "held (084b)", "note": "Scored on 084b."},
-        {"id": "084-P2", "short": "gpt-oss all in VRAM within 5% of 261.4 tok/s", "prediction": 2, "clause": "gpt-oss-120b all in VRAM is within 5% of job 075's 261.4 tok/s", "type": "band", "quantity": "stock llama.cpp, every weight in VRAM, gpt-oss", "threshold": "[248.3, 274.5]", "source": "prereg/vram_outcome_084.md (93.8 / 92.1 tok/s on the throttled card)", "measured": null, "ci": null, "status": "void", "paper_log": "held (084b)", "note": "Scored on 084b."},
-        {"id": "084-P3", "short": "ours with 128 slots within 5% of all in VRAM, both", "prediction": 3, "clause": "ours with every expert in its slots is within 5% of stock all-in-VRAM on both models", "type": "band", "quantity": "ours C128 / stock all in VRAM", "threshold": "[0.95, 1.05] on both", "source": "prereg/vram_outcome_084.md (within the throttled card: 0.99 / 0.91, not scored)", "measured": null, "ci": null, "status": "void", "paper_log": "held", "note": "Scored on 084b."},
-        {"id": "084-P4", "short": "sim. hit rate within 5 points; ours at 20-50% of the limit", "prediction": 4, "clause": "(scored offline) on these traces, the simulated deployed policy's hit rate is within 5 points of the engine's measured hit rate at every Table 1 budget (jobs 080/081), and ours runs at 20-50% of the speed limit at every Table 1 budget", "type": "band", "quantity": "trace-simulated hit rate vs engine; ours / speed limit", "threshold": "|diff| <= 0.05; [0.20, 0.50]", "source": "prereg/vram_outcome_084.md: the Qwen3 trace failed (the previous model's tokenising server kept the port) and the gpt-oss trace record exceeded the 8 MB result limit", "measured": null, "ci": null, "status": "void", "paper_log": "half", "note": "Scored on 084b (Qwen3 trace) with 084c (gpt-oss trace)."}
-      ]
-    },
-    {
-      "job": "084b",
-      "era": "082-087",
-      "script": "jobs/084b_vram_rerun@vast.sh",
-      "commit": "4ea44be (predictions carried unchanged from 995681b)",
-      "host": "RTX PRO 6000 Workstation + Core Ultra 9 285K, Vast offer 49074400 (device read 1,637 GB/s; both gates passed)",
-      "outcome_note": "prereg/vram_outcome_084.md (section 'Reruns 084b and 084c')",
-      "clauses": [
-        {"id": "084b-P1", "short": "Qwen3 all in VRAM at 120-190 tok/s", "prediction": 1, "clause": "Qwen3-30B-A3B BF16 all in VRAM runs at 120-190 tok/s", "type": "band", "quantity": "stock llama.cpp, every weight in VRAM, Qwen3, launch 2 (launch 1: 178.3)", "threshold": "[120, 190]", "source": "prereg/vram_084.json vram['qwen3-30b-a3b-bf16'], vram_launches; interval of the mean computed for this scorecard from results/084b_vram_rerun@vast/bs1.jsonl", "measured": 177.8, "ci": [177.1, 178.4], "status": "held", "paper_log": "held (084b)", "note": ""},
-        {"id": "084b-P2", "short": "gpt-oss all in VRAM within 5% of 261.4 tok/s", "prediction": 2, "clause": "gpt-oss-120b all in VRAM is within 5% of job 075's 261.4 tok/s", "type": "band", "quantity": "stock llama.cpp all in VRAM, gpt-oss, launch 2 / 261.4 (launch 1: 259.0)", "threshold": "[0.95, 1.05]", "source": "prereg/vram_084.json vram['gpt-oss-120b'] (255.3); interval of the mean computed for this scorecard from results/084b_vram_rerun@vast/bs1.jsonl", "measured": 0.977, "ci": [0.971, 0.982], "status": "held", "paper_log": "held (084b)", "note": ""},
-        {"id": "084b-P3", "short": "ours with 128 slots within 5% of all in VRAM, both", "prediction": 3, "clause": "ours with every expert in its slots is within 5% of stock all-in-VRAM on both models", "type": "band", "quantity": "ours C128 / stock all in VRAM, launch 1, gpt-oss and Qwen3", "threshold": "[0.95, 1.05] on both", "source": "prereg/vram_084.json ours_c128[*].over_stock", "measured": [0.997, 1.047], "ci": [[0.991, 1.004], [1.043, 1.052]], "status": "held (point)", "paper_log": "held", "note": "The Qwen3 interval's upper bound (1.0516) crosses the band's edge; the point is inside."},
-        {"id": "084b-P4a", "short": "sim. hit rate within 5 points of the engine's, every budget", "prediction": 4, "clause": "(scored offline, with job 084c's gpt-oss trace) the simulated deployed policy's hit rate is within 5 points of the engine's measured hit rate at every Table 1 budget", "type": "band", "quantity": "simulated minus engine hit rate at gpt-oss 11 / 25 / 40% and Qwen3 12.5 / 25 / 43.75%", "threshold": "|diff| <= 0.05 at every budget", "source": "prereg/vram_084.json check[*].diff", "measured": [-0.014, -0.008, -0.0003, -0.053, -0.026, -0.006], "ci": null, "status": "failed", "paper_log": "half", "note": "Misses Qwen3 12.5% by 5.3 points (the simulator models the policy without FETCH's immediate admissions); the other five are within 2.6 points."},
-        {"id": "084b-P4b", "short": "ours at 20-50% of the speed limit, every budget", "prediction": 4, "clause": "and ours runs at 20-50% of the speed limit at every Table 1 budget", "type": "band", "quantity": "ours (Table 1 rate) / speed limit at the six Table 1 cells", "threshold": "[0.20, 0.50] at every budget", "source": "prereg/vram_084.json check[*].ours_frac_of_limit", "measured": [0.413, 0.256, 0.294, 0.433, 0.302, 0.352], "ci": null, "status": "held (point)", "paper_log": "half", "note": "No interval was computed on the fraction; the nearest cell is 5.6 points inside the band."}
-      ]
-    },
-    {
-      "job": "084c",
-      "era": "082-087",
-      "script": "jobs/084c_gptoss_trace@vast.sh",
-      "commit": "4ea44be",
-      "host": "an RTX 5090 host (routing does not depend on the machine)",
-      "outcome_note": "prereg/vram_outcome_084.md",
-      "clauses": [],
-      "note": "No predictions of its own: it supplies the gpt-oss routing trace that 084b-P4a and 084b-P4b are scored on."
-    },
-    {
-      "job": "085",
-      "era": "082-087",
-      "script": "jobs/085_half_pcie@vast.sh",
-      "commit": "7a4f502, 4f0ef91",
-      "host": "RTX 5090 + Core i9-14900K, Vast offer 46880906 (CPU 58.0, PCIe 28.0, both 52.7-58.3 GB/s); only the gpt-oss half ran (the Qwen3 GGUF conversion hung to the 6-hour timeout), the Qwen3 half ran as 085b on another machine",
-      "outcome_note": "prereg/halfpcie_outcome_085.md",
-      "clauses": [
-        {"id": "085-P1", "short": "law's tables fetch less than on the headline machine", "prediction": 1, "clause": "the law's tables fetch less than on the headline machine (every entry <= gpt-oss 0,0,1,1,2 / Qwen3 0,0,1,1,2,3,3,4,5, at least one entry lower)", "type": "equality", "quantity": "the FETCH tables computed on this machine before any model run", "threshold": "every entry <= the headline table's, at least one lower, both models", "source": "prereg/halfpcie_085.json tables.txt: gpt-oss 0,0,0,1,1; Qwen3 0,0,0,1,1,2,2,3,3 (computed here, unused)", "measured": {"gpt-oss": "0,0,0,1,1 (two entries lower)", "Qwen3": "0,0,0,1,1,2,2,3,3 (six entries lower)"}, "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085-P2a", "short": "law beats fixed, gpt-oss, every budget", "prediction": 2, "clause": "the law's table beats the fixed table at every budget on both models (launch 1, paired CI > 1)", "type": "sign", "quantity": "law / fixed table, gpt-oss 11 / 25 / 40%, launch 1 (the Qwen3 half: 085b-P2a)", "threshold": "> 1 at every budget", "source": "prereg/halfpcie_085.json rows[*].law_over_fixed_L1", "measured": [1.340, 1.274, 1.211], "ci": [[1.327, 1.355], [1.256, 1.292], [1.187, 1.235]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085-P2b", "short": "law's gain larger than headline at >= 2 of 3 (pro rata of 4 of 6)", "prediction": 2, "clause": "by more than on the headline machine (gpt-oss +7.9 / +5.4 / +3.3%, Qwen3 +8.0 / +6.7 / +4.8%) at >= 4 of the 6 budgets", "type": "threshold", "quantity": "budgets on this machine at which law / fixed exceeds the headline machine's 1.079 / 1.054 / 1.033 (interval excluding it)", "threshold": ">= 4 of 6 as committed; 3 budgets ran here, so >= 2 of 3 (the same two-thirds, the reading 085b committed for its half)", "source": "prereg/halfpcie_085.json rows[*].law_over_fixed_L1 vs prereg/headline_081.json rows[0-2].law_over_cur_L1", "measured": "3 of 3 (every interval excludes the headline value); pooled with 085b: 6 of 6", "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085-P3", "short": "ours leads FreeToken, gpt-oss, every budget", "prediction": 3, "clause": "ours leads FreeToken's better backend at every budget on both models (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours (law) / FreeToken offload, gpt-oss 11 / 25 / 40%, launch 2 (the Qwen3 half: 085b-P3)", "threshold": "> 1 at every budget", "source": "prereg/halfpcie_085.json rows[*].ours_over_ft_L2", "measured": [2.030, 1.699, 1.428], "ci": [[1.993, 2.068], [1.662, 1.737], [1.391, 1.463]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085-P4", "short": "lead larger than headline at >= 2 of 3 (pro rata of 4 of 6)", "prediction": 4, "clause": "ours' lead over FreeToken is larger than on the headline machine at >= 4 of the 6 budgets", "type": "threshold", "quantity": "gpt-oss budgets on this machine at which ours / FreeToken exceeds the headline machine's 1.294 / 1.275 / 1.154 (interval excluding it)", "threshold": ">= 4 of 6 as committed; 3 budgets ran here, so >= 2 of 3 (the same two-thirds, the reading 085b committed for its half)", "source": "prereg/halfpcie_085.json rows[*].ours_over_ft_L2 vs prereg/headline_081.json rows[0-2].ours_over_ft_L2", "measured": "3 of 3 (every interval excludes the headline value); pooled with 085b (1 of 3): 4 of 6", "ci": null, "status": "held", "paper_log": "held (4 of 6)", "note": "The paper's log scores the pooled 4 of 6 across the two machines as held; 085b's own restatement of this prediction (>= 2 of 3 on Qwen3) fails, see 085b-P4."},
-        {"id": "085-P5", "short": "llama.cpp at 25% within 5% of the law, gpt-oss", "prediction": 5, "clause": "llama.cpp at 25% is within 5% of the law's prediction written on the machine before the runs, on both models", "type": "band", "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 27 on gpt-oss (27.50 vs 33.62); the Qwen3 half: 085b-P5", "threshold": "[0.95, 1.05]", "source": "prereg/halfpcie_085.json means['g_llama_n27 L1'], law_llama.json; interval of the mean computed for this scorecard from results/085_half_pcie@vast/bs1.jsonl", "measured": 0.818, "ci": [0.817, 0.819], "status": "failed", "paper_log": "failed", "note": "llama.cpp splits each matrix evenly across the 14900K's P- and E-cores (as job 069c found on another hybrid-core Intel CPU)."}
-      ]
-    },
-    {
-      "job": "085b",
-      "era": "082-087",
-      "script": "jobs/085b_half_pcie_qwen3@vast.sh",
-      "commit": "fcc0970, ff2110b (predictions carried from 7a4f502 / 4f0ef91, restricted to Qwen3)",
-      "host": "RTX 5090 + Ryzen 9 7900, Vast offer 53537780 (CPU 44.75, PCIe 26.6, both 49.3 GB/s)",
-      "outcome_note": "prereg/halfpcie_outcome_085.md",
-      "clauses": [
-        {"id": "085b-P1", "short": "law's table fetches less than on the headline machine", "prediction": 1, "clause": "the law's table fetches less than on the headline machine (every entry <= 0,0,1,1,2,3,3,4,5, one lower)", "type": "equality", "quantity": "the Qwen3 FETCH table computed on this machine before any model run", "threshold": "every entry <= the headline table's, at least one lower", "source": "prereg/halfpcie_085b.json tables.txt", "measured": "0,0,1,1,2,2,3,3,4 (three entries lower)", "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085b-P2a", "short": "law beats fixed, Qwen3, every budget", "prediction": 2, "clause": "the law's table beats the fixed table at every budget (launch 1, paired CI > 1)", "type": "sign", "quantity": "law / fixed table, Qwen3 12.5 / 25 / 43.75%, launch 1", "threshold": "> 1 at every budget", "source": "prereg/halfpcie_085b.json rows[*].law_over_fixed_L1", "measured": [1.184, 1.149, 1.094], "ci": [[1.177, 1.190], [1.142, 1.157], [1.086, 1.101]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085b-P2b", "short": "law's gain larger than headline at >= 2 of 3", "prediction": 2, "clause": "by more than on the headline machine (+8.0 / +6.7 / +4.8%) at >= 2 of the 3 budgets", "type": "threshold", "quantity": "budgets at which law / fixed exceeds the headline machine's 1.080 / 1.067 / 1.048 (interval excluding it)", "threshold": ">= 2 of 3", "source": "prereg/halfpcie_085b.json rows[*].law_over_fixed_L1 vs prereg/headline_081.json rows[3].law_over_cur_L1 and prereg/split_080.json (C32 1.067, C56 1.048)", "measured": "3 of 3 (every interval excludes the headline value)", "ci": null, "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085b-P3", "short": "ours leads FreeToken, Qwen3, every budget", "prediction": 3, "clause": "ours leads FreeToken's better backend at every budget (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours (law) / FreeToken hybrid, Qwen3 12.5 / 25 / 43.75%, launch 2", "threshold": "> 1 at every budget", "source": "prereg/halfpcie_085b.json rows[*].ours_over_ft_L2", "measured": [1.067, 1.076, 1.038], "ci": [[1.058, 1.076], [1.063, 1.089], [1.017, 1.060]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "085b-P4", "short": "lead larger than headline at >= 2 of 3", "prediction": 4, "clause": "ours' lead over FreeToken is larger than on the headline machine at >= 2 of the 3 budgets", "type": "threshold", "quantity": "budgets at which ours / FreeToken exceeds the headline machine's 1.032 / 1.153 / 1.049", "threshold": ">= 2 of 3", "source": "prereg/halfpcie_085b.json rows[*].ours_over_ft_L2 vs prereg/headline_081.json rows[3].ours_over_ft_L2 and prereg/split_080.json (C32 1.153, C56 1.049)", "measured": "1 of 3: 12.5% 1.067 [1.058, 1.076] > 1.032; 25% 1.076 [1.063, 1.089] < 1.153; 43.75% 1.038 [1.017, 1.060] below 1.049 with the interval covering it", "ci": null, "status": "failed", "paper_log": "held (4 of 6)", "note": "Under the job's own restatement the prediction fails. The paper's log scores the pooled count across the two machines (3 gpt-oss budgets on 085 + 1 Qwen3 budget here = 4 of 6) as held; that pooled reading is recorded on 085-P4 and not scored here."},
-        {"id": "085b-P5", "short": "llama.cpp at 25% within 5% of the law, Qwen3", "prediction": 5, "clause": "llama.cpp at 25% is within 5% of the law's prediction written on the machine before the runs", "type": "band", "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 36 on Qwen3 (14.98 vs 15.38)", "threshold": "[0.95, 1.05]", "source": "prereg/halfpcie_085b.json means['q_llama_n36 L1'], law_llama.json; interval of the mean computed for this scorecard from results/085b_half_pcie_qwen3@vast/bs1.jsonl", "measured": 0.974, "ci": [0.972, 0.976], "status": "held", "paper_log": "failed", "note": "The paper's log scores prediction 5 as one unit across both machines (failed on the gpt-oss half, 085-P5)."}
-      ]
-    },
-    {
-      "job": "086",
-      "era": "082-087",
-      "script": "jobs/086_qwen36@vast.sh",
-      "commit": "a065076",
-      "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A)",
-      "outcome_note": "prereg/qwen36_outcome_086.md",
-      "clauses": [
-        {"id": "086-P1", "short": "FreeToken as shipped within 15% of its paper's rate", "prediction": 1, "clause": "FreeToken as shipped runs within 15% of its paper's 77-83 tok/s (65-96 tok/s)", "type": "band", "quantity": "FreeToken --moe-strategy auto, mean tok/s over 30 problems", "threshold": "[65, 96]", "source": "prereg/qwen36_086.json ft_auto; interval of the mean computed for this scorecard from results/086_qwen36@vast/bs1.jsonl", "measured": 93.8, "ci": [91.3, 96.5], "status": "held (point)", "paper_log": "held", "note": "The interval's upper bound crosses the band's top; the point is inside."},
-        {"id": "086-P2", "short": "ours leads FreeToken at 12.5/25/37.5%", "prediction": 2, "clause": "ours leads FreeToken's better backend at 12.5, 25 and 37.5% (launch 2, paired CI > 1)", "type": "sign", "quantity": "ours (law) / FreeToken hybrid, launch 2", "threshold": "> 1 at every budget", "source": "prereg/qwen36_086.json rows[*].ours_over_ft_L2", "measured": [1.030, 1.010, 1.003], "ci": [[1.023, 1.038], [0.998, 1.021], [0.994, 1.013]], "status": "failed", "paper_log": "failed", "note": "Held at 12.5% only; ties at 25 and 37.5%."},
-        {"id": "086-P3", "short": "ours >= 2x llama.cpp, every budget", "prediction": 3, "clause": "ours runs >= 2x llama.cpp at every budget", "type": "threshold", "quantity": "ours (law, launch 2) / llama.cpp at 12.5 / 25 / 37.5%", "threshold": ">= 2.0 at every budget", "source": "prereg/qwen36_086.json rows[*].ours_over_llama", "measured": [1.976, 2.311, 2.481], "ci": [[1.950, 2.005], [2.264, 2.361], [2.441, 2.521]], "status": "failed", "paper_log": "failed", "note": "The 12.5% point is 1.2% below 2x (its interval covers 2x)."},
-        {"id": "086-P4", "short": "law beats fixed, every budget", "prediction": 4, "clause": "the law's table beats the fixed table at every budget (launch 1, paired CI > 1)", "type": "sign", "quantity": "law / fixed table at 12.5 / 25 / 37.5%, launch 1", "threshold": "> 1 at every budget", "source": "prereg/qwen36_086.json rows[*].law_over_fixed_L1", "measured": [1.071, 1.060, 1.057], "ci": [[1.068, 1.074], [1.057, 1.063], [1.052, 1.061]], "status": "held", "paper_log": "held", "note": ""}
-      ]
-    },
-    {
-      "job": "087",
-      "era": "082-087",
-      "script": "jobs/087_ablation_static@vast.sh",
-      "commit": "83dde3f",
-      "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A)",
-      "outcome_note": "prereg/ablation_outcome_087.md",
-      "clauses": [
-        {"id": "087-P1", "short": "profiled static cache >= 1.3x stock, both models", "prediction": 1, "clause": "the profiled static cache runs >= 1.3x stock llama.cpp on both models", "type": "threshold", "quantity": "static cache (profiled on MATH-500 text) / stock llama.cpp at 25%, gpt-oss and Qwen3 (15 problems)", "threshold": ">= 1.3 on both", "source": "prereg/ablation_087.json ladder.g[1].over_stock, ladder.q[1].over_stock", "measured": [1.307, 1.889], "ci": [[1.236, 1.379], [1.803, 1.969]], "status": "held (point)", "paper_log": "held", "note": "The gpt-oss point clears 1.3 by 0.5% and its interval covers 1.3; the paper's log scores it held on the point estimate."},
-        {"id": "087-P2", "short": "replacement adds less than placement, both models", "prediction": 2, "clause": "replacing experts dynamically adds less than placing them: step 3 / step 1 < step 1 / step 0 on both models", "type": "sign", "quantity": "(decayed frequency / profiled static) minus (profiled static / stock), gpt-oss and Qwen3", "threshold": "< 0 on both", "source": "prereg/ablation_087.json ladder (1.575 vs 1.307; 1.124 vs 1.889); paired interval of the difference computed for this scorecard from results/087_ablation_static@vast/bs1.jsonl", "measured": [0.268, -0.765], "ci": [[0.122, 0.434], [-0.898, -0.619]], "status": "failed", "paper_log": "failed (gpt-oss)", "note": "Held on Qwen3, failed on gpt-oss (the MATH-500 profile matched the AIME workload poorly: hit 52%)."},
-        {"id": "087-P3", "short": "decayed frequency beats the profiled static cache, both", "prediction": 3, "clause": "the decayed-frequency policy (step 3) beats the profiled static cache (paired CI > 1) on both models", "type": "sign", "quantity": "decayed frequency / profiled static cache, gpt-oss and Qwen3", "threshold": "> 1 on both", "source": "prereg/ablation_outcome_087.md; paired intervals computed for this scorecard from results/087_ablation_static@vast/bs1.jsonl", "measured": [1.575, 1.124], "ci": [[1.497, 1.674], [1.070, 1.187]], "status": "held", "paper_log": "held", "note": ""},
-        {"id": "087-P4a", "short": "every step after the static cache >= -1%", "prediction": 4, "clause": "every step after the static cache is >= -1%", "type": "threshold", "quantity": "each ladder step / the previous step after step 1, gpt-oss and Qwen3", "threshold": ">= 0.99 for every step", "source": "prereg/ablation_087.json ladder.q[2].over_prev (the LRU step on Qwen3); every other step is above 1", "measured": 0.877, "ci": [0.835, 0.924], "status": "failed", "paper_log": "failed (Qwen3)", "note": "LRU admits every miss and the copies cost host reads; the gpt-oss LRU step is 1.301 [1.229, 1.392]."},
-        {"id": "087-P4b", "short": "ours >= 2x stock, both models", "prediction": 4, "clause": "and ours runs >= 2x stock on both models", "type": "threshold", "quantity": "ours (law's table) / stock llama.cpp at 25%, gpt-oss and Qwen3", "threshold": ">= 2.0 on both", "source": "prereg/ablation_087.json ladder.g[8].over_stock, ladder.q[8].over_stock", "measured": [2.680, 2.815], "ci": [[2.595, 2.763], [2.754, 2.877]], "status": "held", "paper_log": "failed (Qwen3)", "note": "The paper's log scores prediction 4 as one unit (failed on its first clause)."}
-      ]
+     "id": "073-P4",
+     "short": ">= 80% of greedy outputs identical to llama.cpp's, every system",
+     "prediction": 4,
+     "clause": "Greedy outputs: >= 80% of problems give the same text as llama.cpp's for every system (numerics differ)",
+     "type": "equality",
+     "quantity": "share of the 30 problems whose full 256-token output hash equals llama.cpp -ncmoe 27's",
+     "threshold": ">= 0.80 for every system",
+     "source": "prereg/samehost_v2.json same_text_as_llama_n27",
+     "measured": {
+      "ours (6 configurations)": "0.000-0.033",
+      "FreeToken (6 configurations)": "0.000",
+      "llama.cpp -ncmoe 32 / 22": "0.700 / 0.400"
+     },
+     "ci": null,
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "The paper's log reports 27-47%, which is agreement on the first 160 characters (text_head in bs1.jsonl: ours 0.30-0.47, FreeToken 0.23-0.33); fully identical outputs are 0-3% for ours and 0% for FreeToken. llama.cpp's own other placements agree with it on 40-70% of full outputs (87-93% of first-160-character heads)."
     }
-  ]
+   ]
+  },
+  {
+   "job": "074",
+   "era": "073-075",
+   "script": "jobs/074_fix40@vast.sh",
+   "commit": "c4aee57",
+   "host": "RTX 5090 + Ryzen 9 7950X (CPU / link / both 46.2 / 47.3 / 51.8 GB/s; attempt 2, the 9950X3D host of attempt 1 stopped the instance)",
+   "outcome_note": "prereg/fix40_outcome_074.md",
+   "clauses": [
+    {
+     "id": "074-P1",
+     "short": "ec-bench launch time <= 0.25 ms, C51",
+     "prediction": 1,
+     "clause": "ec-bench, C51: host_us_per_step.launch falls from ~0.7 ms to <= 0.25 ms with the maps on the GPU",
+     "type": "threshold",
+     "quantity": "host_us_per_step.launch, ec-bench C51 (ms)",
+     "threshold": "<= 0.25",
+     "source": "results/074_fix40@vast/ref_C51_r1.json host_us_per_step.launch (201.3 us); maps on the CPU: ref_C51mc_r1.json (714.7 us)",
+     "measured": 0.201,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "A timer mean over 1,524 steps; no interval."
+    },
+    {
+     "id": "074-P2a",
+     "short": "ours v2 >= 127 tok/s, C51",
+     "prediction": 2,
+     "clause": "chat, C51: ours v2 >= 127 tok/s",
+     "type": "threshold",
+     "quantity": "ours v2 C51 mean tok/s over 3 launches",
+     "threshold": ">= 127",
+     "source": "prereg/fix40_outcome_074.md (97.3 / 94.6 / 93.6); results/074_fix40@vast/bs1.jsonl",
+     "measured": 95.1,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "The absolute target carried job 073's host; this host's memory is 33% slower."
+    },
+    {
+     "id": "074-P2b",
+     "short": "ours v2 ahead of FreeToken offload, C51",
+     "prediction": 2,
+     "clause": "and ahead of FreeToken offload 0.40 in the same session (paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours v2 C51 / FreeToken offload 0.40",
+     "threshold": "> 1",
+     "source": "prereg/fix40_outcome_074.md (-16.9% [-18.3, -15.5]); recomputed for this scorecard from results/074_fix40@vast/bs1.jsonl",
+     "measured": 0.831,
+     "ci": [
+      0.817,
+      0.845
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "With FETCH (launch 1 only): 104.8 tok/s, -8.4% [-9.3, -7.5]."
+    },
+    {
+     "id": "074-P3a",
+     "short": "ours v2 >= 59 tok/s, C14",
+     "prediction": 3,
+     "clause": "chat: ours v2 >= 59 tok/s at C14",
+     "type": "threshold",
+     "quantity": "ours v2 C14 mean tok/s",
+     "threshold": ">= 59",
+     "source": "prereg/fix40_outcome_074.md; results/074_fix40@vast/bs1.jsonl",
+     "measured": 41.5,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "failed",
+     "note": ""
+    },
+    {
+     "id": "074-P3b",
+     "short": "ours v2 >= 91 tok/s, C32",
+     "prediction": 3,
+     "clause": "and >= 91 tok/s at C32 (073: 57.6 / 88.2 without FETCH)",
+     "type": "threshold",
+     "quantity": "ours v2 C32 mean tok/s",
+     "threshold": ">= 91",
+     "source": "prereg/fix40_outcome_074.md; results/074_fix40@vast/bs1.jsonl",
+     "measured": 65.3,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "failed",
+     "note": ""
+    },
+    {
+     "id": "074-P4",
+     "short": "half-life 64 within +-2% of half-life 16, C51",
+     "prediction": 4,
+     "clause": "half-life 64 instead of 16 at C51: within +-2%",
+     "type": "band",
+     "quantity": "ours v2 C51 half-life 64 / half-life 16, launch 1",
+     "threshold": "[0.98, 1.02]",
+     "source": "prereg/fix40_outcome_074.md (+1.2%); interval computed for this scorecard from results/074_fix40@vast/bs1.jsonl",
+     "measured": 1.012,
+     "ci": [
+      0.997,
+      1.027
+     ],
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "The interval crosses the band's upper edge."
+    }
+   ]
+  },
+  {
+   "job": "074b",
+   "era": "073-075",
+   "script": "jobs/074b_server_overhead@vast.sh",
+   "commit": "65ed351",
+   "host": "RTX 5090 + Ryzen 9 7950X (CPU / link / both 46.2 / 46.8 / 52.1 GB/s)",
+   "outcome_note": "prereg/server_overhead_outcome_074b.md",
+   "clauses": [
+    {
+     "id": "074b-P1",
+     "short": "GPU sampling cuts between-step host time by >= 1 ms",
+     "prediction": 1,
+     "clause": "backend sampling cuts the cache's between-step host time (host_us_per_step.app) by >= 1 ms",
+     "type": "threshold",
+     "quantity": "host_us_per_step.app without minus with backend sampling, ours v2 C51 (ms)",
+     "threshold": ">= 1.0",
+     "source": "results/074b_server_overhead@vast/srv_v2_C51_L1.json (2007.2 us) vs srv_v2_C51_bs_L1.json (404.6 us); with FETCH srv_v2f_C51_L1.json (1667.8) vs srv_v2f_C51_bs_L1.json (235.8)",
+     "measured": 1.6,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "1.43 ms with FETCH. Timer means over 7,904 steps; no interval."
+    },
+    {
+     "id": "074b-P2a",
+     "short": "ours v2 >= 10% faster with GPU sampling, C51",
+     "prediction": 2,
+     "clause": "with backend sampling, ours v2 at C51 is >= 10% faster than without",
+     "type": "threshold",
+     "quantity": "ours v2 C51 with backend sampling (launches 1-2) / without (launch 1)",
+     "threshold": ">= 1.10",
+     "source": "prereg/server_overhead_outcome_074b.md (+11.7% [+10.9, +12.5]); recomputed for this scorecard from results/074b_server_overhead@vast/bs1.jsonl",
+     "measured": 1.117,
+     "ci": [
+      1.109,
+      1.125
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "With FETCH: 1.170 [1.166, 1.174]."
+    },
+    {
+     "id": "074b-P2b",
+     "short": "stock llama.cpp >= 3% faster with GPU sampling",
+     "prediction": 2,
+     "clause": "and stock llama.cpp >= 3% faster",
+     "type": "threshold",
+     "quantity": "stock llama.cpp -ncmoe 22 with / without backend sampling",
+     "threshold": ">= 1.03",
+     "source": "results/074b_server_overhead@vast/bs1.jsonl has rows for llama_n22_bs only (31.3 tok/s); prereg/server_overhead_outcome_074b.md: the run without backend sampling failed to load (out of GPU memory: FreeToken had not yet released its memory)",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "held",
+     "note": "The paper's log scores prediction 2 as 'Held: +11.7%' and omits this clause."
+    },
+    {
+     "id": "074b-P3",
+     "short": "ours v2+FETCH with GPU sampling >= FreeToken offload, C51",
+     "prediction": 3,
+     "clause": "with backend sampling and FETCH, ours v2 at C51 is at least as fast as FreeToken offload 0.40 in this session",
+     "type": "sign",
+     "quantity": "ours v2+FETCH C51 with backend sampling / FreeToken offload 0.40 (launches 1-2)",
+     "threshold": ">= 1",
+     "source": "prereg/server_overhead_outcome_074b.md (+7.4% [+6.3, +8.5]); recomputed for this scorecard from results/074b_server_overhead@vast/bs1.jsonl",
+     "measured": 1.074,
+     "ci": [
+      1.063,
+      1.085
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "075",
+   "era": "073-075",
+   "script": "jobs/075_pro6000_40_60@vast.sh",
+   "commit": "0fc6622",
+   "host": "RTX PRO 6000 Blackwell (96 GB) + Ryzen 9 9950X (CPU / link / both 62.3 / 53.0 / 71.3 GB/s)",
+   "outcome_note": "prereg/pro6000_outcome_075.md",
+   "clauses": [
+    {
+     "id": "075-P1",
+     "short": "ours ahead of FreeToken at 40% (RTX PRO 6000)",
+     "prediction": 1,
+     "clause": "40%: ours ahead of FreeToken, paired 95% CI above 1 on the confirmation launches",
+     "type": "sign",
+     "quantity": "ours v2+FETCH C51 / FreeToken offload 0.40, launches 2-3",
+     "threshold": "> 1",
+     "source": "prereg/pro6000_outcome_075.md (1.122 [1.107, 1.137]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl",
+     "measured": 1.122,
+     "ci": [
+      1.107,
+      1.137
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "075-P2",
+     "short": "ours within -3 to +10% of FreeToken at 60%",
+     "prediction": 2,
+     "clause": "60%: ours within -3% to +10% of FreeToken",
+     "type": "band",
+     "quantity": "ours v2 C77 / FreeToken offload 0.60, launches 2-3",
+     "threshold": "[0.97, 1.10]",
+     "source": "prereg/pro6000_outcome_075.md (1.118 [1.109, 1.127]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl",
+     "measured": 1.118,
+     "ci": [
+      1.109,
+      1.127
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Failed on the favourable side: the whole interval is above the band."
+    },
+    {
+     "id": "075-P3",
+     "short": "ours at 60% >= 55% of the all-in-VRAM speed",
+     "prediction": 3,
+     "clause": "ours at 60% reaches >= 55% of llama.cpp's all-in-VRAM speed on this card",
+     "type": "threshold",
+     "quantity": "ours v2 C77 (launches 2-3) / llama.cpp -ncmoe 0",
+     "threshold": ">= 0.55",
+     "source": "prereg/pro6000_outcome_075.md (72.7% [71.8, 73.6]); recomputed for this scorecard from results/075_pro6000_40_60@vast/bs1.jsonl",
+     "measured": 0.726,
+     "ci": [
+      0.717,
+      0.735
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "FreeToken reaches 0.649 [0.643, 0.656]."
+    }
+   ]
+  },
+  {
+   "job": "076",
+   "era": "076-081",
+   "script": "jobs/076_table_5090@vast.sh",
+   "commit": "a8ddf7a",
+   "host": "RTX 5090 + Ryzen 9 9950X (CPU / link / both 62.3 / 53.0 / 73.0 GB/s)",
+   "outcome_note": "prereg/table_outcome_076.md",
+   "clauses": [
+    {
+     "id": "076-P1",
+     "short": "ours ahead of FreeToken at 11/25/40%",
+     "prediction": 1,
+     "clause": "ours ahead of FreeToken at 11%, 25% and 40%, paired 95% CI above 1 on the confirmation launches",
+     "type": "sign",
+     "quantity": "ours v2+FETCH / FreeToken's better backend (hybrid, offload, offload), launches 2-3",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/table_outcome_076.md; recomputed for this scorecard from results/076_table_5090@vast/bs1.jsonl",
+     "measured": [
+      1.205,
+      1.217,
+      1.118
+     ],
+     "ci": [
+      [
+       1.19,
+       1.22
+      ],
+      [
+       1.201,
+       1.234
+      ],
+      [
+       1.108,
+       1.129
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "076-P2",
+     "short": "ours >= 1.8x llama.cpp, every budget",
+     "prediction": 2,
+     "clause": "ours >= 1.8x llama.cpp at every budget",
+     "type": "threshold",
+     "quantity": "ours v2+FETCH (launches 2-3) / llama.cpp at 11 / 25 / 40%",
+     "threshold": ">= 1.8 at every budget",
+     "source": "prereg/table_outcome_076.md (1.93 / 2.68 / 3.19); intervals computed for this scorecard from results/076_table_5090@vast/bs1.jsonl",
+     "measured": [
+      1.924,
+      2.683,
+      3.191
+     ],
+     "ci": [
+      [
+       1.894,
+       1.956
+      ],
+      [
+       2.631,
+       2.735
+      ],
+      [
+       3.13,
+       3.25
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "076-P3",
+     "short": "the law within 8% on own-text runs (four configurations)",
+     "prediction": 3,
+     "clause": "the law, predicted on the machine, within 8% for the cache's own-text runs (base and FETCH, C14/C32/C56)",
+     "type": "band",
+     "quantity": "measured own-text rate / the law's prediction written before the runs, for C14, C32, C56 and C32+FETCH (12 sequences each)",
+     "threshold": "[0.92, 1.08] for all four",
+     "source": "results/076_table_5090@vast/law_prediction.json predicted_tok_s vs ref_ec.jsonl (stats-tagged rows); intervals computed for this scorecard by bootstrap over the 12 sequences",
+     "measured": [
+      1.009,
+      1.006,
+      1.052,
+      0.96
+     ],
+     "ci": [
+      [
+       0.962,
+       1.066
+      ],
+      [
+       0.947,
+       1.086
+      ],
+      [
+       0.96,
+       1.164
+      ],
+      [
+       0.909,
+       1.024
+      ]
+     ],
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "The 12-sequence intervals are wider than the band (C32 and C56 cross it)."
+    }
+   ]
+  },
+  {
+   "job": "077",
+   "era": "076-081",
+   "script": "jobs/077_competitors_gptoss@vast.sh",
+   "commit": "23a4a38",
+   "host": "RTX 5090 + Ryzen 9 9950X3D",
+   "outcome_note": "prereg/competitors_outcome_077.md",
+   "clauses": [
+    {
+     "id": "077-P1a",
+     "short": "both entrants run end to end on gpt-oss-120b",
+     "prediction": 1,
+     "clause": "both new entrants run end to end on gpt-oss-120b",
+     "type": "equality",
+     "quantity": "Pipelined Sharding and leloch's cache complete all 30 problems at 11 / 25 / 40%",
+     "threshold": "all runs complete",
+     "source": "results/077_competitors_gptoss@vast/bs1.jsonl (30 rows per configuration for pipeshard_n32/27/22 and leloch_E14/32/51)",
+     "measured": "30 of 30 problems at every budget for both",
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "077-P1b",
+     "short": "both entrants faster than llama.cpp at 25/40%",
+     "prediction": 1,
+     "clause": "and are faster than stock llama.cpp at 25% and 40%",
+     "type": "sign",
+     "quantity": "Pipelined Sharding / llama.cpp and leloch / llama.cpp at 25% and 40%",
+     "threshold": "> 1 for both at both budgets",
+     "source": "prereg/competitors_outcome_077.md (1.28-1.45x); intervals computed for this scorecard from results/077_competitors_gptoss@vast/bs1.jsonl",
+     "measured": {
+      "pipeshard 25 / 40%": [
+       1.348,
+       1.417
+      ],
+      "leloch 25 / 40%": [
+       1.446,
+       1.28
+      ]
+     },
+     "ci": {
+      "pipeshard 25 / 40%": [
+       [
+        1.336,
+        1.36
+       ],
+       [
+        1.399,
+        1.435
+       ]
+      ],
+      "leloch 25 / 40%": [
+       [
+        1.431,
+        1.461
+       ],
+       [
+        1.269,
+        1.291
+       ]
+      ]
+     },
+     "status": "held",
+     "paper_log": "held",
+     "note": "Also at 11%: 1.327 [1.306, 1.349] and 1.416 [1.382, 1.451]."
+    },
+    {
+     "id": "077-P2",
+     "short": "ours ahead of both entrants, every budget",
+     "prediction": 2,
+     "clause": "ours v2 (the faster of its two settings) is ahead of both at every budget",
+     "type": "sign",
+     "quantity": "ours v2+FETCH / the better new entrant at 11 / 25 / 40%",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/competitors_outcome_077.md (1.42x / 1.90x / 2.34x); intervals computed for this scorecard from results/077_competitors_gptoss@vast/bs1.jsonl",
+     "measured": [
+      1.421,
+      1.896,
+      2.343
+     ],
+     "ci": [
+      [
+       1.403,
+       1.439
+      ],
+      [
+       1.871,
+       1.921
+      ],
+      [
+       2.293,
+       2.391
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "Against the other entrant at each budget: 1.516, 2.033, 2.593."
+    }
+   ]
+  },
+  {
+   "job": "078",
+   "era": "076-081",
+   "script": "jobs/078_qwen3_4way@vast.sh",
+   "commit": "23a4a38",
+   "host": "RTX 5090 + Ryzen 9 9950X (CPU STREAM 44.7, PCIe 46.7 GB/s: the CPU path no faster than the link)",
+   "outcome_note": "prereg/qwen3_outcome_078.md",
+   "clauses": [
+    {
+     "id": "078-P1",
+     "short": "ours ahead of FreeToken at 12.5/25% (Qwen3)",
+     "prediction": 1,
+     "clause": "ours (better of FETCH on/off) ahead of FreeToken's better backend at 12.5% and 25%",
+     "type": "sign",
+     "quantity": "ours v2+FETCH / FreeToken (hybrid at 12.5%, offload at 25%)",
+     "threshold": "> 1 at both budgets",
+     "source": "prereg/qwen3_078.json comparisons[0-1].ours_over_ft",
+     "measured": [
+      1.071,
+      1.067
+     ],
+     "ci": [
+      [
+       1.063,
+       1.08
+      ],
+      [
+       1.043,
+       1.094
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "Not predicted: at 43.75% FreeToken leads, 0.948 [0.935, 0.962]."
+    },
+    {
+     "id": "078-P2",
+     "short": "ours ahead of KTransformers, every budget",
+     "prediction": 2,
+     "clause": "ours ahead of KTransformers at every budget",
+     "type": "sign",
+     "quantity": "ours v2+FETCH / KTransformers at 12.5 / 25 / 43.75%",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/qwen3_078.json comparisons[*].ours_over_kt",
+     "measured": [
+      2.168,
+      3.059,
+      4.42
+     ],
+     "ci": [
+      [
+       2.14,
+       2.197
+      ],
+      [
+       2.975,
+       3.162
+      ],
+      [
+       4.31,
+       4.55
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "078-P3",
+     "short": "ours >= 1.5x llama.cpp, every budget",
+     "prediction": 3,
+     "clause": "ours >= 1.5x stock llama.cpp at every budget",
+     "type": "threshold",
+     "quantity": "ours v2+FETCH / llama.cpp at 12.5 / 25 / 43.75%",
+     "threshold": ">= 1.5 at every budget",
+     "source": "prereg/qwen3_078.json comparisons[*].ours_over_llama",
+     "measured": [
+      2.122,
+      3.051,
+      4.47
+     ],
+     "ci": [
+      [
+       2.092,
+       2.151
+      ],
+      [
+       2.967,
+       3.152
+      ],
+      [
+       4.35,
+       4.609
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "079",
+   "era": "076-081",
+   "script": "jobs/079_qwen3_profile@vast.sh",
+   "commit": "48f0529",
+   "host": "RTX 5090 + Ryzen 9 9950X3D (CPU STREAM 66.9, PCIe 57.9 GB/s)",
+   "outcome_note": "prereg/qwen3_profile_outcome_079.md",
+   "clauses": [
+    {
+     "id": "079-P1a",
+     "short": "host-side time per step < 1 ms",
+     "prediction": 1,
+     "clause": "our host-side time per decode step (app + pre + inputs + launch + post, from the cache's own timer, C56+FETCH) is below 1 ms",
+     "type": "threshold",
+     "quantity": "sum of the five host timer fields, ours C56+FETCH, unprofiled (ms)",
+     "threshold": "< 1.0",
+     "source": "results/079_qwen3_profile@vast/srv_oursv2f_C56.json host_us_per_step (48.3 + 2.0 + 79.0 + 103.0 + 33.2 us)",
+     "measured": 0.266,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "Timer mean over 7,874 steps; no interval."
+    },
+    {
+     "id": "079-P1b",
+     "short": "host-side time < 10% of the token time",
+     "prediction": 1,
+     "clause": "and below 10% of the token time",
+     "type": "threshold",
+     "quantity": "host-side time / mean token time (0.266 ms / 9.99 ms)",
+     "threshold": "< 0.10",
+     "source": "results/079_qwen3_profile@vast/srv_oursv2f_C56.json and bs1.jsonl (oursv2f_C56 mean 100.1 tok/s)",
+     "measured": 0.027,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "079-P2",
+     "short": ">= 1.5x FreeToken's kernels per token",
+     "prediction": 2,
+     "clause": "ours runs at least 1.5x as many GPU kernels per decode token as FreeToken offload (profile medians)",
+     "type": "threshold",
+     "quantity": "kernels per token, ours C56+FETCH / FreeToken offload 0.4375 (1436 / 894)",
+     "threshold": ">= 1.5",
+     "source": "prereg/qwen3_profile_outcome_079.md (results/079_qwen3_profile@vast/prof_*.json, medians over 200 tokens)",
+     "measured": 1.606,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "A median of a profile; no interval."
+    },
+    {
+     "id": "079-P3",
+     "short": "ours within +-5% of FreeToken at 43.75%",
+     "prediction": 3,
+     "clause": "on this host, ours (better of FETCH on/off) at 43.75% is within +-5% of FreeToken's better backend (paired ratio 0.95-1.05)",
+     "type": "band",
+     "quantity": "ours C56+FETCH / FreeToken hybrid 0.4375",
+     "threshold": "[0.95, 1.05]",
+     "source": "prereg/qwen3_profile_079.json ratios['oursv2f_C56/ft_hybrid_r0.4375']",
+     "measured": 0.991,
+     "ci": [
+      0.975,
+      1.009
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "080",
+   "era": "076-081",
+   "script": "jobs/080_fetch_split@vast.sh",
+   "commit": "b2ef1a1",
+   "host": "RTX 5090 + Ryzen 9 9950X3D (CPU / PCIe / both 70.9 / 53.2 / 80.7 GB/s)",
+   "outcome_note": "prereg/split_outcome_080.md",
+   "clauses": [
+    {
+     "id": "080-P1",
+     "short": "law table >= 3% over the current table, 43.75%",
+     "prediction": 1,
+     "clause": "at 43.75%, the law table beats the current table by >= 3% (launch 1, paired, CI lower bound > 1)",
+     "type": "threshold",
+     "quantity": "ours C56 law table / current table, launch 1",
+     "threshold": ">= 1.03",
+     "source": "prereg/split_080.json ratios['law / cur (L1)']",
+     "measured": 1.048,
+     "ci": [
+      1.041,
+      1.055
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "Scored against 1.03, the committed margin, not the bare 'CI lower bound > 1'."
+    },
+    {
+     "id": "080-P2",
+     "short": "law table within 2% of the sweep's best, 43.75%",
+     "prediction": 2,
+     "clause": "at 43.75%, the law table is within 2% of the best table in the sweep (launch 1)",
+     "type": "band",
+     "quantity": "law table / best table (lite), launch 1",
+     "threshold": "[0.98, 1.02]",
+     "source": "prereg/split_080.json ratios['law / best ours_C56_lite (L1)']",
+     "measured": 0.991,
+     "ci": [
+      0.986,
+      0.996
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "080-P3",
+     "short": "best table leads FreeToken, 43.75%",
+     "prediction": 3,
+     "clause": "at 43.75%, with the best table, ours leads FreeToken's better backend (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours C56 (law and lite tie at 108.2 on launch 2) / FreeToken offload 0.4375, launch 2",
+     "threshold": "> 1",
+     "source": "prereg/split_080.json ratios['ours_C56_law / ft_offload_r0.4375 (L2)'] (lite: 1.049 [1.035, 1.064])",
+     "measured": 1.049,
+     "ci": [
+      1.036,
+      1.064
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "With the current table it was a tie: 1.000 [0.987, 1.014]."
+    },
+    {
+     "id": "080-P4",
+     "short": "law table beats the current table, 25%",
+     "prediction": 4,
+     "clause": "at 25%, the law table beats the current table (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours C32 law table / current table, launch 1",
+     "threshold": "> 1",
+     "source": "prereg/split_080.json ratios['C32 law / cur (L1)']",
+     "measured": 1.067,
+     "ci": [
+      1.062,
+      1.071
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "081",
+   "era": "076-081",
+   "script": "jobs/081_headline_law@vast.sh",
+   "commit": "2f1ac92, 79b9cd8",
+   "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51046112 (listing B; CPU / PCIe / both 71.6 / 53.2 / 77.7 GB/s)",
+   "outcome_note": "prereg/headline_outcome_081.md",
+   "clauses": [
+    {
+     "id": "081-P1",
+     "short": "law table beats current, gpt-oss, every budget",
+     "prediction": 1,
+     "clause": "gpt-oss: the law's table beats the current table (0,1,1,2,3) at every budget (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "law / current table at 11 / 25 / 40%, launch 1",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/headline_081.json rows[0-2].law_over_cur_L1",
+     "measured": [
+      1.079,
+      1.054,
+      1.033
+     ],
+     "ci": [
+      [
+       1.072,
+       1.085
+      ],
+      [
+       1.041,
+       1.066
+      ],
+      [
+       1.021,
+       1.044
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "081-P2",
+     "short": "ours leads FreeToken, gpt-oss 11/25/40%",
+     "prediction": 2,
+     "clause": "gpt-oss: ours leads FreeToken's better backend at 11, 25 and 40% (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours (law) / FreeToken (hybrid, hybrid, offload), launch 2",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/headline_081.json rows[0-2].ours_over_ft_L2",
+     "measured": [
+      1.294,
+      1.275,
+      1.154
+     ],
+     "ci": [
+      [
+       1.278,
+       1.312
+      ],
+      [
+       1.254,
+       1.295
+      ],
+      [
+       1.134,
+       1.172
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "081-P3a",
+     "short": "law table beats current, Qwen3 12.5%",
+     "prediction": 3,
+     "clause": "Qwen3 12.5%: the law's table beats the current table (0,1,1,2,3,3,4,5,6) (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "law / current table, Qwen3 C16, launch 1",
+     "threshold": "> 1",
+     "source": "prereg/headline_081.json rows[3].law_over_cur_L1",
+     "measured": 1.08,
+     "ci": [
+      1.073,
+      1.084
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "081-P3b",
+     "short": "ours leads FreeToken, Qwen3 12.5%",
+     "prediction": 3,
+     "clause": "and ours leads FreeToken's better backend (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours (law) / FreeToken hybrid 0.125, Qwen3 12.5%, launch 2",
+     "threshold": "> 1",
+     "source": "prereg/headline_081.json rows[3].ours_over_ft_L2",
+     "measured": 1.032,
+     "ci": [
+      1.022,
+      1.042
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "081-P4a",
+     "short": "ours >= 1.8x llama.cpp, gpt-oss, every budget",
+     "prediction": 4,
+     "clause": "ours >= 1.8x llama.cpp on gpt-oss at every budget",
+     "type": "threshold",
+     "quantity": "ours (law, launch 2) / llama.cpp at 11 / 25 / 40%",
+     "threshold": ">= 1.8 at every budget",
+     "source": "prereg/headline_081.json rows[0-2].ours_over_llama",
+     "measured": [
+      2.001,
+      2.731,
+      3.196
+     ],
+     "ci": [
+      [
+       1.964,
+       2.041
+      ],
+      [
+       2.668,
+       2.795
+      ],
+      [
+       3.133,
+       3.259
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "081-P4b",
+     "short": "ours >= 2x llama.cpp, Qwen3 12.5%",
+     "prediction": 4,
+     "clause": "and >= 2x on Qwen3 at 12.5%",
+     "type": "threshold",
+     "quantity": "ours (law, launch 2) / llama.cpp, Qwen3 12.5%",
+     "threshold": ">= 2.0",
+     "source": "prereg/headline_081.json rows[3].ours_over_llama",
+     "measured": 2.051,
+     "ci": [
+      2.026,
+      2.077
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": "The interval's lower bound clears 2.0 by 1.3%."
+    }
+   ]
+  },
+  {
+   "job": "082",
+   "era": "082-087",
+   "script": "jobs/082_review_run1@vast.sh",
+   "commit": "cb97196",
+   "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51046112 (listing B)",
+   "outcome_note": "prereg/run1_outcome_082.md",
+   "clauses": [
+    {
+     "id": "082-P1",
+     "short": "steady-state lead over FreeToken, gpt-oss, held-out prompts",
+     "prediction": 1,
+     "clause": "steady state (tokens 257-2048, held-out prompts): ours leads FreeToken on gpt-oss at 11, 25 and 40% (paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken, tokens 257-2048, 10 MATH-500 problems",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/run1_082.json long[0-2].ours_over_ft_257-end (2.669, 2.117, 1.486; every CI > 1) but the comparison is invalid: the easy problems were answered inside 2,048 tokens, ignore_eos then forced post-answer text of each engine's choosing (ours reaches 224 tok/s at 11%), and FreeToken streamed as few as 431 events for 2,048 tokens, so its window rates cannot be measured",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "not scorable",
+     "note": "Rerun on hard held-out problems as job 083."
+    },
+    {
+     "id": "082-P2",
+     "short": "FreeToken gains more after 256 tokens than ours, every budget",
+     "prediction": 2,
+     "clause": "FreeToken gains more from the first 256 tokens to the steady state than ours at every budget (its 257-2048 / 1-256 rate ratio is higher)",
+     "type": "sign",
+     "quantity": "steady-state / first-256 rate ratio, FreeToken vs ours, Qwen3 12.5 / 25 / 43.75% (gpt-oss not evaluable, see 082-P1)",
+     "threshold": "FreeToken's ratio > ours' at every budget",
+     "source": "prereg/run1_082.json long[3-5].gain_ft vs gain_ours",
+     "measured": {
+      "FreeToken": [
+       1.017,
+       1.065,
+       1.071
+      ],
+      "ours": [
+       1.038,
+       1.094,
+       1.117
+      ]
+     },
+     "ci": null,
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Ours gained more at every Qwen3 budget."
+    },
+    {
+     "id": "082-P3",
+     "short": "FreeToken ahead in steady state, Qwen3 43.75%",
+     "prediction": 3,
+     "clause": "at Qwen3 43.75%, FreeToken's steady-state rate is above ours (ratio ours / FreeToken < 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken offload 0.4375, tokens 257-2048",
+     "threshold": "< 1",
+     "source": "prereg/run1_082.json long[5].ours_over_ft_257-end",
+     "measured": 1.054,
+     "ci": [
+      1.025,
+      1.086
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Failed on the favourable side."
+    },
+    {
+     "id": "082-P4a",
+     "short": "every ablation step >= -1%",
+     "prediction": 4,
+     "clause": "every ablation step is non-negative within 1%",
+     "type": "threshold",
+     "quantity": "each ladder step / the previous step, gpt-oss and Qwen3 at 25%",
+     "threshold": ">= 0.99 for every step",
+     "source": "prereg/run1_082.json ladder.g[1].over_prev, ladder.q[1].over_prev (the 'static cache' step)",
+     "measured": [
+      0.723,
+      0.744
+     ],
+     "ci": [
+      [
+       0.712,
+       0.733
+      ],
+      [
+       0.74,
+       0.748
+      ]
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "The failing step loaded no experts (LLAMA_EC_INIT unset; erratum in the outcome note); every later step is above 1. Rerun with a real static cache as job 087."
+    },
+    {
+     "id": "082-P4b",
+     "short": "ours >= 2x stock at 25%, both models",
+     "prediction": 4,
+     "clause": "and ours runs >= 2x stock llama.cpp at 25% on both models",
+     "type": "threshold",
+     "quantity": "ours (law's table) / stock llama.cpp at 25%, gpt-oss and Qwen3",
+     "threshold": ">= 2.0 on both",
+     "source": "prereg/run1_082.json ladder.g[8].over_stock, ladder.q[8].over_stock",
+     "measured": [
+      2.658,
+      2.8
+     ],
+     "ci": [
+      [
+       2.566,
+       2.749
+      ],
+      [
+       2.743,
+       2.858
+      ]
+     ],
+     "status": "held",
+     "paper_log": "failed",
+     "note": "The paper's log scores prediction 4 as one unit (failed on its first clause)."
+    },
+    {
+     "id": "082-P5a",
+     "short": "parity: >= 98% top-1 agreement, both models",
+     "prediction": 5,
+     "clause": "parity: ours agrees with stock llama.cpp on >= 98% of teacher-forced next tokens [...] on both models",
+     "type": "threshold",
+     "quantity": "top-1 agreement over 12 x 128 teacher-forced steps, gpt-oss and Qwen3",
+     "threshold": ">= 0.98 on both",
+     "source": "prereg/run1_082.json parity.g.ours.top1_agree, parity.q.ours.top1_agree",
+     "measured": [
+      0.986,
+      0.993
+     ],
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": "An exact count over a fixed corpus; stock's own second placement agrees on 0.996 / 0.999."
+    },
+    {
+     "id": "082-P5b",
+     "short": "parity: |dNLL| <= 1%, both models",
+     "prediction": 5,
+     "clause": "with |dNLL| <= 1% on both models",
+     "type": "threshold",
+     "quantity": "relative change of teacher-forced NLL against stock, gpt-oss and Qwen3",
+     "threshold": "|dNLL| <= 0.01 on both",
+     "source": "prereg/run1_082.json parity.g.ours.dnll, parity.q.ours.dnll",
+     "measured": [
+      -0.0022,
+      0.0031
+     ],
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "082-P6",
+     "short": "llama.cpp Qwen3 25/43.75% within 5% of the law",
+     "prediction": 6,
+     "clause": "llama.cpp on Qwen3 at 25% and 43.75% runs within 5% of CPU expert bytes / B_c + 4.3 ms (B_c: this machine's probe at the thread count used; the prediction is written before the runs)",
+     "type": "band",
+     "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 36 and 27",
+     "threshold": "[0.95, 1.05] for both",
+     "source": "prereg/run1_082.json llama.q_stock_n36, llama.q_stock_n27 (22.09 vs 22.87; 28.39 vs 29.53); intervals computed for this scorecard from results/082_review_run1@vast/bs1.jsonl",
+     "measured": [
+      0.966,
+      0.962
+     ],
+     "ci": [
+      [
+       0.962,
+       0.969
+      ],
+      [
+       0.958,
+       0.965
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "083",
+   "era": "082-087",
+   "script": "jobs/083_gptoss_hard_long@vast.sh",
+   "commit": "b20eb88, bee66ce",
+   "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A; the host change from 51046112 was committed before launch)",
+   "outcome_note": "prereg/hard_outcome_083.md",
+   "clauses": [
+    {
+     "id": "083-P1",
+     "short": "still reasoning at 2,048 tokens on >= 8 of 10, both systems",
+     "prediction": 1,
+     "clause": "both systems are still reasoning at token 2,048 on >= 8 of 10 problems (no answer events for ours)",
+     "type": "threshold",
+     "quantity": "problems of 10 without answer text at 2,048 tokens, ours and FreeToken, 11 / 25 / 40%",
+     "threshold": ">= 8 of 10 for both at every budget",
+     "source": "prereg/hard_083.json rows[*].ours.answered, rows[*].freetoken.answered",
+     "measured": {
+      "ours": [
+       9,
+       9,
+       10
+      ],
+      "FreeToken": [
+       10,
+       9,
+       10
+      ]
+     },
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": "The parenthetical 'no answer events for ours' did not strictly hold: one problem of 10 had answer text at 11% and at 25%; the committed bar is 8 of 10."
+    },
+    {
+     "id": "083-P2",
+     "short": "ours within 15% of its Table 1 rate",
+     "prediction": 2,
+     "clause": "ours' rate over all 2,048 tokens is within 15% of its Table 1 rate (69.9 / 109.2 / 152.5 tok/s)",
+     "type": "band",
+     "quantity": "ours all-token rate on 10 hard problems / Table 1 rate (measured on listing B)",
+     "threshold": "[0.85, 1.15] at every budget",
+     "source": "prereg/hard_083.json rows[*].ours_vs_table1; intervals computed for this scorecard from results/083_gptoss_hard_long@vast/bs1.jsonl (10 problems)",
+     "measured": [
+      1.046,
+      1.037,
+      1.033
+     ],
+     "ci": [
+      [
+       1.019,
+       1.072
+      ],
+      [
+       1.013,
+       1.06
+      ],
+      [
+       1.003,
+       1.061
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "083-P3a",
+     "short": "ours leads FreeToken, all tokens, 11/25/40%",
+     "prediction": 3,
+     "clause": "ours leads FreeToken at all three budgets on the all-token rate (paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken (hybrid, hybrid, offload), all 2,048 tokens",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/hard_083.json rows[*].ours_over_ft_all",
+     "measured": [
+      1.358,
+      1.322,
+      1.191
+     ],
+     "ci": [
+      [
+       1.338,
+       1.378
+      ],
+      [
+       1.303,
+       1.342
+      ],
+      [
+       1.172,
+       1.212
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "083-P3b",
+     "short": "ours leads FreeToken, tokens 257-2,048",
+     "prediction": 3,
+     "clause": "and on tokens 257-2,048 wherever both stream about one event per token",
+     "type": "sign",
+     "quantity": "ours / FreeToken, tokens 257-2,048 (events per token 0.996-0.997 for both)",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/hard_083.json rows[*].ours_over_ft_257-end",
+     "measured": [
+      1.366,
+      1.328,
+      1.194
+     ],
+     "ci": [
+      [
+       1.343,
+       1.389
+      ],
+      [
+       1.31,
+       1.35
+      ],
+      [
+       1.175,
+       1.215
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "083-P4",
+     "short": "lead >= 15% at 11 and 25%",
+     "prediction": 4,
+     "clause": "the lead at 11% and 25% is >= 15%",
+     "type": "threshold",
+     "quantity": "ours / FreeToken, all tokens, 11% and 25%",
+     "threshold": ">= 1.15 at both",
+     "source": "prereg/hard_083.json rows[0-1].ours_over_ft_all",
+     "measured": [
+      1.358,
+      1.322
+     ],
+     "ci": [
+      [
+       1.338,
+       1.378
+      ],
+      [
+       1.303,
+       1.342
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "084",
+   "era": "082-087",
+   "script": "jobs/084_vram_traces@vast.sh",
+   "commit": "995681b",
+   "host": "RTX PRO 6000 Blackwell Workstation + Core Ultra 9 285K, Vast offer 37184228 (throttled: device read 1,304 GB/s, gpt-oss all in VRAM 93 tok/s against 261.4 in job 075)",
+   "outcome_note": "prereg/vram_outcome_084.md",
+   "clauses": [
+    {
+     "id": "084-P1",
+     "short": "Qwen3 all in VRAM at 120-190 tok/s",
+     "prediction": 1,
+     "clause": "Qwen3-30B-A3B BF16 all in VRAM runs at 120-190 tok/s",
+     "type": "band",
+     "quantity": "stock llama.cpp, every weight in VRAM, Qwen3",
+     "threshold": "[120, 190]",
+     "source": "prereg/vram_outcome_084.md: the card was throttled, so none of its speeds is a ceiling; rerun as 084b with the predictions unchanged",
+     "measured": null,
+     "ci": null,
+     "status": "void",
+     "paper_log": "held (084b)",
+     "note": "Scored on 084b."
+    },
+    {
+     "id": "084-P2",
+     "short": "gpt-oss all in VRAM within 5% of 261.4 tok/s",
+     "prediction": 2,
+     "clause": "gpt-oss-120b all in VRAM is within 5% of job 075's 261.4 tok/s",
+     "type": "band",
+     "quantity": "stock llama.cpp, every weight in VRAM, gpt-oss",
+     "threshold": "[248.3, 274.5]",
+     "source": "prereg/vram_outcome_084.md (93.8 / 92.1 tok/s on the throttled card)",
+     "measured": null,
+     "ci": null,
+     "status": "void",
+     "paper_log": "held (084b)",
+     "note": "Scored on 084b."
+    },
+    {
+     "id": "084-P3",
+     "short": "ours with 128 slots within 5% of all in VRAM, both",
+     "prediction": 3,
+     "clause": "ours with every expert in its slots is within 5% of stock all-in-VRAM on both models",
+     "type": "band",
+     "quantity": "ours C128 / stock all in VRAM",
+     "threshold": "[0.95, 1.05] on both",
+     "source": "prereg/vram_outcome_084.md (within the throttled card: 0.99 / 0.91, not scored)",
+     "measured": null,
+     "ci": null,
+     "status": "void",
+     "paper_log": "held",
+     "note": "Scored on 084b."
+    },
+    {
+     "id": "084-P4",
+     "short": "sim. hit rate within 5 points; ours at 20-50% of the limit",
+     "prediction": 4,
+     "clause": "(scored offline) on these traces, the simulated deployed policy's hit rate is within 5 points of the engine's measured hit rate at every Table 1 budget (jobs 080/081), and ours runs at 20-50% of the speed limit at every Table 1 budget",
+     "type": "band",
+     "quantity": "trace-simulated hit rate vs engine; ours / speed limit",
+     "threshold": "|diff| <= 0.05; [0.20, 0.50]",
+     "source": "prereg/vram_outcome_084.md: the Qwen3 trace failed (the previous model's tokenising server kept the port) and the gpt-oss trace record exceeded the 8 MB result limit",
+     "measured": null,
+     "ci": null,
+     "status": "void",
+     "paper_log": "half",
+     "note": "Scored on 084b (Qwen3 trace) with 084c (gpt-oss trace)."
+    }
+   ]
+  },
+  {
+   "job": "084b",
+   "era": "082-087",
+   "script": "jobs/084b_vram_rerun@vast.sh",
+   "commit": "4ea44be (predictions carried unchanged from 995681b)",
+   "host": "RTX PRO 6000 Workstation + Core Ultra 9 285K, Vast offer 49074400 (device read 1,637 GB/s; both gates passed)",
+   "outcome_note": "prereg/vram_outcome_084.md (section 'Reruns 084b and 084c')",
+   "clauses": [
+    {
+     "id": "084b-P1",
+     "short": "Qwen3 all in VRAM at 120-190 tok/s",
+     "prediction": 1,
+     "clause": "Qwen3-30B-A3B BF16 all in VRAM runs at 120-190 tok/s",
+     "type": "band",
+     "quantity": "stock llama.cpp, every weight in VRAM, Qwen3, launch 2 (launch 1: 178.3)",
+     "threshold": "[120, 190]",
+     "source": "prereg/vram_084.json vram['qwen3-30b-a3b-bf16'], vram_launches; interval of the mean computed for this scorecard from results/084b_vram_rerun@vast/bs1.jsonl",
+     "measured": 177.8,
+     "ci": [
+      177.1,
+      178.4
+     ],
+     "status": "held",
+     "paper_log": "held (084b)",
+     "note": ""
+    },
+    {
+     "id": "084b-P2",
+     "short": "gpt-oss all in VRAM within 5% of 261.4 tok/s",
+     "prediction": 2,
+     "clause": "gpt-oss-120b all in VRAM is within 5% of job 075's 261.4 tok/s",
+     "type": "band",
+     "quantity": "stock llama.cpp all in VRAM, gpt-oss, launch 2 / 261.4 (launch 1: 259.0)",
+     "threshold": "[0.95, 1.05]",
+     "source": "prereg/vram_084.json vram['gpt-oss-120b'] (255.3); interval of the mean computed for this scorecard from results/084b_vram_rerun@vast/bs1.jsonl",
+     "measured": 0.977,
+     "ci": [
+      0.971,
+      0.982
+     ],
+     "status": "held",
+     "paper_log": "held (084b)",
+     "note": ""
+    },
+    {
+     "id": "084b-P3",
+     "short": "ours with 128 slots within 5% of all in VRAM, both",
+     "prediction": 3,
+     "clause": "ours with every expert in its slots is within 5% of stock all-in-VRAM on both models",
+     "type": "band",
+     "quantity": "ours C128 / stock all in VRAM, launch 1, gpt-oss and Qwen3",
+     "threshold": "[0.95, 1.05] on both",
+     "source": "prereg/vram_084.json ours_c128[*].over_stock",
+     "measured": [
+      0.997,
+      1.047
+     ],
+     "ci": [
+      [
+       0.991,
+       1.004
+      ],
+      [
+       1.043,
+       1.052
+      ]
+     ],
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "The Qwen3 interval's upper bound (1.0516) crosses the band's edge; the point is inside."
+    },
+    {
+     "id": "084b-P4a",
+     "short": "sim. hit rate within 5 points of the engine's, every budget",
+     "prediction": 4,
+     "clause": "(scored offline, with job 084c's gpt-oss trace) the simulated deployed policy's hit rate is within 5 points of the engine's measured hit rate at every Table 1 budget",
+     "type": "band",
+     "quantity": "simulated minus engine hit rate at gpt-oss 11 / 25 / 40% and Qwen3 12.5 / 25 / 43.75%",
+     "threshold": "|diff| <= 0.05 at every budget",
+     "source": "prereg/vram_084.json check[*].diff",
+     "measured": [
+      -0.014,
+      -0.008,
+      -0.0003,
+      -0.053,
+      -0.026,
+      -0.006
+     ],
+     "ci": null,
+     "status": "failed",
+     "paper_log": "half",
+     "note": "Misses Qwen3 12.5% by 5.3 points (the simulator models the policy without FETCH's immediate admissions); the other five are within 2.6 points."
+    },
+    {
+     "id": "084b-P4b",
+     "short": "ours at 20-50% of the speed limit, every budget",
+     "prediction": 4,
+     "clause": "and ours runs at 20-50% of the speed limit at every Table 1 budget",
+     "type": "band",
+     "quantity": "ours (Table 1 rate) / speed limit at the six Table 1 cells",
+     "threshold": "[0.20, 0.50] at every budget",
+     "source": "prereg/vram_084.json check[*].ours_frac_of_limit",
+     "measured": [
+      0.413,
+      0.256,
+      0.294,
+      0.433,
+      0.302,
+      0.352
+     ],
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "half",
+     "note": "No interval was computed on the fraction; the nearest cell is 5.6 points inside the band."
+    }
+   ]
+  },
+  {
+   "job": "084c",
+   "era": "082-087",
+   "script": "jobs/084c_gptoss_trace@vast.sh",
+   "commit": "4ea44be",
+   "host": "an RTX 5090 host (routing does not depend on the machine)",
+   "outcome_note": "prereg/vram_outcome_084.md",
+   "clauses": [],
+   "note": "No predictions of its own: it supplies the gpt-oss routing trace that 084b-P4a and 084b-P4b are scored on."
+  },
+  {
+   "job": "085",
+   "era": "082-087",
+   "script": "jobs/085_half_pcie@vast.sh",
+   "commit": "7a4f502, 4f0ef91",
+   "host": "RTX 5090 + Core i9-14900K, Vast offer 46880906 (CPU 58.0, PCIe 28.0, both 52.7-58.3 GB/s); only the gpt-oss half ran (the Qwen3 GGUF conversion hung to the 6-hour timeout), the Qwen3 half ran as 085b on another machine",
+   "outcome_note": "prereg/halfpcie_outcome_085.md",
+   "clauses": [
+    {
+     "id": "085-P1",
+     "short": "law's tables fetch less than on the headline machine",
+     "prediction": 1,
+     "clause": "the law's tables fetch less than on the headline machine (every entry <= gpt-oss 0,0,1,1,2 / Qwen3 0,0,1,1,2,3,3,4,5, at least one entry lower)",
+     "type": "equality",
+     "quantity": "the FETCH tables computed on this machine before any model run",
+     "threshold": "every entry <= the headline table's, at least one lower, both models",
+     "source": "prereg/halfpcie_085.json tables.txt: gpt-oss 0,0,0,1,1; Qwen3 0,0,0,1,1,2,2,3,3 (computed here, unused)",
+     "measured": {
+      "gpt-oss": "0,0,0,1,1 (two entries lower)",
+      "Qwen3": "0,0,0,1,1,2,2,3,3 (six entries lower)"
+     },
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085-P2a",
+     "short": "law beats fixed, gpt-oss, every budget",
+     "prediction": 2,
+     "clause": "the law's table beats the fixed table at every budget on both models (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "law / fixed table, gpt-oss 11 / 25 / 40%, launch 1 (the Qwen3 half: 085b-P2a)",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/halfpcie_085.json rows[*].law_over_fixed_L1",
+     "measured": [
+      1.34,
+      1.274,
+      1.211
+     ],
+     "ci": [
+      [
+       1.327,
+       1.355
+      ],
+      [
+       1.256,
+       1.292
+      ],
+      [
+       1.187,
+       1.235
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085-P2b",
+     "short": "law's gain larger than headline at >= 2 of 3 (pro rata of 4 of 6)",
+     "prediction": 2,
+     "clause": "by more than on the headline machine (gpt-oss +7.9 / +5.4 / +3.3%, Qwen3 +8.0 / +6.7 / +4.8%) at >= 4 of the 6 budgets",
+     "type": "threshold",
+     "quantity": "budgets on this machine at which law / fixed exceeds the headline machine's 1.079 / 1.054 / 1.033 (interval excluding it)",
+     "threshold": ">= 4 of 6 as committed; 3 budgets ran here, so >= 2 of 3 (the same two-thirds, the reading 085b committed for its half)",
+     "source": "prereg/halfpcie_085.json rows[*].law_over_fixed_L1 vs prereg/headline_081.json rows[0-2].law_over_cur_L1",
+     "measured": "3 of 3 (every interval excludes the headline value); pooled with 085b: 6 of 6",
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085-P3",
+     "short": "ours leads FreeToken, gpt-oss, every budget",
+     "prediction": 3,
+     "clause": "ours leads FreeToken's better backend at every budget on both models (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours (law) / FreeToken offload, gpt-oss 11 / 25 / 40%, launch 2 (the Qwen3 half: 085b-P3)",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/halfpcie_085.json rows[*].ours_over_ft_L2",
+     "measured": [
+      2.03,
+      1.699,
+      1.428
+     ],
+     "ci": [
+      [
+       1.993,
+       2.068
+      ],
+      [
+       1.662,
+       1.737
+      ],
+      [
+       1.391,
+       1.463
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085-P4",
+     "short": "lead larger than headline at >= 2 of 3 (pro rata of 4 of 6)",
+     "prediction": 4,
+     "clause": "ours' lead over FreeToken is larger than on the headline machine at >= 4 of the 6 budgets",
+     "type": "threshold",
+     "quantity": "gpt-oss budgets on this machine at which ours / FreeToken exceeds the headline machine's 1.294 / 1.275 / 1.154 (interval excluding it)",
+     "threshold": ">= 4 of 6 as committed; 3 budgets ran here, so >= 2 of 3 (the same two-thirds, the reading 085b committed for its half)",
+     "source": "prereg/halfpcie_085.json rows[*].ours_over_ft_L2 vs prereg/headline_081.json rows[0-2].ours_over_ft_L2",
+     "measured": "3 of 3 (every interval excludes the headline value); pooled with 085b (1 of 3): 4 of 6",
+     "ci": null,
+     "status": "held",
+     "paper_log": "held (4 of 6)",
+     "note": "The paper's log scores the pooled 4 of 6 across the two machines as held; 085b's own restatement of this prediction (>= 2 of 3 on Qwen3) fails, see 085b-P4."
+    },
+    {
+     "id": "085-P5",
+     "short": "llama.cpp at 25% within 5% of the law, gpt-oss",
+     "prediction": 5,
+     "clause": "llama.cpp at 25% is within 5% of the law's prediction written on the machine before the runs, on both models",
+     "type": "band",
+     "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 27 on gpt-oss (27.50 vs 33.62); the Qwen3 half: 085b-P5",
+     "threshold": "[0.95, 1.05]",
+     "source": "prereg/halfpcie_085.json means['g_llama_n27 L1'], law_llama.json; interval of the mean computed for this scorecard from results/085_half_pcie@vast/bs1.jsonl",
+     "measured": 0.818,
+     "ci": [
+      0.817,
+      0.819
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "llama.cpp splits each matrix evenly across the 14900K's P- and E-cores (as job 069c found on another hybrid-core Intel CPU)."
+    }
+   ]
+  },
+  {
+   "job": "085b",
+   "era": "082-087",
+   "script": "jobs/085b_half_pcie_qwen3@vast.sh",
+   "commit": "fcc0970, ff2110b (predictions carried from 7a4f502 / 4f0ef91, restricted to Qwen3)",
+   "host": "RTX 5090 + Ryzen 9 7900, Vast offer 53537780 (CPU 44.75, PCIe 26.6, both 49.3 GB/s)",
+   "outcome_note": "prereg/halfpcie_outcome_085.md",
+   "clauses": [
+    {
+     "id": "085b-P1",
+     "short": "law's table fetches less than on the headline machine",
+     "prediction": 1,
+     "clause": "the law's table fetches less than on the headline machine (every entry <= 0,0,1,1,2,3,3,4,5, one lower)",
+     "type": "equality",
+     "quantity": "the Qwen3 FETCH table computed on this machine before any model run",
+     "threshold": "every entry <= the headline table's, at least one lower",
+     "source": "prereg/halfpcie_085b.json tables.txt",
+     "measured": "0,0,1,1,2,2,3,3,4 (three entries lower)",
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085b-P2a",
+     "short": "law beats fixed, Qwen3, every budget",
+     "prediction": 2,
+     "clause": "the law's table beats the fixed table at every budget (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "law / fixed table, Qwen3 12.5 / 25 / 43.75%, launch 1",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/halfpcie_085b.json rows[*].law_over_fixed_L1",
+     "measured": [
+      1.184,
+      1.149,
+      1.094
+     ],
+     "ci": [
+      [
+       1.177,
+       1.19
+      ],
+      [
+       1.142,
+       1.157
+      ],
+      [
+       1.086,
+       1.101
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085b-P2b",
+     "short": "law's gain larger than headline at >= 2 of 3",
+     "prediction": 2,
+     "clause": "by more than on the headline machine (+8.0 / +6.7 / +4.8%) at >= 2 of the 3 budgets",
+     "type": "threshold",
+     "quantity": "budgets at which law / fixed exceeds the headline machine's 1.080 / 1.067 / 1.048 (interval excluding it)",
+     "threshold": ">= 2 of 3",
+     "source": "prereg/halfpcie_085b.json rows[*].law_over_fixed_L1 vs prereg/headline_081.json rows[3].law_over_cur_L1 and prereg/split_080.json (C32 1.067, C56 1.048)",
+     "measured": "3 of 3 (every interval excludes the headline value)",
+     "ci": null,
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085b-P3",
+     "short": "ours leads FreeToken, Qwen3, every budget",
+     "prediction": 3,
+     "clause": "ours leads FreeToken's better backend at every budget (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours (law) / FreeToken hybrid, Qwen3 12.5 / 25 / 43.75%, launch 2",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/halfpcie_085b.json rows[*].ours_over_ft_L2",
+     "measured": [
+      1.067,
+      1.076,
+      1.038
+     ],
+     "ci": [
+      [
+       1.058,
+       1.076
+      ],
+      [
+       1.063,
+       1.089
+      ],
+      [
+       1.017,
+       1.06
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "085b-P4",
+     "short": "lead larger than headline at >= 2 of 3",
+     "prediction": 4,
+     "clause": "ours' lead over FreeToken is larger than on the headline machine at >= 2 of the 3 budgets",
+     "type": "threshold",
+     "quantity": "budgets at which ours / FreeToken exceeds the headline machine's 1.032 / 1.153 / 1.049",
+     "threshold": ">= 2 of 3",
+     "source": "prereg/halfpcie_085b.json rows[*].ours_over_ft_L2 vs prereg/headline_081.json rows[3].ours_over_ft_L2 and prereg/split_080.json (C32 1.153, C56 1.049)",
+     "measured": "1 of 3: 12.5% 1.067 [1.058, 1.076] > 1.032; 25% 1.076 [1.063, 1.089] < 1.153; 43.75% 1.038 [1.017, 1.060] below 1.049 with the interval covering it",
+     "ci": null,
+     "status": "failed",
+     "paper_log": "held (4 of 6)",
+     "note": "Under the job's own restatement the prediction fails. The paper's log scores the pooled count across the two machines (3 gpt-oss budgets on 085 + 1 Qwen3 budget here = 4 of 6) as held; that pooled reading is recorded on 085-P4 and not scored here."
+    },
+    {
+     "id": "085b-P5",
+     "short": "llama.cpp at 25% within 5% of the law, Qwen3",
+     "prediction": 5,
+     "clause": "llama.cpp at 25% is within 5% of the law's prediction written on the machine before the runs",
+     "type": "band",
+     "quantity": "measured / predicted tok/s, llama.cpp -ncmoe 36 on Qwen3 (14.98 vs 15.38)",
+     "threshold": "[0.95, 1.05]",
+     "source": "prereg/halfpcie_085b.json means['q_llama_n36 L1'], law_llama.json; interval of the mean computed for this scorecard from results/085b_half_pcie_qwen3@vast/bs1.jsonl",
+     "measured": 0.974,
+     "ci": [
+      0.972,
+      0.976
+     ],
+     "status": "held",
+     "paper_log": "failed",
+     "note": "The paper's log scores prediction 5 as one unit across both machines (failed on the gpt-oss half, 085-P5)."
+    }
+   ]
+  },
+  {
+   "job": "086",
+   "era": "082-087",
+   "script": "jobs/086_qwen36@vast.sh",
+   "commit": "a065076",
+   "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A)",
+   "outcome_note": "prereg/qwen36_outcome_086.md",
+   "clauses": [
+    {
+     "id": "086-P1",
+     "short": "FreeToken as shipped within 15% of its paper's rate",
+     "prediction": 1,
+     "clause": "FreeToken as shipped runs within 15% of its paper's 77-83 tok/s (65-96 tok/s)",
+     "type": "band",
+     "quantity": "FreeToken --moe-strategy auto, mean tok/s over 30 problems",
+     "threshold": "[65, 96]",
+     "source": "prereg/qwen36_086.json ft_auto; interval of the mean computed for this scorecard from results/086_qwen36@vast/bs1.jsonl",
+     "measured": 93.8,
+     "ci": [
+      91.3,
+      96.5
+     ],
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "The interval's upper bound crosses the band's top; the point is inside."
+    },
+    {
+     "id": "086-P2",
+     "short": "ours leads FreeToken at 12.5/25/37.5%",
+     "prediction": 2,
+     "clause": "ours leads FreeToken's better backend at 12.5, 25 and 37.5% (launch 2, paired CI > 1)",
+     "type": "sign",
+     "quantity": "ours (law) / FreeToken hybrid, launch 2",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/qwen36_086.json rows[*].ours_over_ft_L2",
+     "measured": [
+      1.03,
+      1.01,
+      1.003
+     ],
+     "ci": [
+      [
+       1.023,
+       1.038
+      ],
+      [
+       0.998,
+       1.021
+      ],
+      [
+       0.994,
+       1.013
+      ]
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "Held at 12.5% only; ties at 25 and 37.5%."
+    },
+    {
+     "id": "086-P3",
+     "short": "ours >= 2x llama.cpp, every budget",
+     "prediction": 3,
+     "clause": "ours runs >= 2x llama.cpp at every budget",
+     "type": "threshold",
+     "quantity": "ours (law, launch 2) / llama.cpp at 12.5 / 25 / 37.5%",
+     "threshold": ">= 2.0 at every budget",
+     "source": "prereg/qwen36_086.json rows[*].ours_over_llama",
+     "measured": [
+      1.976,
+      2.311,
+      2.481
+     ],
+     "ci": [
+      [
+       1.95,
+       2.005
+      ],
+      [
+       2.264,
+       2.361
+      ],
+      [
+       2.441,
+       2.521
+      ]
+     ],
+     "status": "failed",
+     "paper_log": "failed",
+     "note": "The 12.5% point is 1.2% below 2x (its interval covers 2x)."
+    },
+    {
+     "id": "086-P4",
+     "short": "law beats fixed, every budget",
+     "prediction": 4,
+     "clause": "the law's table beats the fixed table at every budget (launch 1, paired CI > 1)",
+     "type": "sign",
+     "quantity": "law / fixed table at 12.5 / 25 / 37.5%, launch 1",
+     "threshold": "> 1 at every budget",
+     "source": "prereg/qwen36_086.json rows[*].law_over_fixed_L1",
+     "measured": [
+      1.071,
+      1.06,
+      1.057
+     ],
+     "ci": [
+      [
+       1.068,
+       1.074
+      ],
+      [
+       1.057,
+       1.063
+      ],
+      [
+       1.052,
+       1.061
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    }
+   ]
+  },
+  {
+   "job": "087",
+   "era": "082-087",
+   "script": "jobs/087_ablation_static@vast.sh",
+   "commit": "83dde3f",
+   "host": "RTX 5090 + Ryzen 9 9950X3D, Vast offer 51051777 (listing A)",
+   "outcome_note": "prereg/ablation_outcome_087.md",
+   "clauses": [
+    {
+     "id": "087-P1",
+     "short": "profiled static cache >= 1.3x stock, both models",
+     "prediction": 1,
+     "clause": "the profiled static cache runs >= 1.3x stock llama.cpp on both models",
+     "type": "threshold",
+     "quantity": "static cache (profiled on MATH-500 text) / stock llama.cpp at 25%, gpt-oss and Qwen3 (15 problems)",
+     "threshold": ">= 1.3 on both",
+     "source": "prereg/ablation_087.json ladder.g[1].over_stock, ladder.q[1].over_stock",
+     "measured": [
+      1.307,
+      1.889
+     ],
+     "ci": [
+      [
+       1.236,
+       1.379
+      ],
+      [
+       1.803,
+       1.969
+      ]
+     ],
+     "status": "held (point)",
+     "paper_log": "held",
+     "note": "The gpt-oss point clears 1.3 by 0.5% and its interval covers 1.3; the paper's log scores it held on the point estimate."
+    },
+    {
+     "id": "087-P2",
+     "short": "replacement adds less than placement, both models",
+     "prediction": 2,
+     "clause": "replacing experts dynamically adds less than placing them: step 3 / step 1 < step 1 / step 0 on both models",
+     "type": "sign",
+     "quantity": "(decayed frequency / profiled static) minus (profiled static / stock), gpt-oss and Qwen3",
+     "threshold": "< 0 on both",
+     "source": "prereg/ablation_087.json ladder (1.575 vs 1.307; 1.124 vs 1.889); paired interval of the difference computed for this scorecard from results/087_ablation_static@vast/bs1.jsonl",
+     "measured": [
+      0.268,
+      -0.765
+     ],
+     "ci": [
+      [
+       0.122,
+       0.434
+      ],
+      [
+       -0.898,
+       -0.619
+      ]
+     ],
+     "status": "failed",
+     "paper_log": "failed (gpt-oss)",
+     "note": "Held on Qwen3, failed on gpt-oss (the MATH-500 profile matched the AIME workload poorly: hit 52%)."
+    },
+    {
+     "id": "087-P3",
+     "short": "decayed frequency beats the profiled static cache, both",
+     "prediction": 3,
+     "clause": "the decayed-frequency policy (step 3) beats the profiled static cache (paired CI > 1) on both models",
+     "type": "sign",
+     "quantity": "decayed frequency / profiled static cache, gpt-oss and Qwen3",
+     "threshold": "> 1 on both",
+     "source": "prereg/ablation_outcome_087.md; paired intervals computed for this scorecard from results/087_ablation_static@vast/bs1.jsonl",
+     "measured": [
+      1.575,
+      1.124
+     ],
+     "ci": [
+      [
+       1.497,
+       1.674
+      ],
+      [
+       1.07,
+       1.187
+      ]
+     ],
+     "status": "held",
+     "paper_log": "held",
+     "note": ""
+    },
+    {
+     "id": "087-P4a",
+     "short": "every step after the static cache >= -1%",
+     "prediction": 4,
+     "clause": "every step after the static cache is >= -1%",
+     "type": "threshold",
+     "quantity": "each ladder step / the previous step after step 1, gpt-oss and Qwen3",
+     "threshold": ">= 0.99 for every step",
+     "source": "prereg/ablation_087.json ladder.q[2].over_prev (the LRU step on Qwen3); every other step is above 1",
+     "measured": 0.877,
+     "ci": [
+      0.835,
+      0.924
+     ],
+     "status": "failed",
+     "paper_log": "failed (Qwen3)",
+     "note": "LRU admits every miss and the copies cost host reads; the gpt-oss LRU step is 1.301 [1.229, 1.392]."
+    },
+    {
+     "id": "087-P4b",
+     "short": "ours >= 2x stock, both models",
+     "prediction": 4,
+     "clause": "and ours runs >= 2x stock on both models",
+     "type": "threshold",
+     "quantity": "ours (law's table) / stock llama.cpp at 25%, gpt-oss and Qwen3",
+     "threshold": ">= 2.0 on both",
+     "source": "prereg/ablation_087.json ladder.g[8].over_stock, ladder.q[8].over_stock",
+     "measured": [
+      2.68,
+      2.815
+     ],
+     "ci": [
+      [
+       2.595,
+       2.763
+      ],
+      [
+       2.754,
+       2.877
+      ]
+     ],
+     "status": "held",
+     "paper_log": "failed (Qwen3)",
+     "note": "The paper's log scores prediction 4 as one unit (failed on its first clause)."
+    }
+   ]
+  },
+  {
+   "job": "088",
+   "era": "088-092",
+   "script": "jobs/088_slowlink_fair@vast.sh",
+   "commit": "c70e311",
+   "host": "RTX 5090 + Core i9-14900K, Vast offer 48829099 (PCIe 4.0-class link, 29.9 GB/s zero-copy; the CPU model of job 085)",
+   "outcome_note": "prereg/slowlink_outcome_088.md",
+   "clauses": [
+    {
+     "id": "088-P1",
+     "short": "FreeToken hybrid on 8 threads >= 1.3x job 085's hybrid, every budget",
+     "prediction": 1,
+     "clause": "FreeToken's hybrid backend on 8 threads runs faster than job 085's default-thread hybrid (12.0 / 30.5 / 66.0 tok/s) by at least 30% at every budget",
+     "type": "threshold",
+     "quantity": "hybrid8 launch-1 mean / job 085's hybrid mean, 11 / 25 / 40%",
+     "threshold": ">= 1.3 at every budget",
+     "source": "prereg/slowlink_088.json rows[].ft_hybrid8_over_085_hybrid (means across two rentals of the same CPU model; no paired interval)",
+     "measured": [
+      3.12,
+      2.04,
+      1.4
+     ],
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "",
+     "note": "Cross-rental means (job 085 ran on another i9-14900K host; ours ran 19% faster here), so no interval; the 40% value (1.40) would fall to 1.18 if scaled by the host difference."
+    },
+    {
+     "id": "088-P2",
+     "short": "FreeToken's best improves on job 085's best at >= 2 of 3 budgets",
+     "prediction": 2,
+     "clause": "FreeToken's best configuration improves on job 085's best (24.6 / 48.2 / 86.0 tok/s, its offload backend) at 2 or more of the 3 budgets",
+     "type": "threshold",
+     "quantity": "FreeToken's launch-2 best / job 085's best, 11 / 25 / 40%",
+     "threshold": "> 1 at >= 2 of 3",
+     "source": "prereg/slowlink_088.json rows[].ft_best_over_085_best",
+     "measured": [
+      1.52,
+      1.29,
+      1.08
+     ],
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "",
+     "note": "3 of 3; cross-rental means, no interval. The 40% improvement (1.08) is within the host difference."
+    },
+    {
+     "id": "088-P3a",
+     "short": "ours leads FreeToken's best, 11% (CI > 1)",
+     "prediction": 3,
+     "clause": "ours with the law's table leads FreeToken's best configuration at 11% (launch 2, paired CI above 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken (hybrid8) at 11%, launch 2",
+     "threshold": "> 1",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.582,
+     "ci": [
+      1.564,
+      1.603
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "088-P3b",
+     "short": "ours leads FreeToken's best, 25% (CI > 1)",
+     "prediction": 3,
+     "clause": "ours with the law's table leads FreeToken's best configuration at 25% (launch 2, paired CI above 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken (hybrid8) at 25%, launch 2",
+     "threshold": "> 1",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.519,
+     "ci": [
+      1.472,
+      1.559
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "088-P3c",
+     "short": "ours leads FreeToken's best, 40% (CI > 1)",
+     "prediction": 3,
+     "clause": "ours with the law's table leads FreeToken's best configuration at 40% (launch 2, paired CI above 1)",
+     "type": "sign",
+     "quantity": "ours / FreeToken (offload) at 40%, launch 2",
+     "threshold": "> 1",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.506,
+     "ci": [
+      1.476,
+      1.537
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "088-P3d",
+     "short": "ours / FreeToken between 1.10x and 1.50x, 11%",
+     "prediction": 3,
+     "clause": "ours' lead over FreeToken's best configuration at 11% is between 1.10x and 1.50x (less than job 085's 1.43-2.03x)",
+     "type": "band",
+     "quantity": "ours / FreeToken (hybrid8) at 11%, launch 2",
+     "threshold": "1.10-1.50",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.582,
+     "ci": [
+      1.564,
+      1.603
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Above the band: the lead shrank from job 085 (2.03 / 1.70 / 1.43) but not below 1.50."
+    },
+    {
+     "id": "088-P3e",
+     "short": "ours / FreeToken between 1.10x and 1.50x, 25%",
+     "prediction": 3,
+     "clause": "ours' lead over FreeToken's best configuration at 25% is between 1.10x and 1.50x (less than job 085's 1.43-2.03x)",
+     "type": "band",
+     "quantity": "ours / FreeToken (hybrid8) at 25%, launch 2",
+     "threshold": "1.10-1.50",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.519,
+     "ci": [
+      1.472,
+      1.559
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Above the band: the lead shrank from job 085 (2.03 / 1.70 / 1.43) but not below 1.50. The interval covers 1.50. Scored failed: the point estimate is above the band, though the interval covers the band's upper edge."
+    },
+    {
+     "id": "088-P3f",
+     "short": "ours / FreeToken between 1.10x and 1.50x, 40%",
+     "prediction": 3,
+     "clause": "ours' lead over FreeToken's best configuration at 40% is between 1.10x and 1.50x (less than job 085's 1.43-2.03x)",
+     "type": "band",
+     "quantity": "ours / FreeToken (offload) at 40%, launch 2",
+     "threshold": "1.10-1.50",
+     "source": "prereg/slowlink_088.json rows[].ours_over_ft_L2",
+     "measured": 1.506,
+     "ci": [
+      1.476,
+      1.537
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Above the band: the lead shrank from job 085 (2.03 / 1.70 / 1.43) but not below 1.50. The interval covers 1.50. Scored failed: the point estimate is above the band, though the interval covers the band's upper edge."
+    },
+    {
+     "id": "088-P4a",
+     "short": "llama.cpp -t 8 within 10% of the law",
+     "prediction": 4,
+     "clause": "llama.cpp with -t 8 at 25% runs within 10% of the law's prediction written on the machine",
+     "type": "band",
+     "quantity": "law prediction / measured - 1, llama.cpp -ncmoe 27 -t 8",
+     "threshold": "within +-10%",
+     "source": "prereg/slowlink_088.json llama.err_t8 (law_llama.json written before the runs)",
+     "measured": -9.4,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "",
+     "note": "One run, no interval; -t 24 on the same machine misses by +25.9% (the hybrid-core failure of the law section)."
+    },
+    {
+     "id": "088-P4b",
+     "short": "llama.cpp -t 8 faster than -t 24",
+     "prediction": 4,
+     "clause": "llama.cpp with -t 8 (one thread per performance core) runs faster than with -t 24 at 25%",
+     "type": "sign",
+     "quantity": "llama.cpp -t 8 / -t 24, paired",
+     "threshold": "> 1",
+     "source": "prereg/slowlink_088.json llama.t8_over_tall",
+     "measured": 1.219,
+     "ci": [
+      1.213,
+      1.225
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "088-P5",
+     "short": "the law's table is 0,0,0,1,1 or fetches less",
+     "prediction": 5,
+     "clause": "the law's table computed on this machine is 0,0,0,1,1 (job 085's table on the same CPU model) or fetches less at every entry",
+     "type": "equality",
+     "quantity": "FETCH table from the probe before any model run",
+     "threshold": "0,0,0,1,1 or lower entries",
+     "source": "prereg/slowlink_088.json tables.txt",
+     "measured": "0,0,0,1,1",
+     "ci": null,
+     "status": "held",
+     "paper_log": "",
+     "note": "Deterministic."
+    }
+   ]
+  }
+ ]
 }

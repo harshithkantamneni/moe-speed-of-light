@@ -1,5 +1,6 @@
 """Ours / FreeToken against the machine's CPU-to-PCIe read ratio, every same-machine comparison of the Table 1 protocol
-(30 AIME-25 problems, 256 tokens, greedy, session, equal GPU expert memory).
+(30 AIME-25 problems, 256 tokens, greedy, session, equal GPU expert memory). Job 085's confounded i9-14900K rows are
+replaced by job 088's fair rerun (FreeToken's CPU executor on the performance cores).
 
 x: FreeToken's own probe on each machine (ft bench bw ceilings: cpu_stream_read_gbs / pcie_linear_h2d_gbs), the same
    tool on every machine. y: ours / FreeToken's better backend, mean speeds; filled markers use the law's FETCH table
@@ -57,8 +58,10 @@ def points():
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "law", r["ours_over_ft_L2"][0], "headline_081.json")
         ftb = max(r["ft_L1"].values())
         add("081_headline_law@vast", "9950X3D (B)", r["model"], r["budget"], "fixed", r["ours_cur_L1"] / ftb, "headline_081.json (launch 1)")
-    for name, job, host in (("halfpcie_085.json", "085_half_pcie@vast", "14900K, slow link"),
-                            ("halfpcie_085b.json", "085b_half_pcie_qwen3@vast", "7900, PCIe 4.0")):
+    # job 085's gpt-oss rows (14900K) are confounded: FreeToken's CPU executor spread 23 threads over the P- and E-cores;
+    # job 088 reran that machine class with the executor on 8 performance-core threads and replaces them here.
+    for name, job, host in (("halfpcie_085b.json", "085b_half_pcie_qwen3@vast", "7900, PCIe 4.0"),
+                            ("slowlink_088.json", "088_slowlink_fair@vast", "14900K, slow link, fair")):
         hp = load(name)
         if hp:
             for r in hp["rows"]:

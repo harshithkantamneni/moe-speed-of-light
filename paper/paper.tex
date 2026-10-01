@@ -29,7 +29,9 @@ validation its max-of-paths form beats the additive alternative (\lohoMaxMed\% a
 machine's measured rates, bounds any exact-routing system at a given expert budget. Published trace-scored offloading
 measurements reach a median \audTraceMed\% of their own limit; on one machine, stock llama.cpp reaches
 \llLimExPctMin--\llLimExPctMax\%, FreeToken \ftLimExPctMin--\ftLimExPctMax\%, and our cache
-\limExPctMin--\limExPctMax\% (\limAllPctMin--\limAllPctMax\% of a limit tightened in four ways).
+\limExPctMin--\limExPctMax\% (\limAllPctMin--\limAllPctMax\% of a limit tightened in four ways); across
+\grHostsN{} hosts and \grCardsN{} cards the limit moves with the machine and our cache stays at
+\grFracMin--\grFracMax\% of it.
 \textbf{An accounting.} Shapley attribution over every order of fixes says where the rest goes: missing foresight is
 the largest cost where the host binds (\shFsHostMin--\shFsHostMax\% of the gap), host reads serialised with GPU
 work where it does not (\shOvlGpuMin--\shOvlGpuMax\%); GPU kernel efficiency, replacement policy and host work are
@@ -344,7 +346,7 @@ clock and a \scPowerW\,W limit (listing B: \scPowerWB\,W), the same \scPcieBw\,G
 \scFtQLow, \scFtQMid{} and \scFtQHigh$\times$ on Qwen3: it leads at \scOursLeadCells{} cells and FreeToken leads at
 Qwen3 43.75\% (interval \scFtLoQHigh--\scFtHiQHigh). Every ratio is below listing B's, by
 \scRatioDropMin--\scRatioDropMax, beyond the $\pm$0.06 we predicted at \scRatioFailCells{} of the six cells (one by
-0.001); the two launch orders agree within \scOrderMax\%. The
+0.001). The
 absolute speeds fall \scOursDropMin--\scOursDropMax\% for ours and \scLlamaDropMin--\scLlamaDropMax\% for
 llama.cpp, but only \scFtOffDropMin--\scFtOffDropMax\% for FreeToken's offload backend at the two cells it runs,
 which put no expert on the CPU (\scFtHybDropMin--\scFtHybDropMax\% for its hybrid backend, which does). So the card
@@ -356,9 +358,33 @@ B, its four host-bound limits are \scLimDropMin\% lower, and ours stands at \scL
 host's limits against \scLimFracBMin--\scLimFracBMax\% on listing B. \Cref{fig:ratio} puts
 every same-machine comparison on that axis: on gpt-oss the lead is \ratioNearMin--\ratioNearMax$\times$ on the
 \ratioNearHostsN{} hosts whose CPU reads \ratioNearXMin--\ratioNearXMax$\times$ their link's rate,
-\ftRatioGptMin--\ftRatioGptMax$\times$ on listing B at \ratioXB$\times$ (with the fixed table, 25\% gives
-\fixedRatioA, \fixedRatioB{} and \fixedRatioC{} on jobs 076, 077 and 081), and \slFtMin--\slFtMax$\times$ behind the
-slow link at \ratioXSlow$\times$. On FreeToken's own headline model,
+\ftRatioGptMin--\ftRatioGptMax$\times$ on listing B at \ratioXB$\times$, and \slFtMin--\slFtMax$\times$ behind
+the slow link at \ratioXSlow$\times$.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/grid.pdf}
+\caption{Ours (filled) and FreeToken (hollow) as a percentage of each machine's own speed limit (exact optimum,
+the machine's highest probed host rate, the card's datasheet rate) at every cell of \cref{tab:grid}: two RTX 5090
+hosts, an RTX 4090 and an RTX 3090 (FreeToken's 3090 cells, its carried-over backend running below llama.cpp, are
+omitted). The limit ranges from \grLimMin{} to \grLimMax\,tok/s across these cells; ours stays at
+\grFracMin--\grFracMax\% of it.}\label{fig:grid}
+\end{figure}
+
+\paragraph{Other cards.} \Cref{tab:grid} (appendix) repeats the protocol on an RTX 4090 next to a Core i5-12400 (job
+091: the host reads \grFourkHostBw\,GB/s, the link 25) and an RTX 3090 next to a Core i9-11900KF (job 092:
+\grThreekHostBw\,GB/s; CPU and link together read \emph{less} than the CPU alone, so the law's table copies nothing),
+at the cells that fit 24\,GB, each against its own machine's limit. On the 4090 ours leads FreeToken by
+\grFourkFtMin--\grFourkFtMax$\times$ and llama.cpp by \grFourkLlamaMin--\grFourkLlamaMax$\times$ at half the
+headline machine's absolute speeds, the host being the reason; on the 3090 it runs \grThreekLlamaMin--\grThreekLlamaMax$\times$
+llama.cpp (FreeToken's carried-over backend ran below llama.cpp there, \grThreekFtSpeedMin--\grThreekFtSpeedMax\,tok/s,
+and is not counted). The cards' own bandwidth never enters: \grSmallHostBound{} one of the \grSmallCellsN{} cells on
+the 24\,GB cards is host-bound at the limit, and ours stands at
+\grFourkFracMin--\grFourkFracMax\% and \grThreekFracMin--\grThreekFracMax\% of it, within a few points of the two
+5090 hosts' \scLimFracBMin--\scLimFracBMax\% and \scLimFracMin--\scLimFracMax\% (\cref{fig:grid}). Mixtral-8x7B (8 experts per layer, top-2; 26\,GB of Q4\_K\_M experts on the 3090) marks the
+cache's scope: with 2 of 8 experts resident the decayed-frequency cache hits \grMixHitCTwo\% of reads where whole-layer
+pinning hits \grMixPinCTwo\%, so there is little locality to earn, and ours ties llama.cpp
+(\grMixCTwo{} [\grMixCTwoLo, \grMixCTwoHi]); on the 128-expert models the same cache hits \grHitMin--\grHitMax\% at
+11--25\% resident. The gain belongs to models with many experts per layer. On FreeToken's own headline model,
 Qwen3.6-35B-A3B in BF16 (256 experts of 6.3\,MB per layer, hybrid linear attention), the two systems are close: ours runs
 \qsixFtA{} times FreeToken at 12.5\% and ties at 25 and 37.5\% (\qsixFtB, \qsixFtC), at \qsixLlA--\qsixLlC$\times$ llama.cpp (job 086,
 listing A). FreeToken as shipped, with its automatic backend and cache size, runs this model at \qsixAuto\,tok/s on that
@@ -542,8 +568,9 @@ use to measure the horizon.
 
 \section{Limitations}\label{sec:limits}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{Hardware.} One GPU model (RTX 5090; an RTX PRO 6000 for all-in-VRAM runs) and desktop Ryzen and Intel
-hosts, rented; GPU clocks could not be locked, power limits differed (400--575\,W), and listing B's memory runs
+\item \textbf{Hardware.} Consumer cards (RTX 5090 for the headline comparisons, a 4090 and a 3090 at the cells that
+fit 24\,GB; an RTX PRO 6000 for all-in-VRAM runs) and desktop Ryzen and Intel
+hosts, rented; GPU clocks could not be locked, power limits differed (350--575\,W), and listing B's memory runs
 \memClkRatio$\times$ faster than the other cards'. \Cref{tab:headline} was rerun once on a stock-clock card (job
 089): our speeds fell \scOursDropMin--\scOursDropMax\% and our lead over FreeToken by
 \scRatioDropMin--\scRatioDropMax, mostly from that host's slower CPU, and FreeToken led at one cell. A 12-channel server CPU breaks the

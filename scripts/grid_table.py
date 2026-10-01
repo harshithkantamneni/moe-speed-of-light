@@ -81,8 +81,10 @@ def grid_rows(name, host_label):
                          ours_over_llama=r.get("ours_over_llama"), limit_tok_s=L["tok_s"], cpu_at_limit=L["cpu_at_limit"], frac_ours=L["frac"]["ours"],
                          frac_ft=L["frac"]["ft"], frac_llama=L["frac"]["llama"], t_ms=L["t_ms"], gpu_only_ms=L["gpu_only_ms"]))
     tb = {k: v["table"] for k, v in d["tables"].items()}
-    return dict(card=d["card"], host=host_label, b_host=d["probes"]["b_host_max_gbs"], b_gpu=d["rows"][0]["limit"]["b_gpu_gbs"] if d["rows"] else None,
-                tables=tb, rows=rows, mixtral=d.get("mixtral", []), gpu=d.get("gpu"), skipped=d.get("skipped.txt", ""))
+    for r, src in zip(rows, d["rows"]):
+        r["hit_rate"] = src.get("cache", {}).get("hit_rate")
+    return dict(card=d["card"], host=host_label, b_host=d["probes"]["b_host_max"], b_gpu=d["rows"][0]["limit"]["b_gpu_gbs"] if d["rows"] else None,
+                tables=tb, rows=rows, mixtral=d.get("mixtral", []), gpu=d.get("gpu"), skipped=d.get("skipped.txt", ""), ft_probe=d.get("ft_probe"))
 
 
 def regime(row):
@@ -101,7 +103,7 @@ def fmt_ratio(x):
 
 def main():
     cards = [listing_b_rows(), stockclock_rows()]
-    for name, lab in (("grid_091.json", "4090 host (job 091)"), ("grid_092.json", "3090 host (job 092)")):
+    for name, lab in (("grid_091.json", "i5-12400 (job 091)"), ("grid_092.json", "i9-11900KF (job 092)")):
         g = grid_rows(name, lab)
         if g:
             cards.append(g)
@@ -115,13 +117,14 @@ def main():
             if not r:
                 continue
             reg = regime(r)
+            dag = r"$^\dagger$" if "3090" in c["card"] else ""
             lines.append("%s & %s & %s & %s & %.1f & %s & %s & %.0f & %s & %.0f \\\\" % (
-                r["model"], r["budget"].replace("%", r"\%"), f"{r['llama']:.1f}" if r.get("llama") else "--", f"{r['ft']:.1f}" if r.get("ft") else "--",
-                r["ours"], fmt_ratio(r["ours_over_ft"]), f"{r['ours_over_llama'][0]:.2f}" if r.get("ours_over_llama") else "--",
+                r["model"], r["budget"].replace("%", r"\%"), f"{r['llama']:.1f}" if r.get("llama") else "--", f"{r['ft']:.1f}{dag}" if r.get("ft") else "--",
+                r["ours"], fmt_ratio(r["ours_over_ft"]) + dag, f"{r['ours_over_llama'][0]:.2f}" if r.get("ours_over_llama") else "--",
                 r["limit_tok_s"], reg, 100 * r["frac_ours"]))
         for m in c.get("mixtral", []) or []:
-            lines.append("Mixtral-8x7B Q4\\_K\\_M & $C{=}%d$ & %.1f & -- & %.1f & -- & %.2f [%.2f, %.2f] & -- & -- & -- \\\\" % (
-                m["C"], m["llama"], m["ours"], m["ours_over_llama"][0], m["ours_over_llama"][1], m["ours_over_llama"][2]))
+            lines.append("Mixtral-8x7B Q4\\_K\\_M & $C{=}%d$ (%d\\%%) & %.2f & -- & %.2f & -- & %.3f [%.3f, %.3f] & -- & -- & -- \\\\" % (
+                m["C"], 100 * m["C"] // 8, m["llama"], m["ours"], m["ours_over_llama"][0], m["ours_over_llama"][1], m["ours_over_llama"][2]))
     tex = r"""\begin{table*}[t]\centering\small
 \caption{The grid: \cref{tab:headline}'s protocol on every card and host we measured, each cell against its own
 machine's limit (the exact optimum's reads on the same trace, the machine's highest probed host rate, the card's
@@ -129,8 +132,10 @@ datasheet rate). \emph{Bound}: what binds the limit; \emph{host} when the optimu
 GPU's whole read, so the GPU has slack, \emph{both} when the limit runs experts on the CPU until the two paths take
 equally long, which is where the all-in-VRAM speed can be exceeded. Ours and
 FreeToken are launch 2 (FreeToken's backend carried over from the headline machine's selection); the 40 and 43.75\%
-budgets do not fit a 24\,GB card. Mixtral-8x7B (26\,GB of experts, top-2 of 8) is ours against llama.cpp only, on the
-RTX 3090, launch 1.}\label{tab:grid}
+budgets do not fit a 24\,GB card. $^\dagger$On the RTX 3090 FreeToken's carried-over hybrid backend ran below
+llama.cpp; its own calibration recommends its offload backend there, which we did not run, so those cells are
+reported, not counted. Mixtral-8x7B (26\,GB of experts, top-2 of 8) is ours against llama.cpp only, on the RTX 3090,
+launch 1.}\label{tab:grid}
 \setlength\tabcolsep{3pt}\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrcr}\toprule
 Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Limit & Bound & Ours, \% \\
@@ -141,8 +146,8 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     open(P("paper", "tab_grid.tex"), "w").write(tex)
     # macros
     allrows = [(c, r) for c in cards for r in c["rows"]]
-    M("grCardsN", {2: "two", 3: "three", 4: "four"}[len(cards)])
-    M("grHostsN", {2: "two", 3: "three", 4: "four"}[len(cards)])
+    M("grCardsN", {1: "one", 2: "two", 3: "three", 4: "four"}[len({c["card"] for c in cards})])
+    M("grHostsN", {2: "two", 3: "three", 4: "four", 5: "five"}[len(cards)])
     fr = [r["frac_ours"] for c, r in allrows]
     M("grFracMin", f"{100 * min(fr):.0f}"); M("grFracMax", f"{100 * max(fr):.0f}")
     hostb = [r["frac_ours"] for c, r in allrows if regime(r) == "host"]
@@ -152,6 +157,8 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     if gpub:
         M("grBothFracMin", f"{100 * min(gpub):.0f}"); M("grBothFracMax", f"{100 * max(gpub):.0f}")
     M("grCellsN", str(len(allrows)))
+    lim = [r["limit_tok_s"] for c, r in allrows]
+    M("grLimMin", f"{min(lim):.0f}"); M("grLimMax", f"{max(lim):.0f}")
     for c in cards[2:]:
         tag = "Fourk" if "4090" in c["card"] else "Threek"
         rr = c["rows"]
@@ -172,9 +179,28 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
         if c.get("gpu"):
             M(f"gr{tag}DevRead", f"{c['gpu'].get('device_read_gbs') or 0:.0f}")
         for m in c.get("mixtral", []) or []:
-            M(f"grMixC{'Two' if m['C'] == 2 else 'Four'}", f"{m['ours_over_llama'][0]:.2f}")
-            M(f"grMixC{'Two' if m['C'] == 2 else 'Four'}Lo", f"{m['ours_over_llama'][1]:.2f}")
-            M(f"grMixOursC{'Two' if m['C'] == 2 else 'Four'}", f"{m['ours']:.1f}"); M(f"grMixLlamaC{'Two' if m['C'] == 2 else 'Four'}", f"{m['llama']:.1f}")
+            w = "Two" if m["C"] == 2 else "Four"
+            M(f"grMixC{w}", f"{m['ours_over_llama'][0]:.3f}"); M(f"grMixC{w}Lo", f"{m['ours_over_llama'][1]:.3f}"); M(f"grMixC{w}Hi", f"{m['ours_over_llama'][2]:.3f}")
+            M(f"grMixOursC{w}", f"{m['ours']:.2f}"); M(f"grMixLlamaC{w}", f"{m['llama']:.2f}")
+            if m.get("cache"):
+                M(f"grMixHitC{w}", f"{100 * m['cache']['hit_rate']:.0f}"); M(f"grMixPinC{w}", f"{100 * m['cache']['pinned_hit_rate']:.0f}")
+        hr = [r["hit_rate"] for r in rr if r.get("hit_rate")]
+        if hr:
+            M(f"gr{tag}HitMin", f"{100 * min(hr):.0f}"); M(f"gr{tag}HitMax", f"{100 * max(hr):.0f}")
+        if c.get("ft_probe"):
+            M(f"gr{tag}FtCpu", f"{c['ft_probe']['cpu']:.1f}"); M(f"gr{tag}FtPcie", f"{c['ft_probe']['pcie']:.1f}")
+        if "3090" in c["card"]:
+            # FreeToken's hybrid on this host ran below llama.cpp: its speeds and the ours / llama.cpp ratios are the comparison
+            ft = [r["ft"] for r in rr if r.get("ft")]
+            M("grThreekFtSpeedMin", f"{min(ft):.1f}"); M("grThreekFtSpeedMax", f"{max(ft):.1f}")
+    # hit rates of the 128-expert models on the 24 GB cards against Mixtral's
+    hr = [r["hit_rate"] for c in cards[2:] for r in c["rows"] if r.get("hit_rate")]
+    if hr:
+        M("grHitMin", f"{100 * min(hr):.0f}"); M("grHitMax", f"{100 * max(hr):.0f}")
+    # every cell on the 24 GB cards host-bound?
+    reg = [regime(r) for c in cards[2:] for r in c["rows"]]
+    M("grSmallHostBound", "every" if reg and all(x == "host" for x in reg) else f"{sum(x == 'host' for x in reg)} of {len(reg)}")
+    M("grSmallCellsN", {5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine"}.get(len(reg), str(len(reg))))
     with open(P("paper", "wsg_grid.tex"), "w") as f:
         f.write("% generated by scripts/grid_table.py\n")
         for k in sorted(MACROS):
@@ -186,12 +212,12 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     fig, ax = plt.subplots(figsize=(3.4, 2.0))
     xs = {key: i for i, key in enumerate(ORDER)}
     mk = {"RTX 5090": "o", "RTX 4090": "s", "RTX 3090": "^"}
-    col = {"9950X3D (listing B)": "#1f5fa8", "9950X (job 089)": "#5b9bd5", "4090 host (job 091)": "#2f9e44", "3090 host (job 092)": "#c0572b"}
+    col = {"9950X3D (listing B)": "#1f5fa8", "9950X (job 089)": "#5b9bd5", "i5-12400 (job 091)": "#2f9e44", "i9-11900KF (job 092)": "#c0572b"}
     for c in cards:
         for r in c["rows"]:
             x = xs[(r["model"], r["budget"])]
             ax.scatter(x - 0.12, 100 * r["frac_ours"], marker=mk[c["card"]], s=18, color=col.get(c["host"], "k"), zorder=3)
-            if r.get("frac_ft"):
+            if r.get("frac_ft") and "3090" not in c["card"]:   # FreeToken's 3090 cells are not a comparison at its best (see the table's note)
                 ax.scatter(x + 0.12, 100 * r["frac_ft"], marker=mk[c["card"]], s=18, facecolors="none", edgecolors=col.get(c["host"], "k"), linewidths=0.9, zorder=3)
     ax.set_xticks(range(len(ORDER)))
     ax.set_xticklabels([f"{'gpt-oss' if m.startswith('gpt') else 'Qwen3'}\n{b}" for m, b in ORDER], fontsize=6)

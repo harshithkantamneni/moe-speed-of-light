@@ -396,6 +396,11 @@ def scorecard():
         M(f"sc{nm}Clauses", str(e["clauses"])); M(f"sc{nm}Scored", str(e["scored"]))
     M("scSignHeldPct", pct(s["by_type"]["sign"]["held_any_share_of_scored"]))
     M("scMidSign", str(s["by_era"]["076-081"]["by_type"]["sign"]["clauses"]))
+    bt = s["by_era"]["088-092"]["by_type"]
+    M("scRevFailBand", str(bt["band"]["failed"])); M("scRevFailThr", str(bt["threshold"]["failed"]))
+    M("scRevFailEq", str(bt["equality"]["failed"])); M("scRevFailSign", str(bt["sign"]["failed"]))
+    M("scRevSignHeld", str(bt["sign"]["held"] + bt["sign"]["held (point)"])); M("scRevSignClauses", str(bt["sign"]["clauses"]))
+    M("scRevBandClauses", str(bt["band"]["clauses"]))
     M("scSignClauses", str(s["by_type"]["sign"]["clauses"]))
 
 

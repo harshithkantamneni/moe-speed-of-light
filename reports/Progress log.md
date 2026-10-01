@@ -3,6 +3,35 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 1 October, late morning: the grid lands (jobs `091_grid_4090@vast` and `092_grid_3090@vast`); tranche 1 complete
+
+- **Job 091, RTX 4090 next to a Core i5-12400 (3.5 h, 1.9 USD).** The host reads 37 GB/s (CPU 34, link 25, both 37);
+  ours leads FreeToken 1.37 / 1.30x on gpt-oss (11 / 25%) and 1.03 / 1.05x on Qwen3 (12.5 / 25%), runs 1.8-2.6x
+  llama.cpp, at half the headline machine's absolute speeds. Every cell is host-bound at the limit; ours stands at
+  30-46% of this machine's limit. Qwen3 43.75% skipped by the VRAM arithmetic (28.0 GB). Predictions: the gpt-oss 11%
+  lead (37%) overshot the 10-35% band; 1.78x llama.cpp at Qwen3 12.5% missed 1.8 by 0.02; the law's tables copy one
+  more expert than the headline machine's at one entry each (the prediction reasoned from the link alone; the CPU is
+  slower in the same proportion, so the ratio is listing B's); the fraction of the limit at Qwen3 12.5% (45.7%) overshot
+  25-45%; order within 2%. `prereg/grid_outcome_091.md`.
+- **Job 092, RTX 3090 next to a Core i9-11900KF (3.9 h, 1.6 USD).** The host's CPU alone reads 45 GB/s and CPU + link
+  41-43, so the law's tables copy nothing. Ours runs 1.64 / 1.56 / 2.18x llama.cpp (gpt-oss 11%, Qwen3 12.5 / 25%), at
+  27-42% of the limit. FreeToken's carried-over hybrid backend ran at 8-11 tok/s, below llama.cpp (its own calibration
+  recommends offload on this host, not run): reported, not counted. **Mixtral-8x7B** (8 experts, top-2, 26 GB of
+  Q4_K_M experts): ours ties llama.cpp at C = 2 (1.015 [1.008, 1.024]); with 8 experts per layer a 25% cache hits
+  31.5% of reads against pinning's 25%, so there is little locality to earn; the C = 4 cell was lost to the 4 h
+  deadline. The noisiest host: the two launch orders differ by up to 11%. 2 of 5 predictions failed outright.
+  `prereg/grid_outcome_092.md`.
+- **The grid in the paper.** Abstract: "across four hosts and three cards the limit moves with the machine and our
+  cache stays at 25-46% of it". An "Other cards" paragraph and Fig. 3 (ours and FreeToken as a fraction of each
+  machine's limit, 19 cells) in Section 4; Table 8 (every cell against its own limit, with the term that binds it) and
+  a grid section in the appendix; the Mixtral tie stated as the cache's scope. Limitations updated (three consumer
+  cards). Main text ends on page 10.
+- **Scorecard:** 169 clauses (jobs 073-092: 91 held, 25 on the point, 46 failed, 3 untested, 4 void); 090's ten
+  clauses were missing and are added (all held); the "after the reviews" era is 83 clauses (41 / 14 / 27 / 1), 20 of
+  the 27 failures bands. `scripts/grid_stats.py`, `scripts/grid_table.py`.
+- **Spend:** balance 17.54 USD; ledger 40.6 of the 62 cap; all instances destroyed. Tranche 1 and the grid cost
+  about 11 USD in total (088 1.6, 089 3.6 with the no-network host, 090 1.9, 091 1.9, 092 1.6).
+
 ## 1 October, morning: Table 1 on a second host (job `089_headline_stockclock@vast`; 091/092 running)
 
 - **Job 089 (RTX 5090 at the common 14,001 MHz clock, 400 W, Ryzen 9 9950X; 3.0 h, 2.4 USD plus the 1.2 USD of the

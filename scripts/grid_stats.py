@@ -120,6 +120,10 @@ def main():
                 row["order_diff"] = row["ours_over_ft_L1"][0] / row["ours_over_ft_L2"][0] - 1
         if (ll, 1) in by:
             row.update(llama=mean[f"{ll} L1"], ours_over_llama=ratio((law, 2), (ll, 1)))
+        hp = os.path.join(D, f"srv_{law}_L2.json")
+        if os.path.exists(hp):
+            e = json.load(open(hp))
+            row["cache"] = dict(hit_rate=e["hit_rate"], misses_per_token=e["misses"] / e["steps"], admits_per_token=e["admits"] / e["steps"], table=e.get("fetch_table"))
         b = B[(model, budget)]
         row["listing_b"] = b
         row["vs_b"] = dict(ours=row["ours"] / b["ours"] - 1, llama=row["llama"] / b["llama"] - 1 if "llama" in row else None,
@@ -132,9 +136,14 @@ def main():
         L, k = sl["models"][lm]["L"], sl["models"][lm]["k"]
         reads = srow["reads_per_token"]["exact"]
         t, c_at = limit(reads, L * k, m["S"], m["D"], b_host, J["b_gpu"])
+        v = np.array(list(by[(law, 2)].values()))
+        rng = np.random.default_rng(0)
+        bm = v[rng.integers(0, len(v), size=(10000, len(v)))].mean(1)
+        row["ours_ci"] = [float(v.mean()), float(np.percentile(bm, 2.5)), float(np.percentile(bm, 97.5))]
         row["limit"] = dict(reads_per_token=reads, b_host_gbs=b_host / 1e9, b_gpu_gbs=J["b_gpu"] / 1e9, t_ms=1e3 * t, tok_s=1 / t,
                             cpu_at_limit=c_at, gpu_only_ms=1e3 * (m["D"] + L * k * m["S"]) / J["b_gpu"],
                             frac=dict(ours=row["ours"] * t, ft=row["ft"] * t if "ft" in row else None, llama=row["llama"] * t if "llama" in row else None),
+                            frac_ours_ci=[row["ours_ci"][1] * t, row["ours_ci"][2] * t],
                             headline_frac_ours=srow["frac_of_limit"]["exact"]["ours"])
         rows.append(row)
         rf = row["ours_over_ft_L2"]
@@ -150,6 +159,11 @@ def main():
         law = f"{op}_law"
         if (law, 1) in by and (ll, 1) in by:
             r = dict(model=model, cell=cell, C=int(cell[1:]), ours=mean[f"{law} L1"], llama=mean[f"{ll} L1"], ours_over_llama=ratio((law, 1), (ll, 1)))
+            hp = os.path.join(D, f"srv_{law}_L1.json")
+            if os.path.exists(hp):
+                e = json.load(open(hp))
+                r["cache"] = dict(hit_rate=e["hit_rate"], misses_per_token=e["misses"] / e["steps"], admits_per_token=e["admits"] / e["steps"], table=e.get("fetch_table"),
+                                  pinned_hit_rate=r["C"] / 8)
             mix.append(r)
             print(f"Mixtral {cell}: ours {r['ours']:.1f} / llama.cpp {r['llama']:.1f} = {r['ours_over_llama'][0]:.3f} "
                   f"[{r['ours_over_llama'][1]:.3f}, {r['ours_over_llama'][2]:.3f}]")

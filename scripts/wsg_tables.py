@@ -33,7 +33,7 @@ def pct(x):
 
 
 macros = {}
-PENDING = ["limitPctMin", "limitPctMax", "hardAllA", "hardAllB", "hardAllC", "hardLateA", "hardLateB", "hardLateC",
+PENDING = ["hardAllA", "hardAllB", "hardAllC", "hardLateA", "hardLateB", "hardLateC",
            "hardAnsMax"]
 
 
@@ -44,6 +44,7 @@ def M(name, val):
 def headline():
     h, s, r1 = load("headline_081.json"), load("split_080.json"), load("run1_082.json")
     sl, vr = load("speed_limit_084.json"), load("vram_084.json")
+    sl2 = load("speed_limit_v2.json")   # the exact optimum (mosl.cachesim MIN with bypass); supersedes the 084 optimum
     rows = []
     for r in h["rows"]:
         rows.append(dict(model=r["model"], budget=r["budget"], llama=r["llama"], ft=r["ft_L2"], ftb=r["ft_L2_variant"],
@@ -63,6 +64,8 @@ def headline():
         key = "gpt-oss-120b" if x["model"].startswith("gpt") else "qwen3-30b-a3b-bf16"
         c = C[(x["model"], x["budget"])]
         lim = sl and sl.get(key, {}).get("rows", {}).get(str(c), {}).get("opt", {}).get("tok_s")
+        if sl2:
+            lim = sl2["models"][key]["rows"][str(c)]["limits"]["exact"]["tok_s"]
         vram = vr and vr.get("vram", {}).get(key)
         x["limit"] = lim
         lines.append(
@@ -78,8 +81,9 @@ CPU at 71.6\,GB/s and over PCIe at 53.2\,GB/s). 30 AIME-25 problems, first 256 d
 Ours uses the FETCH split computed from this machine's bandwidth probe; FreeToken uses its faster backend per budget.
 Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals; the comparison launch is separate from
 the launch that picked each system's variant. \emph{Speed limit}: the fastest any exact-routing system with the same
-slots per layer can decode on this machine (\cref{sec:limit}). \emph{All in VRAM}: stock llama.cpp with every weight
-on an RTX PRO 6000 (same memory bandwidth as the RTX 5090, 96\,GB).
+slots per layer can decode on this machine (\cref{sec:limit}; exact optimum, highest probed host rate, datasheet GPU
+rate; \cref{tab:limit} tightens it). \emph{All in VRAM}: stock llama.cpp with every weight
+on an RTX PRO 6000 (the RTX 5090's datasheet memory bandwidth, 96\,GB).
 $^\dagger$Launch 1 for both systems (job 080): FreeToken's backend was picked on the launch it is scored on, which
 favours it, and the row has no confirmation launch.}\label{tab:headline}
 \resizebox{\textwidth}{!}{%
@@ -215,7 +219,8 @@ def foresight():
     from fig_foresight import curves, w_at
     fits = {}
     for arm in ("S", "G", "D"):
-        rows = [r for r in curves(P("prereg", "foresight", f"foresight_{arm}.json")) if "job 063" not in r["model"]]
+        fn = f"foresight_{arm}_exact.json" if arm == "S" else f"foresight_{arm}.json"   # S arm: exact optimum
+        rows = [r for r in curves(P("prereg", "foresight", fn)) if "job 063" not in r["model"]]
         x = np.array([r["ck"] for r in rows])
         y = np.array([w_at(r["g"], 0.5) for r in rows])
         ok = np.isfinite(y)

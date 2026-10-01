@@ -1,0 +1,1263 @@
+{
+ "note": "Published rows: percentage of the audit's speed of light at datasheet-physical ceilings (scripts/audit.py, mosl.perfmodel.speed_of_light_time: GPU datasheet bandwidth, top of the host-DRAM band, datasheet PCIe, every efficiency 1, no latencies, MIN-bypass misses at the row's per-layer capacity). Reference points: percentage of the paper's speed limit (scripts/speed_limit.py) on the headline machine, whose host ceiling is the probed 87.5 GB/s and whose GPU ceiling is the RTX 5090 datasheet rate; the ceilings differ, so the two sets are not a like-for-like ranking.",
+ "caption": "Published MoE-offloading measurements as a percentage of their own speed of light, grouped by source (audit order), and our reference points. Published rows: the audit bound at datasheet-physical ceilings (GPU datasheet bandwidth, top of the host-DRAM band, datasheet PCIe, every efficiency 1, no latencies) with Belady-with-bypass misses at the row's per-layer capacity. Filled: the routing is our on-policy trace of that model; hollow: independent uniform routing (an approximation); grey triangles: no GPU expert capacity (the bound is the CPU-only rate); grey crosses: every expert fits (the bound is the all-in-VRAM rate). Horizontal lines: class medians over the published rows. Right of the divider: our cache, FreeToken and stock llama.cpp on the headline machine (RTX 5090 + Ryzen 9 9950X3D, Table 1) as percentages of the paper's speed limit for each cell (left to right within a model: 11-12.5, 25, 40-43.75% of experts resident), computed on the AIME-25 own-text traces with the machine's probed host read rate and the GPU's datasheet rate. The two columns use different ceilings: datasheet-physical for the published rows, probed for ours; a probed host rate is below the datasheet one, so the published percentages would be higher against a probed ceiling, and the reference points are for orientation, not a like-for-like ranking.",
+ "classes": {
+  "trace": "trace-based routing",
+  "iid": "i.i.d. routing",
+  "nocap": "no GPU expert capacity",
+  "allfit": "all experts fit"
+ },
+ "class_stats": {
+  "trace": {
+   "name": "trace-based routing",
+   "n": 29,
+   "median": 9.531792114695163,
+   "q1": 4.900375465154781,
+   "q3": 17.83463653255568,
+   "min": 2.3344684036112855,
+   "max": 36.838772415102405
+  },
+  "iid": {
+   "name": "i.i.d. routing",
+   "n": 11,
+   "median": 34.83907333341912,
+   "q1": 32.26071875030537,
+   "q3": 37.42626100358057,
+   "min": 10.65866560360697,
+   "max": 49.94572102093714
+  },
+  "nocap": {
+   "name": "no GPU expert capacity",
+   "n": 8,
+   "median": 48.99336957740449,
+   "q1": 41.06715265632187,
+   "q3": 57.66912044433939,
+   "min": 12.910379249571427,
+   "max": 76.927205376
+  },
+  "allfit": {
+   "name": "all experts fit",
+   "n": 4,
+   "median": 4.032690227667549,
+   "q1": 3.7022436634505467,
+   "q3": 5.216849078732964,
+   "min": 3.0225302935887837,
+   "max": 8.457699309139961
+  },
+  "all": {
+   "name": "all published rows",
+   "n": 52,
+   "median": 14.521131831208,
+   "q1": 6.761884233804885,
+   "q3": 35.00225249282257,
+   "min": 2.3344684036112855,
+   "max": 76.927205376
+  }
+ },
+ "by_source": {
+  "Fiddler": {
+   "n": 2,
+   "median": 14.521131831208,
+   "classes": [
+    "trace"
+   ]
+  },
+  "ProMoE": {
+   "n": 4,
+   "median": 21.4537483398094,
+   "classes": [
+    "trace"
+   ]
+  },
+  "KTrans.": {
+   "n": 6,
+   "median": 52.23506340664684,
+   "classes": [
+    "nocap"
+   ]
+  },
+  "HybriMoE": {
+   "n": 6,
+   "median": 6.634877808716143,
+   "classes": [
+    "trace"
+   ]
+  },
+  "Fate": {
+   "n": 2,
+   "median": 5.987984964788238,
+   "classes": [
+    "trace"
+   ]
+  },
+  "SP-MoE": {
+   "n": 5,
+   "median": 5.820753541954455,
+   "classes": [
+    "trace"
+   ]
+  },
+  "MoE-SpeQ": {
+   "n": 6,
+   "median": 4.413913238199985,
+   "classes": [
+    "allfit",
+    "trace"
+   ]
+  },
+  "CG-collab": {
+   "n": 2,
+   "median": 27.566731444955877,
+   "classes": [
+    "trace"
+   ]
+  },
+  "FreeToken": {
+   "n": 6,
+   "median": 35.45961803741813,
+   "classes": [
+    "iid"
+   ]
+  },
+  "SeqMoE": {
+   "n": 6,
+   "median": 32.26071875030537,
+   "classes": [
+    "iid",
+    "trace"
+   ]
+  },
+  "NV pipe": {
+   "n": 5,
+   "median": 10.753696328606075,
+   "classes": [
+    "iid",
+    "nocap",
+    "trace"
+   ]
+  },
+  "lcpp forks": {
+   "n": 1,
+   "median": 35.491789971032915,
+   "classes": [
+    "iid"
+   ]
+  },
+  "lcpp PR": {
+   "n": 1,
+   "median": 9.783767384102452,
+   "classes": [
+    "trace"
+   ]
+  }
+ },
+ "rows": [
+  {
+   "id": "fiddler-mixtral8x7b-quadrortx6000-b1",
+   "system": "Fiddler",
+   "label": "Fiddler",
+   "model": "Mixtral-8x7B",
+   "gpu": "Quadro RTX 6000",
+   "C_per_layer": 1,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 2.53,
+   "sol_tok_s": 17.323559040224417,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 14.604389283550045,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "fiddler-mixtral8x7b-rtx6000ada-b1",
+   "system": "Fiddler",
+   "label": "Fiddler",
+   "model": "Mixtral-8x7B",
+   "gpu": "RTX 6000 Ada",
+   "C_per_layer": 3,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 8.29,
+   "sol_tok_s": 57.41842450253504,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 14.437874378865956,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "promoe-llamacpp-deepseekv2lite-fp16-rtx4090-b1",
+   "system": "ProMoE",
+   "label": "ProMoE",
+   "model": "DeepSeek-V2-Lite (paper: DS-2)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 45,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 49.86,
+   "sol_tok_s": 215.5624520409858,
+   "mstar_source": "on-policy trace (deepseek-v2-lite_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 23.130187807717046,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "promoe-llamacpp-qwen15moe-fp16-rtx4090-b1",
+   "system": "ProMoE",
+   "label": "ProMoE",
+   "model": "Qwen1.5-MoE-A2.7B (paper: QW-1)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 46,
+   "E": 60,
+   "k": 4,
+   "system_tok_s": 67.19,
+   "sol_tok_s": 216.21984499826374,
+   "mstar_source": "on-policy trace (qwen1.5-moe_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 31.074853467099437,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "promoe-llamacpp-qwen2moe57b-int4-rtx4090-b1",
+   "system": "ProMoE",
+   "label": "ProMoE",
+   "model": "Qwen2-57B-A14B (paper: QW-2)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 42,
+   "E": 64,
+   "k": 8,
+   "system_tok_s": 26.86,
+   "sol_tok_s": 135.8122086982261,
+   "mstar_source": "on-policy trace (qwen2-57b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 19.777308871901756,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "promoe-llamacpp-mixtral8x7b-int4-rtx4090-b1",
+   "system": "ProMoE",
+   "label": "ProMoE",
+   "model": "Mixtral-8x7B (paper: Mixt)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 6,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 27.02,
+   "sol_tok_s": 151.50294737253088,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 17.83463653255568,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "ktransformers-ds3-bf16-a100-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "DeepSeek-V3-0324 (671B)",
+   "gpu": "A100 40GB",
+   "C_per_layer": 0,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 5.87,
+   "sol_tok_s": 12.031400273195255,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 48.78900100329774,
+   "tier": "A",
+   "labels": [
+    "at strength",
+    "not established"
+   ]
+  },
+  {
+   "id": "ktransformers-ds2-bf16-a100-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "DeepSeek-V2.5-1210 (236B)",
+   "gpu": "A100 40GB",
+   "C_per_layer": 0,
+   "E": 160,
+   "k": 6,
+   "system_tok_s": 11.95,
+   "sol_tok_s": 24.289734546735296,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 49.19773815151125,
+   "tier": "A",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "ktransformers-qw2-bf16-a100-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "Qwen2-57B-A14B",
+   "gpu": "A100 40GB",
+   "C_per_layer": 0,
+   "E": 64,
+   "k": 8,
+   "system_tok_s": 22.88,
+   "sol_tok_s": 35.276351161907385,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 64.85931579201029,
+   "tier": "A",
+   "labels": [
+    "at strength",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "ktransformers-ds3-int4-rtx4080-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "DeepSeek-V3-0324 (671B)",
+   "gpu": "RTX 4080",
+   "C_per_layer": 0,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 16.15,
+   "sol_tok_s": 33.4238550901496,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 48.318782966359834,
+   "tier": "A",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "ktransformers-ds2-int8-rtx4080-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "DeepSeek-V2.5-1210 (236B)",
+   "gpu": "RTX 4080",
+   "C_per_layer": 0,
+   "E": 160,
+   "k": 6,
+   "system_tok_s": 17.61,
+   "sol_tok_s": 31.860392551075453,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 55.27238866178242,
+   "tier": "A",
+   "labels": [
+    "at strength",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "ktransformers-qw2-int8-rtx4080-b1",
+   "system": "KTransformers",
+   "label": "KTrans.",
+   "model": "Qwen2-57B-A14B",
+   "gpu": "RTX 4080",
+   "C_per_layer": 0,
+   "E": 64,
+   "k": 8,
+   "system_tok_s": 36.99,
+   "sol_tok_s": 48.08441931460084,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 76.927205376,
+   "tier": "A",
+   "labels": [
+    "at strength",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "hybrimoe-dsv2lite-a6000-cache25",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "DeepSeek-V2-Lite-Chat",
+   "gpu": "RTX A6000",
+   "C_per_layer": 16,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 14.49,
+   "sol_tok_s": 470.11427875977085,
+   "mstar_source": "on-policy trace (deepseek-v2-lite_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 3.082229290764515,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "hybrimoe-dsv2lite-a6000-cache75",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "DeepSeek-V2-Lite-Chat",
+   "gpu": "RTX A6000",
+   "C_per_layer": 48,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 15.29,
+   "sol_tok_s": 654.9670998479683,
+   "mstar_source": "on-policy trace (deepseek-v2-lite_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 2.3344684036112855,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "hybrimoe-mixtral8x7b-a6000-cache25",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "Mixtral-8x7B-Instruct",
+   "gpu": "RTX A6000",
+   "C_per_layer": 2,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 4.36,
+   "sol_tok_s": 53.233587391846584,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 8.19031783055784,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "hybrimoe-mixtral8x7b-a6000-cache75",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "Mixtral-8x7B-Instruct",
+   "gpu": "RTX A6000",
+   "C_per_layer": 6,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 7.34,
+   "sol_tok_s": 132.94757643604416,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 5.520973151045732,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: claimed speed-up < 1.2x"
+   ]
+  },
+  {
+   "id": "hybrimoe-qwen2-57b-a6000-cache25",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "Qwen2-57B-A14B-Instruct",
+   "gpu": "RTX A6000",
+   "C_per_layer": 16,
+   "E": 64,
+   "k": 8,
+   "system_tok_s": 9.62,
+   "sol_tok_s": 86.28800357734222,
+   "mstar_source": "on-policy trace (qwen2-57b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 11.148710830210991,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "hybrimoe-qwen2-57b-a6000-cache75",
+   "system": "HybriMoE",
+   "label": "HybriMoE",
+   "model": "Qwen2-57B-A14B-Instruct",
+   "gpu": "RTX A6000",
+   "C_per_layer": 48,
+   "E": 64,
+   "k": 8,
+   "system_tok_s": 8.98,
+   "sol_tok_s": 115.88917405998097,
+   "mstar_source": "on-policy trace (qwen2-57b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 7.7487824663865545,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "fate-qwen1.5moe-rtx3090-b1",
+   "system": "Fate",
+   "label": "Fate",
+   "model": "Qwen1.5-MoE-A2.7B (14.3B)",
+   "gpu": "RTX 3090",
+   "C_per_layer": 46,
+   "E": 60,
+   "k": 4,
+   "system_tok_s": 14,
+   "sol_tok_s": 197.8632335473208,
+   "mstar_source": "on-policy trace (qwen1.5-moe_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 7.0755944644216955,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "fate-qwen1.5moe-gtx1080ti-b1",
+   "system": "Fate",
+   "label": "Fate",
+   "model": "Qwen1.5-MoE-A2.7B (14.3B)",
+   "gpu": "GTX 1080 Ti",
+   "C_per_layer": 15,
+   "E": 60,
+   "k": 4,
+   "system_tok_s": 3.7,
+   "sol_tok_s": 75.50441851465628,
+   "mstar_source": "on-policy trace (qwen1.5-moe_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 4.900375465154781,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "spmoe-mixtral8x7b-rtx3090-b1",
+   "system": "SP-MoE",
+   "label": "SP-MoE",
+   "model": "Mixtral-8x7B (draft Mistral-7B)",
+   "gpu": "RTX 3090",
+   "C_per_layer": 1,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 1.2,
+   "sol_tok_s": 15.540229054736974,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 7.72189390370804,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "spmoe-mixtral8x7b-rtx4090-b1",
+   "system": "SP-MoE",
+   "label": "SP-MoE",
+   "model": "Mixtral-8x7B (draft Mistral-7B)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 1,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 1.28,
+   "sol_tok_s": 13.428744401869865,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 9.531792114695163,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "spmoe-mixtral8x7b-a100-40g-b1",
+   "system": "SP-MoE",
+   "label": "SP-MoE",
+   "model": "Mixtral-8x7B (draft Mistral-7B)",
+   "gpu": "A100 40GB",
+   "C_per_layer": 3,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 1.46,
+   "sol_tok_s": 32.21415149235223,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 4.532169659494555,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "spmoe-phi3.5moe-rtx4090-b1",
+   "system": "SP-MoE",
+   "label": "SP-MoE",
+   "model": "Phi-3.5-MoE (draft Phi-mini-MoE)",
+   "gpu": "RTX 4090",
+   "C_per_layer": 3,
+   "E": 16,
+   "k": 2,
+   "system_tok_s": 3.31,
+   "sol_tok_s": 56.865489599282874,
+   "mstar_source": "on-policy trace (phi3.5-moe_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 5.820753541954455,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "spmoe-deepseekv2lite-a100-gpumem7g-b1",
+   "system": "SP-MoE",
+   "label": "SP-MoE",
+   "model": "DeepSeek-V2-Lite (draft Deepseek-Lite-AWQ)",
+   "gpu": "A100 40GB",
+   "C_per_layer": 7,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 5.56,
+   "sol_tok_s": 141.96658491940752,
+   "mstar_source": "on-policy trace (deepseek-v2-lite_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 3.9164145585077885,
+   "tier": "B",
+   "labels": [
+    "not established"
+   ]
+  },
+  {
+   "id": "moespeq-dsv2lite-a100-lowmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "DeepSeek-V2-Lite",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 64,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 10.12,
+   "sol_tok_s": 334.8188112941649,
+   "mstar_source": "all experts fit",
+   "cls": "allfit",
+   "pct_of_sol": 3.0225302935887837,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "moespeq-dsv2lite-a100-highmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "DeepSeek-V2-Lite",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 64,
+   "E": 64,
+   "k": 6,
+   "system_tok_s": 13.85,
+   "sol_tok_s": 334.8188112941649,
+   "mstar_source": "all experts fit",
+   "cls": "allfit",
+   "pct_of_sol": 4.1365656685972985,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "moespeq-qwen1.5moe-a100-lowmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "Qwen1.5-MoE-A2.7B (labelled 'Qwen2-MoE' in Fig. 13/text)",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 60,
+   "E": 60,
+   "k": 4,
+   "system_tok_s": 13.16,
+   "sol_tok_s": 334.96106877888985,
+   "mstar_source": "all experts fit",
+   "cls": "allfit",
+   "pct_of_sol": 3.928814786737801,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "moespeq-qwen1.5moe-a100-highmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "Qwen1.5-MoE-A2.7B (labelled 'Qwen2-MoE' in Fig. 13/text)",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 60,
+   "E": 60,
+   "k": 4,
+   "system_tok_s": 28.33,
+   "sol_tok_s": 334.96106877888985,
+   "mstar_source": "all experts fit",
+   "cls": "allfit",
+   "pct_of_sol": 8.457699309139961,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "moespeq-phi3.5moe-a100-lowmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "Phi-3.5-MoE",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 7,
+   "E": 16,
+   "k": 2,
+   "system_tok_s": 6.05,
+   "sol_tok_s": 128.96319876177907,
+   "mstar_source": "on-policy trace (phi3.5-moe_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 4.691260807802671,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "moespeq-phi3.5moe-a100-highmem",
+   "system": "MoE-SpeQ",
+   "label": "MoE-SpeQ",
+   "model": "Phi-3.5-MoE",
+   "gpu": "A100 40GB (PCIe)",
+   "C_per_layer": 7,
+   "E": 16,
+   "k": 2,
+   "system_tok_s": 6.12,
+   "sol_tok_s": 128.96319876177907,
+   "mstar_source": "on-policy trace (phi3.5-moe_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 4.745539858471462,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "cpugpucollab-mixtral8x7b-rtx4090-24t-b1",
+   "system": "CPU-GPU collaborative inference (unnamed; arXiv 2512.16473)",
+   "label": "CG-collab",
+   "model": "Mixtral-8x7B",
+   "gpu": "RTX 4090",
+   "C_per_layer": 1,
+   "E": 8,
+   "k": 2,
+   "system_tok_s": 4.8,
+   "sol_tok_s": 13.14684670444061,
+   "mstar_source": "on-policy trace (mixtral-8x7b_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 36.51065618935607,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: claimed speed-up < 1.2x"
+   ]
+  },
+  {
+   "id": "cpugpucollab-phi3.5moe-rtx4090-24t-b1",
+   "system": "CPU-GPU collaborative inference (unnamed; arXiv 2512.16473)",
+   "label": "CG-collab",
+   "model": "Phi-3.5-MoE",
+   "gpu": "RTX 4090",
+   "C_per_layer": 3,
+   "E": 16,
+   "k": 2,
+   "system_tok_s": 10.4,
+   "sol_tok_s": 55.845502599184876,
+   "mstar_source": "on-policy trace (phi3.5-moe_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 18.622806700555685,
+   "tier": "B",
+   "labels": [
+    "not established"
+   ]
+  },
+  {
+   "id": "freetoken-qwen3.6-35b-a3b-rtx5090srv-w1",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "Qwen3.6-35B-A3B",
+   "gpu": "RTX 5090",
+   "C_per_layer": 94,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 77.1,
+   "sol_tok_s": 227.07051549867722,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 33.95421014070369,
+   "tier": "A",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "freetoken-deepseek-v4-flash-rtx5090srv-w1",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "DeepSeek-V4-Flash (284B, 13B active)",
+   "gpu": "RTX 5090",
+   "C_per_layer": 28,
+   "E": 256,
+   "k": 6,
+   "system_tok_s": 24.9,
+   "sol_tok_s": 80.84135898069027,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 30.80106558568319,
+   "tier": "A",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "freetoken-qwen3.6-35b-a3b-rtx5090desktop-w2",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "Qwen3.6-35B-A3B",
+   "gpu": "RTX 5090",
+   "C_per_layer": 104,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 73.8,
+   "sol_tok_s": 204.54453193273292,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 36.08016274141714,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "freetoken-qwen3.6-35b-a3b-rtx4090srv-w2",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "Qwen3.6-35B-A3B",
+   "gpu": "RTX 4090",
+   "C_per_layer": 72,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 42.9,
+   "sol_tok_s": 123.13760354483507,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 34.83907333341912,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "freetoken-qwen3.6-35b-a3b-nvfp4-rtx4060laptop-w2",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "Qwen3.6-35B-A3B (official NVFP4 release)",
+   "gpu": "RTX 4060 Laptop",
+   "C_per_layer": 60,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 39.3,
+   "sol_tok_s": 97.29042890362663,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 40.39451818937868,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "freetoken-glm-5.2-nvfp4-rtxpro6000-w1",
+   "system": "FreeToken",
+   "label": "FreeToken",
+   "model": "GLM-5.2 (753B, 40B active)",
+   "gpu": "RTX PRO 6000 Blackwell",
+   "C_per_layer": 36,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 14.9,
+   "sol_tok_s": 29.832385428481352,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 49.94572102093714,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "seqmoe-qwen3-30b-a3b-fp8-rtx4090-45pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "Qwen3-30B-A3B-FP8",
+   "gpu": "RTX 4090",
+   "C_per_layer": 57,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 104.1,
+   "sol_tok_s": 373.74491634846237,
+   "mstar_source": "on-policy trace (qwen3-30b-a3b_fp8_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 27.853221661734125,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "seqmoe-qwen3-30b-a3b-fp8-rtx4090-15pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "Qwen3-30B-A3B-FP8",
+   "gpu": "RTX 4090",
+   "C_per_layer": 19,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 47.9,
+   "sol_tok_s": 373.74315354208295,
+   "mstar_source": "on-policy trace (qwen3-30b-a3b_fp8_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 12.816288284089335,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "seqmoe-qwen3.6-35b-a3b-bf16-rtx5090-40pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "Qwen3.6-35B-A3B-BF16",
+   "gpu": "RTX 5090",
+   "C_per_layer": 102,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 118.3,
+   "sol_tok_s": 305.11426758732205,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 38.772359265744,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "seqmoe-qwen3.6-35b-a3b-bf16-rtx5090-15pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "Qwen3.6-35B-A3B-BF16",
+   "gpu": "RTX 5090",
+   "C_per_layer": 38,
+   "E": 256,
+   "k": 8,
+   "system_tok_s": 70.2,
+   "sol_tok_s": 211.53523360588684,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 33.18596094057326,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "seqmoe-gpt-oss-120b-mxfp4-rtxpro6000-45pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "GPT-OSS-120B-MXFP4",
+   "gpu": "RTX PRO 6000 Blackwell",
+   "C_per_layer": 57,
+   "E": 128,
+   "k": 4,
+   "system_tok_s": 139.2,
+   "sol_tok_s": 377.86275403393637,
+   "mstar_source": "on-policy trace (gpt-oss-120b_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 36.838772415102405,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "seqmoe-deepseek-v4-flash-rtxpro6000-45pct",
+   "system": "SeqMoE",
+   "label": "SeqMoE",
+   "model": "DeepSeek-V4-Flash",
+   "gpu": "RTX PRO 6000 Blackwell",
+   "C_per_layer": 115,
+   "E": 256,
+   "k": 6,
+   "system_tok_s": 57.4,
+   "sol_tok_s": 183.1789597647381,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 31.335476560037485,
+   "tier": "B",
+   "labels": [
+    "weak baseline",
+    "gain survives"
+   ]
+  },
+  {
+   "id": "pipeshard-qwen3-30b-a3b-q4_0-cli3-rtx5090-2G",
+   "system": "Pipelined sharding (NVIDIA, llama.cpp-based)",
+   "label": "NV pipe",
+   "model": "Qwen3-30B-A3B-Instruct-2507",
+   "gpu": "RTX 5090",
+   "C_per_layer": 0,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 25.7,
+   "sol_tok_s": 199.06464018749205,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 12.910379249571427,
+   "tier": "A",
+   "labels": [
+    "not adjudicated: claimed speed-up < 1.2x"
+   ]
+  },
+  {
+   "id": "pipeshard-qwen3-30b-a3b-q4_0-cli3-rtx5090-8G",
+   "system": "Pipelined sharding (NVIDIA, llama.cpp-based)",
+   "label": "NV pipe",
+   "model": "Qwen3-30B-A3B-Instruct-2507",
+   "gpu": "RTX 5090",
+   "C_per_layer": 44,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 32.1,
+   "sol_tok_s": 1032.1599543832417,
+   "mstar_source": "on-policy trace (qwen3-30b-a3b_fp8_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 3.109983085827146,
+   "tier": "A",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "pipeshard-qwen3-235b-a22b-q2k-cli3-rtx5090-2G",
+   "system": "Pipelined sharding (NVIDIA, llama.cpp-based)",
+   "label": "NV pipe",
+   "model": "Qwen3-235B-A22B-Instruct-2507",
+   "gpu": "RTX 5090",
+   "C_per_layer": 0,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 7.7,
+   "sol_tok_s": 39.87104208281621,
+   "mstar_source": "no GPU expert capacity",
+   "cls": "nocap",
+   "pct_of_sol": 19.312261726208,
+   "tier": "A",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "pipeshard-qwen3-235b-a22b-q2k-cli3-rtx5090-32G",
+   "system": "Pipelined sharding (NVIDIA, llama.cpp-based)",
+   "label": "NV pipe",
+   "model": "Qwen3-235B-A22B-Instruct-2507",
+   "gpu": "RTX 5090",
+   "C_per_layer": 42,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 11.5,
+   "sol_tok_s": 107.89343082597802,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 10.65866560360697,
+   "tier": "A",
+   "labels": [
+    "weak baseline",
+    "not established"
+   ]
+  },
+  {
+   "id": "pipeshard-qwen3-30b-a3b-q4_0-cli2-rtx5070ti-16G",
+   "system": "Pipelined sharding (NVIDIA, llama.cpp-based)",
+   "label": "NV pipe",
+   "model": "Qwen3-30B-A3B-Instruct-2507",
+   "gpu": "RTX 5070 Ti",
+   "C_per_layer": 107,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 54.9,
+   "sol_tok_s": 510.5221341796648,
+   "mstar_source": "on-policy trace (qwen3-30b-a3b_fp8_S.npz)",
+   "cls": "trace",
+   "pct_of_sol": 10.753696328606075,
+   "tier": "A",
+   "labels": [
+    "not adjudicated: no reported baseline"
+   ]
+  },
+  {
+   "id": "lcpp-d24528-xashr-laguna-s-2.1-q6k-rtx5090",
+   "system": "MoE expert-cache forks (Miltos22 / Leloch / Lindenburg)",
+   "label": "lcpp forks",
+   "model": "Laguna S 2.1",
+   "gpu": "RTX 5090",
+   "C_per_layer": 66,
+   "E": 256,
+   "k": 10,
+   "system_tok_s": 31.3,
+   "sol_tok_s": 88.18940951004697,
+   "mstar_source": "independent uniform routing (approximation)",
+   "cls": "iid",
+   "pct_of_sol": 35.491789971032915,
+   "tier": "B",
+   "labels": [
+    "not adjudicated: band wider than +-40 %"
+   ]
+  },
+  {
+   "id": "lcpp-pr27861-sissyhistorian-qwen3-30b-a3b-q4km-rx7600",
+   "system": "llama.cpp GPU-resident LRU expert cache PR #27861 (csantiago78, draft; --moe-expert-cache)",
+   "label": "lcpp PR",
+   "model": "Qwen3-30B-A3B Q4_K_M derivative (architecture assumed identical)",
+   "gpu": "Radeon RX 7600 8GB",
+   "C_per_layer": 32,
+   "E": 128,
+   "k": 8,
+   "system_tok_s": 16.5,
+   "sol_tok_s": 168.646691527138,
+   "mstar_source": "on-policy trace (qwen3-30b-a3b_fp8_S.npz, chat-variant routing)",
+   "cls": "trace",
+   "pct_of_sol": 9.783767384102452,
+   "tier": "A",
+   "labels": [
+    "not adjudicated: claimed speed-up < 1.2x"
+   ]
+  }
+ ],
+ "reference_points": [
+  {
+   "model": "gpt-oss-120b",
+   "key": "gpt-oss-120b",
+   "C": 14,
+   "budget": "11%",
+   "limit_tok_s": 172.30424953094328,
+   "ours_tok_s": 69.9,
+   "ours_pct": 40.56777484611429,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 53.98670974927862,
+   "freetoken_variant": "hybrid",
+   "freetoken_pct": 31.332198652235448,
+   "llama_tok_s": 34.92528459802999,
+   "llama_pct": 20.26954337638546,
+   "competitor_source": "headline_081.json"
+  },
+  {
+   "model": "gpt-oss-120b",
+   "key": "gpt-oss-120b",
+   "C": 32,
+   "budget": "25%",
+   "limit_tok_s": 430.36135837399996,
+   "ours_tok_s": 109.20000000000002,
+   "ours_pct": 25.374025310400004,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 85.64376868986855,
+   "freetoken_variant": "hybrid",
+   "freetoken_pct": 19.900431816985055,
+   "llama_tok_s": 39.97971136919443,
+   "llama_pct": 9.289800441249325,
+   "competitor_source": "headline_081.json"
+  },
+  {
+   "model": "gpt-oss-120b",
+   "key": "gpt-oss-120b",
+   "C": 51,
+   "budget": "40%",
+   "limit_tok_s": 518.8334871094271,
+   "ours_tok_s": 152.5,
+   "ours_pct": 29.39285990378571,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 132.19764052196825,
+   "freetoken_variant": "offload",
+   "freetoken_pct": 25.479781819496644,
+   "llama_tok_s": 47.72708916608234,
+   "llama_pct": 9.19892226540424,
+   "competitor_source": "headline_081.json"
+  },
+  {
+   "model": "Qwen3-30B-A3B",
+   "key": "qwen3-30b-a3b-bf16",
+   "C": 16,
+   "budget": "12.5%",
+   "limit_tok_s": 96.06627087450899,
+   "ours_tok_s": 40.0,
+   "ours_pct": 41.63792310857143,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 38.701494329904435,
+   "freetoken_variant": "hybrid",
+   "freetoken_pct": 40.286246127384345,
+   "llama_tok_s": 19.477073773663456,
+   "llama_pct": 20.2746225041943,
+   "competitor_source": "headline_081.json"
+  },
+  {
+   "model": "Qwen3-30B-A3B",
+   "key": "qwen3-30b-a3b-bf16",
+   "C": 32,
+   "budget": "25%",
+   "limit_tok_s": 213.69698603216713,
+   "ours_tok_s": 63.1,
+   "ours_pct": 29.527791276617144,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 54.74792874289627,
+   "freetoken_variant": "hybrid",
+   "freetoken_pct": 25.619420170322496,
+   "llama_tok_s": null,
+   "llama_pct": null,
+   "competitor_source": "split_080.json (job 080; no llama.cpp run)"
+  },
+  {
+   "model": "Qwen3-30B-A3B",
+   "key": "qwen3-30b-a3b-bf16",
+   "C": 56,
+   "budget": "43.75%",
+   "limit_tok_s": 307.66169876393036,
+   "ours_tok_s": 108.2,
+   "ours_pct": 35.168498527670856,
+   "ours_source": "speed_limit_v2.json exact limit; Table 1 speed",
+   "freetoken_tok_s": 103.14095601152762,
+   "freetoken_variant": "offload",
+   "freetoken_pct": 33.524145652809366,
+   "llama_tok_s": null,
+   "llama_pct": null,
+   "competitor_source": "split_080.json (job 080; no llama.cpp run)"
+  }
+ ],
+ "figure": "paper/figs/audit_sol.pdf"
+}

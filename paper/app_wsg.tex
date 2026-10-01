@@ -11,83 +11,36 @@ Rule & Where and how \\\midrule\endhead
 6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
 7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
 8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
-9. Document all factors and the setup. & Machines, probes, power limits, software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
+9. Document all factors and the setup. & Machines, probes, power limits, memory clocks (\cref{sec:setting}), software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
 10. Report measurement, synchronisation and summarisation. & One client times every system from streamed token arrivals; no server-side timers enter a comparison (\cref{sec:setting}). \\
-11. Show upper performance bounds. & The speed limit (\cref{sec:limit}) and all-in-VRAM speed are columns of \cref{tab:headline}. \\
-12. Plot enough to interpret; connect points only for trends. & \Cref{fig:gap,fig:ablation} are bar and step charts; no interpolation. \\
+11. Show upper performance bounds. & The speed limit (\cref{sec:limit}) and all-in-VRAM speed are columns of \cref{tab:headline}; \cref{tab:limit} tightens the limit four ways; \cref{sec:audit} applies it to the published literature. \\
+12. Plot enough to interpret; connect points only for trends. & \Cref{fig:shapley,fig:ablation} are bar charts; \cref{fig:ratio,fig:audit} are scatter plots; no interpolation. \\
 \bottomrule
 \end{longtable}
 
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed and pushed
 before the machine started; git history orders every prediction before its measurement. Outcome notes with the
-statistics are in \texttt{prereg/}. Of the 33 predictions of jobs 073--081, 27 held; job 082 scored 2 of 5, with one
-not scorable; of the 21 of jobs 083--087, 15 held, 1 half held and 5 failed. Job 085's Qwen3 half ran as 085b on a second machine with a slow link after a hung conversion. Job 084 ran on a throttled card and was rerun, with its predictions unchanged, as 084b/084c.
+statistics are in \texttt{prereg/}. \Cref{tab:scorecard}, generated from \texttt{prereg/scorecard\_clauses.json},
+splits every prediction of jobs 073--087 into its separable clauses and scores each under one rule: \emph{held} only
+when the point estimate is on the predicted side and the 95\% paired-bootstrap interval excludes the threshold (for a
+band, lies inside it); \emph{held (point)} when only the point estimate is, or no interval exists; \emph{failed} when
+the point estimate is on the wrong side; \emph{untested} when the clause could not be evaluated; \emph{void} when the
+job was voided. Of \scClauses{} clauses, \scHeld{} held, \scHeldPoint{} held on the point estimate, \scFailed{} failed,
+\scUntested{} were untested and \scVoid{} void: \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075,
+when the system was being built, \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions
+made after a same-host pilot, and \scLateHeld{} of \scLateScored{} in jobs 082--087.
+Against the earlier draft's log, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
+held was never run; job 085b's own restatement of its fourth prediction, ``at least 2 of 3'', failed at 1 of 3,
+though the pooled 4 of 6 held), job 073's ``identical outputs'' is scored on fully identical outputs (0--3\%) rather
+than on agreement of the first 160 characters (27--47\%), and ten clauses the log counted as held, among them job
+087's first, hold on the point estimate only under the interval rule; \texttt{prereg/scorecard\_outcome.md} lists
+every change. Job 085's Qwen3 half ran as 085b on a second machine with a slow link after a hung conversion. Job 084 ran on
+a throttled card and was rerun, with its predictions unchanged, as 084b/084c. The batched-verification variants of
+\cref{sec:traces} (rejected drafts free, routed like the true token, or routed at random) are in
+\texttt{prereg/batchk\_outcome.md}.
 
-\begin{longtable}{p{0.06\textwidth}p{0.46\textwidth}p{0.40\textwidth}}\toprule
-Job & Prediction & Outcome \\\midrule\endhead
-073 & Ours+FETCH ahead of FreeToken by $\ge$5\% at 11/25\%, within $\pm$5\% at 40\% (gpt-oss) & Failed: +10.9, +8.4\%, but $-5.9$\% at 40\% \\
-073 & Ours+FETCH $\ge1.8\times$ llama.cpp at every budget & Held: 1.83 / 2.36 / 2.65$\times$ \\
-073 & Warm-up on the measured problem reads 5--15\% faster & Failed: $-0.9$\% (ours), $-0.3$\% (FreeToken) \\
-073 & $\ge$80\% of greedy outputs identical to llama.cpp's & Failed: 27--47\%; kernels round differently \\
-074 & Host launch $\le$0.25\,ms & Held \\
-074 & 40\%: $\ge$127\,tok/s and ahead of FreeToken & Failed: 95.1 vs 114.4 \\
-074 & $\ge$59 / $\ge$91\,tok/s at 11 / 25\% & Failed: 41.5, 65.3 (host memory 33\% slower than assumed) \\
-074 & Admission half-life 64 within $\pm$2\% & Held \\
-074b & GPU sampling cuts between-step time by $\ge$1\,ms & Held: 2.01$\to$0.42\,ms \\
-074b & Ours gains $\ge$10\% at 40\% & Held: +11.7\% \\
-074b & With FETCH and GPU sampling, ours beats FreeToken offload at 40\% & Held \\
-075 & 40\% (RTX PRO 6000): ours ahead of FreeToken, CI $>1$ & Held: +12.2\% \\
-075 & 60\%: ours within $-3$ to $+10$\% of FreeToken & Failed, favourably: +11.8\% \\
-075 & 60\%: ours $\ge$55\% of all-in-VRAM speed & Held: 72.7\% \\
-076 & Ours ahead of FreeToken at 11/25/40\% & Held: 1.21 / 1.22 / 1.12 \\
-076 & Ours $\ge1.8\times$ llama.cpp & Held \\
-076 & The law within 8\% on the machine & Held: $-0.9$, $-0.6$, $-5.0$\%, FETCH +4.1\% \\
-077 & Pipelined Sharding and leloch's cache run and beat stock llama.cpp & Held \\
-077 & Ours ahead of both at every budget & Held \\
-078 & Qwen3: ours ahead of FreeToken at 12.5 and 25\% & Held: +7\% \\
-078 & Ours ahead of KTransformers at every budget & Held: 2.2--4.4$\times$ \\
-078 & Ours $\ge1.5\times$ llama.cpp & Held: 2.1 / 3.1 / 4.5$\times$ \\
-079 & Our host-side time per step is small & Held: 0.27\,ms \\
-079 & We launch more kernels than FreeToken & Held: 1.60$\times$ \\
-079 & Parity with FreeToken at 43.75\% on this host & Held: 0.991 [0.975, 1.009] \\
-080 & Law table beats fixed by $\ge$3\% at 43.75\% & Held: +4.8\% \\
-080 & Law table within 2\% of the sweep's best & Held: 0.9\% \\
-080 & Best table leads FreeToken at 43.75\% & Held: +4.9\% \\
-080 & Law table beats fixed at 25\% & Held: +6.7\% \\
-081 & Law table beats fixed on gpt-oss at every budget & Held: +7.9, +5.4, +3.3\% \\
-081 & Ours leads FreeToken on gpt-oss at 11/25/40\% & Held \\
-081 & Qwen3 12.5\%: law beats fixed; ours leads FreeToken & Held: +8.0\%; +3.2\% \\
-081 & Ours $\ge1.8\times$ llama.cpp (gpt-oss), $\ge2\times$ (Qwen3 12.5\%) & Held \\
-082 & gpt-oss steady-state lead at 2{,}048 tokens & Not scorable: easy prompts ended early \\
-082 & FreeToken gains more than ours after 256 tokens & Failed: ours gained more \\
-082 & Qwen3 43.75\% steady state: FreeToken ahead & Failed, favourably: ours +5.4\% \\
-082 & Every ablation step $\ge-1$\%; ours $\ge2\times$ stock & Failed: the ``static'' step, 0.72 / 0.74$\times$, loaded no experts (rerun as 087) \\
-082 & Parity: $\ge$98\% top-1, $|\Delta$NLL$|\le$1\% & Held \\
-082 & llama.cpp Qwen3 within 5\% of the law & Held: +3.6, +4.0\% \\
-083 & Hard problems still reasoning at 2{,}048 tokens on $\ge$8 of 10 & Held: 9--10 of 10 \\
-083 & Ours within 15\% of its Table 1 rate on long outputs & Held: +3.3 to +4.6\% \\
-083 & Ours leads FreeToken at 11/25/40\% (CI $>1$) & Held: 1.36 / 1.32 / 1.19 \\
-083 & Lead $\ge$15\% at 11 and 25\% & Held \\
-084 & Qwen3 BF16 all in VRAM at 120--190\,tok/s & Held (084b): 177.8 \\
-084 & gpt-oss all in VRAM within 5\% of 261.4\,tok/s & Held (084b): 255.3 \\
-084 & Ours with every expert in slots within 5\% of stock all-in-VRAM & Held: 0.997, 1.047 \\
-084 & Trace-simulated hit rate within 5 points of the engine's; ours at 20--50\% of the limit & Half: 5.3 points off at Qwen3 12.5\%; 26--43\% \\
-085 & The law's tables fetch less than on the headline machine & Held \\
-085 & Law beats fixed at every budget, by more than on the headline machine & Held: +9 to +34\% (6 of 6) \\
-085 & Ours leads FreeToken at every budget & Held: 1.43--2.03$\times$, 1.04--1.08$\times$ \\
-085 & Ours' lead larger than on the headline machine at $\ge$4 of 6 budgets & Held: 4 of 6 \\
-085 & llama.cpp at 25\% within 5\% of the law & Failed: +22\% on the Core i9 (Qwen3: +2.7\%) \\
-086 & FreeToken as shipped within 15\% of its paper's 77--83\,tok/s & Held: 93.8 \\
-086 & Ours leads FreeToken at 12.5/25/37.5\% & Failed: +3.0\% at 12.5\%, ties at 25 and 37.5\% \\
-086 & Ours $\ge2\times$ llama.cpp & Failed: 1.98 / 2.31 / 2.48$\times$ \\
-086 & Law table beats fixed at every budget & Held: +7.1 / +6.0 / +5.7\% \\
-087 & Profiled static cache $\ge1.3\times$ stock, both models & Held: 1.31 / 1.89$\times$ \\
-087 & Dynamic replacement adds less than placement, both models & Failed on gpt-oss: 1.58 vs 1.31$\times$ \\
-087 & Decayed frequency beats the profiled static cache & Held \\
-087 & Every step after the static cache $\ge-1$\%; ours $\ge2\times$ stock & Failed on Qwen3: LRU step 0.88$\times$ \\
-\bottomrule
-\end{longtable}
+\input{tab_scorecard}
 
 \section{Artifact description}\label{app:artifact}
 \begin{itemize}\setlength\itemsep{1pt}
@@ -98,7 +51,12 @@ for compute capability 12.0.
 models from Hugging Face, runs the bandwidth probes, writes any on-machine prediction, runs the client, and stores raw
 rows (one JSON line per problem), server logs and engine counters. A small runner rents a Vast instance, streams a
 heartbeat, fetches the results and only then destroys the instance.
-\item \textbf{Analysis.} \texttt{scripts/*\_stats.py} compute every interval from the raw rows; \texttt{scripts/wsg\_tables.py}
-generates every table, figure and number in this paper from the outcome files.
+\item \textbf{Analysis.} \texttt{scripts/*\_stats.py} compute every interval from the raw rows;
+\texttt{scripts/perlayer\_model.py}, \texttt{speed\_limit\_v2.py}, \texttt{shapley\_gap.py}, \texttt{policy\_study.py},
+\texttt{foresight\_exact.py}, \texttt{batchk\_trace.py}, \texttt{fig\_audit\_sol.py} and \texttt{scorecard.py} produce the
+model comparison, the limit, the accounting, the trace studies, the audit figure and the scorecard;
+\texttt{scripts/wsg\_tables.py} and \texttt{wsg\_numbers2.py} generate every table, figure and number in this paper from
+their outputs. The audit's \audAllN{} published rows and the physical speed-of-light model they are scored against are
+\texttt{data/published\_measurements.json}, \texttt{data/audit/} and \texttt{scripts/audit.py}.
 \item \textbf{Cost.} The 46 rentals (26 distinct machines) of jobs 058--087 cost 29.6 US dollars at their hourly GPU prices, by the ledger in the repository; storage and download charges, which the ledger omits, add to this.
 \end{itemize}

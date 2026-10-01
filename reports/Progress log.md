@@ -3,6 +3,58 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 30 September, late: six persona reviews, then the accounting revision (no GPU)
+
+**Reviews.** Six persona reviews of the draft (benchmarking, MLSys PC, competitor author, llama.cpp maintainer,
+memory-systems architect, statistician) scored it 4.8 of 10 on average (grade B-). Consolidated: the slow-link
+headline was confounded (FreeToken's CPU backend failed on the i9-14900K's hybrid cores), the gap decomposition was
+order-dependent and the bound loose and mis-scoped, Eq. 1 was not identified against an additive model, the CIs cover
+problems only and the Table 1 card runs its memory at 17001 MHz against 14001 elsewhere, prior art was missing, and
+several prediction clauses were scored in our favour. The reviews and a plan are in two Claude docs.
+
+**Revision, all from existing data (scripts and outcome notes in `prereg/`):**
+
+- **Model comparison** (`scripts/perlayer_model.py`, `prereg/perlayer_model_outcome.md`): leave-one-host-out over the
+  33 law measurements. Token-level max with G refit 3.1% median, additive 4.5% (misses the three fast-link FETCH
+  rows by -11%), per-layer max 3.2% and no explanation of the failures. Eq. 1 stays. The three failures get causes:
+  a CPU miss beside a copy takes 20-62% longer than alone; the EPYC 9655 has a 55-70 us per-layer floor; prefetch
+  overlaps attention. G > the all-in-VRAM token because the helpers read at 1.09-1.31x the probe's time per expert.
+- **Tightened limit** (`scripts/speed_limit_v2.py`): the 084 optimum was not exact (foresight._pol never evicts an
+  expert of the current token); the exact MIN-with-bypass reads 0.5-3.9% fewer. Global pool +5-10% at host-bound
+  cells; median B_host (80.7 of six samples) -8%; measured GPU ceiling collapses the limit at >=25% to 279/192 tok/s;
+  per-layer sum 1-5% of a token below the token max. Ours 25-42% of the limit as published, 33-57% with every
+  tightening. Table 1's limit column now uses the exact optimum.
+- **Shapley accounting** (`scripts/shapley_gap.py`, `paper/figs/shapley.pdf`): foresight largest in the four
+  host-bound cells (37-53% of the gap), overlap in the two GPU-bound cells (39-46%); GPU efficiency, policy and host
+  work never largest in any of the 120 orders (net accounting). Replaces the fixed-order figure.
+- **Nine-model policy study** (`scripts/policy_study.py`, `paper/tab_policy.tex`): best online policy reads 35-110%
+  more than the exact optimum; at C/k <= 1.5 all six online policies within 4%; from C/k = 2 LRU reads 2-11% more
+  than decayed frequency on 8 of 9 models (Qwen2-57B the exception); S3-FIFO ties decayed frequency; LFU up to 6.2x;
+  profiled static 1.4-13.2x; W = 4 beats every online policy in every cell. Drift: the top-C set changes 22-58% per
+  100 tokens and 33-75% per 1,000. Our kappa costs 1-8% reads (up to 22% on Qwen3).
+- **W50 with the exact optimum** (`scripts/foresight_exact.py`): 0.59 (C/k)^1.33, r 0.971, exponent CI [1.09, 1.47]
+  over a bootstrap of models; savings of the optimum over the best online policy 26-56% (median 41%).
+- **Batched verification on traces** (`scripts/batchk_trace.py`): a median 15-32% of reads saved at K = 8 with
+  rejected drafts free (W ~ 2-4 equivalent); +8-12% at alpha 0.9 and a loss of 18-20% at alpha 0.8 once rejected
+  drafts' routing counts. Speculation is not foresight; the stretch item "measured speculation point" is dropped.
+- **Audit figure** (`scripts/fig_audit_sol.py`, `paper/figs/audit_sol.pdf`): 52 published measurements against their
+  own speed of light (datasheet ceilings): trace-based median 9.5% (IQR 4.9-17.8, best 36.8), i.i.d. rows 34.8%.
+- **Scorecard** (`scripts/scorecard.py`, `paper/tab_scorecard.tex`): 86 clauses under one CI rule: 50 held, 11 held
+  on the point estimate, 19 failed, 2 untested, 4 void. Downgraded: 074b P2b (untested), 085b P4 (failed by its own
+  "2 of 3"); 073 P4 scored on fully identical outputs (0-3%); 087 P1 held (point).
+- **Bibliography**: WiSP, Budgeting Bytes, Paging the Experts, FlashMoE, Mira, MoE-SpAc, Cascade, ShapleyIQ, FlexGen
+  added; SP-MoE, 2608.07911, 2608.12103, SeqMoE, SpecMD and the two llama.cpp PRs now cited.
+- **Paper** (`paper/paper.tex`; the pre-review draft kept as `paper/paper_v1_prereview.tex`): reframed around the
+  limit and the accounting; 2.03x dropped from the abstract and the i9 result reported as confounded; the memory
+  clock disclosed; listing A/B defined; "a system the law implies" gone; KTransformers dropped from the main text;
+  limitations expanded. 9 pages of main text plus references and appendix (15 in all). An independent check found
+  15 wording defects (gap share vs token share, "every" vs "best" policy, an audit overclaim, a 15501 MHz law host),
+  all fixed; `scratchpad/reviews/check_v2.md`.
+
+**Still to do (needs Vast credits; balance 3.65 USD):** the fair slow-link rerun (FreeToken on 8 threads, fetch caps
+0-2; llama.cpp -t 8), the stock-clock headline on two rentals with ABBA order, ours-with-LRU against FreeToken, KL
+divergence against an all-VRAM reference, prefill and -np 2 timings, the RTX 4090 and 3090 grid, a fourth model.
+
 ## 30 September, night: the contrasting machines (jobs `085_half_pcie@vast` and `085b_half_pcie_qwen3@vast`)
 
 **Setup:** RTX 5090s in PCIe 4.0-class slots (about 27 GB/s): gpt-oss next to a Core i9-14900K (085), Qwen3 next to a

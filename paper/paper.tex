@@ -369,11 +369,14 @@ it cache slots during each prompt, changes its overall speed by 1\% or less.
 
 \paragraph{Other systems and outputs.} Two newer llama.cpp-based systems, Pipelined Sharding~\cite{pipelinedsharding2026} and
 leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.44$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
-the better of them (job 077). Teacher-forced on fixed text, our system picks the same next token as stock llama.cpp on
-\parTopGpt\% (gpt-oss) and \parTopQwen\% (Qwen3) of steps, against \parStockTopGpt\% and \parStockTopQwen\% for stock
-llama.cpp with a different layer placement; the loss changes by \parNllGpt\% and \parNllQwen\%. The helpers quantise
-activations to Q8\_0 where the GPU path uses Q8\_1, which is consistent with these differences; we have not measured
-task accuracy or KL divergence against an all-VRAM reference.
+the better of them (job 077). Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
+VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
+\klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
+maximum \klMaxGpt{} and \klMaxQwen), picks the same next token on \klTopGpt\% and \klTopQwen\% of steps, and changes
+the loss by \klNllGpt\% and \klNllQwen\%. Stock llama.cpp's own \texttt{--n-cpu-moe} placement diverges from the same
+reference by as much (mean KL \klStockMeanGpt{} and \klStockMeanQwen, agreement \klStockTopGpt\% and \klStockTopQwen\%):
+the differences are those of running experts on the CPU (the helpers quantise activations to Q8\_0 where the GPU path
+uses Q8\_1), not of the cache. Task accuracy was not measured.
 
 \section{What the Traces Say}\label{sec:traces}
 The accounting names foresight as the largest cost where the host binds. What would recover it, and what would not?
@@ -502,8 +505,8 @@ systems.
 \item \textbf{The bound and the audit.} Exact routing only: expert skipping, substitution or deferral change the model
 and fall outside it. The published rows use datasheet ceilings and, for eleven of them, i.i.d. routing.
 \item \textbf{Constants and outputs.} $G$, $g$ and $L_c$ are fitted once and frozen; the per-layer model overstates
-differences between FETCH tables about 1.8$\times$. Output parity is measured by teacher-forced agreement and loss,
-not by task accuracy or KL divergence.
+differences between FETCH tables about 1.8$\times$. Output parity is measured by teacher-forced KL divergence, agreement and loss
+against an all-VRAM reference, not by task accuracy.
 \end{itemize}
 
 \section{Conclusion}

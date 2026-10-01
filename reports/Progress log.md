@@ -18,6 +18,8 @@
   The law's tables moved to 0,0,1,2,3 and 0,0,1,2,2,3,4,5,6 (more copying). Fig. 3 now has eight hosts and the
   gpt-oss lead reads as a function of the CPU-to-link ratio: 1.09-1.22x at 1.05-1.14, 1.15-1.29x at 1.28,
   1.51-1.58x at 2.96.
+- **The limit moves with the host, the fraction does not.** Recomputed with this host's best probed rate (71 vs 87.5
+  GB/s), the host-bound limits are 19% lower; ours stands at 26-43% of this host's limit against 25-42% on listing B.
 - **LRU attribution.** LRU with the law's table runs 6-21% slower than decayed frequency across the six cells and
   trails FreeToken at four of them (0.81-0.97); it leads only at gpt-oss 25% (1.045). The admission policy is
   77-84% of the lead at gpt-oss 25 / 40% and more than the whole lead elsewhere. Prediction 5's 10-30% band failed

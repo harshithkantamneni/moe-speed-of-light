@@ -57,6 +57,13 @@ single-sequence decode: 3.98–5.40× (gpt-oss), 3.69–4.40× (Qwen3) stock.
    edge; the 512-token and multi-sequence prefills on gpt-oss are 0.789–0.799). Decode at 2 and 4 sequences below
    stock's on both models: 0.77–0.79. One llama-batched-bench run per configuration, so no intervals.
 
+**The limit on this host.** With the exact optimum's reads (the same trace), this host's best probed rate (71.3 GB/s;
+listing B 87.5) and the 5090's datasheet 1,792 GB/s, the host-bound limits are 19% lower than on listing B (gpt-oss 11%:
+140 vs 172 tok/s; 25%: 351 vs 430; Qwen3 12.5%: 78 vs 96; 25%: 174 vs 214) and the GPU-bound ones about the same
+(514 vs 519; 305 vs 308). Ours stands at 41 / 27 / 26% (gpt-oss) and 43 / 31 / 31% (Qwen3) of this host's limit, against
+41 / 25 / 29% and 42 / 30 / 35% on listing B; FreeToken at 34 / 22 / 24% and 42 / 30 / 32%, against 31 / 20 / 25% and
+40 / 26 / 34%. The limit moves with the host; the fractions do not.
+
 **Reading.** The ratios of Table 1 do not carry over unchanged to a second host: ours leads FreeToken at five of the six
 cells, by 9–21% on gpt-oss and 3–5% at Qwen3 12.5 and 25%, and trails by 2.6% at Qwen3 43.75%. The ratios are 0.01 to
 0.11 below listing B's, more than the ±0.06 we predicted. The cause is the host, not the card: FreeToken's offload

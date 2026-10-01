@@ -505,6 +505,14 @@ def stockclock():
     M("scFtHybDropMin", f"{100 * -max(r['vs_b']['ft'] for r in hyb):.0f}"); M("scFtHybDropMax", f"{100 * -min(r['vs_b']['ft'] for r in hyb):.0f}")
     M("scOursOffDropMin", f"{100 * -max(r['vs_b']['ours'] for r in off):.0f}"); M("scOursOffDropMax", f"{100 * -min(r['vs_b']['ours'] for r in off):.0f}")
     M("scOursHybDropMin", f"{100 * -max(r['vs_b']['ours'] for r in hyb):.0f}"); M("scOursHybDropMax", f"{100 * -min(r['vs_b']['ours'] for r in hyb):.0f}")
+    fr = [r["limit"]["frac"]["ours"] for r in allr]
+    M("scLimFracMin", pct(min(fr))); M("scLimFracMax", pct(max(fr)))
+    hb = [r["limit"]["headline"]["frac"]["ours"] for r in allr]
+    M("scLimFracBMin", pct(min(hb))); M("scLimFracBMax", pct(max(hb)))
+    M("scLimHostBw", f"{d['b_host_max_gbs']:.0f}")
+    hostb = [r for r in allr if r["budget"] in ("11%", "25%", "12.5%")]
+    ld_ = [1 - r["limit"]["tok_s"] / r["limit"]["headline"]["tok_s"] for r in hostb]
+    M("scLimDropMin", pct(min(ld_))); M("scLimDropMax", pct(max(ld_)))
     gsh = [ld["policy_share_of_lead"][f"gpt-oss-120b {b}"] for b in ("25%", "40%")]
     M("scPolicyShareGptMin", f"{100 * min(gsh):.0f}"); M("scPolicyShareGptMax", f"{100 * max(gsh):.0f}")
     bb = d["batched_bench_ratios"]

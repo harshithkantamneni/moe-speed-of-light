@@ -18,7 +18,9 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from samehost_stats import boot_ratio  # noqa: E402
+from scripts.speed_limit import MODELS, host_rates, limit  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 R = "/home/claude/gpu-branch/results"
@@ -136,7 +138,24 @@ def main():
                 policy_share_of_lead={f"{r['model']} {r['budget']}": (r["ours_over_ft_L2"][0] - r["lru_over_ft"][0]) / (r["ours_over_ft_L2"][0] - 1)
                                       for r in rows if r["ours_over_ft_L2"][0] > 1})
     print("leads:", json.dumps(lead, indent=1))
-    out = dict(means=mean, rows=rows, batched_bench=bb, batched_bench_ratios=bbr, probes=probes, hosts=hosts, leads=lead)
+    # the speed limit on this host: the exact optimum's reads (prereg/speed_limit_v2.json, the same trace), this host's
+    # best probed rate (scripts/speed_limit.py's rule) and the 5090's datasheet; every system placed against it
+    sl = json.load(open(os.path.join(ROOT, "prereg", "speed_limit_v2.json")))
+    b_host = host_rates(txt)
+    LM = {"gpt-oss-120b": "gpt-oss-120b", "Qwen3-30B-A3B": "qwen3-30b-a3b-bf16"}
+    for row, (model, budget, op, ft, ll) in zip(rows, CELLS):
+        C = int(op.split("_C")[1]); lm = LM[model]; srow = sl["models"][lm]["rows"][str(C)]; m_ = MODELS[lm]
+        L, k = sl["models"][lm]["L"], sl["models"][lm]["k"]
+        reads = srow["reads_per_token"]["exact"]
+        t_, c_at = limit(reads, L * k, m_["S"], m_["D"], b_host, sl["B_gpu_datasheet"] if isinstance(sl["B_gpu_datasheet"], (int, float)) else 1792e9)
+        row["limit"] = dict(reads_per_token=reads, b_host_gbs=b_host / 1e9, t_ms=1e3 * t_, tok_s=1 / t_, cpu_at_limit=c_at,
+                            frac=dict(ours=row["ours"] * t_, ft=row["ft"] * t_, llama=row["llama"] * t_, lru=row["lru"] * t_),
+                            headline=dict(tok_s=srow["limits"]["exact"]["tok_s"], frac=srow["frac_of_limit"]["exact"]))
+        print(f"limit {model} {budget}: {1 / t_:.0f} tok/s here (host {b_host / 1e9:.0f} GB/s) vs {srow['limits']['exact']['tok_s']:.0f} on listing B; "
+              f"ours {100 * row['ours'] * t_:.0f}% of it here vs {100 * srow['frac_of_limit']['exact']['ours']:.0f}% there; "
+              f"FreeToken {100 * row['ft'] * t_:.0f}% vs {100 * srow['frac_of_limit']['exact']['freetoken']:.0f}%")
+    out = dict(means=mean, rows=rows, batched_bench=bb, batched_bench_ratios=bbr, probes=probes, hosts=hosts, leads=lead,
+               b_host_max_gbs=b_host / 1e9)
     for f in ("gate.txt", "oneline.txt", "fetch_table_law_gptoss.json", "fetch_table_law_qwen3.json"):
         p = os.path.join(D, f)
         if os.path.exists(p):

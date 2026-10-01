@@ -1,0 +1,557 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/090_parity_a100@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=288
+++ NPROC=288
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ date +%s
++ T0=1790819716
++ BUDGET=9000
++ RESERVE=480
++ nvidia-smi --query-gpu=name,memory.total,compute_cap,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/090_parity_a100@vast/gpu.csv
+name, memory.total [MiB], compute_cap, clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB, 12.0, 2430 MHz, 12481 MHz, 5, 1, 16, 16, 580.173.02, 600.00 W
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ VRAM=97887
++ echo 'GPU memory 97887 MiB, compute capability sm_120 (A100: sm_80)'
++ tee /w/results/090_parity_a100@vast/gate.txt
+GPU memory 97887 MiB, compute capability sm_120 (A100: sm_80)
++ '[' 97887 -ge 75000 ']'
++ '[' 120 = 80 ']'
++ echo 'note: compute capability sm_120 is not the A100'\''s sm_80; the build targets sm_120'
+note: compute capability sm_120 is not the A100's sm_80; the build targets sm_120
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=34
++ tee /w/results/090_parity_a100@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 34 (nproc 288)'
+usable physical cores 34 (nproc 288)
++ grep -o 'avx512[a-z]*\|avx2' /proc/cpuinfo
++ sort -u
++ tr '\n' ' '
++ tee /w/results/090_parity_a100@vast/isa.txt
+avx2 avx512 avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512vl + echo
+
++ mkdir -p /work/models
++ DLG=6623
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6624
++ VE=/work/venv
++ echo 'venv install rc=0'
+venv install rc=0
++ PY=/work/venv/bin/python
++ /work/venv/bin/python -c 'import torch, transformers, numpy; print(torch.__version__, transformers.__version__, numpy.__version__)'
++ tee /w/results/090_parity_a100@vast/venv_ok.txt
+2.14.1+cpu 5.18.0 2.5.3
++ /work/venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''HuggingFaceH4/MATH-500'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/math500.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ wc -l /work/math500.jsonl
++ tee /w/results/090_parity_a100@vast/math500_count.txt
+500 /work/math500.jsonl
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j288 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/090_parity_a100@vast/build_lc-ec.txt
++ echo 'full-dump bench build rc=0'
+full-dump bench build rc=0
++ grep -E error /w/results/090_parity_a100@vast/build_fulldump.txt
++ head -5
++ /work/lc-ec/build/bin/llama-ec-bench --dump-full /work/x.bin --corpus /dev/null
++ cat /w/results/090_parity_a100@vast/ecbench_flagcheck.txt
++ head -2
+empty corpus /dev/null
++ FULL=1
++ grep -q 'unknown argument' /w/results/090_parity_a100@vast/ecbench_flagcheck.txt
++ build_tree /work/lc-stock '' llama
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j288 --target llama
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/090_parity_a100@vast/build_lc-stock.txt
++ echo 'stock-tree bench build rc=0'
+stock-tree bench build rc=0
++ grep -E error /w/results/090_parity_a100@vast/build_lc-stock-ecbench.txt
++ head -5
++ STOCK_EC=/work/lc-stock/build/bin/llama-ec-bench
++ '[' -x /work/lc-stock/build/bin/llama-ec-bench ']'
++ REF_BIN=/work/lc-stock/build/bin/llama-ec-bench
++ REF_KIND='stock tree (llama.cpp 4da6337 + the bench tool only)'
++ echo 'reference binary: /work/lc-stock/build/bin/llama-ec-bench = stock tree (llama.cpp 4da6337 + the bench tool only)'
++ tee /w/results/090_parity_a100@vast/reference_binary.txt
+reference binary: /work/lc-stock/build/bin/llama-ec-bench = stock tree (llama.cpp 4da6337 + the bench tool only)
+++ date +%s
++ echo 'builds done, waiting for the downloads (641 s since launch)'
+builds done, waiting for the downloads (641 s since launch)
++ wait 6623 6624
++ cat /w/results/090_parity_a100@vast/dl_gguf.txt /w/results/090_parity_a100@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790819728
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 314 s'
+gguf hf download rc=0 in 314 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  1 02:00 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ t0=1790819728
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:05,  4.77it/s]Fetching 26 files:   8%|▊         | 2/26 [00:00<00:04,  5.66it/s]Fetching 26 files:  15%|█▌        | 4/26 [00:00<00:02,  9.38it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:00<00:02,  8.84it/s]Fetching 26 files:  27%|██▋       | 7/26 [00:33<02:40,  8.45s/it]Fetching 26 files:  35%|███▍      | 9/26 [00:34<01:24,  4.99s/it]Fetching 26 files:  38%|███▊      | 10/26 [00:35<01:04,  4.02s/it]Fetching 26 files:  46%|████▌     | 12/26 [00:35<00:36,  2.60s/it]Fetching 26 files:  50%|█████     | 13/26 [00:36<00:26,  2.07s/it]Fetching 26 files:  58%|█████▊    | 15/26 [00:49<00:43,  3.93s/it]Fetching 26 files:  62%|██████▏   | 16/26 [00:50<00:32,  3.21s/it]Fetching 26 files:  65%|██████▌   | 17/26 [00:51<00:25,  2.79s/it]Fetching 26 files:  69%|██████▉   | 18/26 [00:52<00:17,  2.15s/it]Fetching 26 files:  73%|███████▎  | 19/26 [00:52<00:12,  1.78s/it]Fetching 26 files:  77%|███████▋  | 20/26 [00:57<00:14,  2.42s/it]Fetching 26 files:  81%|████████  | 21/26 [00:57<00:09,  1.95s/it]Fetching 26 files:  85%|████████▍ | 22/26 [01:00<00:09,  2.27s/it]Fetching 26 files:  88%|████████▊ | 23/26 [01:01<00:05,  1.67s/it]Fetching 26 files:  92%|█████████▏| 24/26 [01:01<00:02,  1.22s/it]Fetching 26 files:  96%|█████████▌| 25/26 [01:01<00:00,  1.12it/s]Fetching 26 files: 100%|██████████| 26/26 [01:01<00:00,  1.45it/s]Fetching 26 files: 100%|██████████| 26/26 [01:01<00:00,  2.37s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 62 s'
+qwen3 hf download rc=0 in 62 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
++ echo 'GGUF ok 63387346208 bytes'
+GGUF ok 63387346208 bytes
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=32
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/090_parity_a100@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/090_parity_a100@vast/concur.txt 32 13253760 4 /w/results/090_parity_a100@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,0,0
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/090_parity_a100@vast/concur.txt 32 9437184 8 /w/results/090_parity_a100@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,0,0,0,0,0,0,0
++ tee /w/results/090_parity_a100@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-10-01T02:07:41Z): gpt-oss 0,0,0,0,0; qwen3 0,0,0,0,0,0,0,0,0 (listing B 0,0,1,1,2 / 0,0,1,1,2,3,3,4,5)'
+law tables (2026-10-01T02:07:41Z): gpt-oss 0,0,0,0,0; qwen3 0,0,0,0,0,0,0,0,0 (listing B 0,0,1,1,2 / 0,0,1,1,2,3,3,4,5)
++ '[' -n 0,0,0,0,0 ']'
++ '[' -n 0,0,0,0,0,0,0,0,0 ']'
++ D=/work/dumps
++ mkdir -p /work/dumps
++ parity g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/S_gpt-oss-120b.jsonl 32 0,0,0,0,0 27
++ local tag=g mf=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/S_gpt-oss-120b.jsonl C=32 t=0,0,0,0,0 n=27
++ local 'COMMON=--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap'
++ local cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0
+++ fd /work/dumps/full_g_ref.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_g_ref.bin'
++ run1 g_ref '/work/lc-stock/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_ref.bin --dump-full /work/dumps/full_g_ref.bin'
++ local lab=g_ref 'cmd=/work/lc-stock/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_ref.bin --dump-full /work/dumps/full_g_ref.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790820461
++ R 40m bash -c '/work/lc-stock/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_ref.bin --dump-full /work/dumps/full_g_ref.bin'
++ local rc=0
+++ date +%s
++ echo 'parity g_ref rc=0 in 24 s'
+parity g_ref rc=0 in 24 s
+++ date +%s
++ echo 'par_g_ref 1 0 24'
++ tail -n 40 /w/results/090_parity_a100@vast/par_g_ref.err
++ rm -f /w/results/090_parity_a100@vast/par_g_ref.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_g_ours.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_g_ours.bin'
++ run1 g_ours '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_g_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_g_ours.bin --dump-full /work/dumps/full_g_ours.bin'
++ local lab=g_ours 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_g_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_g_ours.bin --dump-full /work/dumps/full_g_ours.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790820485
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_g_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_g_ours.bin --dump-full /work/dumps/full_g_ours.bin'
++ local rc=0
+++ date +%s
++ echo 'parity g_ours rc=0 in 301 s'
+parity g_ours rc=0 in 301 s
+++ date +%s
++ echo 'par_g_ours 1 0 301'
++ tail -n 40 /w/results/090_parity_a100@vast/par_g_ours.err
++ rm -f /w/results/090_parity_a100@vast/par_g_ours.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_g_n27.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_g_n27.bin'
++ run1 g_n27 '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27 --dump /w/results/090_parity_a100@vast/par_g_n27.bin --dump-full /work/dumps/full_g_n27.bin'
++ local lab=g_n27 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27 --dump /w/results/090_parity_a100@vast/par_g_n27.bin --dump-full /work/dumps/full_g_n27.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790820786
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 27 --dump /w/results/090_parity_a100@vast/par_g_n27.bin --dump-full /work/dumps/full_g_n27.bin'
++ local rc=0
+++ date +%s
++ echo 'parity g_n27 rc=0 in 140 s'
+parity g_n27 rc=0 in 140 s
+++ date +%s
++ echo 'par_g_n27 1 0 140'
++ tail -n 40 /w/results/090_parity_a100@vast/par_g_n27.err
++ rm -f /w/results/090_parity_a100@vast/par_g_n27.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_g_refec.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_g_refec.bin'
++ run1 g_refec '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_refec.bin --dump-full /work/dumps/full_g_refec.bin'
++ local lab=g_refec 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_refec.bin --dump-full /work/dumps/full_g_refec.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790820926
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_g_refec.bin --dump-full /work/dumps/full_g_refec.bin'
++ local rc=0
+++ date +%s
++ echo 'parity g_refec rc=0 in 27 s'
+parity g_refec rc=0 in 27 s
+++ date +%s
++ echo 'par_g_refec 1 0 27'
++ tail -n 40 /w/results/090_parity_a100@vast/par_g_refec.err
++ rm -f /w/results/090_parity_a100@vast/par_g_refec.err
++ '[' 0 = 124 ']'
++ ls -la /work/dumps/
++ tee -a /w/results/090_parity_a100@vast/dumps_ls.txt
+total 6032744
+drwxr-xr-x 2 root root       4096 Oct  1 02:15 .
+drwxr-xr-x 9 root root        172 Oct  1 02:07 ..
+-rw-r--r-- 1 root root 1235484672 Oct  1 02:15 full_g_n27.bin
+-rw-r--r-- 1 root root        169 Oct  1 02:13 full_g_n27.bin.json
+-rw-r--r-- 1 root root      15386 Oct  1 02:15 full_g_n27.bin.steps
+-rw-r--r-- 1 root root 1235484672 Oct  1 02:12 full_g_ours.bin.0
+-rw-r--r-- 1 root root        169 Oct  1 02:11 full_g_ours.bin.0.json
+-rw-r--r-- 1 root root      15386 Oct  1 02:12 full_g_ours.bin.0.steps
+-rw-r--r-- 1 root root 1235484672 Oct  1 02:12 full_g_ours.bin.1
+-rw-r--r-- 1 root root        169 Oct  1 02:12 full_g_ours.bin.1.json
+-rw-r--r-- 1 root root      15386 Oct  1 02:12 full_g_ours.bin.1.steps
+-rw-r--r-- 1 root root 1235484672 Oct  1 02:08 full_g_ref.bin
+-rw-r--r-- 1 root root        169 Oct  1 02:07 full_g_ref.bin.json
+-rw-r--r-- 1 root root      15386 Oct  1 02:08 full_g_ref.bin.steps
+-rw-r--r-- 1 root root 1235484672 Oct  1 02:15 full_g_refec.bin
+-rw-r--r-- 1 root root        169 Oct  1 02:15 full_g_refec.bin.json
+-rw-r--r-- 1 root root      15386 Oct  1 02:15 full_g_refec.bin.steps
++ local 'meta={"model": "g", "C": 32, "table": "0,0,0,0,0", "ncmoe": 27, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
++ '[' -s /work/dumps/full_g_ref.bin ']'
++ R 30m /work/venv/bin/python /w/jobs/ec2/kl_from_dumps.py --ref /work/dumps/full_g_ref.bin --sys ours=/work/dumps/full_g_ours.bin.1 --sys n27=/work/dumps/full_g_n27.bin --sys refec=/work/dumps/full_g_refec.bin --sys ours_warmup_pass=/work/dumps/full_g_ours.bin.0 --out /w/results/090_parity_a100@vast/parity_kl_g.json --meta '{"model": "g", "C": 32, "table": "0,0,0,0,0", "ncmoe": 27, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
++ tee -a /w/results/090_parity_a100@vast/parity_kl.txt
+++ secs 30m
+++ case $1 in
+++ echo 1800
++ local t=1800
++ shift
+++ left
++++ date +%s
+++ echo 7283
++ local l=7283
++ '[' 7283 -lt 120 ']'
++ '[' 1800 -gt 7283 ']'
++ timeout -k 30 1800 /work/venv/bin/python /w/jobs/ec2/kl_from_dumps.py --ref /work/dumps/full_g_ref.bin --sys ours=/work/dumps/full_g_ours.bin.1 --sys n27=/work/dumps/full_g_n27.bin --sys refec=/work/dumps/full_g_refec.bin --sys ours_warmup_pass=/work/dumps/full_g_ours.bin.0 --out /w/results/090_parity_a100@vast/parity_kl_g.json --meta '{"model": "g", "C": 32, "table": "0,0,0,0,0", "ncmoe": 27, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
+ours       steps 1536 KL mean 0.00186 median 0.00014 p99 0.0256 p99.9 0.1213 max 0.2051 top-1 0.9850 NLL 0.6011 vs ref 0.6001 (+0.160%)
+n27        steps 1536 KL mean 0.00171 median 0.00013 p99 0.0215 p99.9 0.0779 max 0.2181 top-1 0.9883 NLL 0.5998 vs ref 0.6001 (-0.047%)
+refec      steps 1536 KL mean 0.00000 median 0.00000 p99 0.0000 p99.9 0.0000 max 0.0000 top-1 1.0000 NLL 0.6001 vs ref 0.6001 (+0.000%)
+ours_warmup_pass steps 1536 KL mean 0.00186 median 0.00014 p99 0.0256 p99.9 0.1213 max 0.2051 top-1 0.9850 NLL 0.6011 vs ref 0.6001 (+0.160%)
++ rm -f /work/dumps/full_g_n27.bin /work/dumps/full_g_n27.bin.json /work/dumps/full_g_n27.bin.steps /work/dumps/full_g_ours.bin.0 /work/dumps/full_g_ours.bin.0.json /work/dumps/full_g_ours.bin.0.steps /work/dumps/full_g_ours.bin.1 /work/dumps/full_g_ours.bin.1.json /work/dumps/full_g_ours.bin.1.steps /work/dumps/full_g_ref.bin /work/dumps/full_g_ref.bin.json /work/dumps/full_g_ref.bin.steps /work/dumps/full_g_refec.bin /work/dumps/full_g_refec.bin.json /work/dumps/full_g_refec.bin.steps
++ df -h /work
++ tail -1
+overlay         170G  121G   50G  71% /
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf
++ df -h /work
++ tail -1
+overlay         170G  120G   51G  71% /
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/090_parity_a100@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Oct  1 02:39 /work/models/Qwen3-30B-A3B-BF16.gguf
++ /work/venv/bin/python - /work/models/Qwen3-30B-A3B /work/math500.jsonl /work/S_qwen3_math.jsonl
++ cat /w/results/090_parity_a100@vast/qwen3_corpus.txt
+sequences 12 tokens [1672, 1041, 1071, 832, 1548, 1198, 841, 996, 1079, 1011, 923, 1141]
++ cp /work/S_qwen3_math.jsonl /w/results/090_parity_a100@vast/S_qwen3_math.jsonl
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ parity q /work/models/Qwen3-30B-A3B-BF16.gguf /work/S_qwen3_math.jsonl 32 0,0,0,0,0,0,0,0,0 36
++ local tag=q mf=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/work/S_qwen3_math.jsonl C=32 t=0,0,0,0,0,0,0,0,0 n=36
++ local 'COMMON=--corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap'
++ local cfg=slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0
+++ fd /work/dumps/full_q_ref.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_q_ref.bin'
++ run1 q_ref '/work/lc-stock/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_ref.bin --dump-full /work/dumps/full_q_ref.bin'
++ local lab=q_ref 'cmd=/work/lc-stock/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_ref.bin --dump-full /work/dumps/full_q_ref.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822377
++ R 40m bash -c '/work/lc-stock/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_ref.bin --dump-full /work/dumps/full_q_ref.bin'
++ local rc=0
+++ date +%s
++ echo 'parity q_ref rc=0 in 26 s'
+parity q_ref rc=0 in 26 s
+++ date +%s
++ echo 'par_q_ref 1 0 26'
++ tail -n 40 /w/results/090_parity_a100@vast/par_q_ref.err
++ rm -f /w/results/090_parity_a100@vast/par_q_ref.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_q_ours.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_q_ours.bin'
++ run1 q_ours '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_q_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_q_ours.bin --dump-full /work/dumps/full_q_ours.bin'
++ local lab=q_ours 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_q_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_q_ours.bin --dump-full /work/dumps/full_q_ours.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822403
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --host-experts --ec '\''slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0;slots=32:policy=dfa:kappa=1:mailbox=1:tdec=1:helpers=32:fetch=0,0,0,0,0,0,0,0,0:stats=/w/results/090_parity_a100@vast/par_q_ours.json'\'' --dump /w/results/090_parity_a100@vast/par_q_ours.bin --dump-full /work/dumps/full_q_ours.bin'
++ local rc=0
+++ date +%s
++ echo 'parity q_ours rc=0 in 200 s'
+parity q_ours rc=0 in 200 s
+++ date +%s
++ echo 'par_q_ours 1 0 200'
++ tail -n 40 /w/results/090_parity_a100@vast/par_q_ours.err
++ rm -f /w/results/090_parity_a100@vast/par_q_ours.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_q_n36.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_q_n36.bin'
++ run1 q_n36 '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 36 --dump /w/results/090_parity_a100@vast/par_q_n36.bin --dump-full /work/dumps/full_q_n36.bin'
++ local lab=q_n36 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 36 --dump /w/results/090_parity_a100@vast/par_q_n36.bin --dump-full /work/dumps/full_q_n36.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822603
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --ncmoe 36 --dump /w/results/090_parity_a100@vast/par_q_n36.bin --dump-full /work/dumps/full_q_n36.bin'
++ local rc=0
+++ date +%s
++ echo 'parity q_n36 rc=0 in 174 s'
+parity q_n36 rc=0 in 174 s
+++ date +%s
++ echo 'par_q_n36 1 0 174'
++ tail -n 40 /w/results/090_parity_a100@vast/par_q_n36.err
++ rm -f /w/results/090_parity_a100@vast/par_q_n36.err
++ '[' 0 = 124 ']'
+++ fd /work/dumps/full_q_refec.bin
+++ '[' -n 1 ']'
+++ echo '--dump-full /work/dumps/full_q_refec.bin'
++ run1 q_refec '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_refec.bin --dump-full /work/dumps/full_q_refec.bin'
++ local lab=q_refec 'cmd=/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_refec.bin --dump-full /work/dumps/full_q_refec.bin'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=0
++ '[' 0 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822777
++ R 40m bash -c '/work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /work/S_qwen3_math.jsonl --seqs 0,1,2,3,4,5,6,7,8,9,10,11 -t 34 --n-prefill 640 --n-decode 128 --no-mmap --dump /w/results/090_parity_a100@vast/par_q_refec.bin --dump-full /work/dumps/full_q_refec.bin'
++ local rc=0
+++ date +%s
++ echo 'parity q_refec rc=0 in 25 s'
+parity q_refec rc=0 in 25 s
+++ date +%s
++ echo 'par_q_refec 1 0 25'
++ tail -n 40 /w/results/090_parity_a100@vast/par_q_refec.err
++ rm -f /w/results/090_parity_a100@vast/par_q_refec.err
++ '[' 0 = 124 ']'
++ ls -la /work/dumps/
++ tee -a /w/results/090_parity_a100@vast/dumps_ls.txt
+total 4558188
+drwxr-xr-x 2 root root      4096 Oct  1 02:46 .
+drwxr-xr-x 9 root root      4096 Oct  1 02:39 ..
+-rw-r--r-- 1 root root 933494784 Oct  1 02:46 full_q_n36.bin
+-rw-r--r-- 1 root root       169 Oct  1 02:44 full_q_n36.bin.json
+-rw-r--r-- 1 root root     14425 Oct  1 02:46 full_q_n36.bin.steps
+-rw-r--r-- 1 root root 933494784 Oct  1 02:42 full_q_ours.bin.0
+-rw-r--r-- 1 root root       169 Oct  1 02:41 full_q_ours.bin.0.json
+-rw-r--r-- 1 root root     14425 Oct  1 02:42 full_q_ours.bin.0.steps
+-rw-r--r-- 1 root root 933494784 Oct  1 02:43 full_q_ours.bin.1
+-rw-r--r-- 1 root root       169 Oct  1 02:42 full_q_ours.bin.1.json
+-rw-r--r-- 1 root root     14425 Oct  1 02:43 full_q_ours.bin.1.steps
+-rw-r--r-- 1 root root 933494784 Oct  1 02:40 full_q_ref.bin
+-rw-r--r-- 1 root root       169 Oct  1 02:39 full_q_ref.bin.json
+-rw-r--r-- 1 root root     14425 Oct  1 02:40 full_q_ref.bin.steps
+-rw-r--r-- 1 root root 933494784 Oct  1 02:46 full_q_refec.bin
+-rw-r--r-- 1 root root       169 Oct  1 02:46 full_q_refec.bin.json
+-rw-r--r-- 1 root root     14425 Oct  1 02:46 full_q_refec.bin.steps
++ local 'meta={"model": "q", "C": 32, "table": "0,0,0,0,0,0,0,0,0", "ncmoe": 36, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
++ '[' -s /work/dumps/full_q_ref.bin ']'
++ R 30m /work/venv/bin/python /w/jobs/ec2/kl_from_dumps.py --ref /work/dumps/full_q_ref.bin --sys ours=/work/dumps/full_q_ours.bin.1 --sys n36=/work/dumps/full_q_n36.bin --sys refec=/work/dumps/full_q_refec.bin --sys ours_warmup_pass=/work/dumps/full_q_ours.bin.0 --out /w/results/090_parity_a100@vast/parity_kl_q.json --meta '{"model": "q", "C": 32, "table": "0,0,0,0,0,0,0,0,0", "ncmoe": 36, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
++ tee -a /w/results/090_parity_a100@vast/parity_kl.txt
+++ secs 30m
+++ case $1 in
+++ echo 1800
++ local t=1800
++ shift
+++ left
++++ date +%s
+++ echo 5434
++ local l=5434
++ '[' 5434 -lt 120 ']'
++ '[' 1800 -gt 5434 ']'
++ timeout -k 30 1800 /work/venv/bin/python /w/jobs/ec2/kl_from_dumps.py --ref /work/dumps/full_q_ref.bin --sys ours=/work/dumps/full_q_ours.bin.1 --sys n36=/work/dumps/full_q_n36.bin --sys refec=/work/dumps/full_q_refec.bin --sys ours_warmup_pass=/work/dumps/full_q_ours.bin.0 --out /w/results/090_parity_a100@vast/parity_kl_q.json --meta '{"model": "q", "C": 32, "table": "0,0,0,0,0,0,0,0,0", "ncmoe": 36, "reference": "stock tree (llama.cpp 4da6337 + the bench tool only)", "n_seq": 12, "n_prefill": 640, "n_decode": 128}'
+ours       steps 1536 KL mean 0.00053 median 0.00000 p99 0.0072 p99.9 0.0591 max 0.1300 top-1 0.9935 NLL 0.8923 vs ref 0.8906 (+0.192%)
+n36        steps 1536 KL mean 0.00084 median 0.00000 p99 0.0180 p99.9 0.0735 max 0.2177 top-1 0.9928 NLL 0.8915 vs ref 0.8906 (+0.098%)
+refec      steps 1536 KL mean 0.00000 median 0.00000 p99 0.0000 p99.9 0.0000 max 0.0000 top-1 1.0000 NLL 0.8906 vs ref 0.8906 (+0.000%)
+ours_warmup_pass steps 1536 KL mean 0.00053 median 0.00000 p99 0.0072 p99.9 0.0591 max 0.1300 top-1 0.9935 NLL 0.8923 vs ref 0.8906 (+0.192%)
++ rm -f /work/dumps/full_q_n36.bin /work/dumps/full_q_n36.bin.json /work/dumps/full_q_n36.bin.steps /work/dumps/full_q_ours.bin.0 /work/dumps/full_q_ours.bin.0.json /work/dumps/full_q_ours.bin.0.steps /work/dumps/full_q_ours.bin.1 /work/dumps/full_q_ours.bin.1.json /work/dumps/full_q_ours.bin.1.steps /work/dumps/full_q_ref.bin /work/dumps/full_q_ref.bin.json /work/dumps/full_q_ref.bin.steps /work/dumps/full_q_refec.bin /work/dumps/full_q_refec.bin.json /work/dumps/full_q_refec.bin.steps
++ df -h /work
++ tail -1
+overlay         170G  119G   52G  70% /
++ cd /work
++ /work/venv/bin/python - /w/results/090_parity_a100@vast
++ tee /w/results/090_parity_a100@vast/summary.txt
+parity g ref   : 12 sequences, NLL 0.6001, decode 6.9 s, 221.7 tok/s (bench's own timing)
+parity g ours  : 12 sequences, NLL 0.6011, decode 21.1 s, 72.8 tok/s (bench's own timing)
+parity g n27   : 12 sequences, NLL 0.5998, decode 69.2 s, 22.2 tok/s (bench's own timing)
+parity g refec : 12 sequences, NLL 0.6001, decode 6.8 s, 226.2 tok/s (bench's own timing)
+parity q ref   : 12 sequences, NLL 0.8906, decode 9.8 s, 156.6 tok/s (bench's own timing)
+parity q ours  : 12 sequences, NLL 0.8923, decode 24.4 s, 63.0 tok/s (bench's own timing)
+parity q n36   : 12 sequences, NLL 0.8915, decode 61.7 s, 24.9 tok/s (bench's own timing)
+parity q refec : 12 sequences, NLL 0.8906, decode 9.8 s, 156.7 tok/s (bench's own timing)
+KL g ours             mode full_vocab: mean 0.00186 median 0.00014 p99 0.0256 p99.9 0.1213 max 0.2051 | top-1 0.9850 | NLL 0.6011 vs ref 0.6001 (+0.160%) | steps 1536
+KL g n27              mode full_vocab: mean 0.00171 median 0.00013 p99 0.0215 p99.9 0.0779 max 0.2181 | top-1 0.9883 | NLL 0.5998 vs ref 0.6001 (-0.047%) | steps 1536
+KL g refec            mode full_vocab: mean 0.00000 median 0.00000 p99 0.0000 p99.9 0.0000 max 0.0000 | top-1 1.0000 | NLL 0.6001 vs ref 0.6001 (+0.000%) | steps 1536
+KL g ours_warmup_pass mode full_vocab: mean 0.00186 median 0.00014 p99 0.0256 p99.9 0.1213 max 0.2051 | top-1 0.9850 | NLL 0.6011 vs ref 0.6001 (+0.160%) | steps 1536
+KL q ours             mode full_vocab: mean 0.00053 median 0.00000 p99 0.0072 p99.9 0.0591 max 0.1300 | top-1 0.9935 | NLL 0.8923 vs ref 0.8906 (+0.192%) | steps 1536
+KL q n36              mode full_vocab: mean 0.00084 median 0.00000 p99 0.0180 p99.9 0.0735 max 0.2177 | top-1 0.9928 | NLL 0.8915 vs ref 0.8906 (+0.098%) | steps 1536
+KL q refec            mode full_vocab: mean 0.00000 median 0.00000 p99 0.0000 p99.9 0.0000 max 0.0000 | top-1 1.0000 | NLL 0.8906 vs ref 0.8906 (+0.000%) | steps 1536
+KL q ours_warmup_pass mode full_vocab: mean 0.00053 median 0.00000 p99 0.0072 p99.9 0.0591 max 0.1300 | top-1 0.9935 | NLL 0.8923 vs ref 0.8906 (+0.192%) | steps 1536
++ ls -la /work/dumps
+total 4
+drwxr-xr-x 2 root root   10 Oct  1 02:47 .
+drwxr-xr-x 9 root root 4096 Oct  1 02:39 ..
++ rm -rf /work/dumps
+++ cat /w/results/090_parity_a100@vast/oneline.txt
++ ONE='090 ours vs all-VRAM reference: g: KL mean 0.0019 p99.9 0.121 top1 0.985 dNLL +0.16%; q: KL mean 0.0005 p99.9 0.059 top1 0.993 dNLL +0.19%'
++ python3 /w/jobs/ec2/manifest.py /w/results/090_parity_a100@vast 090_parity_a100@vast 1790819716 '090 ours vs all-VRAM reference: g: KL mean 0.0019 p99.9 0.121 top1 0.985 dNLL +0.16%; q: KL mean 0.0005 p99.9 0.059 top1 0.993 dNLL +0.19%' law_gptoss=0,0,0,0,0 law_qwen3=0,0,0,0,0,0,0,0,0 'reference_binary=stock tree (llama.cpp 4da6337 + the bench tool only)' sm=120
+manifest: 75 files, 3123 s; 090 ours vs all-VRAM reference: g: KL mean 0.0019 p99.9 0.121 top1 0.985 dNLL +0.16%; q: KL mean 0.0005 p99.9 0.059 top1 0.993 dNLL +0.19%
++ echo 'SUMMARY 090 ours vs all-VRAM reference: g: KL mean 0.0019 p99.9 0.121 top1 0.985 dNLL +0.16%; q: KL mean 0.0005 p99.9 0.059 top1 0.993 dNLL +0.19%'
+SUMMARY 090 ours vs all-VRAM reference: g: KL mean 0.0019 p99.9 0.121 top1 0.985 dNLL +0.16%; q: KL mean 0.0005 p99.9 0.059 top1 0.993 dNLL +0.19%

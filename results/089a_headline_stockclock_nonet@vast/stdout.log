@@ -1,0 +1,1642 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/089_headline_stockclock@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ date +%s
++ T0=1790819720
++ BUDGET=18000
++ RESERVE=600
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/089_headline_stockclock@vast/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA GeForce RTX 5090, 32607 MiB, 3105 MHz, 14001 MHz, 5, 5, 16, 16, 595.84, 500.00 W
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz (listing B reported 17001)'
++ tee /w/results/089_headline_stockclock@vast/gate.txt
+memory clock max 14001 MHz (listing B reported 17001)
++ '[' 14001 = 14001 ']'
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
++ nvidia-smi -q
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/089_headline_stockclock@vast/bw_gate.txt
++ DR=1685
++ echo 'device read 1685 GB/s'
++ tee -a /w/results/089_headline_stockclock@vast/gate.txt
+device read 1685 GB/s
++ '[' 1685 -ge 1500 ']'
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/089_headline_stockclock@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32)'
+usable physical cores 16 (nproc 32)
++ HFD=/work/models/gpt-oss-120b
++ mkdir -p /work/models
++ DLH=1051
++ DLG=1053
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=1054
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ nvcc --version
++ tail -2
++ tee /w/results/089_headline_stockclock@vast/nvcc_version.txt
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
++ echo 'FreeToken install rc=0'
+FreeToken install rc=0
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ /work/ft/.venv/bin/python -c 'import freetoken, huggingface_hub'
++ /work/ft/.venv/bin/ft --version
++ VE=/work/venv
++ VEP=1275
++ /work/ft/.venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+Retrying in 1s [Retry 1/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+Retrying in 2s [Retry 2/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+Retrying in 4s [Retry 3/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+Retrying in 8s [Retry 4/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+Retrying in 8s [Retry 5/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime25/resolve/main/test.jsonl
+httpcore.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+httpx.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/work/ft/.venv/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/huggingface_hub/utils/_http.py", line 266, in _inner
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1047, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1194, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/work/ft/.venv/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1961, in _raise_on_head_call_error
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.
++ wc -l /work/aime25.jsonl
++ tee /w/results/089_headline_stockclock@vast/aime25_count.txt
+wc: /work/aime25.jsonl: No such file or directory
++ /work/ft/.venv/bin/python - /work/warmup.txt
++ cat /w/results/089_headline_stockclock@vast/warmup_source.txt
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+Retrying in 1s [Retry 1/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+Retrying in 2s [Retry 2/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+Retrying in 4s [Retry 3/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+Retrying in 8s [Retry 4/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+Retrying in 8s [Retry 5/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/math-ai/aime24/resolve/main/test.jsonl
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+Retrying in 1s [Retry 1/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+Retrying in 2s [Retry 2/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+Retrying in 4s [Retry 3/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+Retrying in 8s [Retry 4/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+Retrying in 8s [Retry 5/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/datasets/HuggingFaceH4/aime_2024/resolve/main/train.jsonl
+no math-ai/aime24 test.jsonl LocalEntryNotFoundError('An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure
+no HuggingFaceH4/aime_2024 train.jsonl LocalEntryNotFoundError('An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-server llama-batched-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
+fatal: unable to access 'https://github.com/ggml-org/llama.cpp/': Failed to connect to github.com port 443 after 140122 ms: Couldn't connect to server
++ sleep 10
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-server llama-batched-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/089_headline_stockclock@vast/build_lc-ec.txt
++ build_tree /work/lc-stock '' llama-server llama-batched-bench
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-server llama-batched-bench
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/089_headline_stockclock@vast/build_lc-stock.txt
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
++ EC_BB=/work/lc-ec/build/bin/llama-batched-bench
++ STOCK_BB=/work/lc-stock/build/bin/llama-batched-bench
++ ls -la /work/lc-ec/build/bin/llama-batched-bench /work/lc-stock/build/bin/llama-batched-bench
+-rwxr-xr-x 1 root root 15976 Oct  1 02:23 /work/lc-ec/build/bin/llama-batched-bench
+-rwxr-xr-x 1 root root 15976 Oct  1 02:26 /work/lc-stock/build/bin/llama-batched-bench
+++ date +%s
++ echo 'builds done, waiting for the downloads (1906 s since launch)'
+builds done, waiting for the downloads (1906 s since launch)
++ wait 1053 1051 1054 1275
++ cat /w/results/089_headline_stockclock@vast/dl_gguf.txt /w/results/089_headline_stockclock@vast/dl_hf.txt /w/results/089_headline_stockclock@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790819755
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+Retrying in 1s [Retry 1/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+Retrying in 2s [Retry 2/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+Retrying in 4s [Retry 3/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+Retrying in 8s [Retry 4/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+Retrying in 8s [Retry 5/5].
+'[Errno 101] Network is unreachable' thrown while requesting HEAD https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+httpcore2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+httpx2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_http.py", line 266, in _inner
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/file_download.py", line 1026, in hf_hub_download
+    return _hf_hub_download_to_local_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/file_download.py", line 1421, in _hf_hub_download_to_local_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/file_download.py", line 1961, in _raise_on_head_call_error
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: An error happened while trying to locate the file on the Hub and we cannot find the requested files in the local cache. Please check your connection and try again or make sure your Internet connection is on.
+++ date +%s
++ echo 'gguf hf download rc=1 in 437 s'
+gguf hf download rc=1 in 437 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+ls: cannot access '/work/models/gpt-oss-120b-MXFP4.gguf': No such file or directory
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf
++ for i in 1 2 3
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790820192
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf:  bytes in 857 s'
+download gpt-oss-120b-MXFP4.gguf:  bytes in 857 s
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ for i in 1 2 3
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790821049
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf:  bytes in 856 s'
+download gpt-oss-120b-MXFP4.gguf:  bytes in 856 s
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ for i in 1 2 3
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1790821905
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf:  bytes in 856 s'
+download gpt-oss-120b-MXFP4.gguf:  bytes in 856 s
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ t0=1790819755
++ python3 - /work/models/gpt-oss-120b
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 98, in map_httpcore_exceptions
+    yield
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 245, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection_pool.py", line 242, in handle_request
+    raise exc from None
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection_pool.py", line 224, in handle_request
+    response = connection.handle_request(pool_request.request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 94, in handle_request
+    raise exc
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 74, in handle_request
+    stream = self._connect(request)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 117, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_backends/sync.py", line 203, in connect_tcp
+    with map_exceptions(exc_map):
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_exceptions.py", line 17, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/_snapshot_download.py", line 277, in snapshot_download
+    repo_info = api.repo_info(repo_id=repo_id, repo_type=repo_type, revision=revision)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/hf_api.py", line 3493, in repo_info
+    return method(
+           ^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/hf_api.py", line 3172, in model_info
+    r = get_session().get(path, headers=headers, timeout=timeout, params=params)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1113, in get
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 797, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 980, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1008, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1043, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1076, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 244, in handle_request
+    with map_httpcore_exceptions():
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 115, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_http.py", line 266, in _inner
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/_snapshot_download.py", line 381, in snapshot_download
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: Got: ConnectError: [Errno 101] Network is unreachable
+An error happened while trying to locate the files on the Hub, and we cannot find the appropriate snapshot folder for the specified revision on the local disk. Please check your internet connection and try again.
+++ date +%s
++ echo 'hf download rc=1 in 147 s'
+hf download rc=1 in 147 s
++ du -sh /work/models/gpt-oss-120b
+du: cannot access '/work/models/gpt-oss-120b': No such file or directory
+++ date +%s
++ t0=1790819755
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 98, in map_httpcore_exceptions
+    yield
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 245, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection_pool.py", line 242, in handle_request
+    raise exc from None
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection_pool.py", line 224, in handle_request
+    response = connection.handle_request(pool_request.request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 94, in handle_request
+    raise exc
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 74, in handle_request
+    stream = self._connect(request)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_sync/connection.py", line 117, in _connect
+    stream = self._network_backend.connect_tcp(**kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_backends/sync.py", line 203, in connect_tcp
+    with map_exceptions(exc_map):
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/dist-packages/httpcore2/_exceptions.py", line 17, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/_snapshot_download.py", line 277, in snapshot_download
+    repo_info = api.repo_info(repo_id=repo_id, repo_type=repo_type, revision=revision)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/hf_api.py", line 3493, in repo_info
+    return method(
+           ^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/hf_api.py", line 3172, in model_info
+    r = get_session().get(path, headers=headers, timeout=timeout, params=params)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1113, in get
+    return self.request(
+           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 797, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 980, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1008, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1043, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_client.py", line 1076, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 244, in handle_request
+    with map_httpcore_exceptions():
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/usr/local/lib/python3.12/dist-packages/httpx2/_transports/default.py", line 115, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx2.ConnectError: [Errno 101] Network is unreachable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_validators.py", line 89, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_http.py", line 266, in _inner
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/huggingface_hub/_snapshot_download.py", line 381, in snapshot_download
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: Got: ConnectError: [Errno 101] Network is unreachable
+An error happened while trying to locate the files on the Hub, and we cannot find the appropriate snapshot folder for the specified revision on the local disk. Please check your internet connection and try again.
+++ date +%s
++ echo 'qwen3 hf download rc=1 in 143 s'
+qwen3 hf download rc=1 in 143 s
++ du -sh /work/models/Qwen3-30B-A3B
+du: cannot access '/work/models/Qwen3-30B-A3B': No such file or directory
+++ tail -1 /w/results/089_headline_stockclock@vast/venv_install.txt
++ echo 'venv install rc: + uv pip install -q numpy transformers sentencepiece safetensors protobuf'
+venv install rc: + uv pip install -q numpy transformers sentencepiece safetensors protobuf
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -f /work/models/gpt-oss-120b/config.json ']'
++ echo 'HF checkpoint MISSING'
+HF checkpoint MISSING
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ echo 'GGUF MISSING'
+GGUF MISSING
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
+curl: (35) Recv failure: Connection reset by peer
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
+cc1: fatal error: stream.c: No such file or directory
+compilation terminated.
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ cp /root/.cache/freetoken/benchbw/GPU-572918c1-d41c-5592-4f11-0f8a186d4452.json /w/results/089_headline_stockclock@vast/
++ H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/089_headline_stockclock@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/089_headline_stockclock@vast/concur.txt 14 13253760 4 /w/results/089_headline_stockclock@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,2,3
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/089_headline_stockclock@vast/concur.txt 14 9437184 8 /w/results/089_headline_stockclock@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,2,2,3,4,5,6
++ tee /w/results/089_headline_stockclock@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-10-01T02:47:07Z): gpt-oss 0,0,1,2,3 (listing B 0,0,1,1,2); qwen3 0,0,1,2,2,3,4,5,6 (listing B 0,0,1,1,2,3,3,4,5)'
+law tables (2026-10-01T02:47:07Z): gpt-oss 0,0,1,2,3 (listing B 0,0,1,1,2); qwen3 0,0,1,2,2,3,4,5,6 (listing B 0,0,1,1,2,3,3,4,5)
++ '[' -n 0,0,1,2,3 ']'
++ '[' -n 0,0,1,2,2,3,4,5,6 ']'
++ python3 - /w/results/089_headline_stockclock@vast/concur.txt 16
++ cat /w/results/089_headline_stockclock@vast/law_llama.json
+{"time_utc": "2026-10-01T02:47:07Z", "B_c": 55.1, "threads": 16, "predicted_tok_s": {"gptoss_llama_n32": 27.89, "gptoss_llama_n27": 32.22, "gptoss_llama_n22": 38.12, "qwen3_llama_n42": 16.17, "qwen3_llama_n36": 18.65, "qwen3_llama_n27": 24.22}}
++ LXB='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ ECENV='env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14'
++ LSG='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui'
++ CELLS_G='14:0.111:hybrid:32 32:0.25:hybrid:27 51:0.40:offload:22'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ oursg 14 1
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C14_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C14_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822828
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14292
++ local l=14292
++ '[' 14292 -lt 120 ']'
++ '[' 3600 -gt 14292 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C14_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 53595
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.log
++ local rc=1
++ echo 'g_ours_C14_law launch 1 rc=1'
+g_ours_C14_law launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C14_law 1 1 4'
++ '[' 1 = 124 ']'
++ ftg hybrid 0.111 1
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_hybrid_r0.111 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --ft hybrid --cache-rate 0.111
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid_r0.111 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822832
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L1.log --ft hybrid --cache-rate 0.111
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14288
++ local l=14288
++ '[' 14288 -lt 120 ']'
++ '[' 3600 -gt 14288 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L1.log --ft hybrid --cache-rate 0.111
+[bs1] g_ft_hybrid_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '53851', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L1.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_hybrid_r0.111 launch 1 rc=1'
+g_ft_hybrid_r0.111 launch 1 rc=1
+++ date +%s
++ echo 'g_ft_hybrid_r0.111 1 1 6'
++ '[' 1 = 124 ']'
++ llamag 32
++ cl /work/models/gpt-oss-120b g_llama_n32 1 '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 32}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_llama_n32 L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 32}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822838
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n32 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 32}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n32_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14282
++ local l=14282
++ '[' 14282 -lt 120 ']'
++ '[' 3600 -gt 14282 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n32 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 32}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n32_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port {port}'
+[bs1] g_llama_n32: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 32 --port 47941
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_llama_n32_L1.log
++ local rc=1
++ echo 'g_llama_n32 launch 1 rc=1'
+g_llama_n32 launch 1 rc=1
+++ date +%s
++ echo 'g_llama_n32 1 1 4'
++ '[' 1 = 124 ']'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ oursg 32 1
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C32_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C32_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822842
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14278
++ local l=14278
++ '[' 14278 -lt 120 ']'
++ '[' 3600 -gt 14278 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 34145
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.log
++ local rc=1
++ echo 'g_ours_C32_law launch 1 rc=1'
+g_ours_C32_law launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C32_law 1 1 4'
++ '[' 1 = 124 ']'
++ ftg hybrid 0.25 1
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_hybrid_r0.25 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid_r0.25 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822846
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14274
++ local l=14274
++ '[' 14274 -lt 120 ']'
++ '[' 3600 -gt 14274 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L1.log --ft hybrid --cache-rate 0.25
+[bs1] g_ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '51157', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L1.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_hybrid_r0.25 launch 1 rc=1'
+g_ft_hybrid_r0.25 launch 1 rc=1
+++ date +%s
++ echo 'g_ft_hybrid_r0.25 1 1 6'
++ '[' 1 = 124 ']'
++ llamag 27
++ cl /work/models/gpt-oss-120b g_llama_n27 1 '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_llama_n27 L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822852
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n27_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14268
++ local l=14268
++ '[' 14268 -lt 120 ']'
++ '[' 3600 -gt 14268 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n27_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+[bs1] g_llama_n27: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 27 --port 49903
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_llama_n27_L1.log
++ local rc=1
++ echo 'g_llama_n27 launch 1 rc=1'
+g_llama_n27 launch 1 rc=1
+++ date +%s
++ echo 'g_llama_n27 1 1 4'
++ '[' 1 = 124 ']'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ oursg 51 1
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C51_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C51_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822856
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14264
++ local l=14264
++ '[' 14264 -lt 120 ']'
++ '[' 3600 -gt 14264 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C51_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 47351
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.log
++ local rc=1
++ echo 'g_ours_C51_law launch 1 rc=1'
+g_ours_C51_law launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C51_law 1 1 4'
++ '[' 1 = 124 ']'
++ ftg offload 0.40 1
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.40 1 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --ft offload --cache-rate 0.40
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.40 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822860
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L1.log --ft offload --cache-rate 0.40
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14260
++ local l=14260
++ '[' 14260 -lt 120 ']'
++ '[' 3600 -gt 14260 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L1.log --ft offload --cache-rate 0.40
+[bs1] g_ft_offload_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '55527', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L1.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_offload_r0.40 launch 1 rc=1'
+g_ft_offload_r0.40 launch 1 rc=1
+++ date +%s
++ echo 'g_ft_offload_r0.40 1 1 6'
++ '[' 1 = 124 ']'
++ llamag 22
++ cl /work/models/gpt-oss-120b g_llama_n22 1 '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 22}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 22 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_llama_n22 L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 22}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822866
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n22 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 22}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n22_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 22 --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14254
++ local l=14254
++ '[' 14254 -lt 120 ']'
++ '[' 3600 -gt 14254 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n22 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 22}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_llama_n22_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 22 --port {port}'
+[bs1] g_llama_n22: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ncmoe 22 --port 48237
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_llama_n22_L1.log
++ local rc=1
++ echo 'g_llama_n22 launch 1 rc=1'
+g_llama_n22 launch 1 rc=1
+++ date +%s
++ echo 'g_llama_n22 1 1 4'
++ '[' 1 = 124 ']'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ ftg hybrid 0.111 2
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_hybrid_r0.111 2 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --ft hybrid --cache-rate 0.111
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid_r0.111 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822870
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L2.log --ft hybrid --cache-rate 0.111
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14250
++ local l=14250
++ '[' 14250 -lt 120 ']'
++ '[' 3600 -gt 14250 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.111}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L2.log --ft hybrid --cache-rate 0.111
+[bs1] g_ft_hybrid_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '50229', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L2.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_hybrid_r0.111 launch 2 rc=1'
+g_ft_hybrid_r0.111 launch 2 rc=1
+++ date +%s
++ echo 'g_ft_hybrid_r0.111 2 1 6'
++ '[' 1 = 124 ']'
++ oursg 14 2
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C14_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C14_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822876
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14244
++ local l=14244
++ '[' 14244 -lt 120 ']'
++ '[' 3600 -gt 14244 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C14_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 46599
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.log
++ local rc=1
++ echo 'g_ours_C14_law launch 2 rc=1'
+g_ours_C14_law launch 2 rc=1
+++ date +%s
++ echo 'g_ours_C14_law 2 1 4'
++ '[' 1 = 124 ']'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ ftg hybrid 0.25 2
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_hybrid_r0.25 2 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --ft hybrid --cache-rate 0.25
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid_r0.25 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822880
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14240
++ local l=14240
++ '[' 14240 -lt 120 ']'
++ '[' 3600 -gt 14240 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "rate": 0.25}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L2.log --ft hybrid --cache-rate 0.25
+[bs1] g_ft_hybrid_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '44745', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L2.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_hybrid_r0.25 launch 2 rc=1'
+g_ft_hybrid_r0.25 launch 2 rc=1
+++ date +%s
++ echo 'g_ft_hybrid_r0.25 2 1 6'
++ '[' 1 = 124 ']'
++ oursg 32 2
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C32_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C32_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822886
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14234
++ local l=14234
++ '[' 14234 -lt 120 ']'
++ '[' 3600 -gt 14234 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 35009
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.log
++ local rc=1
++ echo 'g_ours_C32_law launch 2 rc=1'
+g_ours_C32_law launch 2 rc=1
+++ date +%s
++ echo 'g_ours_C32_law 2 1 4'
++ '[' 1 = 124 ']'
++ for cell in $CELLS_G
++ IFS=:
++ read C r b n
++ ftg offload 0.40 2
++ cd /work/ft
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.40 2 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --ft offload --cache-rate 0.40
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.40 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822890
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L2.log --ft offload --cache-rate 0.40
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14230
++ local l=14230
++ '[' 14230 -lt 120 ']'
++ '[' 3600 -gt 14230 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "rate": 0.40}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L2.log --ft offload --cache-rate 0.40
+[bs1] g_ft_offload_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '37333', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bench] server exited with code 1 during startup
+[bench] server log tail (/w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L2.log):
+           ^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/cli.py", line 30, in _run_serve
+    launch_server(argv=argv, prog="ft serve")
+  File "/work/ft/python/freetoken/server/launch.py", line 133, in launch_server
+    server_args, run_shell = parse_args(
+                             ^^^^^^^^^^^
+  File "/work/ft/python/freetoken/server/args.py", line 866, in parse_args
+    cfg = cached_load_hf_config(kwargs["model_path"]).to_dict()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 248, in cached_load_hf_config
+    config = _load_hf_config(model_path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/python/freetoken/utils/hf.py", line 227, in _load_hf_config
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 388, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 747, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/configuration_utils.py", line 802, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 294, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/ft/.venv/lib/python3.12/site-packages/transformers/utils/hub.py", line 496, in cached_files
+    raise OSError(f"{e}") from e
+OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/work/models/gpt-oss-120b'. Use `repo_type` argument if needed.
+
++ local rc=1
++ echo 'g_ft_offload_r0.40 launch 2 rc=1'
+g_ft_offload_r0.40 launch 2 rc=1
+++ date +%s
++ echo 'g_ft_offload_r0.40 2 1 6'
++ '[' 1 = 124 ']'
++ oursg 51 2
++ local pol=dfa suf=law
++ '[' dfa = lru ']'
++ cl /work/models/gpt-oss-120b g_ours_C51_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C51_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822897
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14223
++ local l=14223
++ '[' 14223 -lt 120 ']'
++ '[' 3600 -gt 14223 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "dfa"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C51_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 43947
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.log
++ local rc=1
++ echo 'g_ours_C51_law launch 2 rc=1'
+g_ours_C51_law launch 2 rc=1
+++ date +%s
++ echo 'g_ours_C51_law 2 1 4'
++ '[' 1 = 124 ']'
++ for C in 14 32 51
++ oursg 14 1 lru
++ local pol=lru suf=law
++ '[' lru = lru ']'
++ suf=lru
++ cl /work/models/gpt-oss-120b g_ours_C14_lru 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "lru"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C14_lru L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "lru"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822901
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14219
++ local l=14219
++ '[' 14219 -lt 120 ']'
++ '[' 3600 -gt 14219 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C14_lru: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 57223
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.log
++ local rc=1
++ echo 'g_ours_C14_lru launch 1 rc=1'
+g_ours_C14_lru launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C14_lru 1 1 4'
++ '[' 1 = 124 ']'
++ for C in 14 32 51
++ oursg 32 1 lru
++ local pol=lru suf=law
++ '[' lru = lru ']'
++ suf=lru
++ cl /work/models/gpt-oss-120b g_ours_C32_lru 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "lru"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C32_lru L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "lru"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822905
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14215
++ local l=14215
++ '[' 14215 -lt 120 ']'
++ '[' 3600 -gt 14215 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C32_lru: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 54473
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.log
++ local rc=1
++ echo 'g_ours_C32_lru launch 1 rc=1'
+g_ours_C32_lru launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C32_lru 1 1 4'
++ '[' 1 = 124 ']'
++ for C in 14 32 51
++ oursg 51 1 lru
++ local pol=lru suf=law
++ '[' lru = lru ']'
++ suf=lru
++ cl /work/models/gpt-oss-120b g_ours_C51_lru 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "lru"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C51_lru L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "lru"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822909
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 14211
++ local l=14211
++ '[' 14211 -lt 120 ']'
++ '[' 3600 -gt 14211 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_lru --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,1,2,3", "policy": "lru"}' --json /w/results/089_headline_stockclock@vast/bs1.jsonl --log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C51_lru: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=lru LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 40711
+Traceback (most recent call last):
+  File "/w/jobs/ec2/bs1_client.py", line 261, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/w/jobs/ec2/bs1_client.py", line 191, in main
+    wait_health(origin, proc, a.log, a.timeout, a.ready)
+  File "/w/jobs/ec2/bs1_client.py", line 119, in wait_health
+    raise RuntimeError(f"server exited with {proc.returncode} during startup; log {log_path}")
+RuntimeError: server exited with 1 during startup; log /w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.log
++ local rc=1
++ echo 'g_ours_C51_lru launch 1 rc=1'
+g_ours_C51_lru launch 1 rc=1
+++ date +%s
++ echo 'g_ours_C51_lru 1 1 4'
++ '[' 1 = 124 ']'
++ BBG='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960'
++ bb g_ours 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/bb_g_ours.json /work/lc-ec/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ local lab=g_ours 'cmd=env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/bb_g_ours.json /work/lc-ec/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822913
++ R 30m bash -c 'env LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=14 LLAMA_EC_POLICY=dfa LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,1,2,3 LLAMA_EC_STATS=/w/results/089_headline_stockclock@vast/bb_g_ours.json /work/lc-ec/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' -npp 512,2048 -ntg 128 -npl 1,2,4 --output-format jsonl'
++ local rc=1
++ echo 'batched-bench g_ours rc=1'
+batched-bench g_ours rc=1
+++ date +%s
++ echo 'bb_g_ours 1 1 0'
++ grep -h '^{' /w/results/089_headline_stockclock@vast/bb_g_ours.jsonl
++ cut -c1-300
++ tail -n 40 /w/results/089_headline_stockclock@vast/bb_g_ours.err
++ rm -f /w/results/089_headline_stockclock@vast/bb_g_ours.err
++ '[' 1 = 124 ']'
++ bb g_stock '/work/lc-stock/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ncmoe 27'
++ local lab=g_stock 'cmd=/work/lc-stock/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ncmoe 27'
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790822913
++ R 30m bash -c '/work/lc-stock/build/bin/llama-batched-bench -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 16 -c 8960 -ncmoe 27 -npp 512,2048 -ntg 128 -npl 1,2,4 --output-format jsonl'
++ local rc=1
++ echo 'batched-bench g_stock rc=1'
+batched-bench g_stock rc=1
+++ date +%s
++ echo 'bb_g_stock 1 1 0'
++ grep -h '^{' /w/results/089_headline_stockclock@vast/bb_g_stock.jsonl
++ cut -c1-300
++ tail -n 40 /w/results/089_headline_stockclock@vast/bb_g_stock.err
++ rm -f /w/results/089_headline_stockclock@vast/bb_g_stock.err
++ '[' 1 = 124 ']'
++ rm -rf /work/models/gpt-oss-120b /work/models/gpt-oss-120b-MXFP4.gguf
++ df -h /work
++ tail -1
+overlay         230G   17G  214G   8% /
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/089_headline_stockclock@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+ls: cannot access '/work/models/Qwen3-30B-A3B-BF16.gguf': No such file or directory
++ LSQ='-m /work/models/Qwen3-30B-A3B-BF16.gguf -ngl 99 -fa on -lm none -t 16 -np 1 -c 2048 --no-webui --jinja'
++ CELLS_Q='16:0.125:hybrid:42:0.9 32:0.25:hybrid:36:0.9 56:0.4375:offload:27:0.95'
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ echo 'Qwen3 GGUF missing: Qwen3 part skipped'
+Qwen3 GGUF missing: Qwen3 part skipped
++ cd /work
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.111_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_hybrid_r0.25_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ft_offload_r0.40_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_llama_n22_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_llama_n27_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_llama_n32_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C14_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C14_lru_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C32_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C32_lru_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L1.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C51_law_L2.log
++ for f in $OUT/srv_*.log
++ tail -n 40 /w/results/089_headline_stockclock@vast/srv_g_ours_C51_lru_L1.log
++ find /w/results/089_headline_stockclock@vast -name 'srv_*.log' -delete
++ /work/ft/.venv/bin/python - /w/results/089_headline_stockclock@vast
++ tee /w/results/089_headline_stockclock@vast/summary.txt
+g C14: ours L2 None (listing B 69.9, None%) FT hybrid L2 None | ours/FT L2 None (Table 1 1.294) L1 None order diff None% | LRU None = None x ours, None x FT | llama n32 None (law 27.89)
+g C32: ours L2 None (listing B 109.2, None%) FT hybrid L2 None | ours/FT L2 None (Table 1 1.275) L1 None order diff None% | LRU None = None x ours, None x FT | llama n27 None (law 32.22)
+g C51: ours L2 None (listing B 152.5, None%) FT offload L2 None | ours/FT L2 None (Table 1 1.154) L1 None order diff None% | LRU None = None x ours, None x FT | llama n22 None (law 38.12)
+q C16: ours L2 None (listing B 40.0, None%) FT hybrid L2 None | ours/FT L2 None (Table 1 1.032) L1 None order diff None% | LRU None = None x ours, None x FT | llama n42 None (law 16.17)
+q C32: ours L2 None (listing B 63.1, None%) FT hybrid L2 None | ours/FT L2 None (Table 1 1.153) L1 None order diff None% | LRU None = None x ours, None x FT | llama n36 None (law 18.65)
+q C56: ours L2 None (listing B 108.2, None%) FT offload L2 None | ours/FT L2 None (Table 1 1.049) L1 None order diff None% | LRU None = None x ours, None x FT | llama n27 None (law 24.22)
+++ cat /w/results/089_headline_stockclock@vast/oneline.txt
++ ONE='089 ours/FT L2: g14 None g32 None g51 None q16 None q32 None q56 None (Table 1 1.29 1.28 1.15 1.03 1.15 1.05); gate memory clock max 14001 MHz (listing B reported 17001); device read 1685 GB/s'
++ python3 /w/jobs/ec2/manifest.py /w/results/089_headline_stockclock@vast 089_headline_stockclock@vast 1790819720 '089 ours/FT L2: g14 None g32 None g51 None q16 None q32 None q56 None (Table 1 1.29 1.28 1.15 1.03 1.15 1.05); gate memory clock max 14001 MHz (listing B reported 17001); device read 1685 GB/s' law_gptoss=0,0,1,2,3 law_qwen3=0,0,1,2,2,3,4,5,6 memory_clock_mhz=14001 device_read_gbs=1685
+manifest: 66 files, 3196 s; 089 ours/FT L2: g14 None g32 None g51 None q16 None q32 None q56 None (Table 1 1.29 1.28 1.15 1.03 1.15 1.05); gate memory clock max 14001 MHz (listing B reported 17001); device read 1685 GB/s
++ echo 'SUMMARY 089 ours/FT L2: g14 None g32 None g51 None q16 None q32 None q56 None (Table 1 1.29 1.28 1.15 1.03 1.15 1.05); gate memory clock max 14001 MHz (listing B reported 17001); device read 1685 GB/s'
+SUMMARY 089 ours/FT L2: g14 None g32 None g51 None q16 None q32 None q56 None (Table 1 1.29 1.28 1.15 1.03 1.15 1.05); gate memory clock max 14001 MHz (listing B reported 17001); device read 1685 GB/s

@@ -39,12 +39,15 @@ def listing_b():
     r1 = json.load(open(os.path.join(ROOT, "prereg", "run1_082.json")))
     out = {}
     for r in h["rows"]:
-        out[(r["model"], r["budget"])] = dict(ours=r["ours_L2"], ft=r["ft_L2"], llama=r["llama"], ratio=r["ours_over_ft_L2"][0])
+        out[(r["model"], r["budget"])] = dict(ours=r["ours_L2"], ft=r["ft_L2"], llama=r["llama"], ratio=r["ours_over_ft_L2"][0],
+                                            ratio_ci=r["ours_over_ft_L2"], ours_over_llama=r["ours_over_llama"])
     m = s["means"]
+    rq = s["ratios"]["C32 best ours_C32_law / ft_hybrid_r0.25 (L1)"]
     out[("Qwen3-30B-A3B", "25%")] = dict(ours=m["ours_C32_law L1"], ft=m["ft_hybrid_r0.25 L1"], llama=r1["llama"]["q_stock_n36"]["measured"],
-                                        ratio=s["ratios"]["C32 best ours_C32_law / ft_hybrid_r0.25 (L1)"][0])
+                                        ratio=rq[0], ratio_ci=rq)
+    rq = s["ratios"]["ours_C56_law / ft_offload_r0.4375 (L2)"]
     out[("Qwen3-30B-A3B", "43.75%")] = dict(ours=m["ours_C56_law L2"], ft=m["ft_offload_r0.4375 L2"], llama=r1["llama"]["q_stock_n27"]["measured"],
-                                           ratio=s["ratios"]["ours_C56_law / ft_offload_r0.4375 (L2)"][0])
+                                           ratio=rq[0], ratio_ci=rq)
     return out
 
 

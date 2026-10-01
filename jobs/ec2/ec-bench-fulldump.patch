@@ -1,0 +1,69 @@
+ec-bench: --dump-full FILE writes every decode step's full logit vector (float32 x n_vocab) with a .json header and a
+.steps index (seq, step, forced next token), on top of jobs/ec2/llama.cpp-expert-cache-4da6337.patch (job 090).
+
+--- a/tools/ec-bench/ec-bench.cpp
++++ b/tools/ec-bench/ec-bench.cpp
+@@ -8,6 +8,8 @@
+ //   --ncmoe N         experts of the first N MoE layers in (pageable) CPU memory, like llama-bench -ncmoe
+ //   --host-experts    all experts in pinned host memory (for the expert cache, LLAMA_EC_* env vars)
+ // Output: one JSON line per sequence on stdout; --dump FILE writes the top-5 logits of every step.
++// --dump-full FILE writes every step's full logit vector (float32 x n_vocab, steps in run order; FILE.json holds
++// n_vocab and the step order) for output-parity measures over the whole vocabulary (KL divergence, job 090).
+ #include "llama.h"
+ #include "ggml-backend.h"
+ 
+@@ -212,7 +214,7 @@
+ }
+ 
+ int main(int argc, char ** argv) {
+-    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path, la_path;
++    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path, la_path, full_path;
+     float gen_temp = 0.8f;
+     int gen_seed = 42;
+     int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
+@@ -233,6 +235,7 @@
+         else if (a == "--n-decode") n_decode = std::stoi(next());
+         else if (a == "-t") threads = std::stoi(next());
+         else if (a == "--dump") dump_path = next();
++        else if (a == "--dump-full") full_path = next();   // full logits of every decode step (see above)
+         else if (a == "--seqs") seqs_arg = next();
+         else if (a == "--ec") ec_configs = next();
+         else if (a == "--gen-out") gen_path = next();       // sample continuations instead of timing (see below)
+@@ -400,6 +403,15 @@
+ 
+         const std::string dpath = configs.size() > 1 ? dump_path + "." + std::to_string(ci) : dump_path;
+         FILE * dump = dump_path.empty() ? nullptr : fopen(dpath.c_str(), "wb");
++        const std::string fpath = configs.size() > 1 ? full_path + "." + std::to_string(ci) : full_path;
++        FILE * full = full_path.empty() ? nullptr : fopen(fpath.c_str(), "wb");
++        FILE * full_idx = full ? fopen((fpath + ".steps").c_str(), "w") : nullptr;   // "seq step target" per dumped step
++        if (full) {
++            FILE * jf = fopen((fpath + ".json").c_str(), "w");
++            fprintf(jf, "{\"n_vocab\": %d, \"dtype\": \"float32\", \"record\": \"one logit vector per decode step, in run order; "
++                        "FILE.steps lists seq, step and the forced next token of each record\"}\n", n_vocab);
++            fclose(jf);
++        }
+ 
+         std::vector<int> run_seqs = seqs;   // a config may carry its own sequence list: seqs=a/b/c
+         for (auto & [k, v] : configs[ci]) {
+@@ -528,6 +540,10 @@
+                     nll_sum += mx + std::log(se) - (double) lg[s.ids[P + j + 1]];
+                     nll_n++;
+                 }
++                if (full) {
++                    fwrite(lg, sizeof(float), n_vocab, full);
++                    fprintf(full_idx, "%d %d %d\n", si, j, P + j + 1 < (int) s.ids.size() ? (int) s.ids[P + j + 1] : -1);
++                }
+                 if (dump) {
+                     int32_t top[5] = { 0, 0, 0, 0, 0 };
+                     float val[5] = { -1e30f, -1e30f, -1e30f, -1e30f, -1e30f };
+@@ -562,6 +578,10 @@
+         if (dump) {
+             fclose(dump);
+         }
++        if (full) {
++            fclose(full);
++            fclose(full_idx);
++        }
+         llama_free(ctx);        // the expert cache writes LLAMA_EC_STATS here
+     }
+     llama_batch_free(batch);

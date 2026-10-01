@@ -1,0 +1,1897 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/088_slowlink_fair@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ date +%s
++ T0=1790819361
++ BUDGET=16200
++ RESERVE=600
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=24
++ tee /w/results/088_slowlink_fair@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 24 (nproc 32)'
+usable physical cores 24 (nproc 32)
++ HFD=/work/models/gpt-oss-120b
++ mkdir -p /work/models
++ DLH=6034
++ DLG=6035
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ nvcc --version
++ tail -2
++ tee /w/results/088_slowlink_fair@vast/nvcc_version.txt
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
++ echo 'FreeToken install rc=0'
+FreeToken install rc=0
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ /work/ft/.venv/bin/python -c 'import freetoken, huggingface_hub'
++ /work/ft/.venv/bin/ft --version
++ /work/ft/.venv/bin/python -
++ lscpu -e
++ cat /w/results/088_slowlink_fair@vast/ft_affinity.txt
++ head -4
+physical core representatives (cpu ids): [0, 2, 4, 6, 8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+--moe-cpu-threads 8 -> threads, cpu ids: (8, [0, 2, 4, 6, 8, 10, 12, 14])
+auto (0) -> threads, cpu ids: (24, [0, 2, 4, 6, 8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]) (auto also gives the coordinator the last one)
+cpu 0: core 0 siblings 0-1
++ read PMASK PSTRICT PCPUS
+++ python3 -
++ echo 'llama.cpp -t 8: cpu mask 5555 strict 1 (cpus 0,2,4,6,8,10,12,14)'
++ tee /w/results/088_slowlink_fair@vast/pmask.txt
+llama.cpp -t 8: cpu mask 5555 strict 1 (cpus 0,2,4,6,8,10,12,14)
++ /work/ft/.venv/bin/python -c 'from huggingface_hub import hf_hub_download as d; import shutil; shutil.copy(d('\''math-ai/aime25'\'','\''test.jsonl'\'',repo_type='\''dataset'\''), '\''/work/aime25.jsonl'\'')'
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
++ export FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ FREETOKEN_AIME25_JSONL=/work/aime25.jsonl
++ wc -l /work/aime25.jsonl
++ tee /w/results/088_slowlink_fair@vast/aime25_count.txt
+30 /work/aime25.jsonl
++ /work/ft/.venv/bin/python - /work/warmup.txt
++ cat /w/results/088_slowlink_fair@vast/warmup_source.txt
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+no math-ai/aime24 test.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abdd140-52b72be531f92c716ff83ead;8ee3642a-9d65-432e-ae09-71a9bd7c9fdc)\n\nEntry Not Found for url: https://huggingface.co/datasets/math
+no HuggingFaceH4/aime_2024 train.jsonl RemoteEntryNotFoundError('404 Client Error. (Request ID: Root=1-6abdd140-42a8fc274d699d89765ca53e;c3adb090-340d-4b72-a8d9-421ac2ee6926)\n\nEntry Not Found for url: https://huggingface.co/datasets/Hugg
+warm-up prompt: fixed fallback text
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch llama-server
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/088_slowlink_fair@vast/build_lc-ec.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ build_tree /work/lc-stock '' llama-server
++ local d=/work/lc-stock p=
++ shift 2
++ '[' -f /work/lc-stock/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-stock
++ git -C lc worktree add -q -f /work/lc-stock FETCH_HEAD
++ cd /work/lc-stock
++ '[' -z '' ']'
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-stock
++ cmake --build build -j32 --target llama-server
+++ basename /work/lc-stock
++ touch .built
+++ basename /work/lc-stock
+++ '[' -f /work/lc-stock/.built ']'
+++ echo ok
++ echo 'build lc-stock: ok'
+build lc-stock: ok
++ head -20
+++ basename /work/lc-stock
++ grep -E error /w/results/088_slowlink_fair@vast/build_lc-stock.txt
+-- UI: download dist.tar.gz.sha256 from b1 failed: "HTTP response code said error"
++ EC_SERVER=/work/lc-ec/build/bin/llama-server
+++ date +%s
++ echo 'builds done, waiting for the downloads (5663 s since launch)'
+builds done, waiting for the downloads (5663 s since launch)
++ wait 6035 6034
++ cat /w/results/088_slowlink_fair@vast/dl_gguf.txt /w/results/088_slowlink_fair@vast/dl_hf.txt
+++ date +%s
++ t0=1790819377
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 3383 s'
+gguf hf download rc=0 in 3383 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  1 02:45 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ t0=1790819377
++ python3 - /work/models/gpt-oss-120b
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:08,  2.82it/s]Fetching 26 files:   8%|▊         | 2/26 [00:00<00:08,  2.95it/s]Fetching 26 files:  27%|██▋       | 7/26 [00:01<00:02,  7.85it/s]Fetching 26 files:  31%|███       | 8/26 [17:59<1:00:41, 202.30s/it]Fetching 26 files:  35%|███▍      | 9/26 [18:28<46:57, 165.72s/it]  Fetching 26 files:  38%|███▊      | 10/26 [22:35<49:11, 184.48s/it]Fetching 26 files:  42%|████▏     | 11/26 [23:38<38:35, 154.39s/it]Fetching 26 files:  46%|████▌     | 12/26 [33:30<1:02:47, 269.07s/it]Fetching 26 files:  50%|█████     | 13/26 [33:44<43:12, 199.44s/it]  Fetching 26 files:  54%|█████▍    | 14/26 [38:44<45:33, 227.76s/it]Fetching 26 files:  58%|█████▊    | 15/26 [43:54<46:02, 251.18s/it]Fetching 26 files:  62%|██████▏   | 16/26 [44:00<30:02, 180.28s/it]Fetching 26 files:  65%|██████▌   | 17/26 [44:01<19:09, 127.74s/it]Fetching 26 files:  69%|██████▉   | 18/26 [44:16<12:35, 94.47s/it] Fetching 26 files:  73%|███████▎  | 19/26 [44:17<07:47, 66.84s/it]Fetching 26 files:  77%|███████▋  | 20/26 [45:33<06:57, 69.51s/it]Fetching 26 files:  81%|████████  | 21/26 [48:21<08:13, 98.74s/it]Fetching 26 files:  85%|████████▍ | 22/26 [48:37<04:56, 74.09s/it]Fetching 26 files:  88%|████████▊ | 23/26 [48:59<02:55, 58.50s/it]Fetching 26 files:  92%|█████████▏| 24/26 [52:52<03:41, 110.65s/it]Fetching 26 files:  96%|█████████▌| 25/26 [55:22<02:02, 122.52s/it]Fetching 26 files: 100%|██████████| 26/26 [57:00<00:00, 115.05s/it]Fetching 26 files: 100%|██████████| 26/26 [57:00<00:00, 131.54s/it]
+++ date +%s
++ echo 'hf download rc=0 in 3421 s'
+hf download rc=0 in 3421 s
++ du -sh /work/models/gpt-oss-120b
+61G	/work/models/gpt-oss-120b
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -f /work/models/gpt-oss-120b/config.json ']'
++ echo 'HF checkpoint ok'
+HF checkpoint ok
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
++ echo 'GGUF ok 63387346208 bytes'
+GGUF ok 63387346208 bytes
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ cp /root/.cache/freetoken/benchbw/GPU-5b0f3d1c-bc00-8357-f8f3-20d1cd519ab6.json /w/results/088_slowlink_fair@vast/
++ cp /work/benchbw_t8.json /w/results/088_slowlink_fair@vast/benchbw_t8.json
++ grep -h 'ceilings\|mxfp4\|hybrid fetches\|cpu ' /w/results/088_slowlink_fair@vast/ft_bench_bw.txt /w/results/088_slowlink_fair@vast/ft_bench_bw_t8.txt
++ head -20
+[1m[2026-10-01|03:24:12][0m [32mINFO    [0m benchbw: measuring hardware ceilings on cuda:0 ...
+[1m[2026-10-01|03:24:25][0m [32mINFO    [0m benchbw: dtype mxfp4 real kernels ...
+  host 41a3cc62d5bd   gpu cuda:0 (NVIDIA GeForce RTX 5090)   cpu 24c/24t
+  ceilings: CPU STREAM read 76.4  |  PCIe linear H2D 25.8  D2H 25.3  GB/s   (threshold 2.0x)
+       overlapped: CPU-MoE 56.9 + PCIe 13.7 GB/s -> hybrid fetches 19.4% of misses
+       overlapped: CPU-MoE 59.4 + PCIe 13.2 GB/s -> hybrid fetches 18.1% of misses
+    mxfp4     12.62 MB     48.3 GB/s     29.0 GB/s     1.67x  offload
+       overlapped: CPU-MoE 41.9 + PCIe 20.0 GB/s -> hybrid fetches 32.4% of misses
+       overlapped: CPU-MoE 54.1 + PCIe 15.4 GB/s -> hybrid fetches 22.1% of misses
+[1m[2026-10-01|03:24:37][0m [32mINFO    [0m benchbw: measuring hardware ceilings on cuda:0 ...
+[1m[2026-10-01|03:24:47][0m [32mINFO    [0m benchbw: dtype mxfp4 real kernels ...
+  host 41a3cc62d5bd   gpu cuda:0 (NVIDIA GeForce RTX 5090)   cpu 24c/8t
+  ceilings: CPU STREAM read 76.0  |  PCIe linear H2D 25.9  D2H 25.6  GB/s   (threshold 2.0x)
+       overlapped: CPU-MoE 61.1 + PCIe 14.7 GB/s -> hybrid fetches 19.4% of misses
+       overlapped: CPU-MoE 54.0 + PCIe 16.6 GB/s -> hybrid fetches 23.6% of misses
+    mxfp4     12.62 MB     27.6 GB/s     28.9 GB/s     0.95x  offload
+       overlapped: CPU-MoE 23.6 + PCIe 25.2 GB/s -> hybrid fetches 51.7% of misses
+       overlapped: CPU-MoE 51.0 + PCIe 18.2 GB/s -> hybrid fetches 26.3% of misses
++ H=22
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/088_slowlink_fair@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/088_slowlink_fair@vast/concur.txt 22 13253760 4 /w/results/088_slowlink_fair@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,1,1
++ tee /w/results/088_slowlink_fair@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-01T03:25:33Z): gpt-oss 0,0,0,1,1 (job 085 on this CPU model: 0,0,0,1,1; headline machine 0,0,1,1,2)'
+law table (2026-10-01T03:25:33Z): gpt-oss 0,0,0,1,1 (job 085 on this CPU model: 0,0,0,1,1; headline machine 0,0,1,1,2)
++ '[' -n 0,0,0,1,1 ']'
++ python3 - /w/results/088_slowlink_fair@vast/concur.txt 24
++ cat /w/results/088_slowlink_fair@vast/law_llama.json
+{"time_utc": "2026-10-01T03:25:33Z", "B_c": {"8": 63.5, "24": 74.78}, "G_ms": 5.063, "predicted_tok_s": {"gptoss_llama_n27_t8": 36.23, "gptoss_llama_n27_t24": 41.31}}
++ LXB='{"min_p": 0.0, "seed": 1234, "backend_sampling": true}'
++ OT='-ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'''
++ ECENV='env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22'
++ LSG='-m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui'
++ for pair in 14:0.111 32:0.25 51:0.40
++ C=14
++ r=0.111
++ ftg offload 0.111 1
++ local v=offload r=0.111 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ cd /work/ft
++ '[' offload = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.111 1 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.111}' --ft offload --cache-rate 0.111
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.111 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790825133
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log --ft offload --cache-rate 0.111
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 9828
++ local l=9828
++ '[' 9828 -lt 120 ']'
++ '[' 3600 -gt 9828 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log --ft offload --cache-rate 0.111
+[bs1] g_ft_offload_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '54265', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111']
+[bs1] g_ft_offload_r0.111 problem 0: 26.49 tok/s (37.76 ms/token, p50 38.97 p99 62.40, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 1: 29.06 tok/s (34.41 ms/token, p50 34.82 p99 62.14, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 2: 26.00 tok/s (38.46 ms/token, p50 39.48 p99 64.87, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 3: 27.38 tok/s (36.53 ms/token, p50 36.56 p99 64.34, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 4: 25.60 tok/s (39.06 ms/token, p50 39.79 p99 63.62, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 5: 28.36 tok/s (35.26 ms/token, p50 35.44 p99 62.16, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 6: 28.52 tok/s (35.07 ms/token, p50 35.35 p99 60.22, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 7: 27.57 tok/s (36.27 ms/token, p50 35.94 p99 61.67, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 8: 27.86 tok/s (35.89 ms/token, p50 35.47 p99 65.46, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 9: 26.46 tok/s (37.79 ms/token, p50 37.83 p99 67.01, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 10: 25.36 tok/s (39.43 ms/token, p50 39.99 p99 60.11, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 11: 32.93 tok/s (30.37 ms/token, p50 27.55 p99 62.29, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 12: 27.42 tok/s (36.47 ms/token, p50 36.23 p99 66.06, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 13: 31.13 tok/s (32.12 ms/token, p50 30.77 p99 58.76, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 14: 26.64 tok/s (37.54 ms/token, p50 37.64 p99 64.03, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 15: 27.75 tok/s (36.04 ms/token, p50 36.36 p99 60.35, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 16: 27.72 tok/s (36.08 ms/token, p50 35.88 p99 60.41, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 17: 28.24 tok/s (35.41 ms/token, p50 35.32 p99 60.62, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 18: 28.42 tok/s (35.18 ms/token, p50 33.61 p99 61.93, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 19: 28.57 tok/s (35.00 ms/token, p50 34.70 p99 63.82, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 20: 26.01 tok/s (38.45 ms/token, p50 38.70 p99 60.87, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 21: 27.05 tok/s (36.97 ms/token, p50 36.84 p99 62.15, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 22: 25.41 tok/s (39.36 ms/token, p50 39.84 p99 64.24, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 23: 26.54 tok/s (37.69 ms/token, p50 37.66 p99 64.48, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 24: 27.85 tok/s (35.91 ms/token, p50 35.78 p99 64.69, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 25: 27.57 tok/s (36.27 ms/token, p50 36.26 p99 62.01, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 26: 28.28 tok/s (35.37 ms/token, p50 35.44 p99 61.90, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 27: 29.20 tok/s (34.25 ms/token, p50 32.82 p99 60.45, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 28: 27.33 tok/s (36.60 ms/token, p50 36.61 p99 63.94, 256 tokens)
+[bs1] g_ft_offload_r0.111 problem 29: 27.53 tok/s (36.33 ms/token, p50 35.47 p99 64.06, 256 tokens)
++ local rc=0
++ echo 'g_ft_offload_r0.111 launch 1 rc=0'
+g_ft_offload_r0.111 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_offload_r0.111 1 0 410'
++ '[' 0 = 124 ']'
++ ftg hybrid8 0.111 1
++ local v=hybrid8 r=0.111 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8")
++ cd /work/ft
++ '[' hybrid8 = hybrid8 ']'
++ export FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ cl /work/models/gpt-oss-120b g_ft_hybrid8_r0.111 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8_r0.111 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790825543
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 9418
++ local l=9418
++ '[' 9418 -lt 120 ']'
++ '[' 3600 -gt 9418 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
+[bs1] g_ft_hybrid8_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '34671', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8_r0.111 problem 0: 37.97 tok/s (26.34 ms/token, p50 26.83 p99 40.00, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 1: 37.88 tok/s (26.40 ms/token, p50 26.35 p99 41.14, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 2: 36.96 tok/s (27.05 ms/token, p50 27.93 p99 41.28, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 3: 37.61 tok/s (26.59 ms/token, p50 26.03 p99 40.65, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 4: 35.50 tok/s (28.17 ms/token, p50 28.27 p99 40.50, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 5: 38.07 tok/s (26.27 ms/token, p50 26.24 p99 41.46, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 6: 36.50 tok/s (27.40 ms/token, p50 27.36 p99 42.05, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 7: 36.86 tok/s (27.13 ms/token, p50 27.20 p99 40.37, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 8: 36.47 tok/s (27.42 ms/token, p50 27.27 p99 42.26, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 9: 35.55 tok/s (28.13 ms/token, p50 27.95 p99 42.19, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 10: 34.89 tok/s (28.66 ms/token, p50 28.83 p99 41.35, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 11: 43.03 tok/s (23.24 ms/token, p50 22.25 p99 41.42, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 12: 37.43 tok/s (26.72 ms/token, p50 26.42 p99 40.98, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 13: 38.28 tok/s (26.12 ms/token, p50 25.91 p99 39.13, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 14: 36.06 tok/s (27.73 ms/token, p50 27.67 p99 41.61, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 15: 39.17 tok/s (25.53 ms/token, p50 25.57 p99 40.89, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 16: 38.30 tok/s (26.11 ms/token, p50 25.74 p99 40.71, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 17: 38.49 tok/s (25.98 ms/token, p50 25.13 p99 40.79, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 18: 40.84 tok/s (24.48 ms/token, p50 23.62 p99 40.05, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 19: 38.25 tok/s (26.15 ms/token, p50 26.17 p99 40.76, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 20: 39.41 tok/s (25.37 ms/token, p50 25.07 p99 40.10, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 21: 36.36 tok/s (27.51 ms/token, p50 28.09 p99 41.13, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 22: 34.31 tok/s (29.15 ms/token, p50 29.06 p99 41.82, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 23: 36.07 tok/s (27.72 ms/token, p50 27.56 p99 41.11, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 24: 37.33 tok/s (26.79 ms/token, p50 26.55 p99 41.82, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 25: 37.86 tok/s (26.41 ms/token, p50 26.07 p99 41.43, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 26: 37.80 tok/s (26.46 ms/token, p50 26.40 p99 41.28, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 27: 37.21 tok/s (26.88 ms/token, p50 26.45 p99 42.31, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 28: 36.44 tok/s (27.44 ms/token, p50 27.32 p99 40.34, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 29: 37.82 tok/s (26.44 ms/token, p50 26.57 p99 39.47, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8_r0.111 launch 1 rc=0'
+g_ft_hybrid8_r0.111 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8_r0.111 1 0 307'
++ '[' 0 = 124 ']'
++ ftg hybrid8f0 0.111 1
++ local v=hybrid8f0 r=0.111 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8" --hybrid-fetch 0)
++ cd /work/ft
++ '[' hybrid8f0 = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_hybrid8f0_r0.111 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.111}' --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8f0_r0.111 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790825851
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 9110
++ local l=9110
++ '[' 9110 -lt 120 ']'
++ '[' 3600 -gt 9110 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+[bs1] g_ft_hybrid8f0_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '55169', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '0', '--moe-cache-rate', '0.111', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8f0_r0.111 problem 0: 13.81 tok/s (72.39 ms/token, p50 73.14 p99 75.41, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 1: 13.81 tok/s (72.40 ms/token, p50 73.17 p99 76.63, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 2: 13.77 tok/s (72.61 ms/token, p50 73.39 p99 74.62, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 3: 13.80 tok/s (72.45 ms/token, p50 73.29 p99 74.71, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 4: 13.77 tok/s (72.61 ms/token, p50 73.34 p99 77.07, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 5: 13.70 tok/s (73.01 ms/token, p50 73.55 p99 77.53, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 6: 13.78 tok/s (72.57 ms/token, p50 73.36 p99 76.74, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 7: 13.75 tok/s (72.70 ms/token, p50 73.44 p99 77.27, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 8: 13.71 tok/s (72.93 ms/token, p50 73.56 p99 77.82, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 9: 13.64 tok/s (73.31 ms/token, p50 73.79 p99 77.74, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 10: 13.78 tok/s (72.57 ms/token, p50 73.35 p99 76.31, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 11: 13.79 tok/s (72.51 ms/token, p50 73.38 p99 74.70, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 12: 13.79 tok/s (72.50 ms/token, p50 73.27 p99 76.20, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 13: 13.76 tok/s (72.66 ms/token, p50 73.43 p99 76.72, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 14: 13.75 tok/s (72.70 ms/token, p50 73.35 p99 77.81, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 15: 13.79 tok/s (72.51 ms/token, p50 73.37 p99 74.68, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 16: 13.74 tok/s (72.80 ms/token, p50 73.42 p99 77.61, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 17: 13.75 tok/s (72.75 ms/token, p50 73.45 p99 77.45, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 18: 13.75 tok/s (72.74 ms/token, p50 73.45 p99 77.33, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 19: 13.72 tok/s (72.89 ms/token, p50 73.55 p99 77.60, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 20: 13.76 tok/s (72.66 ms/token, p50 73.44 p99 76.68, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 21: 13.74 tok/s (72.77 ms/token, p50 73.50 p99 76.97, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 22: 13.79 tok/s (72.53 ms/token, p50 73.40 p99 74.73, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 23: 13.70 tok/s (73.01 ms/token, p50 73.55 p99 77.80, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 24: 13.75 tok/s (72.72 ms/token, p50 73.39 p99 77.05, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 25: 13.73 tok/s (72.82 ms/token, p50 73.42 p99 77.50, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 26: 13.78 tok/s (72.57 ms/token, p50 73.31 p99 77.13, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 27: 13.75 tok/s (72.75 ms/token, p50 73.42 p99 77.47, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 28: 13.80 tok/s (72.46 ms/token, p50 73.31 p99 74.43, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.111 problem 29: 13.79 tok/s (72.50 ms/token, p50 73.29 p99 76.89, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8f0_r0.111 launch 1 rc=0'
+g_ft_hybrid8f0_r0.111 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8f0_r0.111 1 0 673'
++ '[' 0 = 124 ']'
++ oursg 14 1
++ cl /work/models/gpt-oss-120b g_ours_C14_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C14_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790826524
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 8437
++ local l=8437
++ '[' 8437 -lt 120 ']'
++ '[' 3600 -gt 8437 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C14_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 34607
+[bs1] g_ours_C14_law problem 0: 62.13 tok/s (16.09 ms/token, p50 15.03 p99 29.67, 256 tokens)
+[bs1] g_ours_C14_law problem 1: 60.23 tok/s (16.60 ms/token, p50 16.02 p99 32.55, 256 tokens)
+[bs1] g_ours_C14_law problem 2: 58.08 tok/s (17.22 ms/token, p50 17.09 p99 31.23, 256 tokens)
+[bs1] g_ours_C14_law problem 3: 59.90 tok/s (16.70 ms/token, p50 15.58 p99 28.76, 256 tokens)
+[bs1] g_ours_C14_law problem 4: 53.73 tok/s (18.61 ms/token, p50 18.21 p99 29.96, 256 tokens)
+[bs1] g_ours_C14_law problem 5: 59.80 tok/s (16.72 ms/token, p50 16.45 p99 28.62, 256 tokens)
+[bs1] g_ours_C14_law problem 6: 58.92 tok/s (16.97 ms/token, p50 16.36 p99 30.31, 256 tokens)
+[bs1] g_ours_C14_law problem 7: 55.56 tok/s (18.00 ms/token, p50 18.02 p99 31.59, 256 tokens)
+[bs1] g_ours_C14_law problem 8: 58.53 tok/s (17.08 ms/token, p50 16.60 p99 31.06, 256 tokens)
+[bs1] g_ours_C14_law problem 9: 62.13 tok/s (16.10 ms/token, p50 15.41 p99 30.09, 256 tokens)
+[bs1] g_ours_C14_law problem 10: 55.58 tok/s (17.99 ms/token, p50 17.72 p99 31.48, 256 tokens)
+[bs1] g_ours_C14_law problem 11: 66.64 tok/s (15.01 ms/token, p50 14.21 p99 28.45, 256 tokens)
+[bs1] g_ours_C14_law problem 12: 60.66 tok/s (16.48 ms/token, p50 15.08 p99 31.51, 256 tokens)
+[bs1] g_ours_C14_law problem 13: 65.30 tok/s (15.31 ms/token, p50 14.55 p99 30.04, 256 tokens)
+[bs1] g_ours_C14_law problem 14: 56.93 tok/s (17.56 ms/token, p50 17.67 p99 32.23, 256 tokens)
+[bs1] g_ours_C14_law problem 15: 60.78 tok/s (16.45 ms/token, p50 15.63 p99 28.66, 256 tokens)
+[bs1] g_ours_C14_law problem 16: 64.01 tok/s (15.62 ms/token, p50 14.69 p99 33.70, 256 tokens)
+[bs1] g_ours_C14_law problem 17: 60.06 tok/s (16.65 ms/token, p50 16.32 p99 29.85, 256 tokens)
+[bs1] g_ours_C14_law problem 18: 63.93 tok/s (15.64 ms/token, p50 14.76 p99 29.38, 256 tokens)
+[bs1] g_ours_C14_law problem 19: 59.20 tok/s (16.89 ms/token, p50 16.78 p99 30.64, 256 tokens)
+[bs1] g_ours_C14_law problem 20: 61.23 tok/s (16.33 ms/token, p50 15.72 p99 31.00, 256 tokens)
+[bs1] g_ours_C14_law problem 21: 57.15 tok/s (17.50 ms/token, p50 17.00 p99 28.54, 256 tokens)
+[bs1] g_ours_C14_law problem 22: 54.17 tok/s (18.46 ms/token, p50 18.54 p99 29.29, 256 tokens)
+[bs1] g_ours_C14_law problem 23: 57.78 tok/s (17.31 ms/token, p50 17.18 p99 29.39, 256 tokens)
+[bs1] g_ours_C14_law problem 24: 57.47 tok/s (17.40 ms/token, p50 16.62 p99 30.29, 256 tokens)
+[bs1] g_ours_C14_law problem 25: 62.61 tok/s (15.97 ms/token, p50 15.52 p99 30.96, 256 tokens)
+[bs1] g_ours_C14_law problem 26: 59.10 tok/s (16.92 ms/token, p50 16.86 p99 31.43, 256 tokens)
+[bs1] g_ours_C14_law problem 27: 59.23 tok/s (16.88 ms/token, p50 16.65 p99 28.19, 256 tokens)
+[bs1] g_ours_C14_law problem 28: 58.87 tok/s (16.99 ms/token, p50 16.82 p99 29.89, 256 tokens)
+[bs1] g_ours_C14_law problem 29: 58.64 tok/s (17.05 ms/token, p50 16.19 p99 29.20, 256 tokens)
++ local rc=0
++ echo 'g_ours_C14_law launch 1 rc=0'
+g_ours_C14_law launch 1 rc=0
+++ date +%s
++ echo 'g_ours_C14_law 1 0 218'
++ '[' 0 = 124 ']'
++ for pair in 14:0.111 32:0.25 51:0.40
++ C=32
++ r=0.25
++ ftg offload 0.25 1
++ local v=offload r=0.25 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ cd /work/ft
++ '[' offload = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.25 1 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.25}' --ft offload --cache-rate 0.25
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.25 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790826742
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 8219
++ local l=8219
++ '[' 8219 -lt 120 ']'
++ '[' 3600 -gt 8219 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log --ft offload --cache-rate 0.25
+[bs1] g_ft_offload_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '54967', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25']
+[bs1] g_ft_offload_r0.25 problem 0: 52.38 tok/s (19.09 ms/token, p50 16.45 p99 46.49, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 1: 52.92 tok/s (18.90 ms/token, p50 17.40 p99 45.18, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 2: 48.12 tok/s (20.78 ms/token, p50 19.71 p99 49.17, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 3: 51.08 tok/s (19.58 ms/token, p50 16.90 p99 49.16, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 4: 46.73 tok/s (21.40 ms/token, p50 20.13 p99 48.87, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 5: 54.46 tok/s (18.36 ms/token, p50 17.24 p99 45.42, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 6: 53.90 tok/s (18.55 ms/token, p50 16.50 p99 47.50, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 7: 51.27 tok/s (19.51 ms/token, p50 17.78 p99 43.71, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 8: 49.13 tok/s (20.36 ms/token, p50 17.88 p99 47.24, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 9: 51.30 tok/s (19.49 ms/token, p50 17.60 p99 48.80, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 10: 47.55 tok/s (21.03 ms/token, p50 19.87 p99 47.68, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 11: 64.48 tok/s (15.51 ms/token, p50 12.45 p99 42.42, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 12: 51.98 tok/s (19.24 ms/token, p50 16.10 p99 49.53, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 13: 61.07 tok/s (16.37 ms/token, p50 14.56 p99 42.76, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 14: 50.85 tok/s (19.66 ms/token, p50 18.75 p99 52.14, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 15: 55.88 tok/s (17.90 ms/token, p50 15.71 p99 46.40, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 16: 55.33 tok/s (18.07 ms/token, p50 16.07 p99 43.82, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 17: 53.92 tok/s (18.54 ms/token, p50 16.55 p99 46.72, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 18: 56.83 tok/s (17.60 ms/token, p50 15.08 p99 43.85, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 19: 58.61 tok/s (17.06 ms/token, p50 16.05 p99 40.54, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 20: 54.61 tok/s (18.31 ms/token, p50 17.02 p99 46.03, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 21: 46.05 tok/s (21.72 ms/token, p50 20.62 p99 42.99, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 22: 46.66 tok/s (21.43 ms/token, p50 19.72 p99 44.26, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 23: 50.64 tok/s (19.75 ms/token, p50 18.77 p99 49.77, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 24: 56.05 tok/s (17.84 ms/token, p50 16.50 p99 51.14, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 25: 54.69 tok/s (18.29 ms/token, p50 16.00 p99 48.39, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 26: 49.48 tok/s (20.21 ms/token, p50 18.80 p99 47.81, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 27: 55.55 tok/s (18.00 ms/token, p50 15.64 p99 45.09, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 28: 50.77 tok/s (19.70 ms/token, p50 17.84 p99 47.28, 256 tokens)
+[bs1] g_ft_offload_r0.25 problem 29: 51.37 tok/s (19.47 ms/token, p50 17.67 p99 45.72, 256 tokens)
++ local rc=0
++ echo 'g_ft_offload_r0.25 launch 1 rc=0'
+g_ft_offload_r0.25 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_offload_r0.25 1 0 247'
++ '[' 0 = 124 ']'
++ ftg hybrid8 0.25 1
++ local v=hybrid8 r=0.25 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8")
++ cd /work/ft
++ '[' hybrid8 = hybrid8 ']'
++ export FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ cl /work/models/gpt-oss-120b g_ft_hybrid8_r0.25 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8_r0.25 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790826990
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 7971
++ local l=7971
++ '[' 7971 -lt 120 ']'
++ '[' 3600 -gt 7971 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
+[bs1] g_ft_hybrid8_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '36725', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8_r0.25 problem 0: 61.80 tok/s (16.18 ms/token, p50 15.22 p99 31.65, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 1: 60.66 tok/s (16.48 ms/token, p50 15.89 p99 31.34, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 2: 59.32 tok/s (16.86 ms/token, p50 16.20 p99 32.26, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 3: 58.31 tok/s (17.15 ms/token, p50 16.09 p99 33.85, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 4: 54.66 tok/s (18.29 ms/token, p50 17.96 p99 32.07, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 5: 61.89 tok/s (16.16 ms/token, p50 15.26 p99 35.85, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 6: 66.51 tok/s (15.03 ms/token, p50 14.00 p99 31.12, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 7: 59.00 tok/s (16.95 ms/token, p50 15.85 p99 33.97, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 8: 56.87 tok/s (17.58 ms/token, p50 16.84 p99 35.40, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 9: 59.38 tok/s (16.84 ms/token, p50 16.44 p99 35.64, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 10: 56.46 tok/s (17.71 ms/token, p50 17.45 p99 33.67, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 11: 70.96 tok/s (14.09 ms/token, p50 12.77 p99 32.14, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 12: 69.46 tok/s (14.40 ms/token, p50 12.70 p99 34.83, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 13: 68.85 tok/s (14.52 ms/token, p50 13.14 p99 34.00, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 14: 58.57 tok/s (17.07 ms/token, p50 16.61 p99 34.57, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 15: 65.26 tok/s (15.32 ms/token, p50 14.06 p99 33.22, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 16: 63.09 tok/s (15.85 ms/token, p50 15.08 p99 31.46, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 17: 64.88 tok/s (15.41 ms/token, p50 14.48 p99 34.18, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 18: 65.82 tok/s (15.19 ms/token, p50 14.00 p99 33.40, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 19: 79.97 tok/s (12.50 ms/token, p50 11.34 p99 32.84, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 20: 61.33 tok/s (16.31 ms/token, p50 15.92 p99 31.35, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 21: 54.28 tok/s (18.42 ms/token, p50 18.35 p99 32.18, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 22: 55.36 tok/s (18.06 ms/token, p50 17.90 p99 33.41, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 23: 63.18 tok/s (15.83 ms/token, p50 14.99 p99 31.86, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 24: 65.85 tok/s (15.19 ms/token, p50 13.83 p99 33.82, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 25: 63.45 tok/s (15.76 ms/token, p50 14.75 p99 34.30, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 26: 57.96 tok/s (17.25 ms/token, p50 16.86 p99 32.34, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 27: 58.76 tok/s (17.02 ms/token, p50 16.79 p99 29.70, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 28: 59.40 tok/s (16.84 ms/token, p50 16.03 p99 32.73, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 29: 61.22 tok/s (16.34 ms/token, p50 15.82 p99 31.61, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8_r0.25 launch 1 rc=0'
+g_ft_hybrid8_r0.25 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8_r0.25 1 0 223'
++ '[' 0 = 124 ']'
++ ftg hybrid8f0 0.25 1
++ local v=hybrid8f0 r=0.25 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8" --hybrid-fetch 0)
++ cd /work/ft
++ '[' hybrid8f0 = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_hybrid8f0_r0.25 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.25}' --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8f0_r0.25 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790827214
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 7747
++ local l=7747
++ '[' 7747 -lt 120 ']'
++ '[' 3600 -gt 7747 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+[bs1] g_ft_hybrid8f0_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '59451', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '0', '--moe-cache-rate', '0.25', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8f0_r0.25 problem 0: 13.71 tok/s (72.96 ms/token, p50 73.44 p99 90.80, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 1: 13.77 tok/s (72.61 ms/token, p50 73.45 p99 74.95, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 2: 13.63 tok/s (73.39 ms/token, p50 73.59 p99 91.97, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 3: 13.61 tok/s (73.49 ms/token, p50 73.35 p99 91.96, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 4: 13.79 tok/s (72.52 ms/token, p50 73.34 p99 76.50, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 5: 13.59 tok/s (73.60 ms/token, p50 73.35 p99 91.71, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 6: 13.82 tok/s (72.35 ms/token, p50 73.14 p99 74.44, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 7: 13.39 tok/s (74.67 ms/token, p50 73.35 p99 92.21, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 8: 13.61 tok/s (73.47 ms/token, p50 73.22 p99 91.24, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 9: 13.81 tok/s (72.42 ms/token, p50 73.27 p99 74.84, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 10: 13.58 tok/s (73.65 ms/token, p50 73.27 p99 90.65, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 11: 13.69 tok/s (73.04 ms/token, p50 73.26 p99 90.00, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 12: 13.80 tok/s (72.45 ms/token, p50 73.26 p99 75.17, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 13: 13.52 tok/s (73.96 ms/token, p50 73.46 p99 91.13, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 14: 13.82 tok/s (72.36 ms/token, p50 73.18 p99 74.60, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 15: 13.61 tok/s (73.45 ms/token, p50 73.35 p99 90.60, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 16: 13.60 tok/s (73.53 ms/token, p50 73.30 p99 90.95, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 17: 13.80 tok/s (72.48 ms/token, p50 73.28 p99 74.60, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 18: 13.53 tok/s (73.91 ms/token, p50 73.31 p99 91.39, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 19: 13.69 tok/s (73.03 ms/token, p50 73.22 p99 91.01, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 20: 13.81 tok/s (72.39 ms/token, p50 73.22 p99 74.57, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 21: 13.49 tok/s (74.12 ms/token, p50 73.16 p99 90.57, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 22: 13.79 tok/s (72.50 ms/token, p50 73.38 p99 74.50, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 23: 13.58 tok/s (73.63 ms/token, p50 73.30 p99 91.28, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 24: 13.56 tok/s (73.77 ms/token, p50 73.47 p99 91.16, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 25: 13.79 tok/s (72.50 ms/token, p50 73.25 p99 77.86, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 26: 13.60 tok/s (73.56 ms/token, p50 73.23 p99 90.85, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 27: 13.61 tok/s (73.49 ms/token, p50 73.23 p99 90.78, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 28: 13.82 tok/s (72.35 ms/token, p50 73.19 p99 74.36, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.25 problem 29: 13.61 tok/s (73.48 ms/token, p50 73.18 p99 90.60, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8f0_r0.25 launch 1 rc=0'
+g_ft_hybrid8f0_r0.25 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8f0_r0.25 1 0 677'
++ '[' 0 = 124 ']'
++ oursg 32 1
++ cl /work/models/gpt-oss-120b g_ours_C32_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C32_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790827891
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 7070
++ local l=7070
++ '[' 7070 -lt 120 ']'
++ '[' 3600 -gt 7070 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 57885
+[bs1] g_ours_C32_law problem 0: 100.82 tok/s (9.92 ms/token, p50 8.61 p99 21.49, 256 tokens)
+[bs1] g_ours_C32_law problem 1: 98.91 tok/s (10.11 ms/token, p50 9.01 p99 23.77, 256 tokens)
+[bs1] g_ours_C32_law problem 2: 92.43 tok/s (10.82 ms/token, p50 10.00 p99 22.58, 256 tokens)
+[bs1] g_ours_C32_law problem 3: 97.74 tok/s (10.23 ms/token, p50 9.37 p99 21.72, 256 tokens)
+[bs1] g_ours_C32_law problem 4: 81.85 tok/s (12.22 ms/token, p50 11.40 p99 26.46, 256 tokens)
+[bs1] g_ours_C32_law problem 5: 95.12 tok/s (10.51 ms/token, p50 9.76 p99 30.53, 256 tokens)
+[bs1] g_ours_C32_law problem 6: 99.11 tok/s (10.09 ms/token, p50 8.93 p99 26.00, 256 tokens)
+[bs1] g_ours_C32_law problem 7: 92.25 tok/s (10.84 ms/token, p50 10.20 p99 26.29, 256 tokens)
+[bs1] g_ours_C32_law problem 8: 92.56 tok/s (10.80 ms/token, p50 9.90 p99 23.72, 256 tokens)
+[bs1] g_ours_C32_law problem 9: 91.71 tok/s (10.90 ms/token, p50 9.89 p99 22.83, 256 tokens)
+[bs1] g_ours_C32_law problem 10: 87.59 tok/s (11.42 ms/token, p50 10.93 p99 24.05, 256 tokens)
+[bs1] g_ours_C32_law problem 11: 104.00 tok/s (9.62 ms/token, p50 9.17 p99 17.77, 256 tokens)
+[bs1] g_ours_C32_law problem 12: 92.62 tok/s (10.80 ms/token, p50 9.42 p99 24.96, 256 tokens)
+[bs1] g_ours_C32_law problem 13: 101.35 tok/s (9.87 ms/token, p50 8.91 p99 23.16, 256 tokens)
+[bs1] g_ours_C32_law problem 14: 94.00 tok/s (10.64 ms/token, p50 9.89 p99 22.25, 256 tokens)
+[bs1] g_ours_C32_law problem 15: 102.96 tok/s (9.71 ms/token, p50 8.79 p99 23.06, 256 tokens)
+[bs1] g_ours_C32_law problem 16: 101.34 tok/s (9.87 ms/token, p50 8.95 p99 22.48, 256 tokens)
+[bs1] g_ours_C32_law problem 17: 89.95 tok/s (11.12 ms/token, p50 10.47 p99 23.17, 256 tokens)
+[bs1] g_ours_C32_law problem 18: 104.09 tok/s (9.61 ms/token, p50 8.05 p99 25.89, 256 tokens)
+[bs1] g_ours_C32_law problem 19: 91.64 tok/s (10.91 ms/token, p50 10.14 p99 23.05, 256 tokens)
+[bs1] g_ours_C32_law problem 20: 104.10 tok/s (9.61 ms/token, p50 8.83 p99 21.05, 256 tokens)
+[bs1] g_ours_C32_law problem 21: 91.20 tok/s (10.97 ms/token, p50 10.58 p99 21.28, 256 tokens)
+[bs1] g_ours_C32_law problem 22: 84.81 tok/s (11.79 ms/token, p50 11.49 p99 22.08, 256 tokens)
+[bs1] g_ours_C32_law problem 23: 99.21 tok/s (10.08 ms/token, p50 9.37 p99 20.43, 256 tokens)
+[bs1] g_ours_C32_law problem 24: 95.05 tok/s (10.52 ms/token, p50 9.53 p99 23.05, 256 tokens)
+[bs1] g_ours_C32_law problem 25: 100.81 tok/s (9.92 ms/token, p50 9.08 p99 21.50, 256 tokens)
+[bs1] g_ours_C32_law problem 26: 90.07 tok/s (11.10 ms/token, p50 10.34 p99 23.04, 256 tokens)
+[bs1] g_ours_C32_law problem 27: 90.50 tok/s (11.05 ms/token, p50 10.38 p99 21.11, 256 tokens)
+[bs1] g_ours_C32_law problem 28: 97.19 tok/s (10.29 ms/token, p50 9.36 p99 25.46, 256 tokens)
+[bs1] g_ours_C32_law problem 29: 88.52 tok/s (11.30 ms/token, p50 10.33 p99 21.46, 256 tokens)
++ local rc=0
++ echo 'g_ours_C32_law launch 1 rc=0'
+g_ours_C32_law launch 1 rc=0
+++ date +%s
++ echo 'g_ours_C32_law 1 0 159'
++ '[' 0 = 124 ']'
++ for pair in 14:0.111 32:0.25 51:0.40
++ C=51
++ r=0.40
++ ftg offload 0.40 1
++ local v=offload r=0.40 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ cd /work/ft
++ '[' offload = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.40 1 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --ft offload --cache-rate 0.40
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.40 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790828050
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log --ft offload --cache-rate 0.40
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 6911
++ local l=6911
++ '[' 6911 -lt 120 ']'
++ '[' 3600 -gt 6911 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log --ft offload --cache-rate 0.40
+[bs1] g_ft_offload_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '33977', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bs1] g_ft_offload_r0.40 problem 0: 90.99 tok/s (10.99 ms/token, p50 9.53 p99 28.59, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 1: 94.06 tok/s (10.63 ms/token, p50 9.43 p99 28.50, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 2: 88.57 tok/s (11.29 ms/token, p50 10.06 p99 30.71, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 3: 93.15 tok/s (10.74 ms/token, p50 9.11 p99 29.95, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 4: 81.25 tok/s (12.31 ms/token, p50 11.32 p99 33.56, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 5: 94.89 tok/s (10.54 ms/token, p50 9.39 p99 28.98, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 6: 87.87 tok/s (11.38 ms/token, p50 9.99 p99 30.34, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 7: 91.32 tok/s (10.95 ms/token, p50 9.84 p99 34.46, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 8: 81.97 tok/s (12.20 ms/token, p50 10.96 p99 34.89, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 9: 93.59 tok/s (10.69 ms/token, p50 9.07 p99 28.52, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 10: 86.13 tok/s (11.61 ms/token, p50 10.57 p99 35.79, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 11: 104.39 tok/s (9.58 ms/token, p50 8.14 p99 32.21, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 12: 84.49 tok/s (11.84 ms/token, p50 10.03 p99 31.97, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 13: 109.69 tok/s (9.12 ms/token, p50 7.63 p99 29.25, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 14: 87.23 tok/s (11.46 ms/token, p50 10.04 p99 28.64, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 15: 97.93 tok/s (10.21 ms/token, p50 9.02 p99 32.15, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 16: 101.59 tok/s (9.84 ms/token, p50 8.62 p99 26.76, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 17: 91.68 tok/s (10.91 ms/token, p50 9.56 p99 26.91, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 18: 105.08 tok/s (9.52 ms/token, p50 7.67 p99 29.04, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 19: 99.24 tok/s (10.08 ms/token, p50 8.63 p99 27.17, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 20: 97.59 tok/s (10.25 ms/token, p50 9.06 p99 28.35, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 21: 77.03 tok/s (12.98 ms/token, p50 12.07 p99 31.68, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 22: 77.23 tok/s (12.95 ms/token, p50 12.11 p99 30.38, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 23: 96.13 tok/s (10.40 ms/token, p50 9.09 p99 27.04, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 24: 98.51 tok/s (10.15 ms/token, p50 8.45 p99 29.64, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 25: 106.11 tok/s (9.42 ms/token, p50 8.40 p99 23.56, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 26: 88.91 tok/s (11.25 ms/token, p50 9.98 p99 27.57, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 27: 95.74 tok/s (10.44 ms/token, p50 9.50 p99 26.58, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 28: 86.34 tok/s (11.58 ms/token, p50 10.48 p99 30.64, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 29: 87.92 tok/s (11.37 ms/token, p50 9.77 p99 30.35, 256 tokens)
++ local rc=0
++ echo 'g_ft_offload_r0.40 launch 1 rc=0'
+g_ft_offload_r0.40 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_offload_r0.40 1 0 182'
++ '[' 0 = 124 ']'
++ ftg hybrid8 0.40 1
++ local v=hybrid8 r=0.40 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8")
++ cd /work/ft
++ '[' hybrid8 = hybrid8 ']'
++ export FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ cl /work/models/gpt-oss-120b g_ft_hybrid8_r0.40 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.40}' --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8'
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8_r0.40 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790828232
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 6729
++ local l=6729
++ '[' 6729 -lt 120 ']'
++ '[' 3600 -gt 6729 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8'
+[bs1] g_ft_hybrid8_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '60445', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8_r0.40 problem 0: 93.35 tok/s (10.71 ms/token, p50 9.61 p99 23.98, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 1: 95.99 tok/s (10.42 ms/token, p50 9.45 p99 22.29, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 2: 92.26 tok/s (10.84 ms/token, p50 10.19 p99 22.20, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 3: 94.65 tok/s (10.57 ms/token, p50 9.85 p99 22.19, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 4: 83.83 tok/s (11.93 ms/token, p50 11.33 p99 24.64, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 5: 90.35 tok/s (11.07 ms/token, p50 10.05 p99 24.75, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 6: 95.28 tok/s (10.50 ms/token, p50 9.31 p99 23.14, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 7: 91.29 tok/s (10.95 ms/token, p50 10.09 p99 28.08, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 8: 84.54 tok/s (11.83 ms/token, p50 11.07 p99 26.07, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 9: 91.19 tok/s (10.97 ms/token, p50 10.05 p99 23.84, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 10: 86.18 tok/s (11.60 ms/token, p50 11.03 p99 26.91, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 11: 101.95 tok/s (9.81 ms/token, p50 8.74 p99 26.33, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 12: 84.67 tok/s (11.81 ms/token, p50 10.85 p99 24.03, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 13: 100.74 tok/s (9.93 ms/token, p50 9.11 p99 22.32, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 14: 88.28 tok/s (11.33 ms/token, p50 10.67 p99 25.53, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 15: 96.25 tok/s (10.39 ms/token, p50 9.51 p99 25.83, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 16: 100.44 tok/s (9.96 ms/token, p50 9.18 p99 22.16, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 17: 87.77 tok/s (11.39 ms/token, p50 10.56 p99 24.75, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 18: 105.70 tok/s (9.46 ms/token, p50 8.26 p99 22.64, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 19: 93.23 tok/s (10.73 ms/token, p50 9.57 p99 26.18, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 20: 96.05 tok/s (10.41 ms/token, p50 9.62 p99 21.65, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 21: 82.74 tok/s (12.09 ms/token, p50 11.54 p99 22.88, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 22: 84.04 tok/s (11.90 ms/token, p50 11.12 p99 24.72, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 23: 90.51 tok/s (11.05 ms/token, p50 10.47 p99 24.42, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 24: 98.11 tok/s (10.19 ms/token, p50 9.27 p99 23.62, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 25: 105.08 tok/s (9.52 ms/token, p50 8.72 p99 18.74, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 26: 89.88 tok/s (11.13 ms/token, p50 10.49 p99 22.43, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 27: 92.27 tok/s (10.84 ms/token, p50 10.39 p99 22.01, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 28: 88.76 tok/s (11.27 ms/token, p50 10.87 p99 23.53, 256 tokens)
+[bs1] g_ft_hybrid8_r0.40 problem 29: 88.48 tok/s (11.30 ms/token, p50 10.30 p99 23.60, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8_r0.40 launch 1 rc=0'
+g_ft_hybrid8_r0.40 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8_r0.40 1 0 181'
++ '[' 0 = 124 ']'
++ ftg hybrid8f0 0.40 1
++ local v=hybrid8f0 r=0.40 L=1 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8" --hybrid-fetch 0)
++ cd /work/ft
++ '[' hybrid8f0 = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_hybrid8f0_r0.40 1 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.40}' --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8f0_r0.40 L=1 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790828414
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 6547
++ local l=6547
++ '[' 6547 -lt 120 ']'
++ '[' 3600 -gt 6547 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ft_hybrid8f0_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8f0", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log --ft hybrid --cache-rate 0.40 '--ft-extra=--moe-cpu-threads 8' --hybrid-fetch 0
+[bs1] g_ft_hybrid8f0_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '56515', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '0', '--moe-cache-rate', '0.4', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8f0_r0.40 problem 0: 13.70 tok/s (73.01 ms/token, p50 73.95 p99 78.10, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 1: 13.69 tok/s (73.03 ms/token, p50 73.98 p99 75.05, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 2: 13.69 tok/s (73.03 ms/token, p50 73.96 p99 75.11, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 3: 13.70 tok/s (73.01 ms/token, p50 73.92 p99 75.26, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 4: 13.68 tok/s (73.10 ms/token, p50 73.96 p99 75.31, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 5: 13.69 tok/s (73.06 ms/token, p50 73.96 p99 76.05, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 6: 13.69 tok/s (73.04 ms/token, p50 73.95 p99 75.64, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 7: 13.65 tok/s (73.24 ms/token, p50 73.95 p99 86.40, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 8: 13.70 tok/s (73.01 ms/token, p50 73.94 p99 75.82, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 9: 13.69 tok/s (73.05 ms/token, p50 73.96 p99 75.54, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 10: 13.67 tok/s (73.16 ms/token, p50 73.96 p99 75.53, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 11: 13.68 tok/s (73.10 ms/token, p50 73.93 p99 76.46, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 12: 13.66 tok/s (73.21 ms/token, p50 73.96 p99 76.20, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 13: 13.70 tok/s (73.02 ms/token, p50 73.94 p99 75.16, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 14: 13.69 tok/s (73.07 ms/token, p50 73.98 p99 75.27, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 15: 13.70 tok/s (72.98 ms/token, p50 73.90 p99 75.81, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 16: 13.70 tok/s (72.97 ms/token, p50 73.92 p99 75.39, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 17: 13.64 tok/s (73.31 ms/token, p50 73.98 p99 75.63, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 18: 13.68 tok/s (73.09 ms/token, p50 73.97 p99 76.00, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 19: 13.68 tok/s (73.07 ms/token, p50 73.98 p99 75.96, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 20: 13.68 tok/s (73.10 ms/token, p50 73.97 p99 75.25, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 21: 13.68 tok/s (73.10 ms/token, p50 73.95 p99 75.26, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 22: 13.69 tok/s (73.04 ms/token, p50 73.96 p99 75.62, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 23: 13.69 tok/s (73.04 ms/token, p50 73.94 p99 75.76, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 24: 13.67 tok/s (73.14 ms/token, p50 73.97 p99 75.51, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 25: 13.66 tok/s (73.19 ms/token, p50 73.97 p99 77.26, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 26: 13.68 tok/s (73.08 ms/token, p50 73.98 p99 75.15, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 27: 13.68 tok/s (73.11 ms/token, p50 73.96 p99 75.29, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 28: 13.70 tok/s (72.99 ms/token, p50 73.93 p99 74.89, 256 tokens)
+[bs1] g_ft_hybrid8f0_r0.40 problem 29: 13.69 tok/s (73.03 ms/token, p50 73.95 p99 75.72, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8f0_r0.40 launch 1 rc=0'
+g_ft_hybrid8f0_r0.40 launch 1 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8f0_r0.40 1 0 676'
++ '[' 0 = 124 ']'
++ oursg 51 1
++ cl /work/models/gpt-oss-120b g_ours_C51_law 1 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C51_law L=1 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790829090
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 5871
++ local l=5871
++ '[' 5871 -lt 120 ']'
++ '[' 3600 -gt 5871 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C51_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 55359
+[bs1] g_ours_C51_law problem 0: 144.96 tok/s (6.90 ms/token, p50 6.31 p99 14.41, 256 tokens)
+[bs1] g_ours_C51_law problem 1: 139.32 tok/s (7.18 ms/token, p50 6.61 p99 14.87, 256 tokens)
+[bs1] g_ours_C51_law problem 2: 132.10 tok/s (7.57 ms/token, p50 7.19 p99 15.87, 256 tokens)
+[bs1] g_ours_C51_law problem 3: 143.04 tok/s (6.99 ms/token, p50 6.55 p99 13.83, 256 tokens)
+[bs1] g_ours_C51_law problem 4: 125.98 tok/s (7.94 ms/token, p50 7.61 p99 16.01, 256 tokens)
+[bs1] g_ours_C51_law problem 5: 133.39 tok/s (7.50 ms/token, p50 7.03 p99 17.27, 256 tokens)
+[bs1] g_ours_C51_law problem 6: 143.15 tok/s (6.99 ms/token, p50 6.24 p99 14.22, 256 tokens)
+[bs1] g_ours_C51_law problem 7: 124.73 tok/s (8.02 ms/token, p50 7.29 p99 19.92, 256 tokens)
+[bs1] g_ours_C51_law problem 8: 130.92 tok/s (7.64 ms/token, p50 7.05 p99 14.77, 256 tokens)
+[bs1] g_ours_C51_law problem 9: 134.31 tok/s (7.45 ms/token, p50 7.04 p99 15.73, 256 tokens)
+[bs1] g_ours_C51_law problem 10: 130.76 tok/s (7.65 ms/token, p50 7.03 p99 18.18, 256 tokens)
+[bs1] g_ours_C51_law problem 11: 149.21 tok/s (6.70 ms/token, p50 6.46 p99 12.49, 256 tokens)
+[bs1] g_ours_C51_law problem 12: 131.82 tok/s (7.59 ms/token, p50 6.81 p99 17.33, 256 tokens)
+[bs1] g_ours_C51_law problem 13: 150.40 tok/s (6.65 ms/token, p50 5.88 p99 14.26, 256 tokens)
+[bs1] g_ours_C51_law problem 14: 133.72 tok/s (7.48 ms/token, p50 7.08 p99 13.82, 256 tokens)
+[bs1] g_ours_C51_law problem 15: 144.39 tok/s (6.93 ms/token, p50 6.45 p99 14.78, 256 tokens)
+[bs1] g_ours_C51_law problem 16: 147.51 tok/s (6.78 ms/token, p50 6.27 p99 14.99, 256 tokens)
+[bs1] g_ours_C51_law problem 17: 133.32 tok/s (7.50 ms/token, p50 6.88 p99 16.23, 256 tokens)
+[bs1] g_ours_C51_law problem 18: 146.33 tok/s (6.83 ms/token, p50 6.01 p99 19.60, 256 tokens)
+[bs1] g_ours_C51_law problem 19: 129.32 tok/s (7.73 ms/token, p50 7.26 p99 14.83, 256 tokens)
+[bs1] g_ours_C51_law problem 20: 149.51 tok/s (6.69 ms/token, p50 6.09 p99 14.42, 256 tokens)
+[bs1] g_ours_C51_law problem 21: 129.19 tok/s (7.74 ms/token, p50 7.36 p99 14.64, 256 tokens)
+[bs1] g_ours_C51_law problem 22: 123.07 tok/s (8.13 ms/token, p50 7.78 p99 15.79, 256 tokens)
+[bs1] g_ours_C51_law problem 23: 142.39 tok/s (7.02 ms/token, p50 6.67 p99 13.91, 256 tokens)
+[bs1] g_ours_C51_law problem 24: 142.58 tok/s (7.01 ms/token, p50 6.24 p99 15.04, 256 tokens)
+[bs1] g_ours_C51_law problem 25: 150.53 tok/s (6.64 ms/token, p50 6.16 p99 13.27, 256 tokens)
+[bs1] g_ours_C51_law problem 26: 142.54 tok/s (7.02 ms/token, p50 6.65 p99 12.93, 256 tokens)
+[bs1] g_ours_C51_law problem 27: 136.41 tok/s (7.33 ms/token, p50 6.80 p99 15.37, 256 tokens)
+[bs1] g_ours_C51_law problem 28: 140.19 tok/s (7.13 ms/token, p50 6.47 p99 16.61, 256 tokens)
+[bs1] g_ours_C51_law problem 29: 130.75 tok/s (7.65 ms/token, p50 7.19 p99 15.13, 256 tokens)
++ local rc=0
++ echo 'g_ours_C51_law launch 1 rc=0'
+g_ours_C51_law launch 1 rc=0
+++ date +%s
++ echo 'g_ours_C51_law 1 0 133'
++ '[' 0 = 124 ']'
++ cl /work/models/gpt-oss-120b g_llama_n27_t8 1 '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 8}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -C 5555 --cpu-strict 1 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_llama_n27_t8 L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 8}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790829223
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27_t8 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 8}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_llama_n27_t8_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -C 5555 --cpu-strict 1 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 5738
++ local l=5738
++ '[' 5738 -lt 120 ']'
++ '[' 3600 -gt 5738 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27_t8 --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 8}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_llama_n27_t8_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -C 5555 --cpu-strict 1 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+[bs1] g_llama_n27_t8: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 8 -C 5555 --cpu-strict 1 -np 1 -c 8448 --no-webui -ncmoe 27 --port 55967
+[bs1] g_llama_n27_t8 problem 0: 39.60 tok/s (25.26 ms/token, p50 24.69 p99 28.04, 256 tokens)
+[bs1] g_llama_n27_t8 problem 1: 39.80 tok/s (25.13 ms/token, p50 24.71 p99 27.32, 256 tokens)
+[bs1] g_llama_n27_t8 problem 2: 39.27 tok/s (25.47 ms/token, p50 25.43 p99 28.05, 256 tokens)
+[bs1] g_llama_n27_t8 problem 3: 39.06 tok/s (25.60 ms/token, p50 26.67 p99 27.57, 256 tokens)
+[bs1] g_llama_n27_t8 problem 4: 40.97 tok/s (24.41 ms/token, p50 24.66 p99 27.94, 256 tokens)
+[bs1] g_llama_n27_t8 problem 5: 40.57 tok/s (24.65 ms/token, p50 24.66 p99 27.33, 256 tokens)
+[bs1] g_llama_n27_t8 problem 6: 40.51 tok/s (24.69 ms/token, p50 24.67 p99 27.32, 256 tokens)
+[bs1] g_llama_n27_t8 problem 7: 39.79 tok/s (25.13 ms/token, p50 24.66 p99 31.59, 256 tokens)
+[bs1] g_llama_n27_t8 problem 8: 40.09 tok/s (24.94 ms/token, p50 24.66 p99 29.14, 256 tokens)
+[bs1] g_llama_n27_t8 problem 9: 40.05 tok/s (24.97 ms/token, p50 24.72 p99 28.65, 256 tokens)
+[bs1] g_llama_n27_t8 problem 10: 40.61 tok/s (24.63 ms/token, p50 24.71 p99 28.16, 256 tokens)
+[bs1] g_llama_n27_t8 problem 11: 40.62 tok/s (24.62 ms/token, p50 24.66 p99 26.83, 256 tokens)
+[bs1] g_llama_n27_t8 problem 12: 40.31 tok/s (24.81 ms/token, p50 24.67 p99 28.06, 256 tokens)
+[bs1] g_llama_n27_t8 problem 13: 39.88 tok/s (25.08 ms/token, p50 24.67 p99 28.12, 256 tokens)
+[bs1] g_llama_n27_t8 problem 14: 40.18 tok/s (24.89 ms/token, p50 24.67 p99 38.45, 256 tokens)
+[bs1] g_llama_n27_t8 problem 15: 39.44 tok/s (25.35 ms/token, p50 24.73 p99 27.55, 256 tokens)
+[bs1] g_llama_n27_t8 problem 16: 39.73 tok/s (25.17 ms/token, p50 25.63 p99 49.26, 256 tokens)
+[bs1] g_llama_n27_t8 problem 17: 39.21 tok/s (25.50 ms/token, p50 26.65 p99 28.08, 256 tokens)
+[bs1] g_llama_n27_t8 problem 18: 39.81 tok/s (25.12 ms/token, p50 25.64 p99 28.21, 256 tokens)
+[bs1] g_llama_n27_t8 problem 19: 39.38 tok/s (25.39 ms/token, p50 26.19 p99 28.21, 256 tokens)
+[bs1] g_llama_n27_t8 problem 20: 39.98 tok/s (25.01 ms/token, p50 24.76 p99 29.24, 256 tokens)
+[bs1] g_llama_n27_t8 problem 21: 39.32 tok/s (25.43 ms/token, p50 24.72 p99 28.06, 256 tokens)
+[bs1] g_llama_n27_t8 problem 22: 39.74 tok/s (25.16 ms/token, p50 24.72 p99 38.27, 256 tokens)
+[bs1] g_llama_n27_t8 problem 23: 40.34 tok/s (24.79 ms/token, p50 24.66 p99 38.36, 256 tokens)
+[bs1] g_llama_n27_t8 problem 24: 41.01 tok/s (24.39 ms/token, p50 24.64 p99 26.21, 256 tokens)
+[bs1] g_llama_n27_t8 problem 25: 40.45 tok/s (24.72 ms/token, p50 24.64 p99 28.16, 256 tokens)
+[bs1] g_llama_n27_t8 problem 26: 40.29 tok/s (24.82 ms/token, p50 24.65 p99 27.98, 256 tokens)
+[bs1] g_llama_n27_t8 problem 27: 40.11 tok/s (24.93 ms/token, p50 24.67 p99 28.71, 256 tokens)
+[bs1] g_llama_n27_t8 problem 28: 40.01 tok/s (24.99 ms/token, p50 24.67 p99 30.78, 256 tokens)
+[bs1] g_llama_n27_t8 problem 29: 39.53 tok/s (25.30 ms/token, p50 24.66 p99 30.91, 256 tokens)
++ local rc=0
++ echo 'g_llama_n27_t8 launch 1 rc=0'
+g_llama_n27_t8 launch 1 rc=0
+++ date +%s
++ echo 'g_llama_n27_t8 1 0 259'
++ '[' 0 = 124 ']'
++ cl /work/models/gpt-oss-120b g_llama_n27_tall 1 '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 24}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_llama_n27_tall L=1 'meta={"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 24}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790829482
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27_tall --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 24}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_llama_n27_tall_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 5479
++ local l=5479
++ '[' 5479 -lt 120 ']'
++ '[' 3600 -gt 5479 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 1 --label g_llama_n27_tall --meta '{"model": "gpt-oss-120b", "system": "llama.cpp", "ncmoe": 27, "threads": 24}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_llama_n27_tall_L1.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd '/work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ncmoe 27 --port {port}'
+[bs1] g_llama_n27_tall: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd /work/lc-stock/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ncmoe 27 --port 46591
+[bs1] g_llama_n27_tall problem 0: 32.85 tok/s (30.44 ms/token, p50 30.77 p99 32.18, 256 tokens)
+[bs1] g_llama_n27_tall problem 1: 32.79 tok/s (30.49 ms/token, p50 30.87 p99 32.06, 256 tokens)
+[bs1] g_llama_n27_tall problem 2: 32.87 tok/s (30.42 ms/token, p50 30.76 p99 31.98, 256 tokens)
+[bs1] g_llama_n27_tall problem 3: 32.79 tok/s (30.50 ms/token, p50 30.81 p99 32.11, 256 tokens)
+[bs1] g_llama_n27_tall problem 4: 32.86 tok/s (30.43 ms/token, p50 30.78 p99 32.66, 256 tokens)
+[bs1] g_llama_n27_tall problem 5: 32.79 tok/s (30.50 ms/token, p50 30.82 p99 32.66, 256 tokens)
+[bs1] g_llama_n27_tall problem 6: 32.89 tok/s (30.40 ms/token, p50 30.74 p99 31.70, 256 tokens)
+[bs1] g_llama_n27_tall problem 7: 32.80 tok/s (30.48 ms/token, p50 30.83 p99 31.83, 256 tokens)
+[bs1] g_llama_n27_tall problem 8: 32.69 tok/s (30.59 ms/token, p50 30.95 p99 32.27, 256 tokens)
+[bs1] g_llama_n27_tall problem 9: 32.75 tok/s (30.53 ms/token, p50 30.91 p99 32.20, 256 tokens)
+[bs1] g_llama_n27_tall problem 10: 32.68 tok/s (30.60 ms/token, p50 30.93 p99 32.37, 256 tokens)
+[bs1] g_llama_n27_tall problem 11: 32.71 tok/s (30.57 ms/token, p50 30.89 p99 32.65, 256 tokens)
+[bs1] g_llama_n27_tall problem 12: 32.75 tok/s (30.53 ms/token, p50 30.85 p99 32.34, 256 tokens)
+[bs1] g_llama_n27_tall problem 13: 32.80 tok/s (30.48 ms/token, p50 30.86 p99 32.01, 256 tokens)
+[bs1] g_llama_n27_tall problem 14: 32.95 tok/s (30.35 ms/token, p50 30.74 p99 32.51, 256 tokens)
+[bs1] g_llama_n27_tall problem 15: 32.86 tok/s (30.44 ms/token, p50 30.81 p99 32.04, 256 tokens)
+[bs1] g_llama_n27_tall problem 16: 32.83 tok/s (30.46 ms/token, p50 30.80 p99 62.14, 256 tokens)
+[bs1] g_llama_n27_tall problem 17: 32.78 tok/s (30.51 ms/token, p50 30.84 p99 32.25, 256 tokens)
+[bs1] g_llama_n27_tall problem 18: 32.81 tok/s (30.48 ms/token, p50 30.77 p99 32.39, 256 tokens)
+[bs1] g_llama_n27_tall problem 19: 32.80 tok/s (30.49 ms/token, p50 30.87 p99 31.91, 256 tokens)
+[bs1] g_llama_n27_tall problem 20: 32.70 tok/s (30.58 ms/token, p50 30.90 p99 32.18, 256 tokens)
+[bs1] g_llama_n27_tall problem 21: 32.88 tok/s (30.41 ms/token, p50 30.73 p99 31.72, 256 tokens)
+[bs1] g_llama_n27_tall problem 22: 32.78 tok/s (30.50 ms/token, p50 30.88 p99 31.82, 256 tokens)
+[bs1] g_llama_n27_tall problem 23: 32.86 tok/s (30.44 ms/token, p50 30.78 p99 31.80, 256 tokens)
+[bs1] g_llama_n27_tall problem 24: 32.79 tok/s (30.50 ms/token, p50 30.84 p99 31.81, 256 tokens)
+[bs1] g_llama_n27_tall problem 25: 32.77 tok/s (30.51 ms/token, p50 30.86 p99 32.28, 256 tokens)
+[bs1] g_llama_n27_tall problem 26: 32.84 tok/s (30.45 ms/token, p50 30.81 p99 32.07, 256 tokens)
+[bs1] g_llama_n27_tall problem 27: 32.78 tok/s (30.50 ms/token, p50 30.83 p99 31.88, 256 tokens)
+[bs1] g_llama_n27_tall problem 28: 32.71 tok/s (30.57 ms/token, p50 30.87 p99 32.23, 256 tokens)
+[bs1] g_llama_n27_tall problem 29: 32.83 tok/s (30.46 ms/token, p50 30.77 p99 32.27, 256 tokens)
++ local rc=0
++ echo 'g_llama_n27_tall launch 1 rc=0'
+g_llama_n27_tall launch 1 rc=0
+++ date +%s
++ echo 'g_llama_n27_tall 1 0 302'
++ '[' 0 = 124 ']'
++ for pair in 51:0.40 32:0.25 14:0.111
++ C=51
++ r=0.40
+++ pick g_ft_offload_r0.40 g_ft_hybrid8_r0.40 g_ft_hybrid8f0_r0.40
+++ /work/ft/.venv/bin/python - /w/results/088_slowlink_fair@vast/bs1.jsonl g_ft_offload_r0.40 g_ft_hybrid8_r0.40 g_ft_hybrid8f0_r0.40
++ fb=g_ft_offload_r0.40
+++ echo g_ft_offload_r0.40
+++ cut -d_ -f3
++ v=offload
++ echo 'gpt-oss C51: ours law, FreeToken offload'
++ tee -a /w/results/088_slowlink_fair@vast/selection.txt
+gpt-oss C51: ours law, FreeToken offload
++ oursg 51 2
++ cl /work/models/gpt-oss-120b g_ours_C51_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C51_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ head -1
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790829784
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 5177
++ local l=5177
++ '[' 5177 -lt 120 ']'
++ '[' 3600 -gt 5177 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C51_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 51, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C51_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=51 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 60237
+[bs1] g_ours_C51_law problem 0: 145.15 tok/s (6.89 ms/token, p50 6.32 p99 14.32, 256 tokens)
+[bs1] g_ours_C51_law problem 1: 139.15 tok/s (7.19 ms/token, p50 6.64 p99 14.90, 256 tokens)
+[bs1] g_ours_C51_law problem 2: 135.19 tok/s (7.40 ms/token, p50 7.03 p99 15.13, 256 tokens)
+[bs1] g_ours_C51_law problem 3: 143.01 tok/s (6.99 ms/token, p50 6.56 p99 13.80, 256 tokens)
+[bs1] g_ours_C51_law problem 4: 127.91 tok/s (7.82 ms/token, p50 7.50 p99 15.80, 256 tokens)
+[bs1] g_ours_C51_law problem 5: 135.62 tok/s (7.37 ms/token, p50 7.01 p99 17.03, 256 tokens)
+[bs1] g_ours_C51_law problem 6: 145.62 tok/s (6.87 ms/token, p50 6.17 p99 14.09, 256 tokens)
+[bs1] g_ours_C51_law problem 7: 133.77 tok/s (7.48 ms/token, p50 6.84 p99 19.02, 256 tokens)
+[bs1] g_ours_C51_law problem 8: 131.78 tok/s (7.59 ms/token, p50 6.97 p99 14.63, 256 tokens)
+[bs1] g_ours_C51_law problem 9: 136.17 tok/s (7.34 ms/token, p50 6.93 p99 15.59, 256 tokens)
+[bs1] g_ours_C51_law problem 10: 131.66 tok/s (7.60 ms/token, p50 6.95 p99 18.12, 256 tokens)
+[bs1] g_ours_C51_law problem 11: 149.06 tok/s (6.71 ms/token, p50 6.45 p99 12.42, 256 tokens)
+[bs1] g_ours_C51_law problem 12: 132.14 tok/s (7.57 ms/token, p50 6.73 p99 17.25, 256 tokens)
+[bs1] g_ours_C51_law problem 13: 150.72 tok/s (6.63 ms/token, p50 5.83 p99 14.23, 256 tokens)
+[bs1] g_ours_C51_law problem 14: 135.42 tok/s (7.38 ms/token, p50 7.03 p99 13.75, 256 tokens)
+[bs1] g_ours_C51_law problem 15: 147.54 tok/s (6.78 ms/token, p50 6.31 p99 14.64, 256 tokens)
+[bs1] g_ours_C51_law problem 16: 149.87 tok/s (6.67 ms/token, p50 6.21 p99 14.87, 256 tokens)
+[bs1] g_ours_C51_law problem 17: 136.14 tok/s (7.35 ms/token, p50 6.70 p99 16.50, 256 tokens)
+[bs1] g_ours_C51_law problem 18: 148.57 tok/s (6.73 ms/token, p50 5.92 p99 19.51, 256 tokens)
+[bs1] g_ours_C51_law problem 19: 131.72 tok/s (7.59 ms/token, p50 7.13 p99 14.69, 256 tokens)
+[bs1] g_ours_C51_law problem 20: 147.24 tok/s (6.79 ms/token, p50 6.13 p99 14.58, 256 tokens)
+[bs1] g_ours_C51_law problem 21: 131.57 tok/s (7.60 ms/token, p50 7.22 p99 14.49, 256 tokens)
+[bs1] g_ours_C51_law problem 22: 123.36 tok/s (8.11 ms/token, p50 7.79 p99 15.82, 256 tokens)
+[bs1] g_ours_C51_law problem 23: 143.87 tok/s (6.95 ms/token, p50 6.58 p99 13.77, 256 tokens)
+[bs1] g_ours_C51_law problem 24: 143.22 tok/s (6.98 ms/token, p50 6.20 p99 15.02, 256 tokens)
+[bs1] g_ours_C51_law problem 25: 151.25 tok/s (6.61 ms/token, p50 6.23 p99 13.39, 256 tokens)
+[bs1] g_ours_C51_law problem 26: 145.25 tok/s (6.88 ms/token, p50 6.51 p99 12.71, 256 tokens)
+[bs1] g_ours_C51_law problem 27: 138.19 tok/s (7.24 ms/token, p50 6.74 p99 15.10, 256 tokens)
+[bs1] g_ours_C51_law problem 28: 140.36 tok/s (7.12 ms/token, p50 6.45 p99 16.60, 256 tokens)
+[bs1] g_ours_C51_law problem 29: 128.44 tok/s (7.79 ms/token, p50 7.30 p99 15.35, 256 tokens)
++ local rc=0
++ echo 'g_ours_C51_law launch 2 rc=0'
+g_ours_C51_law launch 2 rc=0
+++ date +%s
++ echo 'g_ours_C51_law 2 0 130'
++ '[' 0 = 124 ']'
++ ftg offload 0.40 2
++ local v=offload r=0.40 L=2 b=offload
++ x=()
++ local -a x
++ case $v in
++ cd /work/ft
++ '[' offload = hybrid8 ']'
++ cl /work/models/gpt-oss-120b g_ft_offload_r0.40 2 '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --ft offload --cache-rate 0.40
++ local hf=/work/models/gpt-oss-120b lab=g_ft_offload_r0.40 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790829914
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log --ft offload --cache-rate 0.40
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 5047
++ local l=5047
++ '[' 5047 -lt 120 ']'
++ '[' 3600 -gt 5047 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_offload_r0.40 --meta '{"model": "gpt-oss-120b", "system": "FreeToken offload", "variant": "offload", "rate": 0.40}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log --ft offload --cache-rate 0.40
+[bs1] g_ft_offload_r0.40: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '37055', '--moe-backend', 'offload', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.4']
+[bs1] g_ft_offload_r0.40 problem 0: 91.02 tok/s (10.99 ms/token, p50 9.50 p99 28.46, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 1: 93.93 tok/s (10.65 ms/token, p50 9.42 p99 28.54, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 2: 88.55 tok/s (11.29 ms/token, p50 10.07 p99 30.82, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 3: 93.13 tok/s (10.74 ms/token, p50 9.16 p99 29.82, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 4: 81.27 tok/s (12.30 ms/token, p50 11.34 p99 33.44, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 5: 94.85 tok/s (10.54 ms/token, p50 9.43 p99 28.86, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 6: 87.85 tok/s (11.38 ms/token, p50 10.00 p99 30.37, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 7: 91.22 tok/s (10.96 ms/token, p50 9.85 p99 34.45, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 8: 82.02 tok/s (12.19 ms/token, p50 10.90 p99 34.74, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 9: 93.57 tok/s (10.69 ms/token, p50 9.10 p99 28.53, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 10: 86.11 tok/s (11.61 ms/token, p50 10.54 p99 35.68, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 11: 104.34 tok/s (9.58 ms/token, p50 8.10 p99 32.18, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 12: 84.43 tok/s (11.84 ms/token, p50 10.03 p99 31.95, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 13: 109.65 tok/s (9.12 ms/token, p50 7.63 p99 29.03, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 14: 87.13 tok/s (11.48 ms/token, p50 10.02 p99 28.44, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 15: 97.86 tok/s (10.22 ms/token, p50 9.00 p99 32.11, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 16: 101.54 tok/s (9.85 ms/token, p50 8.61 p99 26.76, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 17: 91.56 tok/s (10.92 ms/token, p50 9.57 p99 27.14, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 18: 105.02 tok/s (9.52 ms/token, p50 7.69 p99 29.05, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 19: 99.35 tok/s (10.07 ms/token, p50 8.64 p99 27.17, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 20: 97.51 tok/s (10.26 ms/token, p50 9.08 p99 28.60, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 21: 77.00 tok/s (12.99 ms/token, p50 12.24 p99 31.58, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 22: 77.24 tok/s (12.95 ms/token, p50 12.17 p99 30.43, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 23: 96.07 tok/s (10.41 ms/token, p50 9.10 p99 27.10, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 24: 98.41 tok/s (10.16 ms/token, p50 8.45 p99 29.67, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 25: 106.10 tok/s (9.42 ms/token, p50 8.45 p99 23.52, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 26: 88.79 tok/s (11.26 ms/token, p50 10.01 p99 27.58, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 27: 95.59 tok/s (10.46 ms/token, p50 9.49 p99 26.61, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 28: 86.35 tok/s (11.58 ms/token, p50 10.48 p99 30.57, 256 tokens)
+[bs1] g_ft_offload_r0.40 problem 29: 87.89 tok/s (11.38 ms/token, p50 9.82 p99 30.32, 256 tokens)
++ local rc=0
++ echo 'g_ft_offload_r0.40 launch 2 rc=0'
+g_ft_offload_r0.40 launch 2 rc=0
+++ date +%s
++ echo 'g_ft_offload_r0.40 2 0 182'
++ '[' 0 = 124 ']'
++ for pair in 51:0.40 32:0.25 14:0.111
++ C=32
++ r=0.25
+++ pick g_ft_offload_r0.25 g_ft_hybrid8_r0.25 g_ft_hybrid8f0_r0.25
+++ /work/ft/.venv/bin/python - /w/results/088_slowlink_fair@vast/bs1.jsonl g_ft_offload_r0.25 g_ft_hybrid8_r0.25 g_ft_hybrid8f0_r0.25
++ fb=g_ft_hybrid8_r0.25
+++ echo g_ft_hybrid8_r0.25
+++ cut -d_ -f3
++ v=hybrid8
++ echo 'gpt-oss C32: ours law, FreeToken hybrid8'
++ tee -a /w/results/088_slowlink_fair@vast/selection.txt
+gpt-oss C32: ours law, FreeToken hybrid8
++ oursg 32 2
++ cl /work/models/gpt-oss-120b g_ours_C32_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C32_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790830096
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 4865
++ local l=4865
++ '[' 4865 -lt 120 ']'
++ '[' 3600 -gt 4865 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C32_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 32, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C32_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=32 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 33169
+[bs1] g_ours_C32_law problem 0: 94.15 tok/s (10.62 ms/token, p50 9.39 p99 21.61, 256 tokens)
+[bs1] g_ours_C32_law problem 1: 95.99 tok/s (10.42 ms/token, p50 9.43 p99 25.20, 256 tokens)
+[bs1] g_ours_C32_law problem 2: 89.16 tok/s (11.22 ms/token, p50 10.45 p99 22.70, 256 tokens)
+[bs1] g_ours_C32_law problem 3: 98.87 tok/s (10.11 ms/token, p50 9.17 p99 21.56, 256 tokens)
+[bs1] g_ours_C32_law problem 4: 81.81 tok/s (12.22 ms/token, p50 11.41 p99 26.50, 256 tokens)
+[bs1] g_ours_C32_law problem 5: 95.04 tok/s (10.52 ms/token, p50 9.59 p99 30.56, 256 tokens)
+[bs1] g_ours_C32_law problem 6: 97.80 tok/s (10.22 ms/token, p50 9.10 p99 26.10, 256 tokens)
+[bs1] g_ours_C32_law problem 7: 92.35 tok/s (10.83 ms/token, p50 10.22 p99 26.27, 256 tokens)
+[bs1] g_ours_C32_law problem 8: 93.66 tok/s (10.68 ms/token, p50 9.73 p99 23.56, 256 tokens)
+[bs1] g_ours_C32_law problem 9: 91.65 tok/s (10.91 ms/token, p50 9.86 p99 22.82, 256 tokens)
+[bs1] g_ours_C32_law problem 10: 83.41 tok/s (11.99 ms/token, p50 11.57 p99 24.39, 256 tokens)
+[bs1] g_ours_C32_law problem 11: 102.45 tok/s (9.76 ms/token, p50 9.35 p99 18.07, 256 tokens)
+[bs1] g_ours_C32_law problem 12: 93.72 tok/s (10.67 ms/token, p50 9.26 p99 24.95, 256 tokens)
+[bs1] g_ours_C32_law problem 13: 101.04 tok/s (9.90 ms/token, p50 8.95 p99 23.13, 256 tokens)
+[bs1] g_ours_C32_law problem 14: 92.81 tok/s (10.78 ms/token, p50 10.06 p99 22.32, 256 tokens)
+[bs1] g_ours_C32_law problem 15: 103.03 tok/s (9.71 ms/token, p50 8.85 p99 23.10, 256 tokens)
+[bs1] g_ours_C32_law problem 16: 101.39 tok/s (9.86 ms/token, p50 8.94 p99 22.41, 256 tokens)
+[bs1] g_ours_C32_law problem 17: 90.22 tok/s (11.08 ms/token, p50 10.31 p99 23.11, 256 tokens)
+[bs1] g_ours_C32_law problem 18: 104.03 tok/s (9.61 ms/token, p50 8.12 p99 25.86, 256 tokens)
+[bs1] g_ours_C32_law problem 19: 91.96 tok/s (10.87 ms/token, p50 10.19 p99 22.86, 256 tokens)
+[bs1] g_ours_C32_law problem 20: 104.25 tok/s (9.59 ms/token, p50 8.82 p99 21.13, 256 tokens)
+[bs1] g_ours_C32_law problem 21: 90.57 tok/s (11.04 ms/token, p50 10.60 p99 21.45, 256 tokens)
+[bs1] g_ours_C32_law problem 22: 84.80 tok/s (11.79 ms/token, p50 11.59 p99 22.08, 256 tokens)
+[bs1] g_ours_C32_law problem 23: 99.21 tok/s (10.08 ms/token, p50 9.42 p99 20.39, 256 tokens)
+[bs1] g_ours_C32_law problem 24: 95.22 tok/s (10.50 ms/token, p50 9.46 p99 23.08, 256 tokens)
+[bs1] g_ours_C32_law problem 25: 100.89 tok/s (9.91 ms/token, p50 9.03 p99 21.51, 256 tokens)
+[bs1] g_ours_C32_law problem 26: 88.95 tok/s (11.24 ms/token, p50 10.43 p99 23.45, 256 tokens)
+[bs1] g_ours_C32_law problem 27: 89.82 tok/s (11.13 ms/token, p50 10.47 p99 21.54, 256 tokens)
+[bs1] g_ours_C32_law problem 28: 92.78 tok/s (10.78 ms/token, p50 9.96 p99 25.58, 256 tokens)
+[bs1] g_ours_C32_law problem 29: 88.56 tok/s (11.29 ms/token, p50 10.22 p99 21.55, 256 tokens)
++ local rc=0
++ echo 'g_ours_C32_law launch 2 rc=0'
+g_ours_C32_law launch 2 rc=0
+++ date +%s
++ echo 'g_ours_C32_law 2 0 161'
++ '[' 0 = 124 ']'
++ ftg hybrid8 0.25 2
++ local v=hybrid8 r=0.25 L=2 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8")
++ cd /work/ft
++ '[' hybrid8 = hybrid8 ']'
++ export FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ cl /work/models/gpt-oss-120b g_ft_hybrid8_r0.25 2 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8_r0.25 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790830257
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid8_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 4704
++ local l=4704
++ '[' 4704 -lt 120 ']'
++ '[' 3600 -gt 4704 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid8_r0.25 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.25}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log --ft hybrid --cache-rate 0.25 '--ft-extra=--moe-cpu-threads 8'
+[bs1] g_ft_hybrid8_r0.25: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '32879', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.25', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8_r0.25 problem 0: 61.86 tok/s (16.16 ms/token, p50 15.17 p99 31.32, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 1: 60.65 tok/s (16.49 ms/token, p50 15.93 p99 31.36, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 2: 59.27 tok/s (16.87 ms/token, p50 16.41 p99 32.26, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 3: 58.67 tok/s (17.05 ms/token, p50 16.06 p99 32.34, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 4: 54.52 tok/s (18.34 ms/token, p50 17.98 p99 32.32, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 5: 61.73 tok/s (16.20 ms/token, p50 15.28 p99 35.58, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 6: 66.65 tok/s (15.00 ms/token, p50 14.00 p99 30.86, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 7: 59.04 tok/s (16.94 ms/token, p50 15.99 p99 33.73, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 8: 56.58 tok/s (17.67 ms/token, p50 16.94 p99 35.26, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 9: 59.42 tok/s (16.83 ms/token, p50 16.53 p99 35.94, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 10: 56.48 tok/s (17.71 ms/token, p50 17.44 p99 33.53, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 11: 70.87 tok/s (14.11 ms/token, p50 12.70 p99 31.79, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 12: 68.83 tok/s (14.53 ms/token, p50 12.90 p99 35.21, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 13: 69.21 tok/s (14.45 ms/token, p50 13.07 p99 33.43, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 14: 58.29 tok/s (17.16 ms/token, p50 16.60 p99 34.86, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 15: 65.31 tok/s (15.31 ms/token, p50 14.09 p99 33.20, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 16: 62.76 tok/s (15.93 ms/token, p50 15.02 p99 31.32, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 17: 64.86 tok/s (15.42 ms/token, p50 14.49 p99 34.12, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 18: 66.24 tok/s (15.10 ms/token, p50 13.89 p99 33.60, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 19: 80.46 tok/s (12.43 ms/token, p50 11.25 p99 32.53, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 20: 61.42 tok/s (16.28 ms/token, p50 15.92 p99 31.12, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 21: 54.14 tok/s (18.47 ms/token, p50 18.46 p99 32.02, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 22: 55.32 tok/s (18.08 ms/token, p50 17.90 p99 33.61, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 23: 63.11 tok/s (15.84 ms/token, p50 14.95 p99 33.08, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 24: 65.81 tok/s (15.20 ms/token, p50 13.79 p99 34.02, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 25: 63.58 tok/s (15.73 ms/token, p50 14.73 p99 34.36, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 26: 58.21 tok/s (17.18 ms/token, p50 16.84 p99 32.58, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 27: 58.48 tok/s (17.10 ms/token, p50 16.87 p99 31.41, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 28: 59.84 tok/s (16.71 ms/token, p50 15.97 p99 30.54, 256 tokens)
+[bs1] g_ft_hybrid8_r0.25 problem 29: 61.27 tok/s (16.32 ms/token, p50 15.74 p99 31.44, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8_r0.25 launch 2 rc=0'
+g_ft_hybrid8_r0.25 launch 2 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8_r0.25 2 0 224'
++ '[' 0 = 124 ']'
++ for pair in 51:0.40 32:0.25 14:0.111
++ C=14
++ r=0.111
+++ pick g_ft_offload_r0.111 g_ft_hybrid8_r0.111 g_ft_hybrid8f0_r0.111
+++ /work/ft/.venv/bin/python - /w/results/088_slowlink_fair@vast/bs1.jsonl g_ft_offload_r0.111 g_ft_hybrid8_r0.111 g_ft_hybrid8f0_r0.111
++ fb=g_ft_hybrid8_r0.111
+++ echo g_ft_hybrid8_r0.111
+++ cut -d_ -f3
++ v=hybrid8
++ echo 'gpt-oss C14: ours law, FreeToken hybrid8'
++ tee -a /w/results/088_slowlink_fair@vast/selection.txt
+gpt-oss C14: ours law, FreeToken hybrid8
++ oursg 14 2
++ cl /work/models/gpt-oss-120b g_ours_C14_law 2 '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
++ local hf=/work/models/gpt-oss-120b lab=g_ours_C14_law L=2 'meta={"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790830481
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 4480
++ local l=4480
++ '[' 4480 -lt 120 ']'
++ '[' 3600 -gt 4480 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ours_C14_law --meta '{"model": "gpt-oss-120b", "system": "ours v2", "C": 14, "table": "0,0,0,1,1"}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.log --extra '{"min_p": 0.0, "seed": 1234, "backend_sampling": true}' --cmd 'env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\''\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host'\'' --port {port}'
+[bs1] g_ours_C14_law: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd env LLAMA_EC_POLICY=dfa LLAMA_EC_KAPPA=1 LLAMA_EC_MAILBOX=1 LLAMA_EC_TDEC=1 LLAMA_EC_HELPERS=22 LLAMA_EC_SLOTS=14 LLAMA_EC_FETCH=0,0,0,1,1 LLAMA_EC_STATS=/w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.json /work/lc-ec/build/bin/llama-server -m /work/models/gpt-oss-120b-MXFP4.gguf -ngl 99 -fa on -lm none -t 24 -np 1 -c 8448 --no-webui -ot '\.ffn_(up|down|gate|gate_up)_exps=CUDA_Host' --port 43065
+[bs1] g_ours_C14_law problem 0: 61.80 tok/s (16.18 ms/token, p50 15.15 p99 29.93, 256 tokens)
+[bs1] g_ours_C14_law problem 1: 59.79 tok/s (16.73 ms/token, p50 16.19 p99 32.62, 256 tokens)
+[bs1] g_ours_C14_law problem 2: 57.94 tok/s (17.26 ms/token, p50 17.27 p99 31.51, 256 tokens)
+[bs1] g_ours_C14_law problem 3: 59.44 tok/s (16.82 ms/token, p50 15.69 p99 28.98, 256 tokens)
+[bs1] g_ours_C14_law problem 4: 53.60 tok/s (18.66 ms/token, p50 18.28 p99 30.02, 256 tokens)
+[bs1] g_ours_C14_law problem 5: 59.02 tok/s (16.94 ms/token, p50 16.68 p99 28.59, 256 tokens)
+[bs1] g_ours_C14_law problem 6: 57.25 tok/s (17.47 ms/token, p50 17.00 p99 29.99, 256 tokens)
+[bs1] g_ours_C14_law problem 7: 55.97 tok/s (17.87 ms/token, p50 17.92 p99 31.23, 256 tokens)
+[bs1] g_ours_C14_law problem 8: 58.55 tok/s (17.08 ms/token, p50 16.62 p99 30.88, 256 tokens)
+[bs1] g_ours_C14_law problem 9: 62.03 tok/s (16.12 ms/token, p50 15.48 p99 30.00, 256 tokens)
+[bs1] g_ours_C14_law problem 10: 55.42 tok/s (18.05 ms/token, p50 17.79 p99 31.45, 256 tokens)
+[bs1] g_ours_C14_law problem 11: 66.10 tok/s (15.13 ms/token, p50 14.38 p99 28.45, 256 tokens)
+[bs1] g_ours_C14_law problem 12: 59.42 tok/s (16.83 ms/token, p50 15.43 p99 31.18, 256 tokens)
+[bs1] g_ours_C14_law problem 13: 64.82 tok/s (15.43 ms/token, p50 14.61 p99 30.82, 256 tokens)
+[bs1] g_ours_C14_law problem 14: 56.54 tok/s (17.69 ms/token, p50 17.72 p99 31.74, 256 tokens)
+[bs1] g_ours_C14_law problem 15: 60.64 tok/s (16.49 ms/token, p50 15.63 p99 28.87, 256 tokens)
+[bs1] g_ours_C14_law problem 16: 63.92 tok/s (15.65 ms/token, p50 14.75 p99 33.64, 256 tokens)
+[bs1] g_ours_C14_law problem 17: 59.58 tok/s (16.78 ms/token, p50 16.43 p99 30.13, 256 tokens)
+[bs1] g_ours_C14_law problem 18: 62.17 tok/s (16.09 ms/token, p50 15.09 p99 29.50, 256 tokens)
+[bs1] g_ours_C14_law problem 19: 59.54 tok/s (16.80 ms/token, p50 16.72 p99 30.49, 256 tokens)
+[bs1] g_ours_C14_law problem 20: 60.96 tok/s (16.40 ms/token, p50 15.81 p99 31.06, 256 tokens)
+[bs1] g_ours_C14_law problem 21: 56.63 tok/s (17.66 ms/token, p50 17.07 p99 28.94, 256 tokens)
+[bs1] g_ours_C14_law problem 22: 54.11 tok/s (18.48 ms/token, p50 18.52 p99 29.28, 256 tokens)
+[bs1] g_ours_C14_law problem 23: 60.00 tok/s (16.67 ms/token, p50 16.43 p99 30.10, 256 tokens)
+[bs1] g_ours_C14_law problem 24: 56.57 tok/s (17.68 ms/token, p50 17.23 p99 31.02, 256 tokens)
+[bs1] g_ours_C14_law problem 25: 61.93 tok/s (16.15 ms/token, p50 15.67 p99 31.19, 256 tokens)
+[bs1] g_ours_C14_law problem 26: 59.31 tok/s (16.86 ms/token, p50 16.77 p99 31.04, 256 tokens)
+[bs1] g_ours_C14_law problem 27: 59.21 tok/s (16.89 ms/token, p50 16.65 p99 28.20, 256 tokens)
+[bs1] g_ours_C14_law problem 28: 58.84 tok/s (17.00 ms/token, p50 16.74 p99 29.70, 256 tokens)
+[bs1] g_ours_C14_law problem 29: 58.68 tok/s (17.04 ms/token, p50 16.18 p99 29.54, 256 tokens)
++ local rc=0
++ echo 'g_ours_C14_law launch 2 rc=0'
+g_ours_C14_law launch 2 rc=0
+++ date +%s
++ echo 'g_ours_C14_law 2 0 210'
++ '[' 0 = 124 ']'
++ ftg hybrid8 0.111 2
++ local v=hybrid8 r=0.111 L=2 b=offload
++ x=()
++ local -a x
++ case $v in
++ b=hybrid
++ x=("--ft-extra=--moe-cpu-threads 8")
++ cd /work/ft
++ '[' hybrid8 = hybrid8 ']'
++ export FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ FREETOKEN_BENCHBW_PATH=/work/benchbw_t8.json
++ cl /work/models/gpt-oss-120b g_ft_hybrid8_r0.111 2 '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
++ local hf=/work/models/gpt-oss-120b lab=g_ft_hybrid8_r0.111 L=2 'meta={"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}'
++ shift 4
++ waitfree
+++ seq 120
++ for i in $(seq 120)
+++ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits
+++ head -1
++ u=2
++ '[' 2 -lt 1500 ']'
++ return
+++ date +%s
++ local t0=1790830691
+++ seq -s, 0 29
++ R 60m /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid8_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
+++ secs 60m
+++ case $1 in
+++ echo 3600
++ local t=3600
++ shift
+++ left
++++ date +%s
+++ echo 4270
++ local l=4270
++ '[' 4270 -lt 120 ']'
++ '[' 3600 -gt 4270 ']'
++ timeout -k 30 3600 /work/ft/.venv/bin/python /w/jobs/ec2/bs1_client.py --model /work/models/gpt-oss-120b --problems 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29 --decode 256 --greedy --warmup once --warmup-prompt /work/warmup.txt --launch 2 --label g_ft_hybrid8_r0.111 --meta '{"model": "gpt-oss-120b", "system": "FreeToken hybrid", "variant": "hybrid8", "rate": 0.111}' --json /w/results/088_slowlink_fair@vast/bs1.jsonl --log /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log --ft hybrid --cache-rate 0.111 '--ft-extra=--moe-cpu-threads 8'
+[bs1] g_ft_hybrid8_r0.111: sampling {'temperature': 0.0, 'top_p': 1.0, 'top_k': -1} <- greedy (--greedy); cmd ['/work/ft/.venv/bin/python', '-m', 'freetoken.cli', 'serve', '--model', '/work/models/gpt-oss-120b', '--host', '127.0.0.1', '--port', '46199', '--moe-backend', 'hybrid', '--max-running-requests', '1', '--max-seq-len-override', '8448', '--memory-ratio', '0.9', '--cuda-graph-max-bs', '1', '--moe-hybrid-max-fetch', '-1', '--moe-cache-rate', '0.111', '--moe-cpu-threads', '8']
+[bs1] g_ft_hybrid8_r0.111 problem 0: 37.93 tok/s (26.36 ms/token, p50 26.89 p99 40.00, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 1: 37.87 tok/s (26.40 ms/token, p50 26.52 p99 41.15, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 2: 36.99 tok/s (27.03 ms/token, p50 27.83 p99 41.59, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 3: 37.58 tok/s (26.61 ms/token, p50 26.02 p99 40.77, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 4: 35.54 tok/s (28.13 ms/token, p50 28.25 p99 39.14, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 5: 38.05 tok/s (26.28 ms/token, p50 26.22 p99 41.58, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 6: 36.42 tok/s (27.46 ms/token, p50 27.75 p99 42.30, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 7: 36.85 tok/s (27.14 ms/token, p50 27.02 p99 40.67, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 8: 36.24 tok/s (27.59 ms/token, p50 27.57 p99 42.36, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 9: 35.45 tok/s (28.21 ms/token, p50 27.95 p99 43.18, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 10: 34.94 tok/s (28.62 ms/token, p50 28.80 p99 40.09, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 11: 43.08 tok/s (23.21 ms/token, p50 22.24 p99 41.49, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 12: 37.36 tok/s (26.77 ms/token, p50 26.39 p99 40.94, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 13: 38.30 tok/s (26.11 ms/token, p50 25.91 p99 39.17, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 14: 36.07 tok/s (27.72 ms/token, p50 27.75 p99 41.63, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 15: 39.12 tok/s (25.56 ms/token, p50 25.62 p99 41.08, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 16: 38.25 tok/s (26.15 ms/token, p50 25.60 p99 40.96, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 17: 38.39 tok/s (26.05 ms/token, p50 25.37 p99 40.81, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 18: 40.88 tok/s (24.46 ms/token, p50 23.62 p99 40.10, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 19: 38.23 tok/s (26.16 ms/token, p50 26.21 p99 40.83, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 20: 39.29 tok/s (25.45 ms/token, p50 24.94 p99 40.18, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 21: 36.32 tok/s (27.53 ms/token, p50 27.86 p99 41.21, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 22: 34.31 tok/s (29.15 ms/token, p50 29.02 p99 42.01, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 23: 35.90 tok/s (27.86 ms/token, p50 27.73 p99 41.79, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 24: 37.30 tok/s (26.81 ms/token, p50 26.68 p99 41.99, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 25: 37.85 tok/s (26.42 ms/token, p50 26.20 p99 41.16, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 26: 37.76 tok/s (26.49 ms/token, p50 26.47 p99 41.19, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 27: 38.12 tok/s (26.23 ms/token, p50 26.09 p99 39.93, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 28: 36.53 tok/s (27.37 ms/token, p50 27.24 p99 42.38, 256 tokens)
+[bs1] g_ft_hybrid8_r0.111 problem 29: 37.82 tok/s (26.44 ms/token, p50 26.61 p99 39.66, 256 tokens)
++ local rc=0
++ echo 'g_ft_hybrid8_r0.111 launch 2 rc=0'
+g_ft_hybrid8_r0.111 launch 2 rc=0
+++ date +%s
++ echo 'g_ft_hybrid8_r0.111 2 0 307'
++ '[' 0 = 124 ']'
++ cd /work
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log
+++ wc -l
++ echo '... [362 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log
+++ wc -l
++ echo '... [362 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log
+++ wc -l
++ echo '... [362 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log
+++ wc -l
++ echo '... [363 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log
+++ wc -l
++ echo '... [362 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log
+++ wc -l
++ echo '... [361 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log
+++ wc -l
++ echo '... [361 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log
+++ wc -l
++ echo '... [361 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log
+++ wc -l
++ echo '... [359 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log
+++ wc -l
++ echo '... [359 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log
+++ wc -l
++ echo '... [359 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log
++ for f in $OUT/srv_g_ft_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log ']'
++ head -n 200 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log
+++ wc -l
++ echo '... [359 lines in all]'
++ tail -n 60 /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.111_L2.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.25_L2.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8_r0.40_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.111_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.25_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_hybrid8f0_r0.40_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.111_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.25_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L1.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ft_offload_r0.40_L2.log.keep ']'
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_llama_n27_t8_L1.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_llama_n27_t8_L1.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_llama_n27_tall_L1.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_llama_n27_tall_L1.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L1.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C14_law_L2.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L1.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C32_law_L2.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L1.log
++ for f in $OUT/srv_*.log
++ '[' -f /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.log.keep ']'
++ tail -n 40 /w/results/088_slowlink_fair@vast/srv_g_ours_C51_law_L2.log
++ find /w/results/088_slowlink_fair@vast -name 'srv_*.log' -delete
++ cat /w/results/088_slowlink_fair@vast/ft_lines.txt
+== srv_g_ft_hybrid8_r0.111_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe-hybrid-max-fetch auto: fetching 51.7% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+moe_cpu_threads=8
+moe_hybrid_max_fetch=-1
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8_r0.111_L2.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe-hybrid-max-fetch auto: fetching 51.7% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+moe_cpu_threads=8
+moe_hybrid_max_fetch=-1
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8_r0.25_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe-hybrid-max-fetch auto: fetching 51.7% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+moe_cpu_threads=8
+moe_hybrid_max_fetch=-1
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8_r0.25_L2.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe-hybrid-max-fetch auto: fetching 51.7% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+moe_cpu_threads=8
+moe_hybrid_max_fetch=-1
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8_r0.40_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe-hybrid-max-fetch auto: fetching 51.7% of each decode step's expert misses over PCIe (benched PCIe/CPU bandwidth ratio), the rest on the CPU
+moe_cpu_threads=8
+moe_hybrid_max_fetch=-1
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8f0_r0.111_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe_cpu_threads=8
+moe_hybrid_max_fetch=0
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8f0_r0.25_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe_cpu_threads=8
+moe_hybrid_max_fetch=0
+moe_strategy='hybrid'
+== srv_g_ft_hybrid8f0_r0.40_L1.log.keep
+CPU MoE executor ready: threads=8 (pinned to cores 0..14) isa=avx2
+moe_cpu_threads=8
+moe_hybrid_max_fetch=0
+moe_strategy='hybrid'
+== srv_g_ft_offload_r0.111_L1.log.keep
+moe_cpu_threads=0
+moe_hybrid_max_fetch=-1
+moe_strategy='offload'
+== srv_g_ft_offload_r0.25_L1.log.keep
+moe_cpu_threads=0
+moe_hybrid_max_fetch=-1
+moe_strategy='offload'
+== srv_g_ft_offload_r0.40_L1.log.keep
+moe_cpu_threads=0
+moe_hybrid_max_fetch=-1
+moe_strategy='offload'
+== srv_g_ft_offload_r0.40_L2.log.keep
+moe_cpu_threads=0
+moe_hybrid_max_fetch=-1
+moe_strategy='offload'
++ /work/ft/.venv/bin/python - /w/results/088_slowlink_fair@vast
++ tee /w/results/088_slowlink_fair@vast/summary.txt
+g_ft_offload_r0.111        L1:  27.67 (n=30)  vram [28.4]
+g_ft_hybrid8_r0.111        L1:  37.49 (n=30) L2:  37.49 (n=30)  vram [28.4]
+g_ft_hybrid8f0_r0.111      L1:  13.76 (n=30)  vram [28.4]
+g_ours_C14_law             L1:  59.61 (n=30) L2:  59.33 (n=30)  vram [9.5]
+g_ft_offload_r0.25         L1:  52.79 (n=30)  vram [28.4]
+g_ft_hybrid8_r0.25         L1:  62.08 (n=30) L2:  62.10 (n=30)  vram [28.4]
+g_ft_hybrid8f0_r0.25       L1:  13.67 (n=30)  vram [28.4]
+g_ours_C32_law             L1:  95.12 (n=30) L2:  94.32 (n=30)  vram [17.5]
+g_ft_offload_r0.40         L1:  92.55 (n=30) L2:  92.51 (n=30)  vram [28.4]
+g_ft_hybrid8_r0.40         L1:  92.46 (n=30)  vram [28.4]
+g_ft_hybrid8f0_r0.40       L1:  13.68 (n=30)  vram [28.4]
+g_ours_C51_law             L1: 137.86 (n=30) L2: 139.30 (n=30)  vram [25.9]
+g_llama_n27_t8             L1:  39.99 (n=30)  vram [17.4]
+g_llama_n27_tall           L1:  32.80 (n=30)  vram [17.4]
+srv_g_ours_C14_law_L1.json         table 0,0,0,1,1 misses/token 61.5 fetches 9.2
+srv_g_ours_C14_law_L2.json         table 0,0,0,1,1 misses/token 61.5 fetches 9.2
+srv_g_ours_C32_law_L1.json         table 0,0,0,1,1 misses/token 31.0 fetches 2.6
+srv_g_ours_C32_law_L2.json         table 0,0,0,1,1 misses/token 31.0 fetches 2.6
+srv_g_ours_C51_law_L1.json         table 0,0,0,1,1 misses/token 15.7 fetches 0.7
+srv_g_ours_C51_law_L2.json         table 0,0,0,1,1 misses/token 15.7 fetches 0.7
+C14: ours L2 59.3 | FreeToken best = hybrid8 L2 37.5 (job 085 best 24.6) | ours/FT paired 1.583 (n=30) | hybrid8 L1 37.5 vs 085 hybrid 12.0 (212%)
+C32: ours L2 94.3 | FreeToken best = hybrid8 L2 62.1 (job 085 best 48.2) | ours/FT paired 1.526 (n=30) | hybrid8 L1 62.1 vs 085 hybrid 30.5 (104%)
+C51: ours L2 139.3 | FreeToken best = offload L2 92.5 (job 085 best 86.0) | ours/FT paired 1.512 (n=30) | hybrid8 L1 92.5 vs 085 hybrid 66.0 (40%)
+llama.cpp n27: -t 8 39.99 (law 36.23), -t all 32.8 (law [41.31])
+++ cat /w/results/088_slowlink_fair@vast/oneline.txt
++ ONE='088 ours/FT(L2): C14 59.3/37.5=1.58(hybrid8) C32 94.3/62.1=1.53(hybrid8) C51 139.3/92.5=1.51(offload); llama -t8 40.0 (law 36.23) -tall 32.8; table 0,0,0,1,1'
++ python3 /w/jobs/ec2/manifest.py /w/results/088_slowlink_fair@vast 088_slowlink_fair@vast 1790819361 '088 ours/FT(L2): C14 59.3/37.5=1.58(hybrid8) C32 94.3/62.1=1.53(hybrid8) C51 139.3/92.5=1.51(offload); llama -t8 40.0 (law 36.23) -tall 32.8; table 0,0,0,1,1' law_table=0,0,0,1,1 cpu_mask_t8=5555
+manifest: 70 files, 11637 s; 088 ours/FT(L2): C14 59.3/37.5=1.58(hybrid8) C32 94.3/62.1=1.53(hybrid8) C51 139.3/92.5=1.51(offload); llama -t8 40.0 (law 36.23) -tall 32.8; table 0,0,0,1,1
++ echo 'SUMMARY 088 ours/FT(L2): C14 59.3/37.5=1.58(hybrid8) C32 94.3/62.1=1.53(hybrid8) C51 139.3/92.5=1.51(offload); llama -t8 40.0 (law 36.23) -tall 32.8; table 0,0,0,1,1'
+SUMMARY 088 ours/FT(L2): C14 59.3/37.5=1.58(hybrid8) C32 94.3/62.1=1.53(hybrid8) C51 139.3/92.5=1.51(offload); llama -t8 40.0 (law 36.23) -tall 32.8; table 0,0,0,1,1

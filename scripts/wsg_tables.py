@@ -100,6 +100,8 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     M("ftLeadGptMax", f"{max(100 * (x['ratio'][0] - 1) for x in g):.0f}")
     M("ftLeadQwenMin", f"{min(100 * (x['ratio'][0] - 1) for x in q):.0f}")
     M("ftLeadQwenMax", f"{max(100 * (x['ratio'][0] - 1) for x in q):.0f}")
+    M("ftRatioGptMin", f"{min(x['ratio'][0] for x in g):.2f}"); M("ftRatioGptMax", f"{max(x['ratio'][0] for x in g):.2f}")
+    M("ftRatioQwenMin", f"{min(x['ratio'][0] for x in q):.2f}"); M("ftRatioQwenMax", f"{max(x['ratio'][0] for x in q):.2f}")
     M("llamaXMin", f"{min(x['xl'] for x in rows):.1f}")
     M("llamaXMax", f"{max(x['xl'] for x in rows):.1f}")
     lims = [x["ours"] / x["limit"] for x in rows if x.get("limit")]

@@ -67,6 +67,11 @@ def points():
             for r in hp["rows"]:
                 if "ours_over_ft_L2" in r:
                     add(job, host, r["model"], r["budget"], r["ours_variant"].replace("cur", "fixed"), r["ours_over_ft_L2"][0], name)
+    # job 089: Table 1's six cells rerun on a second host (Ryzen 9 9950X, stock-clock card), law table, launch 2
+    sc = load("stockclock_089.json")
+    if sc:
+        for r in sc["rows"]:
+            add("089_headline_stockclock@vast", "9950X, stock clock", r["model"], r["budget"], "law", r["ours_over_ft_L2"][0], "stockclock_089.json")
     return pts
 
 

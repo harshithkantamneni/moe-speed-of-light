@@ -3,6 +3,36 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 1 October, morning: Table 1 on a second host (job `089_headline_stockclock@vast`; 091/092 running)
+
+- **Job 089 (RTX 5090 at the common 14,001 MHz clock, 400 W, Ryzen 9 9950X; 3.0 h, 2.4 USD plus the 1.2 USD of the
+  no-network host).** All six cells of Table 1 rerun with FreeToken's backend carried over from job 081 and both
+  launch orders, then LRU at every cell and `llama-batched-bench` at 25%. 36 runs, 1,080 rows, nothing skipped.
+- **The ratios shrink.** Ours / FreeToken 1.21 / 1.20 / 1.09 on gpt-oss (Table 1: 1.29 / 1.28 / 1.15) and
+  1.03 / 1.05 / 0.97 on Qwen3 (1.03 / 1.15 / 1.05): ours leads at five cells, FreeToken at Qwen3 43.75% (CI
+  0.962-0.987). Every ratio is 0.01-0.11 below Table 1's; the prediction was within +-0.06 (held at one cell).
+  Order effect at most 1.0%.
+- **The cause is the host, not the card.** This CPU reads 56 GB/s at the helper count against listing B's 72 (-22%;
+  66 vs 78 combined), the link is the same 53 GB/s, and the card's memory clock is 18% lower. FreeToken's offload
+  backend, which runs no expert on the CPU, lost only 5-8%; its hybrid lost 6-16%, ours 12-17%, llama.cpp 16-17%.
+  The law's tables moved to 0,0,1,2,3 and 0,0,1,2,2,3,4,5,6 (more copying). Fig. 3 now has eight hosts and the
+  gpt-oss lead reads as a function of the CPU-to-link ratio: 1.09-1.22x at 1.05-1.14, 1.15-1.29x at 1.28,
+  1.51-1.58x at 2.96.
+- **LRU attribution.** LRU with the law's table runs 6-21% slower than decayed frequency across the six cells and
+  trails FreeToken at four of them (0.81-0.97); it leads only at gpt-oss 25% (1.045). The admission policy is
+  77-84% of the lead at gpt-oss 25 / 40% and more than the whole lead elsewhere. Prediction 5's 10-30% band failed
+  at the two high budgets (7.8%, 6.4%), and LRU did not keep the lead at gpt-oss 11% as predicted.
+- **Prefill and batch.** Ours runs 79-83% of stock llama.cpp's prefill at 512 / 2,048 tokens and 77-79% of its decode
+  at 2 and 4 parallel sequences (both models, 25%); single-sequence decode in the same tool 3.7-5.4x stock. Now
+  reported in the Design paragraph and Limitations instead of "not measured".
+- **Scorecard:** 28 clauses for 089 (9 held, 7 on the point, 12 failed); the "after the reviews" era is now 39
+  clauses (14 / 10 / 15). `prereg/stockclock_outcome_089.md`, `prereg/stockclock_089.json`.
+- **Paper:** abstract and contributions carry both hosts (9-21% and -3 to +5% on the second); a "same table on a
+  second host" paragraph in the head-to-head section; LRU attribution sentence in the ablation paragraph; prefill /
+  batch cost in Design and Limitations; Fig. 3 caption; appendix log.
+- **Spend:** balance 20.12 USD after 089 (ledger estimate 38.29 of the 62 cap). 091 (4090, 0.59/h) and 092 (3090,
+  0.48/h) still running, 1.3 h in.
+
 ## 1 October, early: tranche 1 lands (jobs 088 and 090; 089 running; 091/092 launched)
 
 - **Job 090, parity (RTX PRO 6000, 1.9 h, 1.8 USD).** Full-vocabulary KL of our cache (25%) against stock llama.cpp

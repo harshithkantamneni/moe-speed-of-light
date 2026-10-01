@@ -403,6 +403,27 @@ def crossrental():
     pts = load("ratio_points.json")
     r = {p["job"][:3]: p["ratio"] for p in pts if p["model"] == "gpt-oss-120b" and p["budget"] == "25%" and p["table"] == "fixed"}
     M("fixedRatioA", f"{r['076']:.3f}"); M("fixedRatioB", f"{r['077']:.3f}"); M("fixedRatioC", f"{r['081']:.3f}")
+    # distinct hosts behind the points: one per Vast offer in the ledger (jobs 080 and 081 ran on the same host)
+    led = json.load(open(os.path.join(ROOT, "gpu", "vast_ledger.json")))
+    led = led if isinstance(led, list) else led.get("instances", led)
+    offer = {}
+    for it in (led if isinstance(led, list) else led.values()):
+        if it.get("job") and it.get("offer"):
+            offer[it["job"]] = it["offer"]
+    jobs = {p["job"] for p in pts}
+    hosts = {offer[j] for j in jobs if j in offer}
+    assert len(hosts) == len([j for j in jobs if j in offer]) - 1, (jobs, hosts)   # 080 and 081 share one offer
+    M("ratioHostsN", {7: "seven", 8: "eight", 9: "nine", 10: "ten"}.get(len(hosts), str(len(hosts))))
+    M("ratioJobsN", str(len(jobs)))
+    # the gpt-oss lead at the hosts whose CPU-to-link ratio is near 1 (x <= 1.15), the headline machine, and the slow link
+    g = [p for p in pts if p["model"] == "gpt-oss-120b"]
+    near = [p["ratio"] for p in g if p["x"] <= 1.15]
+    M("ratioNearMin", f"{min(near):.2f}"); M("ratioNearMax", f"{max(near):.2f}")
+    M("ratioNearXMin", f"{min(p['x'] for p in g if p['x'] <= 1.15):.2f}"); M("ratioNearXMax", f"{max(p['x'] for p in g if p['x'] <= 1.15):.2f}")
+    M("ratioNearHostsN", {2: "two", 3: "three", 4: "four", 5: "five"}[len({p["job"] for p in g if p["x"] <= 1.15})])
+    M("ratioXB", f"{[p['x'] for p in g if p['job'].startswith('081')][0]:.2f}")
+    M("ratioXSlow", f"{[p['x'] for p in g if p['job'].startswith('088')][0]:.2f}")
+    M("ratioXStock", f"{[p['x'] for p in g if p['job'].startswith('089')][0]:.2f}")
     h = load("halfpcie_085.json")["means"]
     hy = [h[f"g_ft_hybrid_r{b} L1"] for b in ("0.111", "0.25", "0.40")]
     of = [h[f"g_ft_offload_r{b} L1"] for b in ("0.111", "0.25", "0.40")]
@@ -436,6 +457,66 @@ def slowlink():
     m = re.search(r"fetching ([\d.]+)% of each decode step", fl)
     M("slFetchFrac", m.group(1) if m else "--")
     M("slFtProbeCpu", f"{d['ft_probe']['cpu']:.1f}"); M("slFtProbePcie", f"{d['ft_probe']['pcie']:.1f}")
+
+
+def stockclock():
+    d = load("stockclock_089.json")
+    rows = {(r["model"][:3], r["budget"]): r for r in d["rows"]}
+    g = [rows[("gpt", b)] for b in ("11%", "25%", "40%")]
+    q = [rows[("Qwe", b)] for b in ("12.5%", "25%", "43.75%")]
+    M("scLeadGptMin", f"{100 * (min(r['ours_over_ft_L2'][0] for r in g) - 1):.0f}")
+    M("scLeadGptMax", f"{100 * (max(r['ours_over_ft_L2'][0] for r in g) - 1):.0f}")
+    def signed(v):   # a signed percentage with a real minus sign
+        return f"${v:.0f}$" if v < 0 else f"+{v:.0f}"
+    M("scLeadQwenMin", signed(100 * (min(r['ours_over_ft_L2'][0] for r in q) - 1)))
+    M("scLeadQwenMax", signed(100 * (max(r['ours_over_ft_L2'][0] for r in q) - 1)))
+    for r, tag in zip(g + q, ("GLow", "GMid", "GHigh", "QLow", "QMid", "QHigh")):
+        M(f"scFt{tag}", f"{r['ours_over_ft_L2'][0]:.2f}")
+        M(f"scFtLo{tag}", f"{r['ours_over_ft_L2'][1]:.3f}"); M(f"scFtHi{tag}", f"{r['ours_over_ft_L2'][2]:.3f}")
+        M(f"scOurs{tag}", f"{r['ours']:.1f}"); M(f"scFtSpeed{tag}", f"{r['ft']:.1f}"); M(f"scLlama{tag}", f"{r['llama']:.1f}")
+    allr = g + q
+    M("scRatioDiffMin", f"{min(r['vs_b']['ratio_diff'] for r in allr):+.2f}"); M("scRatioDiffMax", f"{max(r['vs_b']['ratio_diff'] for r in allr):+.2f}")
+    M("scOursDropMin", f"{100 * -max(r['vs_b']['ours'] for r in allr):.0f}"); M("scOursDropMax", f"{100 * -min(r['vs_b']['ours'] for r in allr):.0f}")
+    M("scFtDropMin", f"{100 * -max(r['vs_b']['ft'] for r in allr):.0f}"); M("scFtDropMax", f"{100 * -min(r['vs_b']['ft'] for r in allr):.0f}")
+    M("scLlamaDropMin", f"{100 * -max(r['vs_b']['llama'] for r in allr):.0f}"); M("scLlamaDropMax", f"{100 * -min(r['vs_b']['llama'] for r in allr):.0f}")
+    M("scOrderMax", f"{100 * max(abs(r['order_diff']) for r in allr):.1f}")
+    M("scLruSlowMin", f"{100 * (1 - max(r['lru_over_law'][0] for r in allr)):.0f}"); M("scLruSlowMax", f"{100 * (1 - min(r['lru_over_law'][0] for r in allr)):.0f}")
+    M("scLruFtMin", f"{min(r['lru_over_ft'][0] for r in allr):.2f}"); M("scLruFtMax", f"{max(r['lru_over_ft'][0] for r in allr):.2f}")
+    M("scLruFtGLow", f"{rows[('gpt', '11%')]['lru_over_ft'][0]:.2f}"); M("scLruFtGMid", f"{rows[('gpt', '25%')]['lru_over_ft'][0]:.2f}")
+    M("scLruFtQLow", f"{rows[('Qwe', '12.5%')]['lru_over_ft'][0]:.2f}")
+    M("scLlamaXMin", f"{min(r['ours_over_llama'][0] for r in allr):.1f}"); M("scLlamaXMax", f"{max(r['ours_over_llama'][0] for r in allr):.1f}")
+    # the two hosts: the law's own rates (B_c at the helper count, zero-copy B_p, median B_cp) and tables, and the cards
+    ha, hb = d["hosts"]["089 (9950X, stock clock)"], d["hosts"]["listing B (081)"]
+    M("scCpuBw", f"{ha['B_c']:.0f}"); M("scCpuBwB", f"{hb['B_c']:.0f}")
+    M("scPcieBw", f"{ha['B_p']:.0f}"); M("scPcieBwB", f"{hb['B_p']:.0f}")
+    M("scBothBw", f"{ha['B_both']:.0f}"); M("scBothBwB", f"{hb['B_both']:.0f}")
+    M("scCpuBwDrop", f"{100 * -d['hosts']['089_over_B']['B_c']:.0f}"); M("scBothBwDrop", f"{100 * -d['hosts']['089_over_B']['B_both']:.0f}")
+    M("scPowerW", f"{ha['power_limit_w']:.0f}"); M("scPowerWB", f"{hb['power_limit_w']:.0f}")
+    M("scMemClk", f"{ha['mem_clock_mhz']:,}"); M("scMemClkB", f"{hb['mem_clock_mhz']:,}")
+    M("scTableGptB", ",".join(str(x) for x in hb["table_gpt"])); M("scTableQwenB", ",".join(str(x) for x in hb["table_qwen"]))
+    # cells led with the interval rule, and the drops split by FreeToken's backend (offload runs no expert on the CPU)
+    ld = d["leads"]
+    W = {0: "none", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+    M("scOursLeadCells", W[len(ld["ours_leads_ft"])]); M("scFtLeadCells", W[len(ld["ft_leads_ours"])])
+    M("scLruTrailCells", W[len(ld["lru_trails_ft"])]); M("scLruLeadCells", W[len(ld["lru_leads_ft"])])
+    M("scRatioDropMin", f"{min(abs(r['vs_b']['ratio_diff']) for r in allr):.2f}"); M("scRatioDropMax", f"{max(abs(r['vs_b']['ratio_diff']) for r in allr):.2f}")
+    off = [r for r in allr if r["ft_variant"] == "offload"]; hyb = [r for r in allr if r["ft_variant"] == "hybrid"]
+    M("scFtOffDropMin", f"{100 * -max(r['vs_b']['ft'] for r in off):.0f}"); M("scFtOffDropMax", f"{100 * -min(r['vs_b']['ft'] for r in off):.0f}")
+    M("scFtHybDropMin", f"{100 * -max(r['vs_b']['ft'] for r in hyb):.0f}"); M("scFtHybDropMax", f"{100 * -min(r['vs_b']['ft'] for r in hyb):.0f}")
+    M("scOursOffDropMin", f"{100 * -max(r['vs_b']['ours'] for r in off):.0f}"); M("scOursOffDropMax", f"{100 * -min(r['vs_b']['ours'] for r in off):.0f}")
+    M("scOursHybDropMin", f"{100 * -max(r['vs_b']['ours'] for r in hyb):.0f}"); M("scOursHybDropMax", f"{100 * -min(r['vs_b']['ours'] for r in hyb):.0f}")
+    gsh = [ld["policy_share_of_lead"][f"gpt-oss-120b {b}"] for b in ("25%", "40%")]
+    M("scPolicyShareGptMin", f"{100 * min(gsh):.0f}"); M("scPolicyShareGptMax", f"{100 * max(gsh):.0f}")
+    bb = d["batched_bench_ratios"]
+    pp = [v["pp_ratio"] for m in bb.values() for v in m.values()]
+    tg = [v["tg_ratio"] for m in bb.values() for k, v in m.items() if not k.endswith("pl1")]
+    tg1 = [v["tg_ratio"] for m in bb.values() for k, v in m.items() if k.endswith("pl1")]
+    M("bbPrefillMin", pct(min(pp))); M("bbPrefillMax", pct(max(pp)))
+    M("bbBatchMin", pct(min(tg))); M("bbBatchMax", pct(max(tg)))
+    M("bbSingleMin", f"{min(tg1):.1f}"); M("bbSingleMax", f"{max(tg1):.1f}")
+    import json as _j
+    tg_ = _j.loads(d["fetch_table_law_gptoss.json"])["table"]; tq_ = _j.loads(d["fetch_table_law_qwen3.json"])["table"]
+    M("scTableGpt", ",".join(str(x) for x in tg_)); M("scTableQwen", ",".join(str(x) for x in tq_))
 
 
 def parity():
@@ -493,6 +574,7 @@ def main():
     scorecard()
     crossrental()
     slowlink()
+    stockclock()
     parity()
     clocks()
     with open(P("paper", "wsg_numbers2.tex"), "w") as f:

@@ -31,7 +31,7 @@ cell; then llama-batched-bench at 25% (gpt-oss C32 vs `-ncmoe 27`, Qwen3 C32 vs 
 | Qwen3-30B-A3B | 25% | 53.9 | 51.4 (hybrid) | 18.5 | **1.048 [1.037, 1.059]** | 1.153 | −15% | −6% | −16% | 0.846 | 0.884 [0.874, 0.894] |
 | Qwen3-30B-A3B | 43.75% | 95.8 | 98.3 (offload) | 23.8 | **0.974 [0.962, 0.987]** | 1.049 | −12% | −5% | −16% | 0.936 | 0.913 [0.900, 0.926] |
 
-Ours runs 2.0–4.0× llama.cpp (listing B: 2.0–4.6×). Launch 1 (ours first) against launch 2 (FreeToken first): the
+Ours runs 2.0–4.0× llama.cpp (listing B: 2.0–3.8×). Launch 1 (ours first) against launch 2 (FreeToken first): the
 ratios differ by at most 1.0% (−1.0, +0.2, +0.7, +0.3, −0.2, +0.1%).
 
 **Prefill and batch (llama-batched-bench, 25%, ours ÷ stock llama.cpp).** Prefill at 512 and 2,048 tokens: 0.79–0.80
@@ -40,14 +40,16 @@ single-sequence decode: 3.98–5.40× (gpt-oss), 3.69–4.40× (Qwen3) stock.
 
 **Predictions.**
 1. **Held.** Memory clock 14,001 MHz; device read 1,694 GB/s ≥ 1,500. The job is valid.
-2. **Failed** (4 of 6 cells). Ours ÷ FreeToken within ±0.06 of Table 1: the differences are −0.088, −0.078, −0.061 on
+2. **Failed** (5 of 6 cells; gpt-oss 40% by 0.001). Ours ÷ FreeToken within ±0.06 of Table 1: the differences are −0.088, −0.078, −0.061 on
    gpt-oss and −0.006, −0.105, −0.075 on Qwen3; only Qwen3 12.5% (−0.006) is inside the band, and gpt-oss 40% (−0.061)
    misses it by 0.001. Every cell is below Table 1's ratio. At Qwen3 43.75% FreeToken leads (interval below 1).
 3. **Half held.** Ours' absolute speed 5–20% below listing B's at the GPU-heavy cells (gpt-oss 40%: −12%; Qwen3
-   43.75%: −12%): **held**. Within ±12% at the other four cells: **failed** (−17, −14, −16, −15%). The host-bound cells
+   43.75%: −12%): **held (point)** (cross-rental means, no interval). Within ±12% at the other four cells: **failed**
+   (−17, −14, −16, −15%). The host-bound cells
    lost more than the GPU-bound ones, the opposite of the prediction, because this host's CPU is 22% slower and its
    card only 18% lower-clocked (and FreeToken's offload cells, which run no expert on the CPU, lost 5–8%).
-4. **Held.** Order effect at most 1.0% at every cell (predicted within 3%).
+4. **Held (point).** Order effect at most 1.0% at every cell (predicted within 3%); ratios of means from two launches,
+   no interval for their difference.
 5. **Partly failed.** LRU with the law's table 10–30% slower than decayed frequency at every cell: 18.5, 12.8, 7.8%
    (gpt-oss) and 20.9, 15.4, 6.4% (Qwen3): **failed** at gpt-oss 40% and Qwen3 43.75% (below 10%; their intervals
    exclude 10%), held at the other four. LRU trails FreeToken at Qwen3 12.5% (0.814): **held**. LRU still leads
@@ -67,7 +69,8 @@ listing B 87.5) and the 5090's datasheet 1,792 GB/s, the host-bound limits are 1
 **Reading.** The ratios of Table 1 do not carry over unchanged to a second host: ours leads FreeToken at five of the six
 cells, by 9–21% on gpt-oss and 3–5% at Qwen3 12.5 and 25%, and trails by 2.6% at Qwen3 43.75%. The ratios are 0.01 to
 0.11 below listing B's, more than the ±0.06 we predicted. The cause is the host, not the card: FreeToken's offload
-backend, which runs no expert on the CPU, lost 5–8% (the card's share); every system that uses the CPU lost more — ours
+backend, which runs no expert on the CPU, lost 5–8% at the two cells it runs, so the card explains about that much;
+every system that uses the CPU lost more — ours
 12–17%, FreeToken's hybrid 6–16%, llama.cpp 16–17% — and the law's tables moved from `0,0,1,1,2` / `0,0,1,1,2,3,3,4,5` to
 `0,0,1,2,3` / `0,0,1,2,2,3,4,5,6`. Our lead over FreeToken is the CPU path, and it is worth less where the CPU is slower
 relative to the link (fig:ratio places both hosts on that axis). The LRU attribution: the admission policy is 77–84% of

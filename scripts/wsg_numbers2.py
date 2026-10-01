@@ -399,6 +399,20 @@ def scorecard():
     M("scSignClauses", str(s["by_type"]["sign"]["clauses"]))
 
 
+def cost():
+    """The ledger's rentals, distinct machines (Vast offers) and GPU-hour cost for jobs 058 up to the last finished job."""
+    import re
+    led = json.load(open(os.path.join(ROOT, "gpu", "vast_ledger.json")))
+    led = led if isinstance(led, list) else led.get("instances", led)
+    items = led if isinstance(led, list) else list(led.values())
+    num = lambda j: int(re.match(r"(\d+)", j).group(1)) if re.match(r"(\d+)", j) else None  # noqa: E731
+    done = [it for it in items if it.get("job") and num(it["job"]) and num(it["job"]) >= 58 and it.get("stop")]
+    hi = max(num(it["job"]) for it in done)
+    sel = [it for it in done if num(it["job"]) <= hi]
+    M("costRentals", str(len(sel))); M("costMachines", str(len({it["offer"] for it in sel})))
+    M("costUsd", f"{sum((it['stop'] - it['start']) / 3600 * it['dph'] for it in sel):.1f}"); M("costJobHi", f"{hi:03d}")
+
+
 def crossrental():
     pts = load("ratio_points.json")
     r = {p["job"][:3]: p["ratio"] for p in pts if p["model"] == "gpt-oss-120b" and p["budget"] == "25%" and p["table"] == "fixed"}
@@ -421,6 +435,10 @@ def crossrental():
     M("ratioNearMin", f"{min(near):.2f}"); M("ratioNearMax", f"{max(near):.2f}")
     M("ratioNearXMin", f"{min(p['x'] for p in g if p['x'] <= 1.15):.2f}"); M("ratioNearXMax", f"{max(p['x'] for p in g if p['x'] <= 1.15):.2f}")
     M("ratioNearHostsN", {2: "two", 3: "three", 4: "four", 5: "five"}[len({p["job"] for p in g if p["x"] <= 1.15})])
+    qq = [p for p in pts if p["model"] == "Qwen3-30B-A3B"]
+    M("ratioQwenLo", f"{min(p['ratio'] for p in qq):.2f}"); M("ratioQwenHi", f"{max(p['ratio'] for p in qq):.2f}")
+    M("ratioQwenHostsN", {4: "four", 5: "five", 6: "six"}[len({offer[p["job"]] for p in qq if p["job"] in offer})])
+    M("ratioGptLawHostsN", {3: "three", 4: "four"}[len({offer[p["job"]] for p in g if p["table"] == "law" and p["job"] in offer})])
     M("ratioXB", f"{[p['x'] for p in g if p['job'].startswith('081')][0]:.2f}")
     M("ratioXSlow", f"{[p['x'] for p in g if p['job'].startswith('088')][0]:.2f}")
     M("ratioXStock", f"{[p['x'] for p in g if p['job'].startswith('089')][0]:.2f}")
@@ -482,6 +500,14 @@ def stockclock():
     M("scOrderMax", f"{100 * max(abs(r['order_diff']) for r in allr):.1f}")
     M("scLruSlowMin", f"{100 * (1 - max(r['lru_over_law'][0] for r in allr)):.0f}"); M("scLruSlowMax", f"{100 * (1 - min(r['lru_over_law'][0] for r in allr)):.0f}")
     M("scLruFtMin", f"{min(r['lru_over_ft'][0] for r in allr):.2f}"); M("scLruFtMax", f"{max(r['lru_over_ft'][0] for r in allr):.2f}")
+    trail = [r["lru_over_ft"][0] for r in allr if r["lru_over_ft"][2] < 1]
+    M("scLruTrailMin", f"{min(trail):.2f}"); M("scLruTrailMax", f"{max(trail):.2f}")
+    # the cells where the +-0.06 band failed, and where the LRU 10-30% band failed
+    rf = [abs(r["vs_b"]["ratio_diff"]) for r in allr if abs(r["vs_b"]["ratio_diff"]) > 0.06]
+    M("scRatioFailMin", f"{min(rf):.2f}"); M("scRatioFailMax", f"{max(rf):.2f}")
+    M("scRatioFailCells", {3: "three", 4: "four", 5: "five", 6: "six"}[len(rf)])
+    lf = [100 * (1 - r["lru_over_law"][0]) for r in allr if not 10 <= 100 * (1 - r["lru_over_law"][0]) <= 30]
+    M("scLruFailMin", f"{min(lf):.0f}"); M("scLruFailMax", f"{max(lf):.0f}")
     M("scLruFtGLow", f"{rows[('gpt', '11%')]['lru_over_ft'][0]:.2f}"); M("scLruFtGMid", f"{rows[('gpt', '25%')]['lru_over_ft'][0]:.2f}")
     M("scLruFtQLow", f"{rows[('Qwe', '12.5%')]['lru_over_ft'][0]:.2f}")
     M("scLlamaXMin", f"{min(r['ours_over_llama'][0] for r in allr):.1f}"); M("scLlamaXMax", f"{max(r['ours_over_llama'][0] for r in allr):.1f}")
@@ -492,7 +518,7 @@ def stockclock():
     M("scBothBw", f"{ha['B_both']:.0f}"); M("scBothBwB", f"{hb['B_both']:.0f}")
     M("scCpuBwDrop", f"{100 * -d['hosts']['089_over_B']['B_c']:.0f}"); M("scBothBwDrop", f"{100 * -d['hosts']['089_over_B']['B_both']:.0f}")
     M("scPowerW", f"{ha['power_limit_w']:.0f}"); M("scPowerWB", f"{hb['power_limit_w']:.0f}")
-    M("scMemClk", f"{ha['mem_clock_mhz']:,}"); M("scMemClkB", f"{hb['mem_clock_mhz']:,}")
+    M("scMemClk", str(ha["mem_clock_mhz"])); M("scMemClkB", str(hb["mem_clock_mhz"]))
     M("scTableGptB", ",".join(str(x) for x in hb["table_gpt"])); M("scTableQwenB", ",".join(str(x) for x in hb["table_qwen"]))
     # cells led with the interval rule, and the drops split by FreeToken's backend (offload runs no expert on the CPU)
     ld = d["leads"]
@@ -509,7 +535,7 @@ def stockclock():
     M("scLimFracMin", pct(min(fr))); M("scLimFracMax", pct(max(fr)))
     hb = [r["limit"]["headline"]["frac"]["ours"] for r in allr]
     M("scLimFracBMin", pct(min(hb))); M("scLimFracBMax", pct(max(hb)))
-    M("scLimHostBw", f"{d['b_host_max_gbs']:.0f}")
+    M("scLimHostBw", f"{d['b_host_max_gbs']:.1f}")
     hostb = [r for r in allr if r["budget"] in ("11%", "25%", "12.5%")]
     ld_ = [1 - r["limit"]["tok_s"] / r["limit"]["headline"]["tok_s"] for r in hostb]
     M("scLimDropMin", pct(min(ld_))); M("scLimDropMax", pct(max(ld_)))
@@ -581,6 +607,7 @@ def main():
     audit()
     scorecard()
     crossrental()
+    cost()
     slowlink()
     stockclock()
     parity()

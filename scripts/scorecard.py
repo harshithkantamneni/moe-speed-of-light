@@ -121,6 +121,16 @@ def fmt_measured(c):
     m, ci = c.get("measured"), c.get("ci")
     if m is None:
         return "--"
+    if c.get("decimals") is not None:   # a clause may fix its own precision (percentages below 10, band edges)
+        d = int(c["decimals"])
+        f = lambda x: "%.*f" % (d, x)  # noqa: E731
+        if isinstance(m, list):
+            if ci and isinstance(ci, list) and ci and isinstance(ci[0], list):
+                return "; ".join("%s [%s, %s]" % (f(v), f(lo), f(hi)) for v, (lo, hi) in zip(m, ci))
+            return " / ".join(f(v) for v in m)
+        if ci and isinstance(ci, list) and len(ci) == 2 and not isinstance(ci[0], list):
+            return "%s [%s, %s]" % (f(m), f(ci[0]), f(ci[1]))
+        return f(m)
     if isinstance(m, dict):
         parts = []
         for k, v in m.items():

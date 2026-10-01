@@ -9,7 +9,6 @@
 \input{wsg_numbers}
 \input{wsg_numbers2}
 \input{wsg_grid}
-\input{wsg_foresight}
 
 \title{Where the Seconds Go:\\[2pt]\large A Speed Limit and an Accounting for Mixture-of-Experts Decode\\ on One Consumer GPU}
 \author{Harshith Kantamneni\\Independent Researcher}
@@ -18,23 +17,38 @@
 \begin{document}
 \maketitle
 
-
 \begin{abstract}
-A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and each decoded
-token waits for the ones it needs. We ask how fast such a machine could decode, how far real systems are from that,
-and what separates them. A \emph{host-memory law}, a fixed GPU term plus host bytes over the probed rate of the read
-paths in use, predicts decode time blind on \lawHosts{} machines with \lawMedian\% median error. Belady's optimum with
-bypass on the model's own routing gives a \emph{speed limit} in seconds for any exact-routing system with a given
-per-layer expert budget: stock llama.cpp, FreeToken and our llama.cpp expert cache reach
-\llLimExPctMin--\llLimExPctMax\%, \ftLimExPctMin--\ftLimExPctMax\% and \bothLimitPctMin--\bothLimitPctMax\% of it on
-two RTX 5090 hosts (probed ceilings), and \audAllN{} published measurements a median \audTraceMed\% of theirs
-(datasheet ceilings). A Shapley \emph{accounting} over every order of fixes says the rest is mostly missing routing
-foresight where the host binds and host reads serialised with GPU work where it does not\fsMeasuredAbstract. Nine
-models' traces say how far ahead foresight must reach ($W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens) and that
-speculative batching does not supply it. The cache, the instrument of these measurements, leads FreeToken at
-\bothLeadCells{} of \bothCells{} cells (\bothLeadGptMin--\bothLeadGptMax\% on gpt-oss-120b, \bothLeadQwenMin{} to
-\bothLeadQwenMax\% on Qwen3-30B-A3B) and runs \bothLlamaXMin--\bothLlamaXMax$\times$ llama.cpp. Every prediction was
-committed before its measurement; of \scClauses{} scored clauses, \scHeldAnyPct\% held.
+A Mixture-of-Experts (MoE) model too large for one consumer GPU keeps most of its experts in host memory, and every
+decoded token waits while some of them are read. We ask how fast such a machine could decode, how far real systems
+are from that, and what separates them from it.
+\textbf{A host-memory law.} Time per token is a fixed GPU term plus the expert bytes read from host memory over the
+rate of the read paths in use. Written on each machine from its own bandwidth probe before any model run, it
+predicted \lawCfg{} configurations on \lawHosts{} machines with \lawMedian\% median error, and under leave-one-host-out
+validation its max-of-paths form beats the additive alternative (\lohoMaxMed\% against \lohoAddMed\% median error).
+\textbf{A speed limit.} Belady's optimum with bypass on the models' own routing, with two host read paths and the
+machine's measured rates, bounds any exact-routing system at a given expert budget. Published trace-scored offloading
+measurements reach a median \audTraceMed\% of their own limit; on one machine, stock llama.cpp reaches
+\llLimExPctMin--\llLimExPctMax\%, FreeToken \ftLimExPctMin--\ftLimExPctMax\%, and our cache
+\limExPctMin--\limExPctMax\% (\limAllPctMin--\limAllPctMax\% of a limit tightened in four ways); across
+\grHostsN{} hosts and \grCardsN{} cards the limit moves with the machine and our cache stays at
+\grFracMin--\grFracMax\% of it.
+\textbf{An accounting.} Shapley attribution over every order of fixes says where the rest goes: missing foresight is
+the largest cost where the host binds (\shFsHostMin--\shFsHostMax\% of the gap), host reads serialised with GPU
+work where it does not (\shOvlGpuMin--\shOvlGpuMax\%); GPU kernel efficiency, replacement policy and host work are
+never largest in any order.
+\textbf{What the traces say.} Across nine models, the best online policy reads \polBestOnlineMin--\polBestOnlineMax\%
+more than the optimum; four tokens of foresight beat all of them; static placement reads
+\polStaticMin--\polStaticMax$\times$ the optimum because the hot set turns over
+\driftThousandMin--\driftThousandMax\% every 1{,}000 tokens; and batched speculative verification recovers a median
+\bkFreeMin--\bkFreeMax\% of reads at best, so speculation is not foresight.
+\textbf{A system.} An expert cache in llama.cpp that acts on the fixable items decodes gpt-oss-120b
+\ftLeadGptMin--\ftLeadGptMax\% and Qwen3-30B-A3B \ftLeadQwenMin--\ftLeadQwenMax\% faster than FreeToken at equal GPU
+memory on the headline machine, \scLeadGptMin--\scLeadGptMax\% and \scLeadQwenMin{} to \scLeadQwenMax\% on a second host
+whose CPU is \scCpuBwDrop\% slower, and \slFtMin--\slFtMax$\times$ FreeToken behind a link of half the bandwidth: the
+lead is the CPU path, and on gpt-oss it grows with the host's CPU-to-link ratio. It runs
+\llamaXMin--\llamaXMax$\times$ llama.cpp on the headline machine (\scLlamaXMin--\scLlamaXMax$\times$ on the second),
+with the gain attributed by ablation and the policy's share measured again on the second host.
+Every prediction was committed before the measurement it predicts; \scClauses{} clauses are scored in the appendix.
 \end{abstract}
 
 \section{Introduction}
@@ -49,30 +63,35 @@ Each reports a speed-up over a baseline of its choosing. None states how fast it
 within the same GPU memory, or how much of the remaining time any design could remove, and the trace-level evaluation
 contracts proposed for this field~\cite{zhang2026reproducible} count cache misses, not seconds.
 
-We answer those questions on consumer hardware (RTX 5090, 4090 and 3090 hosts with desktop CPUs, rented by the hour)
-with two models, gpt-oss-120b~\cite{openai2025gptoss} and Qwen3-30B-A3B~\cite{yang2025qwen3}, routing traces of
-nine, and \audAllN{} published measurements from \audSources{} sources. The method is Hoefler and
-Belli's~\cite{hoefler2015benchmarking}: a performance model with bounds, statistically sound comparisons, and every
-prediction committed to a public repository before the machine it concerns was started (\cref{app:prereg,app:rules}).
+We answer those questions on consumer hardware (RTX 5090 hosts with desktop CPUs, rented by the hour) with two
+models, gpt-oss-120b~\cite{openai2025gptoss} and Qwen3-30B-A3B~\cite{yang2025qwen3}, routing traces of nine, and
+\audAllN{} published measurements from \audSources{} sources. The method is Hoefler and Belli's~\cite{hoefler2015benchmarking}: a
+performance model with bounds, statistically sound comparisons, and every prediction committed to a public
+repository before the machine it concerns was started (\cref{app:prereg,app:rules}).
 
 \paragraph{Contributions.}
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{A host-memory law, validated as a predictor} (\cref{sec:law}): time per token
 $=G+\max(X_c/B_c,\,X_p/B_p,\,(X_c{+}X_p)/B_{cp})$, host bytes $X$ from the engine's counters and rates $B$ from a
-probe, predicted blind on \lawHosts{} machines and tested under leave-one-host-out validation against the additive
-and per-layer forms, with each failure traced to a measured cause.
+probe. Predicted blind on \lawHosts{} machines, its median error is \lawMedian\%. The max-of-paths form is
+FreeToken's per-layer split~\cite{freetoken} lifted to a token; what is new is that it is tested as a predictor,
+against the additive and per-layer alternatives, and that each of its failures is traced to a measured cause.
 \item \textbf{A speed limit in seconds} (\cref{sec:limit}): a bound on any exact-routing system with $C$ expert slots
-per layer, from the exact Belady optimum with bypass, two host read paths and measured ceilings, tightened four ways,
-reported beside every measured speed on four machines, and applied to \audAllN{} published measurements (\cref{sec:audit}).
-\item \textbf{An accounting, and its check} (\cref{sec:limit}): Shapley attribution of the gap to the limit, which no
-ordering of fixes can bias, with the regime it predicts (foresight where the host binds, overlap where the GPU does),
-and the largest term measured in the engine with an oracle of future routing\fsMeasuredContrib.
+per layer, from the exact Belady optimum with bypass, two host read paths and measured ceilings, reported beside every
+measured speed (\cref{tab:headline}) and tightened four ways (\cref{tab:limit}). Cache-level oracles
+exist~\cite{zhang2026reproducible}; a limit in seconds with two paths, compared against real systems, does not.
+\item \textbf{An accounting} (\cref{sec:limit}): Shapley attribution of the gap between each system and the limit,
+which no ordering of fixes can bias, with the regime it predicts: foresight where the host binds, overlap where the GPU does.
 \item \textbf{What the traces say} (\cref{sec:traces}): across nine models, which policy earns its reads, how fast
-the hot set drifts, how many tokens of foresight are worth half the optimum, and what batched speculative
-verification cannot buy.
-\item \textbf{The instrument} (\cref{sec:system}): a llama.cpp expert cache whose per-machine miss split comes from
-the law, measured against FreeToken and llama.cpp on two RTX 5090 hosts, an RTX 4090 and an RTX 3090, with an ablation
-of its parts and a measurement of its scope.
+the hot set drifts, how many tokens of foresight are worth half the optimum ($W_{50}\approx\fsPre\,(C/k)^{\fsExp}$,
+with intervals), and what batched speculative verification cannot buy.
+\item \textbf{An audit} (\cref{sec:audit}): \audAllN{} published measurements placed against their own limit.
+\item \textbf{A system as the instrument} (\cref{sec:system}): a llama.cpp expert cache whose per-machine miss split
+comes from the law. It leads FreeToken at every budget on two models on the headline machine and at
+\scOursLeadCells{} of those six cells on a second host (FreeToken leads at one), ties it on a third model, runs
+\llamaXMin--\llamaXMax$\times$ llama.cpp, and an ablation says which parts matter. Across \ratioHostsN{} hosts its
+gpt-oss lead grows with the host's CPU-to-link ratio, as the law predicts, and its Qwen3 lead stays at
+\ratioQwenLo--\ratioQwenHi$\times$.
 \end{itemize}
 
 \paragraph{What we do not claim.} Running missed experts on the CPU~\cite{kamahori2024fiddler,ktransformers},
@@ -80,11 +99,10 @@ caching hot experts with CPU-executed misses~\cite{zhong2025hybrimoe,huang2025cp
 layer's misses between CPU and PCIe from a bandwidth model~\cite{freetoken,dali2026}, a PCIe turnover
 ceiling~\cite{wisp2026}, bytes over bandwidth as a bound~\cite{budgetingbytes2026}, Belady with bypass as a cache-level
 oracle~\cite{zhang2026reproducible} and a table of systems against the all-in-VRAM speed~\cite{wang2026seqmoe} are
-all published. Our system uses the first three; what is new is the limit in seconds, the accounting and its
-measurement, the trace results, the audit, and the measurements themselves.
+all published. Our system uses the first three; what is new is the limit in seconds, the accounting, the trace
+results, the audit, and the measurements.
 
 \input{tab_headline}
-
 
 \section{Setting and Method}\label{sec:setting}
 \paragraph{Workload.} Single-request decode. gpt-oss-120b (MXFP4 experts; 36 MoE layers of 128 experts, top-4,
@@ -98,12 +116,11 @@ token's arrival.
 Each job first runs a probe (\texttt{concur}) that reads host memory from $t$ CPU threads, over PCIe with zero-copy
 kernels and with the copy engine, and from both at once; FreeToken's own probe (\texttt{ft bench bw}) runs too. We call
 the CPU rate at the helper thread count $B_c$, the zero-copy PCIe rate $B_p$ and the combined rate $B_{cp}$. GPU clocks
-cannot be locked on these rentals; we report each card's power limit. \Cref{tab:headline} is measured on two RTX
-5090 hosts: \emph{listing B}, a Ryzen 9 9950X3D rental whose card reports a \memClkHeadline\,MHz memory clock,
-\memClkRatio$\times$ the bandwidth the limit assumes, against \memClkCommon\,MHz on \memClkCommonN{} of the
-\memClkOtherRentals{} other RTX 5090 rentals that recorded one; and the \emph{stock-clock host}, a Ryzen 9 9950X
-rental at the common clock with a \scCpuBwDrop\% slower CPU. The ablation and the long-output runs use \emph{listing
-A}, a second rental of the 9950X3D model at the common clock.
+cannot be locked on these rentals; we report each card's power limit. The headline machine (\cref{tab:headline}, jobs
+080--082) is one rental of a Ryzen 9 9950X3D host whose card reports a \memClkHeadline\,MHz memory clock, against
+\memClkCommon\,MHz on \memClkCommonN{} of the \memClkOtherRentals{} other RTX 5090 rentals that recorded one
+(\memClkOdd{} on the rest), \memClkRatio$\times$ the bandwidth the limit assumes; a second rental of the same CPU
+model (jobs 079, 087) has the common clock. We call them listing B and listing A.
 
 \paragraph{Equal memory.} llama.cpp keeps whole layers' experts on the GPU (\texttt{--n-cpu-moe}~$n$), our cache keeps
 $C$ experts of every layer, and FreeToken takes a cache rate; we match the number of experts on the GPU (within
@@ -113,8 +130,7 @@ $C$ experts of every layer, and FreeToken takes a cache rate; we match the numbe
 10{,}000 bootstrap resamples; they cover problem sampling within one launch on one machine, not rentals (two rentals
 of one CPU model differed by 19--22\% in host bandwidth). Where a system has variants (our FETCH tables, FreeToken's
 offload and hybrid backends), a first launch picks each system's faster variant per budget and a second launch, which
-the comparison uses, runs only those (one row of \cref{tab:headline} has no second launch; on the stock-clock host
-FreeToken's variants were carried over from listing B's selection rather than re-picked). Every job's predictions
+the comparison uses, runs only those (one row of \cref{tab:headline} has no second launch). Every job's predictions
 are in the header of its script, committed and pushed before the machine starts; \cref{app:prereg} scores every
 clause under one rule.
 
@@ -137,7 +153,7 @@ three rates are probed rather than assumed to add, and that the law is tested as
 
 \paragraph{Blind test.} On every later machine the job wrote the law's prediction from its own probe before any model
 ran (\cref{tab:law}). Over \lawCfg{} configurations of our cache on \lawHosts{} machines (\lawMeas{} measurements; one
-machine ran twice) the median error is \lawMedian\% per configuration (\lawRowsMedian\% per measurement); without the 12-channel EPYC 9655 it is \lawDeskMedian\% over
+machine ran twice) the median error is \lawMedian\%; without the 12-channel EPYC 9655 it is \lawDeskMedian\% over
 \lawDeskN{} configurations (90th percentile \lawDeskPninety\%). llama.cpp \texttt{--n-cpu-moe} is predicted within 4\% on
 the Ryzen hosts, including two Qwen3 configurations predicted on the headline machine (+3.6\%, +4.0\%; for Qwen3,
 $G{=}4.3$\,ms, the mean residual of three llama.cpp runs on another host).
@@ -152,9 +168,7 @@ rows that copy misses on demand behind a 53\,GB/s link, where both paths carry m
 \lohoAddFastFetchMin\%, while the max is within $\pm$0.2\% there; on the slow-link copy rows the additive form is the
 closer of the two. The per-layer form neither beats the max nor explains its failures: the Jensen gap between a sum
 of per-layer maxima and the maximum of sums is a fifth of the Core Ultra's residual, none of the EPYC 7352's, and has
-the wrong sign on the EPYC 9655 and on the prefetch rows. We keep \cref{eq:law}, with its evidence stated: the max beats the sum on three fast-link rows and ties
-elsewhere, so the form is settled only where both paths carry most of the bytes. FreeToken's own runs are not
-predicted, because its counters are not exposed; the law covers our engine and llama.cpp.
+the wrong sign on the EPYC 9655 and on the prefetch rows. We keep \cref{eq:law}.
 
 \paragraph{Where it fails, and why.} Each failure now has a measured cause. (i) Copying misses on demand (FETCH) at
 25\% is over-predicted by \lohoFrozenFetchUltra\% on the Core Ultra 7 and \lohoFrozenFetchEpyc\% on the EPYC 7352 (links
@@ -195,8 +209,7 @@ $\max(R^\star,c)\,S$ bytes and the GPU reads the dense bytes $D$ plus $(Lk-c)\,S
 \label{eq:limit}
 \end{equation}
 with $B_{\mathrm{gpu}}$ the GPU's datasheet rate and $B_{\mathrm{host}}$ the highest host read rate the probe measured
-by any method (\bHost\,GB/s on listing B). The bound is for systems with a per-layer budget; a system free to pool
-its $LC$ slots across layers has a looser one, 5--10\% higher at the host-bound budgets (\cref{tab:limit}). The bound assumes that an expert run on the CPU is read from DRAM
+by any method (\bHost\,GB/s on the headline machine). The bound assumes that an expert run on the CPU is read from DRAM
 (the optimum's shortest re-read distance is \lthreeReuseMin\,GB of host traffic, far beyond any CPU cache), that
 computation runs at memory speed, and that the two read paths share $B_{\mathrm{host}}$ freely; it drops all
 latencies and starts from an empty cache. $B_{\mathrm{host}}$ is the highest rate our probe reached, not a hardware
@@ -231,11 +244,10 @@ deployed policy, they give hit rates within \simHitGptMax{} points of the engine
 \includegraphics[width=\linewidth]{figs/shapley.pdf}
 \caption{Where the seconds go: Shapley attribution of the gap between our cache's measured time per token and the
 speed limit, for every cell of \cref{tab:headline}, averaged over all \shOrders{} orders in which the five fixes can
-be applied. Fixes: overlapping host reads with GPU work, which in \cref{eq:limit}'s form also moves experts onto the CPU
-until the two paths balance; the optimum's reads instead of the best online policy's (foresight); the best online
-policy's reads at the probe's highest rate instead of the engine's reads through \cref{eq:law} (policy and read
-paths); the engine's per-token host work; and GPU kernels at the datasheet rate, the term that closes the model on
-the measured time. Whiskers: the range of foresight's marginal cost over the orders.}
+be applied. Fixes: overlapping host reads with GPU work; the optimum's reads instead of the best online policy's
+(foresight); the best online policy's reads at the probe's highest rate instead of the engine's reads through
+\cref{eq:law} (policy and read paths); the engine's per-token host work; and GPU kernels at the datasheet rate. Whiskers: the range of foresight's marginal
+cost over the orders.}
 \label{fig:shapley}
 \end{figure}
 
@@ -253,29 +265,195 @@ experts per token on the CPU), host reads serialised with GPU work is largest, \
 \shBhostZc\,GB/s the engine's own law uses (at that rate the term falls to \shPolZcMin--\shPolZcMax\%); per-token
 host work \shHostMin--\shHostMax\%; and GPU kernels below datasheet, net of the overlap the engine achieves,
 \shGpuMin--\shGpuMax\%. Under this accounting, in every order of every cell the largest cost is foresight or overlap;
-GPU efficiency, policy and host work never are. Two of the five terms are definitions rather than measurements, and
-the reader should weigh them as such. The GPU term is the residual: its factor is calibrated per cell so that the
-model with no fix applied reproduces the measured time, so the five shares close the gap by construction; charging
-the all-in-VRAM shortfall in full instead raises it to \shGpuGrossMin--\shGpuGrossMax\% of the gap in the GPU-bound
-cells, where it is then the largest cost in \shGpuGrossOrdersGHigh{} and \shGpuGrossOrdersQHigh{} of the
-\shOrders{} orders, and changes no host-bound cell. And ``overlap'' is \cref{eq:limit}'s form, which both overlaps
-host reads with GPU work and rebalances 13--30 experts per token onto the CPU; the profile below finds that overlap
-alone, with the engine's present split, would save 5--10\%. The interior states of the model are not measured, with
-one exception: \cref{sec:traces} and the oracle measurement below test the foresight term, the one no engineering of
-read paths can recover.
+GPU efficiency, policy and host work never are. Charging the all-in-VRAM shortfall in full instead raises GPU
+efficiency to \shGpuGrossMin--\shGpuGrossMax\% of the gap in the GPU-bound cells, where it is then the largest cost in
+\shGpuGrossOrdersGHigh{} and \shGpuGrossOrdersQHigh{} of the \shOrders{} orders, and changes no host-bound cell.
 Foresight is largest in every one of the \shOrders{} orders at Qwen3 12.5\%, in \shOrdersGLow{} of them at gpt-oss
-11\% and Qwen3 25\%, and ties overlap within \shTieMs\,ms at gpt-oss 25\%.
+11\% and Qwen3 25\%, and ties overlap within \shTieMs\,ms at gpt-oss 25\%. Foresight is the one term no
+engineering of read paths can recover (\cref{sec:traces}).
 
-\paragraph{One token, profiled.} On Qwen3 at 43.75\% with our earlier fixed FETCH table (listing A), Nsight
+\paragraph{One token, profiled.} On Qwen3 at 43.75\% with our earlier fixed FETCH table (listing A, job 079), Nsight
 Systems splits a token of our cache (FreeToken) into
 4.93 (5.20)\,ms of expert copies over PCIe, 2.29 (2.21) of resident-expert products, 1.65 (1.34) of attention
 projections, 0.49 (0.37) of attention, 0.38 of output head and 0.97 (0.40) of norms, small kernels and cache
 control; our host-side time is 0.27\,ms. In that configuration neither system overlaps its PCIe copies with GPU
-compute; doing so would save 5--10\%, against the \shOvlGpuTokMin--\shOvlGpuTokMax\% of the token the accounting
-charges to its overlap-and-rebalance fix at these cells: the rest of that term is the rebalancing. Our extra 0.5\,ms
-of GPU work comes from unfused batch-1 kernels: we launch 1.6$\times$ as many.
+compute; doing so would save 5--10\%. Our extra 0.5\,ms of GPU work comes from unfused batch-1 kernels: we launch
+1.6$\times$ as many.
 
-\input{foresight_measured}
+\section{The Expert Cache}\label{sec:system}
+\paragraph{Design.} Our cache is a 3{,}700-line patch to llama.cpp. Each MoE layer has $C$ GPU slots. Routing is
+decided on the GPU; resident experts run there, and each miss either runs on CPU helper threads, which the GPU
+signals through a mailbox in mapped memory, or is copied into a slot and run on the GPU (FETCH). Admission follows a
+decayed-frequency score (half-life 16 tokens, an admission margin $\kappa{=}1$; a llama.cpp pull request admits by a
+decayed heat with hysteresis in the same spirit~\cite{llamacpppr26563}) and copies in the background. Sampling runs
+on the GPU. The cache serves single-token steps; prompts and batches above one run llama.cpp's stock graph with
+every expert in host memory, and pay for the cache's resident experts and its one-thread CPU side: in
+\texttt{llama-batched-bench} at 25\% (job 089, both models) our prefill at 512 and 2{,}048 tokens runs
+\bbPrefillMin--\bbPrefillMax\% of stock llama.cpp's and our decode at 2 and 4 parallel sequences
+\bbBatchMin--\bbBatchMax\% of it (the tool feeds both engines the same random tokens). The one per-machine decision
+is the FETCH table $f(n)$: of a layer's $n$ missed experts,
+how many to copy. A per-layer form of \cref{eq:law} gives it,
+\begin{equation}
+T(n,f)=\max\!\big(\tfrac{fS}{B_p}+g,\ [n{>}f](L_c+\tfrac{(n-f)S}{B_c}),\ [0{<}f{<}n]\tfrac{nS}{B_{cp}}\big),
+\label{eq:split}
+\end{equation}
+where $g$ is the GPU's expert work per layer (48\,$\mu$s for Qwen3, 37\,$\mu$s for gpt-oss, from profiles) and
+$L_c{=}20\,\mu$s the hand-off; the table picks the $f$ with the smallest $T$ and is computed from the probe when the
+job starts.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/ablation.pdf}
+\caption{Ablation at 25\% of experts on the GPU (15 AIME-25 problems, 256 tokens, listing A; job 087). Each step
+adds one component to the one above; the hatched row is not a step: a static cache of each layer's 32 most requested experts
+counted on the measured problems themselves.}
+\label{fig:ablation}
+\end{figure}
+
+\paragraph{Where the gain comes from.} \Cref{fig:ablation} builds the system up from stock llama.cpp on one machine.
+Placing each layer's hot experts is the first gain: a static cache of the 32 experts per layer most
+requested on other text (the models' own MATH-500 outputs) runs \ablStaticGpt$\times$ and \ablStaticQwen$\times$ stock,
+which pins whole layers instead. Its hit rate (\ablStaticHitGpt\% and \ablStaticHitQwen\%) depends on how well the
+profile matches the workload: profiled in hindsight on the measured problems it hits \ablHindHitGpt\% and
+\ablHindHitQwen\% and runs faster (hatched). Replacing experts online closes that gap without a profile, if admissions
+are rationed: LRU admits every miss, and on Qwen3 its copies raise host reads from \rdStaticQwen{} to \rdLruQwen{}
+experts per token, so it runs \ablLruQwen$\times$ the static cache (\ablLruGpt$\times$ on gpt-oss); the
+decayed-frequency policy reads \rdDfaGpt{} and \rdDfaQwen{} per token, runs \ablDfaStaticGpt$\times$ and
+\ablDfaStaticQwen$\times$ the profiled static cache, and the hindsight cache runs \ablHindGpt{} and \ablHindQwen{} times
+as fast as it. On traces LRU misses only \polLruMoreMin--\polLruMoreMax\% more than decayed frequency at these budgets
+(\cref{sec:traces}); the rest of its cost here is the copies it admits. On the second host (job 089), with everything
+else as in the full system, LRU runs \scLruSlowMin--\scLruSlowMax\% slower than decayed frequency across the six
+cells of \cref{tab:headline}; it trails FreeToken at \scLruTrailCells{} of them
+(\scLruTrailMin--\scLruTrailMax$\times$), ties at gpt-oss 40\% and leads at gpt-oss 25\%. The admission policy is
+\scPolicyShareGptMin--\scPolicyShareGptMax\% of the lead at gpt-oss 25 and 40\% and more than the whole of it at
+gpt-oss 11\% and Qwen3 12.5 and 25\% (at Qwen3 43.75\% ours trails with either policy). The GPU-signalled CPU helpers, GPU slot maps, GPU
+sampling and FETCH add 2--9\% each, and the law's FETCH table 5--8\% over the fixed one. The full system runs
+\ablGptX$\times$ (gpt-oss) and \ablQwenX$\times$ (Qwen3) stock llama.cpp. (An earlier run of this ladder, job 082, had a
+``static'' step that loaded no experts; with nothing resident the cache runs \ablNoneGpt$\times$ and
+\ablNoneQwen$\times$ stock here, 0.72$\times$ and 0.74$\times$ in job 082.)
+
+\paragraph{Head to head.} \Cref{tab:headline} compares the three systems at six budgets on listing B. Ours leads
+FreeToken at every budget, by \ftLeadGptMin--\ftLeadGptMax\% on gpt-oss and \ftLeadQwenMin--\ftLeadQwenMax\% on Qwen3,
+and runs \llamaXMin--\llamaXMax$\times$ llama.cpp. The lead is largest when many experts miss and the CPU path carries
+them (gpt-oss at 11--25\%). It is smallest at Qwen3 12.5\%, where our cache already reads host memory at \qlowBW\,GB/s,
+\qlowBWpct\% of the machine's combined rate, and at Qwen3 43.75\%, where few experts miss and FreeToken's fused GPU
+kernels count.
+
+\paragraph{The same table on a second host.} We reran all six cells, with FreeToken's backend per cell carried over
+rather than re-selected, on a second rental (job 089): a Ryzen 9 9950X whose card has the common \scMemClk\,MHz
+clock and a \scPowerW\,W limit (listing B: \scPowerWB\,W), the same \scPcieBw\,GB/s link, and a CPU that reads
+\scCpuBw{} against \scCpuBwB\,GB/s at the helper count (\scCpuBwDrop\% less; \scBothBw{} against
+\scBothBwB\,GB/s combined). Ours runs \scFtGLow, \scFtGMid{} and \scFtGHigh$\times$ FreeToken on gpt-oss and
+\scFtQLow, \scFtQMid{} and \scFtQHigh$\times$ on Qwen3: it leads at \scOursLeadCells{} cells and FreeToken leads at
+Qwen3 43.75\% (interval \scFtLoQHigh--\scFtHiQHigh). Every ratio is below listing B's, by
+\scRatioDropMin--\scRatioDropMax, beyond the $\pm$0.06 we predicted at \scRatioFailCells{} of the six cells (one by
+0.001). The
+absolute speeds fall \scOursDropMin--\scOursDropMax\% for ours and \scLlamaDropMin--\scLlamaDropMax\% for
+llama.cpp, but only \scFtOffDropMin--\scFtOffDropMax\% for FreeToken's offload backend at the two cells it runs,
+which put no expert on the CPU (\scFtHybDropMin--\scFtHybDropMax\% for its hybrid backend, which does). So the card
+explains about that much and the host the rest: with the CPU \scCpuBwDrop\% slower the law's tables
+copy more of each layer's misses (\texttt{\scTableGpt} and \texttt{\scTableQwen} against \texttt{\scTableGptB}
+and \texttt{\scTableQwenB}), and the CPU path, which is our lead over FreeToken, is worth less. The limit moves with
+the host and the fraction much less: this host's best probed rate is \scLimHostBw\,GB/s against \bHost{} on listing
+B, its four host-bound limits are \scLimDropMin\% lower, and ours stands at \scLimFracMin--\scLimFracMax\% of this
+host's limits against \scLimFracBMin--\scLimFracBMax\% on listing B. \Cref{fig:ratio} puts
+every same-machine comparison on that axis: on gpt-oss the lead is \ratioNearMin--\ratioNearMax$\times$ on the
+\ratioNearHostsN{} hosts whose CPU reads \ratioNearXMin--\ratioNearXMax$\times$ their link's rate,
+\ftRatioGptMin--\ftRatioGptMax$\times$ on listing B at \ratioXB$\times$, and \slFtMin--\slFtMax$\times$ behind
+the slow link at \ratioXSlow$\times$.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/grid.pdf}
+\caption{Ours (filled) and FreeToken (hollow) as a percentage of each machine's own speed limit (exact optimum,
+the machine's highest probed host rate, the card's datasheet rate) at every cell of \cref{tab:grid}: two RTX 5090
+hosts, an RTX 4090 and an RTX 3090 (FreeToken's 3090 cells, its carried-over backend running below llama.cpp, are
+omitted). The limit ranges from \grLimMin{} to \grLimMax\,tok/s across these cells; ours stays at
+\grFracMin--\grFracMax\% of it.}\label{fig:grid}
+\end{figure}
+
+\paragraph{Other cards.} \Cref{tab:grid} (appendix) repeats the protocol on an RTX 4090 next to a Core i5-12400 (job
+091: the host reads \grFourkHostBw\,GB/s, the link 25) and an RTX 3090 next to a Core i9-11900KF (job 092:
+\grThreekHostBw\,GB/s; CPU and link together read \emph{less} than the CPU alone, so the law's table copies nothing),
+at the cells that fit 24\,GB, each against its own machine's limit. On the 4090 ours leads FreeToken by
+\grFourkFtMin--\grFourkFtMax$\times$ and llama.cpp by \grFourkLlamaMin--\grFourkLlamaMax$\times$ at half the
+headline machine's absolute speeds, the host being the reason; on the 3090 it runs \grThreekLlamaMin--\grThreekLlamaMax$\times$
+llama.cpp (FreeToken's carried-over backend ran below llama.cpp there, \grThreekFtSpeedMin--\grThreekFtSpeedMax\,tok/s,
+and is not counted). The cards' own bandwidth never enters: \grSmallHostBound{} one of the \grSmallCellsN{} cells on
+the 24\,GB cards is host-bound at the limit, and ours stands at
+\grFourkFracMin--\grFourkFracMax\% and \grThreekFracMin--\grThreekFracMax\% of it, within a few points of the two
+5090 hosts' \scLimFracBMin--\scLimFracBMax\% and \scLimFracMin--\scLimFracMax\% (\cref{fig:grid}). Mixtral-8x7B (8 experts per layer, top-2; 26\,GB of Q4\_K\_M experts on the 3090) marks the
+cache's scope: with 2 of 8 experts resident the decayed-frequency cache hits \grMixHitCTwo\% of reads where whole-layer
+pinning hits \grMixPinCTwo\%, so there is little locality to earn, and ours ties llama.cpp
+(\grMixCTwo{} [\grMixCTwoLo, \grMixCTwoHi]); on the 128-expert models the same cache hits \grHitMin--\grHitMax\% at
+11--25\% resident. The gain belongs to models with many experts per layer. On FreeToken's own headline model,
+Qwen3.6-35B-A3B in BF16 (256 experts of 6.3\,MB per layer, hybrid linear attention), the two systems are close: ours runs
+\qsixFtA{} times FreeToken at 12.5\% and ties at 25 and 37.5\% (\qsixFtB, \qsixFtC), at \qsixLlA--\qsixLlC$\times$ llama.cpp (job 086,
+listing A). FreeToken as shipped, with its automatic backend and cache size, runs this model at \qsixAuto\,tok/s on that
+machine, above the 77--83\,tok/s its paper reports on an RTX 5090, so our setup does not handicap it; FreeToken's
+fetch cap and thread count were left at their defaults, while our FETCH table was swept. Our lead is therefore
+model-dependent: largest with few large experts (gpt-oss, top-4 of 128), smallest with many small ones.
+
+\input{tab_split}
+
+\paragraph{Choosing the split per machine.} On listing B, the law's table beats the fixed table we used
+before at every budget of both models, by \lawGainMin--\lawGainMax\% (launch 1). \Cref{tab:split} shows why at one
+budget: a single missed expert should run on the CPU (about 155\,$\mu$s, hidden behind the GPU's other experts) rather
+than be copied (about 225\,$\mu$s, on the critical path); that entry alone is worth \splitFOne\%. Fetching everything,
+FreeToken's offload strategy expressed in our engine, is the worst table, and running everything on the CPU the second
+worst. The law's table was within 1\% of the best of five alternatives on launch 1 and tied with it on launch 2. Given
+each run's measured misses, \cref{eq:split} ranks the tables correctly except law against lite, which are within 1\%,
+and overstates their differences about 1.8$\times$.
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/ratio.pdf}
+\caption{Ours over FreeToken's better backend (carried over from listing B for job 089) in every same-machine
+comparison of the current engine on the two models of \cref{tab:headline} (jobs 076--089, \ratioHostsN{} hosts),
+against the machine's CPU-to-PCIe read ratio (FreeToken's own probe). Filled: FETCH
+table from the law on that machine; hollow: the fixed table. The rightmost gpt-oss points are the Core i9-14900K with
+FreeToken's executor on its performance cores (job 088; the confounded job 085 points are omitted); the rightmost
+Qwen3 points are the Ryzen 9 7900; the points at \ratioXStock{} are the second-host rerun of \cref{tab:headline}
+(job 089).}\label{fig:ratio}
+\end{figure}
+
+\paragraph{Machines with half the link.} On RTX 5090s whose links we measured at 27--30\,GB/s instead of 53 (jobs
+085, 085b and 088: gpt-oss next to a Core i9-14900K, Qwen3 next to a Ryzen 9 7900 in a PCIe~4.0 slot), the law's tables fetch less
+(gpt-oss \texttt{\hpTableGpt}, Qwen3 \texttt{\hpTableQwen}) and beat the fixed table by \hpGptLawMin--\hpGptLawMax\% on
+gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, about twice the gain on listing B for Qwen3 and four to six times
+for gpt-oss: the per-machine split matters most where the link is slow. On the Ryzen, ours leads FreeToken by
+\hpQwenFtMin--\hpQwenFtMax$\times$; with the fixed table it would trail at 12.5\%. On the Core i9 the first comparison
+(job 085) was confounded: FreeToken's hybrid backend ran gpt-oss at \iNineHybridMin--\iNineHybridMax\,tok/s, below its
+own offload backend (\iNineOffloadMin--\iNineOffloadMax), because its CPU executor spread 23 threads across the 8
+performance and 16 efficiency cores and its calibration then sent two thirds of the misses over the slow link, the
+same failure \cref{sec:law} reports for llama.cpp; the 1.4--2.0$\times$ lead that gave us measured a thread
+configuration. We reran it (job 088, a second rental of the same CPU model) with FreeToken's executor on 8 threads
+pinned to the performance cores: its hybrid backend then runs \slHybGainMin--\slHybGainMax$\times$ faster than before
+(\slHybLow, \slHybMid{} and \slHybHigh\,tok/s; its calibration now copies \slFetchFrac\% of misses), beating its own
+offload backend at 11 and 25\% and tying it at 40\%, and ours leads its better configuration by \slFtLow, \slFtMid{}
+and \slFtHigh$\times$ (lowest interval bound \slFtLoMin). Restricted to the CPU alone, FreeToken's 8-thread executor
+decodes \slFzeroMid\,tok/s at every budget. llama.cpp on the same rental runs \slLlamaTeight\,tok/s with one thread
+per performance core (\slLlamaErrTeight\% from the law's prediction) and \slLlamaTall{} with all 24 threads
+(\slLlamaErrTall\%): the hybrid-core failure is a thread-count choice, and the law holds once the choice is right. The
+law predicted llama.cpp on the Ryzen within \hpLlamaQwen\%. \Cref{fig:ratio} puts every same-machine comparison on one
+axis.
+
+\paragraph{Long outputs.} Our lead does not come from the first 256 tokens. On gpt-oss, on ten held-out hard
+problems (AIME 2022, problems 11--15 of both exams) that neither system has finished reasoning about after 2{,}048
+tokens (at most \hardAnsMax{} of 10 reach an answer), ours runs \hardAllA, \hardAllB{} and \hardAllC{} times FreeToken
+at 11, 25 and 40\% over all 2{,}048 tokens, and \hardLateA, \hardLateB{} and \hardLateC{} over tokens 257--2{,}048
+(job 083, listing A); both engines stream one event per token. On Qwen3, over tokens 257--2{,}048 of ten held-out
+MATH-500 problems, ours runs \longQwenA{}, \longQwenB{} and \longQwenC{} times FreeToken at 12.5, 25 and 43.75\%.
+Both leads are larger than over the same runs' first 256 tokens. Turning off FreeToken's prefill overlap, which lends
+it cache slots during each prompt, changes its overall speed by 1\% or less.
+
+\paragraph{Other systems and outputs.} Two newer llama.cpp-based systems, Pipelined Sharding~\cite{pipelinedsharding2026} and
+leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.44$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
+the better of them (job 077). Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
+VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
+\klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
+maximum \klMaxGpt{} and \klMaxQwen), picks the same next token on \klTopGpt\% and \klTopQwen\% of steps, and changes
+the loss by \klNllGpt\% and \klNllQwen\%. Stock llama.cpp's own \texttt{--n-cpu-moe} placement diverges from the same
+reference by as much (mean KL \klStockMeanGpt{} and \klStockMeanQwen, agreement \klStockTopGpt\% and \klStockTopQwen\%):
+the differences are those of running experts on the CPU (the helpers quantise activations to Q8\_0 where the GPU path
+uses Q8\_1), not of the cache. Task accuracy was not measured.
 
 \section{What the Traces Say}\label{sec:traces}
 The accounting names foresight as the largest cost where the host binds. What would recover it, and what would not?
@@ -352,116 +530,8 @@ collected for an earlier audit of this literature (\cref{app:artifact}). \Cref{f
 every expert resident are plotted apart. Our own reference points are not like for like: their ceilings are probed,
 and a probed ceiling is lower than a datasheet one by the ratio of achieved to nominal host bandwidth, which we did
 not record for the published machines and so do not quantify; it would raise the published percentages by that
-ratio, which on our own hosts would be a factor of about 1.1--1.4. Even so, the trace-scored measurements sit at a median tenth, and three quarters of them below a fifth, of
+ratio. Even so, the trace-scored measurements sit at a median tenth, and three quarters of them below a fifth, of
 what their machines could deliver, and \cref{fig:shapley} says what the missing part is made of.
-
-\section{The Expert Cache as the Instrument}\label{sec:system}
-\paragraph{Design.} Our cache is a 3{,}700-line patch to llama.cpp. Each MoE layer has $C$ GPU slots. Routing is
-decided on the GPU; resident experts run there, and each miss either runs on CPU helper threads, which the GPU
-signals through a mailbox in mapped memory, or is copied into a slot and run on the GPU (FETCH). Admission follows a
-decayed-frequency score (half-life 16 tokens, an admission margin $\kappa{=}1$; a llama.cpp pull request admits by a
-decayed heat with hysteresis in the same spirit~\cite{llamacpppr26563}) and copies in the background. Sampling runs
-on the GPU. The cache serves single-token steps; prompts and batches above one run llama.cpp's stock graph with
-every expert in host memory and pay for the resident experts and a one-thread CPU side
-(\bbPrefillMin--\bbPrefillMax\% of stock llama.cpp's prefill speed, \bbBatchMin--\bbBatchMax\% of its decode at 2--4
-sequences; \cref{app:system}). The one per-machine decision is the FETCH table $f(n)$: of a layer's $n$ missed
-experts, how many to copy. A per-layer form of \cref{eq:law} gives it,
-\begin{equation}
-T(n,f)=\max\!\big(\tfrac{fS}{B_p}+g,\ [n{>}f](L_c+\tfrac{(n-f)S}{B_c}),\ [0{<}f{<}n]\tfrac{nS}{B_{cp}}\big),
-\label{eq:split}
-\end{equation}
-where $g$ is the GPU's expert work per layer (48\,$\mu$s for Qwen3, 37\,$\mu$s for gpt-oss, from profiles) and
-$L_c{=}20\,\mu$s the hand-off; the table picks the $f$ with the smallest $T$ and is computed from the probe when the
-job starts. On listing B the law's table beats the fixed table we used before at every budget of both models, by
-\lawGainMin--\lawGainMax\%; on hosts whose link we measured at 27--30\,GB/s instead of 53 it fetches less and gains
-\hpGptLawMin--\hpGptLawMax\% on gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, the per-machine split mattering
-most where the link is slow (\cref{app:system}, \cref{tab:split}).
-
-\begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{figs/ablation.pdf}
-\caption{Ablation at 25\% of experts on the GPU (15 AIME-25 problems, 256 tokens, listing A). Each step
-adds one component to the one above; the hatched row is not a step: a static cache of each layer's 32 most requested experts
-counted on the measured problems themselves.}
-\label{fig:ablation}
-\end{figure}
-
-\paragraph{Where the gain comes from.} \Cref{fig:ablation} builds the system up from stock llama.cpp on one machine.
-Placing each layer's hot experts is the first gain: a static cache of the 32 experts per layer most
-requested on other text (the models' own MATH-500 outputs) runs \ablStaticGpt$\times$ and \ablStaticQwen$\times$ stock,
-which pins whole layers instead. Its hit rate (\ablStaticHitGpt\% and \ablStaticHitQwen\%) depends on how well the
-profile matches the workload: profiled in hindsight on the measured problems it hits \ablHindHitGpt\% and
-\ablHindHitQwen\% and runs faster (hatched). Replacing experts online closes that gap without a profile, if admissions
-are rationed: LRU admits every miss, and on Qwen3 its copies raise host reads from \rdStaticQwen{} to \rdLruQwen{}
-experts per token, so it runs \ablLruQwen$\times$ the static cache (\ablLruGpt$\times$ on gpt-oss); the
-decayed-frequency policy reads \rdDfaGpt{} and \rdDfaQwen{} per token, runs \ablDfaStaticGpt$\times$ and
-\ablDfaStaticQwen$\times$ the profiled static cache, and the hindsight cache runs \ablHindGpt{} and \ablHindQwen{} times
-as fast as it. On traces LRU misses only \polLruMoreMin--\polLruMoreMax\% more than decayed frequency at these budgets
-(\cref{sec:traces}); the rest of its cost here is the copies it admits. On the stock-clock host, with everything
-else as in the full system, LRU runs \scLruSlowMin--\scLruSlowMax\% slower than decayed frequency across the six
-cells of \cref{tab:headline} and trails FreeToken at \scLruTrailCells{} of them: the admission policy is most of the
-lead over FreeToken (\scPolicyShareGptMin--\scPolicyShareGptMax\% of it at gpt-oss 25 and 40\%, more than the whole
-of it at gpt-oss 11\% and Qwen3 12.5 and 25\%). The GPU-signalled CPU helpers, GPU slot maps, GPU sampling and FETCH
-add 2--9\% each, and the law's FETCH table 5--8\% over the fixed one. The full system runs \ablGptX$\times$ (gpt-oss)
-and \ablQwenX$\times$ (Qwen3) stock llama.cpp.
-
-\paragraph{Two hosts.} \Cref{tab:headline} compares the three systems at six budgets on two RTX 5090 hosts. On
-listing B ours leads FreeToken at every budget, by \ftLeadGptMin--\ftLeadGptMax\% on gpt-oss and
-\ftLeadQwenMin--\ftLeadQwenMax\% on Qwen3; the lead is largest when many experts miss and the CPU path carries them
-(gpt-oss at 11--25\%), smallest at Qwen3 12.5\%, where our cache already reads host memory at \qlowBWpct\% of the
-machine's combined rate, and at Qwen3 43.75\%, where few experts miss and FreeToken's fused GPU kernels count. On the
-stock-clock host, whose CPU reads \scCpuBwDrop\% slower (\scCpuBw{} against \scCpuBwB\,GB/s) behind the same link,
-ours leads at \scOursLeadCells{} cells (gpt-oss \scLeadGptMin--\scLeadGptMax\%; Qwen3 12.5 and 25\%
-\scFtQLow{} and \scFtQMid$\times$), and FreeToken leads at Qwen3 43.75\% (\scFtQHigh, interval
-\scFtLoQHigh--\scFtHiQHigh). Every ratio is
-\scRatioDropMin--\scRatioDropMax{} below listing B's, beyond the $\pm$0.06 we predicted at \scRatioFailCells{} of
-six cells. The card explains little of it: FreeToken's offload backend, which puts no expert on the CPU, lost only
-\scFtOffDropMin--\scFtOffDropMax\% at the two cells it runs, while ours lost \scOursDropMin--\scOursDropMax\% and
-llama.cpp \scLlamaDropMin--\scLlamaDropMax\%. With the CPU slower the law's tables copy more of each layer's misses
-(\texttt{\scTableGpt} and \texttt{\scTableQwen} against \texttt{\scTableGptB} and \texttt{\scTableQwenB}), and the
-CPU path, which is our lead over FreeToken, is worth less. The limit moves with the host and the fraction much less:
-this host's four host-bound limits are \scLimDropMin\% lower, and ours stands at \scLimFracMin--\scLimFracMax\% of
-them against \scLimFracBMin--\scLimFracBMax\% on listing B. On FreeToken's own headline model, Qwen3.6-35B-A3B, the
-two systems tie within 3\% at three budgets (\cref{app:system}): the lead is model-dependent, largest with few large
-experts and smallest with many small ones.
-
-\begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{figs/grid.pdf}
-\caption{Ours (filled) and FreeToken (hollow) as a percentage of each machine's own speed limit (exact optimum,
-the machine's highest probed host rate, the card's datasheet rate) at every cell of \cref{tab:grid}: two RTX 5090
-hosts, an RTX 4090 and an RTX 3090 (FreeToken's 3090 cells, its carried-over backend running below llama.cpp, are
-omitted). The limit ranges from \grLimMin{} to \grLimMax\,tok/s across these cells; ours stays at
-\grFracMin--\grFracMax\% of it.}\label{fig:grid}
-\end{figure}
-
-\paragraph{Other cards, and the scope of the gain.} \Cref{tab:grid} (\cref{app:grid}) repeats the protocol on an
-RTX 4090 next to a Core i5-12400 (the host reads \grFourkHostBw\,GB/s, the link 25) and an RTX 3090 next to a Core
-i9-11900KF (\grThreekHostBw\,GB/s; CPU and link together read \emph{less} than the CPU alone, so the law's table copies
-nothing), at the cells that fit 24\,GB. On the 4090 ours runs \grFourkFtMin--\grFourkFtMax$\times$ FreeToken and
-\grFourkLlamaMin--\grFourkLlamaMax$\times$ llama.cpp at half listing B's absolute speeds, the host being the reason;
-on the 3090 it runs \grThreekLlamaMin--\grThreekLlamaMax$\times$ llama.cpp (FreeToken's carried-over backend ran
-below llama.cpp there and is not counted). The cards' own bandwidth never enters: \grSmallHostBound{} one of the
-\grSmallCellsN{} cells on the 24\,GB cards is host-bound at the limit, and ours stands at
-\grFourkFracMin--\grFourkFracMax\% and \grThreekFracMin--\grThreekFracMax\% of it (\cref{fig:grid}). Mixtral-8x7B
-(8 experts per layer, top-2; 26\,GB of experts on the 3090) marks the scope: with 2 of 8 experts resident the cache
-hits \grMixHitCTwo\% of reads where whole-layer pinning hits \grMixPinCTwo\%, so there is little locality to earn, and
-ours ties llama.cpp (\grMixCTwo{} [\grMixCTwoLo, \grMixCTwoHi]); on the 128-expert models the same cache hits
-\grHitMin--\grHitMax\% at 11--25\% resident. Across \ratioHostsN{} hosts the gpt-oss lead over FreeToken grows with
-the host's CPU-to-link ratio, from \ratioNearMin--\ratioNearMax$\times$ where the CPU reads
-\ratioNearXMin--\ratioNearXMax$\times$ its link's rate to \slFtMin--\slFtMax$\times$ behind a link of half the
-bandwidth, as the law predicts, and the Qwen3 lead stays at \ratioQwenLo--\ratioQwenHi$\times$ (\cref{fig:ratio},
-\cref{app:system}). Teacher-forced against an all-VRAM reference, the cache's output differs by a mean KL of
-\klMeanGpt{} and \klMeanQwen{} nats over the full vocabulary (top-1 agreement \klTopGpt\% and \klTopQwen\%), the same
-divergence as stock llama.cpp's own CPU placement (\cref{app:system}).
-
-\begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{figs/ratio.pdf}
-\caption{Ours over FreeToken's better backend (carried over from listing B on the stock-clock host) in every
-same-machine comparison of the current engine on the two models of \cref{tab:headline} (\ratioHostsN{} hosts),
-against the machine's CPU-to-PCIe read ratio (FreeToken's own probe). Filled: FETCH table from the law on that
-machine; hollow: the fixed table. The rightmost gpt-oss points are a Core i9-14900K with FreeToken's executor on its
-performance cores; the rightmost Qwen3 points are a Ryzen 9 7900.}\label{fig:ratio}
-\end{figure}
-
 
 \section{Related Work}\label{sec:related}
 \paragraph{Offloading systems.} Demand-paging systems cache experts per layer and copy misses over
@@ -501,10 +571,11 @@ use to measure the horizon.
 \item \textbf{Hardware.} Consumer cards (RTX 5090 for the headline comparisons, a 4090 and a 3090 at the cells that
 fit 24\,GB; an RTX PRO 6000 for all-in-VRAM runs) and desktop Ryzen and Intel
 hosts, rented; GPU clocks could not be locked, power limits differed (350--575\,W), and listing B's memory runs
-\memClkRatio$\times$ faster than the other cards'; \cref{tab:headline} therefore reports a stock-clock host beside
-it, where our lead is \scRatioDropMin--\scRatioDropMax{} smaller and FreeToken leads at one cell. A 12-channel server
-CPU breaks the law's bandwidth assumption (\cref{sec:law}). Intervals cover problem sampling on one machine, not
-machine-to-machine variance, which \cref{fig:ratio} shows across \ratioHostsN{} hosts.
+\memClkRatio$\times$ faster than the other cards'. \Cref{tab:headline} was rerun once on a stock-clock card (job
+089): our speeds fell \scOursDropMin--\scOursDropMax\% and our lead over FreeToken by
+\scRatioDropMin--\scRatioDropMax, mostly from that host's slower CPU, and FreeToken led at one cell. A 12-channel server CPU breaks the
+law's bandwidth assumption (\cref{sec:law}). Intervals cover problem sampling on one machine, not machine-to-machine
+variance, which \cref{fig:ratio} shows across \ratioHostsN{} hosts.
 \item \textbf{Workload.} Single-request decode; AIME prompts, which were also used while developing the system;
 greedy decoding; 130--186-token prompts. Long outputs are measured on held-out problems. Prompts and batches above
 one bypass the cache and run \bbPrefillMin--\bbPrefillMax\% and \bbBatchMin--\bbBatchMax\% of stock llama.cpp's
@@ -514,10 +585,8 @@ default thread count and fetch cap, while our FETCH table was swept; its CPU bac
 thread count and was rerun on the performance cores.
 Each comparison uses one confirmation launch, except Qwen3 at 25\%, which is from the selection launch for both
 systems.
-\item \textbf{The bound, the accounting and the audit.} Exact routing only: expert skipping, substitution or
-deferral change the model and fall outside it; a per-layer budget, which a pooled cache can beat by 5--10\%. Two of
-the accounting's five terms are definitions (\cref{sec:limit}). The published rows use datasheet ceilings and, for
-eleven of them, i.i.d. routing.
+\item \textbf{The bound and the audit.} Exact routing only: expert skipping, substitution or deferral change the model
+and fall outside it. The published rows use datasheet ceilings and, for eleven of them, i.i.d. routing.
 \item \textbf{Constants and outputs.} $G$, $g$ and $L_c$ are fitted once and frozen; the per-layer model overstates
 differences between FETCH tables about 1.8$\times$. Output parity is measured by teacher-forced KL divergence, agreement and loss
 against an all-VRAM reference, not by task accuracy.
@@ -539,4 +608,3 @@ foresight; it must come from knowing the routing a few to tens of tokens ahead.
 \appendix
 \input{app_wsg}
 \end{document}
-

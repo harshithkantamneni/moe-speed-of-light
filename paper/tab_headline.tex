@@ -1,23 +1,30 @@
 \begin{table*}[t]\centering\small
-\caption{Decode speed at equal GPU expert memory on one machine (RTX 5090 + Ryzen 9 9950X3D; host memory read by the
-CPU at 71.6\,GB/s and over PCIe at 53.2\,GB/s). 30 AIME-25 problems, first 256 decode tokens, greedy, session.
-Ours uses the FETCH split computed from this machine's bandwidth probe; FreeToken uses its faster backend per budget.
-Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals; the comparison launch is separate from
-the launch that picked each system's variant. \emph{Speed limit}: the fastest any exact-routing system with the same
-slots per layer can decode on this machine (\cref{sec:limit}; exact optimum, highest probed host rate, datasheet GPU
-rate; \cref{tab:limit} tightens it). \emph{All in VRAM}: stock llama.cpp with every weight
-on an RTX PRO 6000 (the RTX 5090's datasheet memory bandwidth, 96\,GB).
-$^\dagger$Launch 1 for both systems (job 080): FreeToken's backend was picked on the launch it is scored on, which
-favours it, and the row has no confirmation launch.}\label{tab:headline}
+\caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts. 30 AIME-25 problems, first 256 decode tokens,
+greedy, session; our cache uses the FETCH split computed from each machine's bandwidth probe; FreeToken uses its faster
+backend per budget, picked on listing B on a separate launch and carried over to the second host. Ratios are of mean
+speeds, paired by problem, with 95\% bootstrap intervals. \emph{Speed limit}: the fastest any exact-routing system with
+the same slots per layer can decode on that machine (\cref{sec:limit}: exact optimum, that host's highest probed rate,
+datasheet GPU rate; \cref{tab:limit} tightens it). With every weight in the VRAM of an RTX PRO 6000 (the RTX 5090's
+datasheet bandwidth, 96\,GB), stock llama.cpp decodes gpt-oss at 255 and Qwen3 at 178\,tok/s.
+$^\dagger$Launch 1 for both systems: FreeToken's backend was picked on the launch it is scored on, which favours it,
+and the row has no confirmation launch.}\label{tab:headline}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrcrrrr}\toprule
-Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Speed & Ours, \% & All in \\
- & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & limit & of limit & VRAM \\\midrule
-gpt-oss-120b & 11\% & 34.9 & 54.0 {\scriptsize(hybrid)} & \textbf{69.9} & 1.294 [1.278, 1.312] & 2.00$\times$ & 172 & 41\% & 255 \\
-gpt-oss-120b & 25\% & 40.0 & 85.6 {\scriptsize(hybrid)} & \textbf{109.2} & 1.275 [1.254, 1.295] & 2.73$\times$ & 430 & 25\% & 255 \\
-gpt-oss-120b & 40\% & 47.7 & 132.2 {\scriptsize(offload)} & \textbf{152.5} & 1.154 [1.134, 1.172] & 3.20$\times$ & 519 & 29\% & 255 \\
+\begin{tabular}{llrrrcrrr}\toprule
+Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Speed & Ours, \% \\
+ & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & limit & of limit \\\midrule
+\multicolumn{9}{l}{\textbf{Listing B}: Ryzen 9 9950X3D, card at 17001\,MHz memory clock, CPU 72\,GB/s, link 53, together 78} \\
+gpt-oss-120b & 11\% & 34.9 & 54.0 {\scriptsize(hybrid)} & \textbf{69.9} & 1.294 [1.278, 1.312] & 2.00$\times$ & 172 & 41\% \\
+gpt-oss-120b & 25\% & 40.0 & 85.6 {\scriptsize(hybrid)} & \textbf{109.2} & 1.275 [1.254, 1.295] & 2.73$\times$ & 430 & 25\% \\
+gpt-oss-120b & 40\% & 47.7 & 132.2 {\scriptsize(offload)} & \textbf{152.5} & 1.154 [1.134, 1.172] & 3.20$\times$ & 519 & 29\% \\
+Qwen3-30B-A3B & 12.5\% & 19.5 & 38.7 {\scriptsize(hybrid)} & \textbf{40.0} & 1.032 [1.022, 1.042] & 2.05$\times$ & 96 & 42\% \\
+Qwen3-30B-A3B & 25\% & 22.1 & 54.7 {\scriptsize(hybrid)} & \textbf{63.1} & 1.153 [1.134, 1.173]$^\dagger$ & 2.86$\times$ & 214 & 30\% \\
+Qwen3-30B-A3B & 43.75\% & 28.4 & 103.1 {\scriptsize(offload)} & \textbf{108.2} & 1.049 [1.036, 1.064] & 3.81$\times$ & 308 & 35\% \\
 \midrule
-Qwen3-30B-A3B & 12.5\% & 19.5 & 38.7 {\scriptsize(hybrid)} & \textbf{40.0} & 1.032 [1.022, 1.042] & 2.05$\times$ & 96 & 42\% & 178 \\
-Qwen3-30B-A3B & 25\% & 22.1 & 54.7 {\scriptsize(hybrid)} & \textbf{63.1} & 1.153 [1.134, 1.173]$^\dagger$ & 2.86$\times$ & 214 & 30\% & 178 \\
-Qwen3-30B-A3B & 43.75\% & 28.4 & 103.1 {\scriptsize(offload)} & \textbf{108.2} & 1.049 [1.036, 1.064] & 3.81$\times$ & 308 & 35\% & 178 \\
+\multicolumn{9}{l}{\textbf{Stock-clock host}: Ryzen 9 9950X, card at 14001\,MHz, CPU 56\,GB/s, link 53, together 66; FreeToken's backend carried over from listing B} \\
+gpt-oss-120b & 11\% & 28.9 & 48.0 {\scriptsize(hybrid)} & \textbf{57.9} & 1.207 [1.195, 1.219] & 2.00$\times$ & 140 & 41\% \\
+gpt-oss-120b & 25\% & 33.6 & 78.7 {\scriptsize(hybrid)} & \textbf{94.1} & 1.196 [1.163, 1.224] & 2.80$\times$ & 351 & 27\% \\
+gpt-oss-120b & 40\% & 40.1 & 122.2 {\scriptsize(offload)} & \textbf{133.6} & 1.093 [1.077, 1.111] & 3.34$\times$ & 514 & 26\% \\
+Qwen3-30B-A3B & 12.5\% & 16.1 & 32.7 {\scriptsize(hybrid)} & \textbf{33.5} & 1.027 [1.018, 1.036] & 2.08$\times$ & 78 & 43\% \\
+Qwen3-30B-A3B & 25\% & 18.5 & 51.4 {\scriptsize(hybrid)} & \textbf{53.9} & 1.048 [1.037, 1.059] & 2.91$\times$ & 174 & 31\% \\
+Qwen3-30B-A3B & 43.75\% & 23.8 & \textbf{98.3} {\scriptsize(offload)} & 95.8 & 0.974 [0.962, 0.987] & 4.02$\times$ & 305 & 31\% \\
 \bottomrule\end{tabular}}\end{table*}

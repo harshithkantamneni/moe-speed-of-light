@@ -69,6 +69,77 @@ $C{=}4$ cell was lost to the job's deadline, and one launch-order check exceeded
 
 \input{tab_grid}
 
+\section{The expert cache in more detail}\label{app:system}
+This section holds the measurements of \cref{sec:system} that the main text summarises: the choice of the FETCH split,
+the hosts with half the link, long outputs, FreeToken's own headline model, two other llama.cpp-based systems, output
+parity, and the cost of prompts and batches. Job numbers refer to the scripts on the \texttt{gpu} branch.
+
+\input{tab_split}
+
+\paragraph{Choosing the split per machine.} On listing B, the law's table beats the fixed table we used
+before at every budget of both models, by \lawGainMin--\lawGainMax\% (launch 1). \Cref{tab:split} shows why at one
+budget: a single missed expert should run on the CPU (about 155\,$\mu$s, hidden behind the GPU's other experts) rather
+than be copied (about 225\,$\mu$s, on the critical path); that entry alone is worth \splitFOne\%. Fetching everything,
+FreeToken's offload strategy expressed in our engine, is the worst table, and running everything on the CPU the second
+worst. The law's table was within 1\% of the best of five alternatives on launch 1 and tied with it on launch 2. Given
+each run's measured misses, \cref{eq:split} ranks the tables correctly except law against lite, which are within 1\%,
+and overstates their differences about 1.8$\times$.
+
+\paragraph{Machines with half the link.} On RTX 5090s whose links we measured at 27--30\,GB/s instead of 53 (jobs
+085, 085b and 088: gpt-oss next to a Core i9-14900K, Qwen3 next to a Ryzen 9 7900 in a PCIe~4.0 slot), the law's tables fetch less
+(gpt-oss \texttt{\hpTableGpt}, Qwen3 \texttt{\hpTableQwen}) and beat the fixed table by \hpGptLawMin--\hpGptLawMax\% on
+gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, about twice the gain on listing B for Qwen3 and four to six times
+for gpt-oss: the per-machine split matters most where the link is slow. On the Ryzen, ours leads FreeToken by
+\hpQwenFtMin--\hpQwenFtMax$\times$; with the fixed table it would trail at 12.5\%. On the Core i9 the first comparison
+(job 085) was confounded: FreeToken's hybrid backend ran gpt-oss at \iNineHybridMin--\iNineHybridMax\,tok/s, below its
+own offload backend (\iNineOffloadMin--\iNineOffloadMax), because its CPU executor spread 23 threads across the 8
+performance and 16 efficiency cores and its calibration then sent two thirds of the misses over the slow link, the
+same failure \cref{sec:law} reports for llama.cpp; the 1.4--2.0$\times$ lead that gave us measured a thread
+configuration. We reran it (job 088, a second rental of the same CPU model) with FreeToken's executor on 8 threads
+pinned to the performance cores: its hybrid backend then runs \slHybGainMin--\slHybGainMax$\times$ faster than before
+(\slHybLow, \slHybMid{} and \slHybHigh\,tok/s; its calibration now copies \slFetchFrac\% of misses), beating its own
+offload backend at 11 and 25\% and tying it at 40\%, and ours leads its better configuration by \slFtLow, \slFtMid{}
+and \slFtHigh$\times$ (lowest interval bound \slFtLoMin). Restricted to the CPU alone, FreeToken's 8-thread executor
+decodes \slFzeroMid\,tok/s at every budget. llama.cpp on the same rental runs \slLlamaTeight\,tok/s with one thread
+per performance core (\slLlamaErrTeight\% from the law's prediction) and \slLlamaTall{} with all 24 threads
+(\slLlamaErrTall\%): the hybrid-core failure is a thread-count choice, and the law holds once the choice is right. The
+law predicted llama.cpp on the Ryzen within \hpLlamaQwen\%. \Cref{fig:ratio} puts every same-machine comparison on one
+axis.
+
+\paragraph{Long outputs.} Our lead does not come from the first 256 tokens. On gpt-oss, on ten held-out hard
+problems (AIME 2022, problems 11--15 of both exams) that neither system has finished reasoning about after 2{,}048
+tokens (at most \hardAnsMax{} of 10 reach an answer), ours runs \hardAllA, \hardAllB{} and \hardAllC{} times FreeToken
+at 11, 25 and 40\% over all 2{,}048 tokens, and \hardLateA, \hardLateB{} and \hardLateC{} over tokens 257--2{,}048
+(job 083, listing A); both engines stream one event per token. On Qwen3, over tokens 257--2{,}048 of ten held-out
+MATH-500 problems, ours runs \longQwenA{}, \longQwenB{} and \longQwenC{} times FreeToken at 12.5, 25 and 43.75\%.
+Both leads are larger than over the same runs' first 256 tokens. Turning off FreeToken's prefill overlap, which lends
+it cache slots during each prompt, changes its overall speed by 1\% or less.
+
+\paragraph{FreeToken's own headline model.} On FreeToken's own headline model,
+Qwen3.6-35B-A3B in BF16 (256 experts of 6.3\,MB per layer, hybrid linear attention), the two systems are close: ours runs
+\qsixFtA{} times FreeToken at 12.5\% and ties at 25 and 37.5\% (\qsixFtB, \qsixFtC), at \qsixLlA--\qsixLlC$\times$ llama.cpp (job 086,
+listing A). FreeToken as shipped, with its automatic backend and cache size, runs this model at \qsixAuto\,tok/s on that
+machine, above the 77--83\,tok/s its paper reports on an RTX 5090, so our setup does not handicap it; FreeToken's
+fetch cap and thread count were left at their defaults, while our FETCH table was swept. Our lead is therefore
+model-dependent: largest with few large experts (gpt-oss, top-4 of 128), smallest with many small ones.
+
+\paragraph{Other systems and outputs.} Two newer llama.cpp-based systems, Pipelined Sharding~\cite{pipelinedsharding2026} and
+leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.44$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
+the better of them (job 077). Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
+VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
+\klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
+maximum \klMaxGpt{} and \klMaxQwen), picks the same next token on \klTopGpt\% and \klTopQwen\% of steps, and changes
+the loss by \klNllGpt\% and \klNllQwen\%. Stock llama.cpp's own \texttt{--n-cpu-moe} placement diverges from the same
+reference by as much (mean KL \klStockMeanGpt{} and \klStockMeanQwen, agreement \klStockTopGpt\% and \klStockTopQwen\%):
+the differences are those of running experts on the CPU (the helpers quantise activations to Q8\_0 where the GPU path
+uses Q8\_1), not of the cache. Task accuracy was not measured.
+
+\paragraph{Prompts and batches.} The cache serves single-token steps; prompts and batches above one run llama.cpp's
+stock graph with every expert in host memory, and pay for the cache's resident experts and its one-thread CPU side.
+In \texttt{llama-batched-bench} at 25\% on the stock-clock host (job 089, both models) our prefill at 512 and 2{,}048
+tokens runs \bbPrefillMin--\bbPrefillMax\% of stock llama.cpp's and our decode at 2 and 4 parallel sequences
+\bbBatchMin--\bbBatchMax\% of it (the tool feeds both engines the same random tokens).
+
 \section{Artifact description}\label{app:artifact}
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{System.} A patch to llama.cpp commit \texttt{4da6337} (the expert cache, FETCH, the mailbox and the

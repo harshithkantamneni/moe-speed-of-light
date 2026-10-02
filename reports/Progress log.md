@@ -3,6 +3,34 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 2 October, early: job 093 in the paper (hit-optimal foresight: +25-56% at 25% and above, -8% below); job `094_foresight_bytes@vast` running
+
+- **Job 093 landed (RTX 5090 + Ryzen 9 9950X; a weak host memory: 43.7 / 45.8 / 49.4 GB/s by CPU / link / both,
+  50.5 at best; all 46 runs completed, $2.43).** With the whole sequence in view the hit-optimal oracle runs 1.40x
+  [1.38, 1.41] the online policy at gpt-oss 25% and 1.25x [1.24, 1.26] at Qwen3 25%, closing 41 and 31% of the gap to
+  this host's limit and reaching 76 and 52% of what the accounting's foresight-only term predicts; 1.48x and 1.56x at
+  the two GPU-bound cells. Half of the gpt-oss gain arrives by W = 9.2 tokens (trace study: 10.5 measured, 9.3 fit).
+  At gpt-oss 11% and Qwen3 12.5% it *loses* 8% at every window: it reads more host bytes than the online policy (82
+  and 195 experts per token against 63 and 160) because Belady admits experts used once where the optimum (38 and 97
+  reads) bypasses them, and its copies land late (67 / 66% hits against the optimum's 73 / 75%). The unpaced path,
+  with 98% hits at gpt-oss 11%, still loses: the bytes do it, not the timing. No-overlap within a layer: under 1%
+  everywhere. The law on the oracle runs' own counters over-predicts them 24-39%: the admissions overlapped the step.
+  Of 36 clauses 9 held, 2 on the point, 21 failed, 4 untested (`prereg/foresight_outcome_093.md`); the overall
+  prereg hit rate is now 66% of 205 clauses.
+- **In the paper (main at ba09b5e):** a "Foresight, measured" paragraph and figure in Section 4 (the four
+  host-bound cells against W, with the model's foresight-only term as a tick), an appendix section with the per-cell
+  table and the window sweep, the abstract (about 220 words) and the contributions list carry the result, the
+  conclusion ends on it. An independent number check found 17 defects (the worst: "unpaced slower at all four
+  cells" was wrong at gpt-oss 11%; the GPU-bound ranking of foresight differs per host; W50 should be compared with
+  the trace-measured value, not only the fit); all fixed. Main text ends on page 10.
+- **Job 094 (RTX 5090 + Ryzen 9 7950X, offer 53039899, $0.61/h; running since 00:11 UTC).** The bytes-optimal
+  oracle: the same lookahead, but the policy admits only among this step's *missed* experts that have a next use
+  (MIN with bypass), so its reads should match the optimum's (38.3 / 15.3 / 6.8 and 96.5 / 43.4 / 13.7 per token).
+  Configurations at all six cells: base, bypass W = all, bypass W = 16, prefetch W = all. Six predictions in the
+  header (reads within 15% of the optimum's; faster than base at every cell, by 10-45% at the four host-bound ones;
+  hit rate within 4 points of the optimum's; the law over-predicts 10-40% at host-bound cells; bypass beats
+  hit-optimal by at least 15% at 11 / 12.5%; W = 16 keeps at least 70% of the gain).
+
 ## 1 October, evening: two reviews (6 and 6.5 of 10), the rewrite, and the foresight measurement (job `093_foresight@vast`)
 
 - **Two independent reviews of the grid draft** (`reports/Review round 2 (1 October).md`): 6 and 6.5 / 10. Agreed

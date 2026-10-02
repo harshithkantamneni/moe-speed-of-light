@@ -11,7 +11,7 @@ import re
 
 import numpy as np
 
-RES = "/home/claude/gpu-branch/results"
+RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 # measured stats file (by prefix) -> prediction key
 MAP = [
     (r"ref_slots_14\.json|ref_C14_r\d\.json", "C14"),

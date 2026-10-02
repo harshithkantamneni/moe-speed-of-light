@@ -20,7 +20,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from samehost_stats import boot_ratio  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 ENGINE = {  # Table 1 run whose counters give the engine's hit rate
     ("gpt-oss-120b", 14): f"{R}/081_headline_law@vast/srv_g_ours_C14_law_L2.json",
     ("gpt-oss-120b", 32): f"{R}/081_headline_law@vast/srv_g_ours_C32_law_L2.json",

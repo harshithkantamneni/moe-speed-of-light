@@ -16,13 +16,14 @@ Every step adds one cost to the previous time (ms per token):
 
     python scripts/gap_decomposition.py [--json prereg/homepc/gap_decomposition_072.json]
 """
+import os
 import argparse
 import json
 
 S = 13253760.0                      # bytes per expert
 D = 1713980160.0                    # dense + head + KV bytes per token (GGUF)
 B_GPU = 1792e9                      # RTX 5090 datasheet
-RES = "/home/claude/gpu-branch/results/072_defer@vast"
+RES = os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "072_defer@vast")
 PHASE_US, HEAD_US = 90.0, 350.0     # profiles (069c, 072): median GPU phase per layer, output head
 
 

@@ -23,7 +23,7 @@ from samehost_stats import boot_ratio  # noqa: E402
 from scripts.speed_limit import MODELS, host_rates, limit  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 D = f"{R}/089_headline_stockclock@vast"
 CELLS = [("gpt-oss-120b", "11%", "g_ours_C14", "g_ft_hybrid_r0.111", "g_llama_n32"),
          ("gpt-oss-120b", "25%", "g_ours_C32", "g_ft_hybrid_r0.25", "g_llama_n27"),

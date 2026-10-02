@@ -21,7 +21,7 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-RES = "/home/claude/gpu-branch/results"
+RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 
 macros = {}
 

@@ -19,7 +19,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from samehost_stats import boot_ratio  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 JOBS = {
     "085": dict(dir=f"{R}/085_half_pcie@vast", cells=[
         # model, budget, ours prefix+C, FreeToken label stem, llama label or None

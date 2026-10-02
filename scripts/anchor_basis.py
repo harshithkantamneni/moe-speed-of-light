@@ -21,7 +21,7 @@ from mosl.validation_set import ROWS  # noqa: E402
 from scripts.a10_rows import A10_ROWS  # noqa: E402
 from scripts.validate import VARIANTS, fit, predict  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 PLATFORMS = {"a100": (f"{R}/050_anchor_platform@anchor", 204.8, "8 x DDR4-3200 (EPYC 7J13)"),
              "gh200": (f"{R}/052_anchor_platform_gh200@trace", 512.0, "LPDDR5X (Grace)")}
 

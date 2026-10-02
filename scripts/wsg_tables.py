@@ -216,7 +216,7 @@ def ablation():
         M(f"ablNone{nm}", f"{ex['abl_1a_nocache']['over_stock'][0]:.2f}")
     for key, nm in (("g", "Gpt"), ("q", "Qwen")):
         for step, sn in (("abl_1_static", "Static"), ("abl_2_lru", "Lru"), ("abl_3_dfa", "Dfa")):
-            st_ = json.load(open(f"/home/claude/gpu-branch/results/087_ablation_static@vast/srv_{key}_{step}.json"))
+            st_ = json.load(open(os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), f"087_ablation_static@vast/srv_{key}_{step}.json")))
             M(f"rd{sn}{nm}", f"{(st_['misses'] + st_['admits']) / st_['steps']:.0f}")
     par = r1["parity"]
     M("parTopGpt", f"{100 * par['g']['ours']['top1_agree']:.1f}")
@@ -419,7 +419,7 @@ Host CPU & Job & $n$ & Median & Max & llama.cpp \\
     gains = {}
     for job in ("069c_profile_270k", "069c_profile_epyc7352", "072_defer", "073_samehost_v2", "074_fix40", "076_table_5090",
                 "077_competitors_gptoss"):
-        d = json.load(open(f"/home/claude/gpu-branch/results/{job}@vast/law_prediction.json"))
+        d = json.load(open(os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), f"{job}@vast/law_prediction.json")))
         gains[job] = d["B_both"] / max(d["B_c"], d["B_p"]) - 1
     ry = [v for k, v in gains.items() if "069c" not in k]
     M("secondMin", f"{100 * min(ry):.0f}")

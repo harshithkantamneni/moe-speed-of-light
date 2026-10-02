@@ -662,7 +662,7 @@ def selftest():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", default="/home/claude/gpu-branch/results")
+    ap.add_argument("--results", default=os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"))
     ap.add_argument("--arm", default="S")
     ap.add_argument("--out", default=os.path.join(ROOT, "prereg", "policy_study.json"))
     ap.add_argument("--w50-out", default=os.path.join(ROOT, "prereg", "foresight", "w50_intervals.json"))

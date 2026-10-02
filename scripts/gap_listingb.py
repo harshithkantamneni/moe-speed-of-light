@@ -21,10 +21,10 @@ import json
 import os
 import sys
 
-sys.path.insert(0, "/home/claude/gpu-branch/jobs/ec2")
+sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch")), "jobs", "ec2"))
 from fetch_table import bandwidths  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 CELLS = [  # model key, label, C, engine counters of the Table 1 run, measured tok/s key
     ("gpt-oss-120b", "gpt-oss 11%", 14, f"{R}/081_headline_law@vast/srv_g_ours_C14_law_L2.json"),

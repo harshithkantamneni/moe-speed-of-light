@@ -28,12 +28,12 @@ import numpy as np
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
-sys.path.insert(0, "/home/claude/gpu-branch/jobs/ec2")
+sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch")), "jobs", "ec2"))
 from fetch_table import bandwidths  # noqa: E402
 from scripts.shapley_gap import value_function, shapley, FIX5  # noqa: E402
 from scripts.speed_limit import MODELS, host_rates, limit  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 D = f"{R}/093_foresight@vast"
 CELLS = [("g", 14, "gpt-oss-120b", "11%"), ("g", 32, "gpt-oss-120b", "25%"), ("g", 51, "gpt-oss-120b", "40%"),
          ("q", 16, "qwen3-30b-a3b-bf16", "12.5%"), ("q", 32, "qwen3-30b-a3b-bf16", "25%"), ("q", 56, "qwen3-30b-a3b-bf16", "43.75%")]

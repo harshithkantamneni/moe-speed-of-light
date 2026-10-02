@@ -50,7 +50,7 @@ def model_T(n, f, bc, bp, bb, g=48.0, lc=20.0):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="/home/claude/gpu-branch/results/080_fetch_split@vast")
+    ap.add_argument("--dir", default=os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "080_fetch_split@vast"))
     ap.add_argument("--out")
     a = ap.parse_args()
     by = load(os.path.join(a.dir, "bs1.jsonl"))

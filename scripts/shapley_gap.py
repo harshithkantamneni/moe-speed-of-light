@@ -46,7 +46,7 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
-sys.path.insert(0, "/home/claude/gpu-branch/jobs/ec2")
+sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch")), "jobs", "ec2"))
 from fetch_table import bandwidths  # noqa: E402
 from mosl import cachesim  # noqa: E402
 from scripts.gap_listingb import CELLS, R, measured  # noqa: E402

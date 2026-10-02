@@ -14,7 +14,7 @@ import json
 import os
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 
 
 def probe(job):

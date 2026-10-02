@@ -19,7 +19,7 @@ import numpy as np
 from numba import njit
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-R_ = "/home/claude/gpu-branch/results"
+R_ = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 TRACES = {"gpt-oss-120b": (f"{R_}/084c_gptoss_trace@vast/route_aime25_gptoss.npz", [14, 32, 51], {14: "11%", 32: "25%", 51: "40%"}),
           "qwen3-30b-a3b-bf16": (f"{R_}/084b_vram_rerun@vast/route_aime25_qwen3.npz", [16, 32, 56], {16: "12.5%", 32: "25%", 56: "43.75%"})}
 OPT = {("gpt-oss-120b", 14): 38.3, ("gpt-oss-120b", 32): 15.3, ("gpt-oss-120b", 51): 6.8,

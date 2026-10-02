@@ -21,7 +21,7 @@ import re
 
 import numpy as np
 
-RES = "/home/claude/gpu-branch/results"
+RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 S = 13253760.0    # bytes per gpt-oss-120b expert (GGUF)
 L = 36
 

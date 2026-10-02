@@ -43,7 +43,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from mosl import cachesim, ecsim_fast  # noqa: E402
 from mosl.traces import load_pack  # noqa: E402
 
-RES = "/home/claude/gpu-branch/results"
+RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 PACKS = {("gpt-oss-120b", "S"): "036_trace_retry@40gb/gpt-oss-120b_S.npz",
          ("gpt-oss-120b", "G"): "035_trace_rest@40gb/gpt-oss-120b_G.npz",
          ("gpt-oss-120b", "D"): "035_trace_rest@40gb/gpt-oss-120b_D.npz",

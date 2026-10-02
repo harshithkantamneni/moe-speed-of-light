@@ -49,7 +49,7 @@ from scripts.foresight import INF, _pol  # noqa: E402
 from scripts.speed_limit import B_GPU, MODELS, host_rates, limit  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
-RES = "/home/claude/gpu-branch/results"
+RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 TRACES = {"gpt-oss-120b": f"{RES}/084c_gptoss_trace@vast/route_aime25_gptoss.npz",
           "qwen3-30b-a3b-bf16": f"{RES}/084b_vram_rerun@vast/route_aime25_qwen3.npz"}
 BUDGETS = {"gpt-oss-120b": [14, 32, 51], "qwen3-30b-a3b-bf16": [16, 32, 56]}

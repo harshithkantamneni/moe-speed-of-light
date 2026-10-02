@@ -122,6 +122,109 @@ def bytes_oracle(tagof):
         f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
 
 
+def single_read(tagof):
+    """Macros for job 095 (the single-read oracles) from prereg/foresight_095.json: fsf* the fetch oracle, fsl2* the
+    scheduled single-read prefetch, fsb2* fetch + prefetch, fsb3p* its paced variant, fsh* the hit-optimal oracle on
+    that host; and the measured decomposition of foresight's value into its bytes and the overlap it allows."""
+    path = P("prereg", "foresight_095.json")
+    if not os.path.exists(path):
+        return
+    d = json.load(open(path))
+    sim = json.load(open(P("prereg", "foresight_single_read_sim.json")))
+    hb = d["host"]
+    M("fsfHostCpu", f"{hb['B_c']:.0f}"); M("fsfHostLink", f"{hb['B_p']:.0f}"); M("fsfHostBoth", f"{hb['B_cp']:.0f}"); M("fsfHostMax", f"{hb['b_host_max']:.1f}")
+    pref = {"fetch": "fsf", "lead2": "fslt", "both2": "fsbt", "both3p": "fsbp", "hitopt": "fsh"}
+    agg = {k: {"gain": [], "frac": [], "law": [], "reads": [], "hit": []} for k in pref}
+    hostb_agg = {k: {"gain": [], "frac": [], "law": [], "closed": [], "recov": []} for k in pref}
+    low_gain = {k: [] for k in pref}
+    bytes_share = []
+    rows = []
+    for c in d["cells"]:
+        tag = tagof[(c["model"], c["C"])]
+        r = c["runs"]; b = r["base"]
+        hostb = c["model_terms"]["c_at_limit"] <= 0
+        M(f"fsBase{tag}", f"{b['mean']:.1f}"); M(f"fsLimit{tag}", f"{c['model_terms']['limit_tok_s']:.0f}"); M(f"fsFracBase{tag}", f"{100 * b['frac_of_limit']:.0f}")
+        for k, px in pref.items():
+            if k not in r:
+                continue
+            o = r[k]
+            reads = o["misses_per_token"] + o["admits_per_token"]          # misses include the fetched ones; each read once
+            M(f"{px}Ratio{tag}", f"{o['ratio_to_base'][0]:.2f}"); M(f"{px}RatioLo{tag}", f"{o['ratio_to_base'][1]:.2f}"); M(f"{px}RatioHi{tag}", f"{o['ratio_to_base'][2]:.2f}")
+            M(f"{px}Gain{tag}", f"{100 * o['gain']:.0f}"); M(f"{px}Frac{tag}", f"{100 * o['frac_of_limit']:.0f}"); M(f"{px}Hit{tag}", f"{100 * o['hit_rate']:.0f}")
+            M(f"{px}Reads{tag}", f"{reads:.0f}"); M(f"{px}ReadsOpt{tag}", f"{reads / c['opt_reads_per_token']:.2f}")
+            M(f"{px}LawErr{tag}", f"{100 * (o['law_ms'] / o['ms'] - 1):+.0f}"); M(f"{px}Closed{tag}", f"{100 * o['gap_closed']:.0f}")
+            if o.get("foresight_recovered") is not None:
+                M(f"{px}Recov{tag}", f"{100 * o['foresight_recovered']:.0f}")
+            agg[k]["gain"].append(o["gain"]); agg[k]["frac"].append(o["frac_of_limit"]); agg[k]["law"].append(o["law_ms"] / o["ms"] - 1)
+            agg[k]["reads"].append(reads / c["opt_reads_per_token"]); agg[k]["hit"].append(o["hit_rate"])
+            if hostb:
+                hostb_agg[k]["gain"].append(o["gain"]); hostb_agg[k]["frac"].append(o["frac_of_limit"]); hostb_agg[k]["law"].append(o["law_ms"] / o["ms"] - 1)
+                hostb_agg[k]["closed"].append(o["gap_closed"])
+                if o.get("foresight_recovered") is not None:
+                    hostb_agg[k]["recov"].append(o["foresight_recovered"])
+            if c["C"] in (14, 16):
+                low_gain[k].append(o["gain"])
+        if "fetch" in r and "both2" in r:
+            bytes_share.append((b["ms"] - r["fetch"]["ms"]) / max(1e-9, b["ms"] - r["both2"]["ms"]))
+        sc = sim["models"][c["model"]]["cells"][str(c["C"])]["modes"]
+        M(f"fsfSimReads{tag}", f"{sc['fetch']['reads_per_token']:.0f}"); M(f"fsbtSimReads{tag}", f"{sc['both-2']['reads_per_token']:.0f}")
+        M(f"fsfSimHit{tag}", f"{100 * sc['fetch']['hit_rate']:.0f}"); M(f"fsbtSimHit{tag}", f"{100 * sc['both-2']['hit_rate']:.0f}")
+        rows.append((tag, c, r, sc))
+    for k, px in pref.items():
+        a = agg[k]
+        if not a["gain"]:
+            continue
+        M(f"{px}GainMin", f"{100 * min(a['gain']):.0f}"); M(f"{px}GainMax", f"{100 * max(a['gain']):.0f}")
+        M(f"{px}FracMin", f"{100 * min(a['frac']):.0f}"); M(f"{px}FracMax", f"{100 * max(a['frac']):.0f}")
+        M(f"{px}LawErrMin", f"{100 * min(a['law']):+.0f}"); M(f"{px}LawErrMax", f"{100 * max(a['law']):+.0f}")
+        M(f"{px}LawAbsMax", f"{100 * max(abs(x) for x in a['law']):.0f}")
+        M(f"{px}ReadsOptMin", f"{min(a['reads']):.2f}"); M(f"{px}ReadsOptMax", f"{max(a['reads']):.2f}")
+        M(f"{px}HitMin", f"{100 * min(a['hit']):.0f}"); M(f"{px}HitMax", f"{100 * max(a['hit']):.0f}")
+        h = hostb_agg[k]
+        if h["gain"]:
+            M(f"{px}HostGainMin", f"{100 * min(h['gain']):.0f}"); M(f"{px}HostGainMax", f"{100 * max(h['gain']):.0f}")
+            M(f"{px}HostFracMin", f"{100 * min(h['frac']):.0f}"); M(f"{px}HostFracMax", f"{100 * max(h['frac']):.0f}")
+            M(f"{px}HostLawErrMin", f"{100 * min(h['law']):+.0f}"); M(f"{px}HostLawErrMax", f"{100 * max(h['law']):+.0f}")
+            M(f"{px}HostClosedMin", f"{100 * min(h['closed']):.0f}"); M(f"{px}HostClosedMax", f"{100 * max(h['closed']):.0f}")
+            if h["recov"]:
+                M(f"{px}HostRecovMin", f"{100 * min(h['recov']):.0f}"); M(f"{px}HostRecovMax", f"{100 * max(h['recov']):.0f}")
+        if low_gain[k]:
+            M(f"{px}LowGainMin", f"{100 * min(low_gain[k]):.0f}"); M(f"{px}LowGainMax", f"{100 * max(low_gain[k]):.0f}")
+    if bytes_share:
+        M("fsBytesShareMin", f"{100 * min(bytes_share):.0f}"); M("fsBytesShareMax", f"{100 * max(bytes_share):.0f}")
+    M("fsfCells", str(len(rows)))
+    # the appendix table
+    names = {"GLow": "gpt-oss 11\\%", "GMid": "gpt-oss 25\\%", "GHigh": "gpt-oss 40\\%", "QLow": "Qwen3 12.5\\%", "QMid": "Qwen3 25\\%", "QHigh": "Qwen3 43.75\\%"}
+    with open(P("paper", "tab_single_read.tex"), "w") as f:
+        f.write("% generated by scripts/foresight_paper.py from prereg/foresight_095.json and prereg/foresight_single_read_sim.json\n")
+        f.write("\\begin{table*}[t]\\centering\\scriptsize\\setlength{\\tabcolsep}{2.2pt}\n")
+        f.write("\\caption{The single-read oracles (job 095; RTX 5090, Ryzen 9 9950X, host memory \\fsfHostMax\\,GB/s at best) beside the hit-optimal one. "
+                "Per cell: the online policy's speed and its share of this host's limit; for each oracle with the whole sequence in view, its ratio to the online "
+                "policy (paired, 95\\% interval), hit rate, host reads per token (CPU misses + fetches + admissions, each expert read once) as a multiple of the "
+                "optimum's, share of the limit and the law on its own counters against its measured time. \\emph{fetch}: MIN with bypass, admitted misses "
+                "fetched into their slot this step; \\emph{lead}: the scheduled single-read prefetch (first use at least two steps away); \\emph{both}: "
+                "fetch and lead; \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{hit-opt.}: the hit-optimal oracle. The simulation "
+                "columns give the trace's prediction of reads and hits for fetch and both.}\n")
+        f.write("\\label{tab:single_read}\n")
+        f.write("\\begin{tabular}{@{}lrr|lrrrrr|lrrrr|lrrrr|lr|lr|rrrr@{}}\\toprule\n")
+        f.write(" & \\multicolumn{2}{c|}{online} & \\multicolumn{5}{c|}{fetch} & \\multicolumn{4}{c|}{both} & \\multicolumn{4}{c|}{hit-opt.} & \\multicolumn{2}{c|}{lead} & \\multicolumn{2}{c|}{paced} & \\multicolumn{4}{c}{simulated} \\\\\n")
+        f.write("Cell & tok/s & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & law & ratio & hits & reads/R$^*$ & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & ratio & \\% lim. & ratio & \\% lim. & fetch reads & hits & both reads & hits \\\\\\midrule\n")
+        for tag, c, r, sc in rows:
+            def cell(k, full=True):
+                if k not in r:
+                    return " & -- & -- & -- & --" if full else " & -- & --"
+                o = r[k]; reads = (o["misses_per_token"] + o["admits_per_token"]) / c["opt_reads_per_token"]
+                if full:
+                    return " & %.2f [%.2f, %.2f] & %.0f & %.2f & %.0f" % (o["ratio_to_base"][0], o["ratio_to_base"][1], o["ratio_to_base"][2], 100 * o["hit_rate"], reads, 100 * o["frac_of_limit"])
+                return " & %.2f & %.0f" % (o["ratio_to_base"][0], 100 * o["frac_of_limit"])
+            fo = r.get("fetch")
+            law = (" & %+.0f\\%%" % (100 * (fo["law_ms"] / fo["ms"] - 1))) if fo else " & --"
+            f.write("%s & %.1f & %.0f%s%s%s%s%s%s & %.0f & %.0f & %.0f & %.0f \\\\\n" % (
+                names[tag], r["base"]["mean"], 100 * r["base"]["frac_of_limit"], cell("fetch"), law, cell("both2"), cell("hitopt"), cell("lead2", False), cell("both3p", False),
+                sc["fetch"]["reads_per_token"], 100 * sc["fetch"]["hit_rate"], sc["both-2"]["reads_per_token"], 100 * sc["both-2"]["hit_rate"]))
+        f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
+
+
 def main():
     d = json.load(open(P("prereg", "foresight_093.json")))
     cells = d["cells"]
@@ -211,6 +314,7 @@ def main():
     M("fsMeasuredContrib", " (worth \\fsbGainHighMin--\\fsbGainHighMax\\%, mostly on the bytes it saves, and \\fsHitGainMin--\\fsHitGainMax\\% with the overlap "
                            "it allows, at budgets of 25\\% and above; at most \\fsbGainLowMaxAny\\% below)")
     bytes_oracle(tagof)
+    single_read(tagof)
     with open(P("paper", "wsg_foresight.tex"), "w") as f:
         f.write("% generated by scripts/foresight_paper.py from prereg/foresight_093.json\n")
         for k in sorted(MACROS):

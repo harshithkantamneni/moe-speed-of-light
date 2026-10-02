@@ -29,8 +29,8 @@ EXTENSION = ["mixtral-8x7b", "deepseek-v2-lite", "qwen1.5-moe", "qwen2-57b", "ph
 
 
 ELL, AST = "$^\\ell$", "$^\\ast$"
-ANCHOR_DIRS = {"a100": ("/home/claude/gpu-branch/results/050_anchor_platform@anchor", "/home/claude/gpu-branch/results/051_anchor_sweep@anchor"),
-               "gh200": ("/home/claude/gpu-branch/results/052_anchor_platform_gh200@trace", "/home/claude/gpu-branch/results/054_anchor_sweep_gh200_retry@trace")}
+ANCHOR_DIRS = {"a100": (os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "050_anchor_platform@anchor"), os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "051_anchor_sweep@anchor")),
+               "gh200": (os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "052_anchor_platform_gh200@trace"), os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "054_anchor_sweep_gh200_retry@trace"))}
 SYSTEM_ALIASES = {"llama.cpp MoE expert cache (leloch moe-cache-pr, HEAD 8853f0535)": "llama.cpp MoE expert cache (leloch, branch moe-cache-pr)"}
 
 

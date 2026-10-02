@@ -20,7 +20,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from samehost_stats import boot_ratio  # noqa: E402
 
-R = "/home/claude/gpu-branch/results"
+R = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 D = f"{R}/088_slowlink_fair@vast"
 CELLS = [("11%", "g_ours_C14", "g_ft_{}_r0.111"), ("25%", "g_ours_C32", "g_ft_{}_r0.25"), ("40%", "g_ours_C51", "g_ft_{}_r0.40")]
 J085 = {"11%": dict(hybrid=12.0, offload=24.6, ours=49.9, ratio=2.030), "25%": dict(hybrid=30.5, offload=48.2, ours=81.9, ratio=1.699),

@@ -29,7 +29,7 @@ def mean_all(by, lab):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="/home/claude/gpu-branch/results/078_qwen3_4way@vast")
+    ap.add_argument("--dir", default=os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "078_qwen3_4way@vast"))
     ap.add_argument("--out")
     a = ap.parse_args()
     rows = [json.loads(line) for line in open(os.path.join(a.dir, "bs1.jsonl")) if line.strip()]

@@ -22,7 +22,7 @@ EXTRA = ["abl_1a_nocache", "abl_1h_static_hindsight"]
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="/home/claude/gpu-branch/results/087_ablation_static@vast")
+    ap.add_argument("--dir", default=os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "087_ablation_static@vast"))
     ap.add_argument("--out")
     a = ap.parse_args()
     by, hit = {}, {}

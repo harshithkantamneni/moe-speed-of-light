@@ -22,7 +22,7 @@ from mosl.traces import load_pack  # noqa: E402
 
 GGUF = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "gguf_bytes.json")))["ggml-org/gpt-oss-120b-GGUF/gpt-oss-120b-MXFP4.gguf"]
 
-TRACE = "/home/claude/gpu-branch/results/036_trace_retry@40gb/gpt-oss-120b_S.npz"
+TRACE = os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "036_trace_retry@40gb/gpt-oss-120b_S.npz")
 BUDGETS = ((32, 14), (27, 32), (20, 56))   # llama.cpp -ncmoe n  <->  cache slots per layer C (of 128)
 
 

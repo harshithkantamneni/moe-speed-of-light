@@ -24,7 +24,7 @@ CELLS = [("11%", "g_hard_ours_C14", "g_hard_ft_hybrid_r0.111", 69.9), ("25%", "g
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="/home/claude/gpu-branch/results/083_gptoss_hard_long@vast")
+    ap.add_argument("--dir", default=os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "083_gptoss_hard_long@vast"))
     ap.add_argument("--out")
     a = ap.parse_args()
     by = {}

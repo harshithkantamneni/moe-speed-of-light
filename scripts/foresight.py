@@ -166,8 +166,8 @@ def analyse(routes, segs, E, k, kappa, budgets):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", default="/home/claude/gpu-branch/results")
-    ap.add_argument("--la", default="/home/claude/gpu-branch/results/063_lookahead@vast/la_gpt-oss-120b.bin")
+    ap.add_argument("--results", default=os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"))
+    ap.add_argument("--la", default=os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), "063_lookahead@vast/la_gpt-oss-120b.bin"))
     ap.add_argument("--arm", default="S")
     ap.add_argument("--out", default="prereg/foresight")
     ap.add_argument("--models", default=",".join(MODELS))

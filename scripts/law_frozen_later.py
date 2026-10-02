@@ -17,10 +17,10 @@ import sys
 import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-sys.path.insert(0, "/home/claude/gpu-branch/jobs/ec2")
+sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch")), "jobs", "ec2"))
 from fetch_table import bandwidths  # noqa: E402
 
-R_ = "/home/claude/gpu-branch/results"
+R_ = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 G = {"g": 4.819346e-3, "q": 4.3e-3}
 S = {"g": 13253760, "q": 9437184}
 CELLS = {"g": [14, 32, 51], "q": [16, 32, 56]}

@@ -117,6 +117,7 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     M("ftLeadQwenMin", f"{min(100 * (x['ratio'][0] - 1) for x in q):.0f}")
     M("ftLeadQwenMax", f"{max(100 * (x['ratio'][0] - 1) for x in q):.0f}")
     M("ftRatioGptMin", f"{min(x['ratio'][0] for x in g):.2f}"); M("ftRatioGptMax", f"{max(x['ratio'][0] for x in g):.2f}")
+    M("ftRatioGptMid", f"{next(x['ratio'][0] for x in g if x['budget'] == '25%'):.2f}")
     M("ftRatioQwenMin", f"{min(x['ratio'][0] for x in q):.2f}"); M("ftRatioQwenMax", f"{max(x['ratio'][0] for x in q):.2f}")
     M("llamaXMin", f"{min(x['xl'] for x in rows):.1f}")
     M("llamaXMax", f"{max(x['xl'] for x in rows):.1f}")
@@ -452,7 +453,7 @@ def split():
 copied over PCIe; the rest run on the CPU. Ratio to the fixed table, paired, 95\% CI.}\label{tab:split}
 \setlength\tabcolsep{3pt}\resizebox{\linewidth}{!}{%
 \begin{tabular}{llrc}\toprule
-Table & $f(1..8)$ & tok/s & vs fixed \\\midrule
+Table & $f(0..8)$ & tok/s & vs fixed \\\midrule
 """ + "\n".join(lines) + r"""
 \bottomrule\end{tabular}}\end{table}
 """

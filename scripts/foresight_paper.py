@@ -114,7 +114,7 @@ def bytes_oracle(tagof):
         f.write("\\begin{table*}[t]\\centering\\scriptsize\\setlength{\\tabcolsep}{1.7pt}\n")
         f.write("\\caption{The bytes-optimal oracle (MIN with bypass) beside the hit-optimal one on the second oracle host (RTX 5090, Ryzen 9 7950X, host memory "
                 "\\fsbHostMax\\,GB/s at best). Per cell: the online policy's speed; each oracle's ratio to it with the whole sequence in view (paired, 95\\% interval), "
-                "its hit rate, its misses per token (experts read from host memory by the CPU or by a demand copy; its background admissions, each read a second time by the copy, in parentheses) "
+                "its hit rate, its misses per token (experts read from host memory by the CPU or by a demand copy; its background admissions in parentheses: the bypass oracle's are this step's CPU-served misses, each read a second time by the copy, the hit-optimal one's are prefetches of what the optimum would bypass as readily as of what it would admit) "
                 "and the law on its own counters against its measured time; the optimum's reads and hit rate from the trace; "
                 "and MIN with bypass simulated on the trace with the engine's lookahead (within the sequence) under a copy latency of 1 (ideal), 2 and 3 steps, "
                 "with the latency at which the simulation meets the engine's misses.}\n")
@@ -144,7 +144,8 @@ def single_read(tagof):
     hb = d["host"]
     M("fsfHostCpu", f"{hb['B_c']:.0f}"); M("fsfHostLink", f"{hb['B_p']:.0f}"); M("fsfHostBoth", f"{hb['B_cp']:.0f}"); M("fsfHostMax", f"{hb['b_host_max']:.1f}")
     pref = {"fetch": "fsf", "lead2": "fslt", "both2": "fsbt", "both3p": "fsbp", "hitopt": "fsh"}
-    agg = {k: {"gain": [], "frac": [], "law": [], "reads": [], "hit": []} for k in pref}
+    agg = {k: {"gain": [], "frac": [], "law": [], "reads": [], "hit": [], "ratio_g": [], "ratio_q": []} for k in pref}
+    best_ovl_gain, best_ovl_frac, pf_util, base_util, hit_adm = [], [], [], [], []
     hostb_agg = {k: {"gain": [], "frac": [], "law": [], "closed": [], "recov": []} for k in pref}
     low_gain = {k: [] for k in pref}
     bytes_share = []
@@ -177,6 +178,11 @@ def single_read(tagof):
             if o.get("foresight_recovered") is not None:
                 M(f"{px}Recov{tag}", f"{100 * o['foresight_recovered']:.0f}")
             agg[k]["gain"].append(o["gain"]); agg[k]["frac"].append(o["frac_of_limit"]); agg[k]["law"].append(o["law_ms"] / o["ms"] - 1)
+            agg[k]["ratio_g" if c["model"].startswith("gpt-oss") else "ratio_q"].append(o["ratio_to_base"][0])
+            if k in ("lead2", "both2", "both3p") and hostb:
+                pf_util.append(util)
+            if k == "hitopt":
+                hit_adm.append(o["admits_per_token"] / c["opt_reads_per_token"])
             agg[k]["reads"].append(reads / c["opt_reads_per_token"]); agg[k]["hit"].append(o["hit_rate"])
             if hostb:
                 hostb_agg[k]["gain"].append(o["gain"]); hostb_agg[k]["frac"].append(o["frac_of_limit"]); hostb_agg[k]["law"].append(o["law_ms"] / o["ms"] - 1)
@@ -187,6 +193,12 @@ def single_read(tagof):
                 low_gain[k].append(o["gain"])
         if "fetch" in r and "both2" in r:
             bytes_share.append((b["ms"] - r["fetch"]["ms"]) / max(1e-9, b["ms"] - r["both2"]["ms"]))
+        if "both2" in r and "both3p" in r:
+            best = max((r["both2"], r["both3p"]), key=lambda o: o["mean"])
+            best_ovl_gain.append(best["gain"]); best_ovl_frac.append(best["frac_of_limit"])
+        S_mb = 13.25 if c["model"].startswith("gpt-oss") else 9.44
+        if hostb:
+            base_util.append((b["misses_per_token"] + b["admits_per_token"]) * S_mb * 1e6 * b["mean"] / (hb["b_host_max"] * 1e9))
         sc = sim["models"][c["model"]]["cells"][str(c["C"])]["modes"]
         M(f"fsfSimReads{tag}", f"{sc['fetch']['reads_per_token']:.0f}"); M(f"fsbtSimReads{tag}", f"{sc['both-2']['reads_per_token']:.0f}")
         M(f"fsfSimHit{tag}", f"{100 * sc['fetch']['hit_rate']:.0f}"); M(f"fsbtSimHit{tag}", f"{100 * sc['both-2']['hit_rate']:.0f}")
@@ -205,6 +217,8 @@ def single_read(tagof):
         M(f"{px}ReadsOptMin", f"{min(a['reads']):.2f}"); M(f"{px}ReadsOptMax", f"{max(a['reads']):.2f}")
         M(f"{px}HitMin", f"{100 * min(a['hit']):.0f}"); M(f"{px}HitMax", f"{100 * max(a['hit']):.0f}")
         M(f"{px}UtilMin", f"{100 * min(a['util']):.0f}"); M(f"{px}UtilMax", f"{100 * max(a['util']):.0f}")
+        M(f"{px}RatioGptMin", f"{min(a['ratio_g']):.2f}"); M(f"{px}RatioGptMax", f"{max(a['ratio_g']):.2f}")
+        M(f"{px}RatioQwenMin", f"{min(a['ratio_q']):.2f}"); M(f"{px}RatioQwenMax", f"{max(a['ratio_q']):.2f}")
         h = hostb_agg[k]
         if h.get("util"):
             M(f"{px}HostUtilMin", f"{100 * min(h['util']):.0f}"); M(f"{px}HostUtilMax", f"{100 * max(h['util']):.0f}")
@@ -224,8 +238,22 @@ def single_read(tagof):
     M("fsModelOFFracHostMin", f"{100 * min(c['model_terms']['limit_ms'] / c['model_terms']['v_OF_ms'] for c in hbc):.0f}"); M("fsModelOFFracHostMax", f"{100 * max(c['model_terms']['limit_ms'] / c['model_terms']['v_OF_ms'] for c in hbc):.0f}")
     M("fsHostCells", str(len(hbc)))
     M("fsfCells", str(len(rows)))
+    if best_ovl_gain:
+        M("fsOvlBestGainMin", f"{100 * min(best_ovl_gain):.0f}"); M("fsOvlBestGainMax", f"{100 * max(best_ovl_gain):.0f}")
+        M("fsOvlBestFracMin", f"{100 * min(best_ovl_frac):.0f}"); M("fsOvlBestFracMax", f"{100 * max(best_ovl_frac):.0f}")
+    if pf_util:
+        M("fsPrefetchHostUtilMin", f"{100 * min(pf_util):.0f}"); M("fsPrefetchHostUtilMax", f"{100 * max(pf_util):.0f}")
+    if base_util:
+        M("fsBaseHostUtilMin", f"{100 * min(base_util):.0f}"); M("fsBaseHostUtilMax", f"{100 * max(base_util):.0f}")
+    if hit_adm:
+        M("fshAdmitsOptMin", f"{min(hit_adm):.2f}"); M("fshAdmitsOptMax", f"{max(hit_adm):.2f}")
+    # the reads of every oracle that spends foresight the usual way (jobs 093, 094 and 095's hit-optimal), over the optimum's
+    ex = [float(MACROS[k]) for k in ("fsmTotalReadsOptMin", "fsmTotalReadsOptMax", "fsbTotalReadsOptMin", "fsbTotalReadsOptMax",
+                                     "fspTotalReadsOptMin", "fspTotalReadsOptMax", "fshReadsOptMin", "fshReadsOptMax") if k in MACROS]
+    if ex:
+        M("fsExcessReadsOptMin", f"{min(ex):.1f}"); M("fsExcessReadsOptMax", f"{max(ex):.1f}")
     if hitdiff:
-        M("fsfSimHitDiffMax", f"{100 * max(hitdiff):.1f}"); M("fsfSimReadsDiffMin", f"{100 * min(readsdiff):+.0f}"); M("fsfSimReadsDiffMax", f"{100 * max(readsdiff):+.0f}")
+        M("fsfSimHitDiffMax", f"{100 * max(hitdiff):.1f}"); M("fsfSimReadsDiffMin", f"{100 * min(readsdiff):.0f}"); M("fsfSimReadsDiffMax", f"{100 * max(readsdiff):.0f}".replace("-0", "0"))
     # the appendix table
     names = {"GLow": "gpt-oss 11\\%", "GMid": "gpt-oss 25\\%", "GHigh": "gpt-oss 40\\%", "QLow": "Qwen3 12.5\\%", "QMid": "Qwen3 25\\%", "QHigh": "Qwen3 43.75\\%"}
     with open(P("paper", "tab_single_read.tex"), "w") as f:
@@ -233,10 +261,10 @@ def single_read(tagof):
         f.write("\\begin{table*}[t]\\centering\\scriptsize\\setlength{\\tabcolsep}{2.2pt}\n")
         f.write("\\caption{The single-read oracles (job 095; RTX 5090, Ryzen 9 9950X, host memory \\fsfHostMax\\,GB/s at best) beside the hit-optimal one. "
                 "Per cell: the online policy's speed and its share of this host's limit; for each oracle with the whole sequence in view, its ratio to the online "
-                "policy (paired, 95\\% interval), hit rate, host reads per token (CPU misses + fetches + admissions, each expert read once) as a multiple of the "
-                "optimum's, share of the limit and the law on its own counters against its measured time. \\emph{fetch}: MIN with bypass, admitted misses "
+                "policy (paired, 95\\% interval), hit rate, host reads per token (CPU misses + fetches + admissions) as a multiple of the "
+                "optimum's (each read counted once), share of the limit and the law on its own counters against its measured time. \\emph{fetch}: MIN with bypass, admitted misses "
                 "fetched into their slot this step; \\emph{lead}: the scheduled single-read prefetch (first use at least two steps away); \\emph{both}: "
-                "fetch and lead; \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{hit-opt.}: the hit-optimal oracle. The simulation "
+                "fetch and lead; \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{hit-opt.}: the hit-optimal oracle (Belady prefetch without bypass, unpaced). The simulation "
                 "columns give the trace's prediction of reads and hits for fetch and both.}\n")
         f.write("\\label{tab:single_read}\n")
         f.write("\\resizebox{\\textwidth}{!}{%\n")
@@ -339,6 +367,14 @@ def main():
     M("fsmAdmitRatioMin", f"{min(admits):.2f}"); M("fsmAdmitRatioMax", f"{max(admits):.2f}")
     tot = [(c["runs"]["oracle_w0"]["misses_per_token"] + c["runs"]["oracle_w0"]["admits_per_token"]) / c["opt_reads_per_token"] for c in cells if "oracle_w0" in c["runs"]]
     M("fsmTotalReadsOptMin", f"{min(tot):.2f}"); M("fsmTotalReadsOptMax", f"{max(tot):.2f}")
+    wu = []
+    for c in host:
+        S_mb = 13.25 if c["model"].startswith("gpt-oss") else 9.44
+        for k, r in c["runs"].items():
+            if k.startswith("oracle_w"):
+                wu.append((r["misses_per_token"] + r["admits_per_token"]) * S_mb * 1e6 * r["mean"] / (d["host"]["b_host_max"] * 1e9))
+    if wu:
+        M("fsmUtilWinMin", f"{100 * min(wu):.0f}"); M("fsmUtilWinMax", f"{100 * max(wu):.0f}")
     for tag, w, wt in w50m:
         M(f"fsmWfifty{tag}", f"{w:.1f}")
     if w50m:
@@ -376,7 +412,7 @@ def main():
         f.write("\\begin{table*}[t]\\centering\\scriptsize\\setlength{\\tabcolsep}{3pt}\n")
         f.write("\\caption{The hit-optimal oracle in the engine (job 093; RTX 5090, Ryzen 9 9950X, host memory \\fsmHostMax\\,GB/s at best). "
                 "tok/s of the online policy and of the oracle with the whole sequence in view; their ratio, paired by sequence, with its 95\\% interval; "
-                "hit rate and misses per token of each (experts read from host memory by the CPU or by a demand copy), the optimum's reads in parentheses, and the oracle's background admissions, each read a second time by the copy; speed as a percentage of this "
+                "hit rate and misses per token of each (experts read from host memory by the CPU or by a demand copy), the optimum's reads in parentheses, and the oracle's background admissions (Belady prefetch without bypass: it admits what the optimum bypasses); speed as a percentage of this "
                 "host's limit; the accounting's foresight-only term $v(F)$ for the cell in tok/s; the share of that term the oracle recovered and the share of the gap to the limit it closed.}\n")
         f.write("\\label{tab:foresight}\n")
         f.write("\\begin{tabular}{@{}lrrlrrrrrrr@{}}\\toprule\n")

@@ -401,7 +401,7 @@ def scorecard():
     bt = s["by_era"][rev]["by_type"]
     M("scRevFailBand", str(bt["band"]["failed"])); M("scRevFailThr", str(bt["threshold"]["failed"]))
     M("scRevFailEq", str(bt["equality"]["failed"])); M("scRevFailSign", str(bt["sign"]["failed"]))
-    M("scRevSignHeld", str(bt["sign"]["held"] + bt["sign"]["held (point)"])); M("scRevSignClauses", str(bt["sign"]["clauses"]))
+    M("scRevSignHeld", str(bt["sign"]["held"])); M("scRevSignHeldAny", str(bt["sign"]["held"] + bt["sign"]["held (point)"])); M("scRevSignClauses", str(bt["sign"]["clauses"]))
     M("scRevBandClauses", str(bt["band"]["clauses"]))
     M("scSignClauses", str(s["by_type"]["sign"]["clauses"]))
 

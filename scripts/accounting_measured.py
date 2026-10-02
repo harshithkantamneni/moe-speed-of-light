@@ -7,7 +7,7 @@ States (ms per token; the measured ones are means over the 30 sequences):
   online        the deployed policy (decayed frequency, the law's FETCH table)                    all three hosts
   no-overlap    the same with the engine's within-layer overlap off                               093
   all-CPU       the same with no FETCH table                                                      093 (host-bound cells)
-  hit-opt.      Belady prefetch of the coming steps' experts (two reads per admitted expert)       093, 094, 095
+  hit-opt.      Belady prefetch of the coming steps' experts without bypass (admits what MIN bypasses) 093, 094, 095
   bypass        MIN with bypass with background admissions (two reads)                            094
   fetch         MIN with bypass, admitted misses fetched into their slot (one read; serialised)    095  = the model's F
   both          fetch + the scheduled single-read prefetch (one read; overlapped)                  095  = the model's F+O
@@ -80,6 +80,12 @@ def main():
         for key, px in (("F", "amModelF"), ("O_given_F", "amModelO"), ("rest", "amModelRest")):
             vals = [100 * c["decomposition"]["model"][key] for c in hb]
             M(f"{px}HostMin", f"{min(vals):.0f}"); M(f"{px}HostMax", f"{max(vals):.0f}")
+        # the model's share over the measured share (bytes, overlap) and the measured over the model's (the rest), host-bound cells
+        for mkey, key, px in (("F", "bytes", "amBytesMult"), ("O_given_F", "overlap_given_foresight", "amOverlapMult")):
+            vals = [c["decomposition"]["model"][mkey] / c["decomposition"]["measured"][key] for c in hb]
+            M(f"{px}Min", f"{min(vals):.1f}"); M(f"{px}Max", f"{max(vals):.1f}")
+        vals = [c["decomposition"]["measured"]["rest"] / c["decomposition"]["model"]["rest"] for c in hb]
+        M("amRestMultMin", f"{min(vals):.1f}"); M("amRestMultMax", f"{max(vals):.1f}")
         for c in dec:
             tag = {"gpt-oss 11%": "GLow", "gpt-oss 25%": "GMid", "gpt-oss 40%": "GHigh", "Qwen3 12.5%": "QLow", "Qwen3 25%": "QMid", "Qwen3 43.75%": "QHigh"}[c["cell"]]
             for key, px in (("bytes", "amBytes"), ("overlap_given_foresight", "amOverlap"), ("rest", "amRest")):
@@ -96,7 +102,7 @@ def main():
         f.write("\\caption{The accounting, measured: milliseconds per token of the engine's states that the oracle jobs realised, on each oracle host, "
                 "beside that host's limit and the model's values for the states it prices. \\emph{online}: the deployed policy; \\emph{no ovl.}: its "
                 "within-layer overlap off; \\emph{all CPU}: no FETCH table; \\emph{bypass}: MIN with bypass with background admissions (two reads per "
-                "admitted expert); \\emph{hit-opt.}: Belady prefetch (two reads); \\emph{fetch}: MIN with bypass, admitted misses fetched into their "
+                "admitted expert); \\emph{hit-opt.}: Belady prefetch without bypass, which admits what the optimum bypasses (job 095's unpaced); \\emph{fetch}: MIN with bypass, admitted misses fetched into their "
                 "slot (one read, serialised: the model's foresight-only state $v(F)$); \\emph{both}: fetch and the scheduled single-read prefetch "
                 "(one read, overlapped: the model's $v(O,F)$); \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{limit}: the limit on that host; $v(F)$, $v(O,F)$, $v(\\mathrm{all})$: the model.}\n")
         f.write("\\label{tab:accounting_measured}\n")

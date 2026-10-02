@@ -31,10 +31,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..3949acb
+index 0000000..9092609
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,93 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -106,6 +106,9 @@ index 0000000..3949acb
 +    int32_t      layer_idx;                        // PREFETCH: the target layer's index (for the hint)
 +    int32_t    * hint;                             // PREFETCH: optional device pointer into pinned memory: [seq, layer, n, ids...],
 +                                                   // the predicted experts of the target layer that stay off the GPU (CPU cache warm-up)
++    int32_t    * force;                            // FETCH: optional device pointer into pinned memory: [n, (expert, slot) pairs]
++                                                   // the host decided for this step (n < 0: use the table). Each listed expert
++                                                   // that misses this step is fetched into its slot; the other misses stay on the CPU.
 +};
 +
 +struct ggml_ec_op {
@@ -338,10 +341,10 @@ index 8d9cf69..005d774 100644
      }
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..6502757
+index 0000000..e661bdc
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,387 @@
+@@ -0,0 +1,424 @@
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
@@ -471,8 +474,45 @@ index 0000000..6502757
 +        oc[j] = cid[j];
 +        m += cid[j] >= 0;
 +    }
-+    const int T = f.table[m < k ? m : k];
 +    int n = 0, vi = 0;
++    const int32_t * fr = f.force;
++    const int nf = fr ? ((const volatile int32_t *) fr)[0] : -1;
++    if (nf >= 0) {
++        // forced plan (an oracle policy): fetch exactly the listed misses into the listed slots
++        for (int q = 0; q < nf && q < GGML_EC_MAX_K; ++q) {
++            const int e = fr[1 + 2 * q], s = fr[2 + 2 * q];
++            int j = -1;
++            for (int jj = 0; jj < k; ++jj) {
++                if (cid[jj] == e) {
++                    j = jj;
++                }
++            }
++            if (j < 0 || s < 0) {
++                continue;   // not a miss of this step (routing differs from the trace, or already resident)
++            }
++            bool busy = false;   // a slot serving a hit of this step cannot be overwritten
++            for (int jj = 0; jj < k; ++jj) {
++                busy |= og[jj] == s;
++            }
++            if (busy) {
++                continue;
++            }
++            plan[1 + 2 * n] = e;
++            plan[2 + 2 * n] = s;
++            og[j] = s;
++            oc[j] = -1;
++            n++;
++        }
++        plan[0] = n;
++        volatile int32_t * lg = f.log;
++        for (int i = 0; i < 2 * n; ++i) {
++            lg[1 + i] = plan[1 + i];
++        }
++        lg[0] = n;
++        __threadfence_system();
++        return;
++    }
++    const int T = f.table[m < k ? m : k];
 +    for (int j = 0; j < k && n < T; ++j) {
 +        if (cid[j] < 0) {
 +            continue;
@@ -1230,10 +1270,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..dfd4bd4
+index 0000000..394dfaf
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1570 @@
+@@ -0,0 +1,1731 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1319,12 +1359,15 @@ index 0000000..dfd4bd4
 +    if (policy == ORACLE) {
 +        oracle_w = std::max(0, env_int("LLAMA_EC_ORACLE_W", 0));
 +        oracle_bypass = env_int("LLAMA_EC_ORACLE_BYPASS", 0) != 0;
++        oracle_fetch  = env_int("LLAMA_EC_ORACLE_FETCH", 0) != 0;
++        oracle_lead   = std::max(0, env_int("LLAMA_EC_ORACLE_LEAD", 0));
 +        if (!load_oracle(getenv("LLAMA_EC_ORACLE"))) {
 +            LLAMA_LOG_WARN("%s: LLAMA_EC_POLICY=oracle but LLAMA_EC_ORACLE could not be read: using dfa\n", __func__);
 +            policy = DFA;
 +        } else {
-+            LLAMA_LOG_INFO("%s: oracle policy: %zu records of %d layers x %d experts, window %d (0 = rest of the sequence), %s\n",
-+                    __func__, oracle_seq.size(), oracle_L, oracle_k, oracle_w, oracle_bypass ? "MIN with bypass (this step's misses admitted for their next use)" : "Belady prefetch within the window");
++            LLAMA_LOG_INFO("%s: oracle policy: %zu records of %d layers x %d experts, window %d (0 = rest of the sequence), %s%s, lead %d\n",
++                    __func__, oracle_seq.size(), oracle_L, oracle_k, oracle_w, oracle_bypass ? "MIN with bypass (this step's misses admitted for their next use)" : "Belady prefetch within the window",
++                    oracle_fetch ? " + MIN-with-bypass admissions served by FETCH (one read)" : "", oracle_lead);
 +        }
 +    }
 +    half_life = env_double("LLAMA_EC_HALF_LIFE", 16.0);
@@ -1589,6 +1632,7 @@ index 0000000..dfd4bd4
 +                        f.stride[k] = (int64_t) expert_stride(L.src[k]);
 +                    }
 +                    f.log = fl_dev + li * per;
++                    f.force = nullptr;
 +                    ggml_ec_op & o = fetch_ops[2 * li + 0];
 +                    o.mode  = GGML_EC_FETCH;
 +                    o.layer = (int32_t) li;
@@ -1599,6 +1643,16 @@ index 0000000..dfd4bd4
 +                    oc.fetch = &fetch_args[li];
 +                }
 +                LLAMA_LOG_INFO("%s: fetch table %s (%d copy blocks)\n", __func__, ft_str(fetch_table).c_str(), fetch_blocks);
++                if (policy == ORACLE && oracle_fetch) {
++                    force_buf = ggml_backend_buft_alloc_buffer(host_buft, layers.size() * per * sizeof(int32_t));
++                    GGML_ASSERT(force_buf && "expert cache: failed to allocate the forced fetch plans");
++                    force_host = (int32_t *) ggml_backend_buffer_get_base(force_buf);
++                    for (size_t li = 0; li < layers.size(); ++li) {
++                        force_host[li * per] = -1;   // the table decides until the first planned step
++                        fetch_args[li].force = (int32_t *) dev_ptr(force_host) + li * per;
++                    }
++                    LLAMA_LOG_INFO("%s: oracle: FETCH serves the MIN-with-bypass admissions of each step (forced plans)\n", __func__);
++                }
 +            }
 +            if (pf_q > 0 || llc) {
 +                const size_t per = 1 + 2 * GGML_EC_MAX_K;
@@ -1822,6 +1876,9 @@ index 0000000..dfd4bd4
 +    }
 +    if (buf) {
 +        ggml_backend_buffer_free(buf);
++    }
++    if (force_buf) {
++        ggml_backend_buffer_free(force_buf);
 +    }
 +    if (fl_buf) {
 +        ggml_backend_buffer_free(fl_buf);
@@ -2076,10 +2133,124 @@ index 0000000..dfd4bd4
 +    t_n++;
 +}
 +
++void llama_expert_cache::oracle_plan_fetch() {
++    // The forced FETCH plan of decode step `step` (record `step` of the trace): for every cached layer, this step's
++    // misses in order of their next use, each admitted into the slot of the resident whose next use is furthest, if
++    // that comes after the miss's own next use (MIN with bypass); a miss never used again in the window, or needed
++    // sooner than every evictable resident, stays on the CPU. Residents selected this step and slots being loaded are
++    // never victims. The GPU's FETCH op then copies each listed expert into its slot and runs it there (one read).
++    const size_t per = 1 + 2 * GGML_EC_MAX_K;
++    const size_t g = (size_t) step, n_rec = oracle_seq.size();
++    const int64_t INF = INT64_MAX;
++    int32_t scratch[1 + 2 * GGML_EC_MAX_K];
++    for (size_t li = 0; li < layers.size(); ++li) {
++        layer & L = layers[li];
++        int32_t * fr = force_host ? force_host + li * per : scratch;
++        if (L.C == 0 || L.C == L.n_expert || L.il >= oracle_L || g >= n_rec) {
++            fr[0] = -1;
++            continue;
++        }
++        const int16_t * cur = oracle_act.data() + (g * oracle_L + L.il) * oracle_k;
++        std::vector<int64_t> next_use(L.n_expert, INF);
++        const size_t t_end = oracle_w > 0 ? std::min(n_rec, g + 1 + (size_t) oracle_w) : n_rec;
++        for (size_t tt = g + 1; tt < t_end && oracle_seq[tt] == oracle_seq[g]; ++tt) {
++            const int16_t * a = oracle_act.data() + (tt * oracle_L + L.il) * oracle_k;
++            for (int i = 0; i < oracle_k; ++i) {
++                const int e = a[i];
++                if (e >= 0 && e < L.n_expert && next_use[e] == INF) {
++                    next_use[e] = (int64_t) tt;
++                }
++            }
++        }
++        std::vector<int> missed;
++        std::vector<char> selected(L.n_expert, 0);
++        for (int i = 0; i < oracle_k; ++i) {
++            const int e = cur[i];
++            if (e < 0 || e >= L.n_expert) {
++                continue;
++            }
++            selected[e] = 1;
++            if (L.slot_of[e] < 0 && std::find(L.loading.begin(), L.loading.end(), e) == L.loading.end() && next_use[e] < INF) {
++                missed.push_back(e);
++            }
++        }
++        std::sort(missed.begin(), missed.end(), [&](int x, int y) { return next_use[x] < next_use[y]; });
++        std::vector<int> res(L.resident);          // a local view of residency as the plan evicts
++        std::vector<char> taken(L.C, 0);
++        int n = 0;
++        for (int e : missed) {
++            if (n >= GGML_EC_MAX_K) {
++                break;
++            }
++            int slot = -1;
++            for (int s = 0; s < L.C; ++s) {
++                if (res[s] < 0 && L.loading[s] < 0 && !taken[s]) {
++                    slot = s;
++                    break;
++                }
++            }
++            if (slot < 0) {
++                int64_t furthest = -1;
++                for (int s = 0; s < L.C; ++s) {
++                    const int c = res[s];
++                    if (c < 0 || L.loading[s] >= 0 || taken[s] || selected[c]) {
++                        continue;
++                    }
++                    if (next_use[c] > furthest) {
++                        furthest = next_use[c];
++                        slot = s;
++                    }
++                }
++                if (slot < 0 || furthest <= next_use[e]) {
++                    oracle_refused++;
++                    break;   // every evictable resident is needed sooner than this miss, so sooner than the rest
++                }
++            }
++            res[slot] = e;
++            taken[slot] = 1;
++            fr[1 + 2 * n] = e;
++            fr[2 + 2 * n] = slot;
++            n++;
++        }
++        fr[0] = n;
++        oracle_forced += n;
++        if (!force_host) {
++            // no FETCH op in the graph (no mailbox, or a CPU build): the same admissions, copied synchronously before
++            // the step and served from their slots; counted as fetched misses in post_compute like the GPU's FETCH
++            for (int q = 0; q < n; ++q) {
++                const int e = fr[1 + 2 * q], slot = fr[2 + 2 * q];
++                const int v = L.resident[slot];
++                if (v >= 0) {
++                    L.slot_of[v] = -1;
++                    L.cpu_of[v]  = v;
++                }
++                copy_expert(L, slot, e, false);
++                L.resident[slot] = e;
++                L.slot_of[e]  = slot;
++                L.cpu_of[e]   = -1;
++                L.plan_fetched.push_back(e);
++            }
++        }
++    }
++}
++
 +void llama_expert_cache::pre_compute(bool decode) {
 +    if (!enabled()) {
 +        return;
 +    }
++    publish_landed(decode);
++    // the forced FETCH plan of this step, after every landed copy has been published
++    if (decode && policy == ORACLE && oracle_fetch) {
++        oracle_plan_fetch();
++    } else if (force_host) {
++        const size_t per = 1 + 2 * GGML_EC_MAX_K;
++        for (size_t li = 0; li < layers.size(); ++li) {
++            force_host[li * per] = -1;
++        }
++    }
++}
++
++void llama_expert_cache::publish_landed(bool decode) {
 +    if (mailbox && decode != h_active.load()) {
 +        {
 +            std::lock_guard<std::mutex> lk(h_mtx);
@@ -2232,7 +2403,11 @@ index 0000000..dfd4bd4
 +            L.count[e]++;
 +            L.score[e] = L.score[e] * ec_decay_pow(decay, step - L.last[e]) + 1.0;
 +            L.last[e]  = step;
-+            if (L.slot_of[e] >= 0) {
++            if (L.slot_of[e] >= 0 && std::find(L.plan_fetched.begin(), L.plan_fetched.end(), e) != L.plan_fetched.end()) {
++                L.misses++;      // a planned fetch without a FETCH op: served from its slot after a synchronous copy
++                L.fetches++;
++                L.stamp[e] = step;
++            } else if (L.slot_of[e] >= 0) {
 +                L.hits++;
 +                L.stamp[e] = step;
 +            } else {
@@ -2240,6 +2415,7 @@ index 0000000..dfd4bd4
 +                missed.push_back(e);
 +            }
 +        }
++        L.plan_fetched.clear();
 +        if (fl_host && L.C > 0 && L.C < L.n_expert) {
 +            // experts the GPU fetched into slots this step (FETCH): now resident, the slots' previous experts are not
 +            int32_t * lg = fl_host + li * (1 + 2 * GGML_EC_MAX_K);
@@ -2273,20 +2449,33 @@ index 0000000..dfd4bd4
 +                continue;
 +            }
 +            const int64_t INF = INT64_MAX;
-+            std::vector<int64_t> next_use(L.n_expert, INF);
++            std::vector<int64_t> next_use(L.n_expert, INF);    // first use after this step
++            std::vector<int64_t> second_use(L.n_expert, INF);  // the use after that
 +            std::vector<int> needed;
 +            const size_t t_end = oracle_w > 0 ? std::min(n_rec, g + 1 + (size_t) oracle_w) : n_rec;
 +            for (size_t tt = g + 1; tt < t_end && oracle_seq[tt] == oracle_seq[g]; ++tt) {
 +                const int16_t * a = oracle_act.data() + (tt * oracle_L + L.il) * oracle_k;
 +                for (int i = 0; i < oracle_k; ++i) {
 +                    const int e = a[i];
-+                    if (e >= 0 && e < L.n_expert && next_use[e] == INF) {
++                    if (e < 0 || e >= L.n_expert) {
++                        continue;
++                    }
++                    if (next_use[e] == INF) {
 +                        next_use[e] = (int64_t) tt;
 +                        if (L.slot_of[e] < 0) {
-+                            needed.push_back(e);   // in order of first use: soonest first
++                            if (oracle_lead > 0 && tt < g + (size_t) oracle_lead) {
++                                oracle_lead_skipped++;   // its use comes before a copy issued now could land: a miss then (fetched then, with ORACLE_FETCH)
++                            } else {
++                                needed.push_back(e);   // in order of first use: soonest first
++                            }
 +                        }
++                    } else if (second_use[e] == INF && (int64_t) tt > next_use[e]) {
++                        second_use[e] = (int64_t) tt;
 +                    }
 +                }
++            }
++            if (oracle_fetch && oracle_bypass) {
++                continue;   // the forced FETCH plan already served this step's admissions; nothing to copy in the background
 +            }
 +            if (oracle_bypass) {
 +                // MIN with bypass (mosl.cachesim): only this step's misses are candidates, each admitted for its next
@@ -2335,7 +2524,18 @@ index 0000000..dfd4bd4
 +                        victim = s;
 +                    }
 +                }
-+                if (victim < 0 || furthest <= next_use[e]) {
++                if (victim < 0) {
++                    oracle_refused++;
++                    break;   // nothing evictable
++                }
++                if (oracle_lead > 0 && !oracle_bypass) {
++                    // the scheduled single-read prefetch: admit only if MIN with bypass would admit this expert at its
++                    // coming use, i.e. the victim is needed later than the expert's use after that one (or never)
++                    if (furthest < INF && furthest <= second_use[e]) {
++                        oracle_refused++;
++                        continue;
++                    }
++                } else if (furthest <= next_use[e]) {
 +                    oracle_refused++;
 +                    break;   // every evictable resident is needed sooner than this expert, so sooner than the rest
 +                }
@@ -2434,8 +2634,9 @@ index 0000000..dfd4bd4
 +    fprintf(f, " \"prefetch_q\": %d, \"prefetch_top\": %d, \"prefetches\": %llu, \"prefetch_useful\": %llu, \"prefetch_late\": %d, \"llc\": %d, \"llc_bytes\": %llu,\n", pf_q,
 +            pf_top > 0 ? pf_top : max_used, (unsigned long long) pf, (unsigned long long) pu, (int) pf_late, (int) llc,
 +            (unsigned long long) (llc_lines.load() * 64));
-+    fprintf(f, " \"oracle_w\": %d, \"oracle_bypass\": %d, \"oracle_records\": %zu, \"oracle_refused\": %llu,\n", oracle_w, (int) oracle_bypass,
-+            oracle_seq.size(), (unsigned long long) oracle_refused);
++    fprintf(f, " \"oracle_w\": %d, \"oracle_bypass\": %d, \"oracle_records\": %zu, \"oracle_refused\": %llu, \"oracle_fetch\": %d, \"oracle_lead\": %d, \"oracle_forced\": %llu, \"oracle_lead_skipped\": %llu,\n",
++            oracle_w, (int) oracle_bypass, oracle_seq.size(), (unsigned long long) oracle_refused, (int) oracle_fetch, oracle_lead,
++            (unsigned long long) oracle_forced, (unsigned long long) oracle_lead_skipped);
 +    fprintf(f, " \"defer_admit\": %d, \"host_us_per_step\": {\"n\": %llu, \"app\": %.1f, \"pre\": %.1f, \"inputs\": %.1f, \"launch\": %.1f, \"issue\": %.1f, \"sync\": %.1f, \"post\": %.1f},\n",
 +            (int) defer_admit, (unsigned long long) t_n, t_n ? t_acc[0] / t_n : 0.0, t_n ? t_acc[1] / t_n : 0.0, t_n ? t_acc[2] / t_n : 0.0,
 +            t_n ? t_acc[3] / t_n : 0.0, t_n ? t_acc[4] / t_n : 0.0, t_n ? t_acc[5] / t_n : 0.0, t_n ? t_acc[6] / t_n : 0.0);
@@ -2806,10 +3007,10 @@ index 0000000..dfd4bd4
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..1cac201
+index 0000000..b1eac94
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,272 @@
+@@ -0,0 +1,286 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -2906,6 +3107,7 @@ index 0000000..1cac201
 +        std::vector<int32_t> cpu_of;      // [E]  expert -> expert if served by the CPU, else -1
 +        std::vector<int32_t> resident;    // [C]  slot -> expert, or -1
 +        std::vector<int32_t> loading;     // [C]  slot -> expert being copied in, or -1
++        std::vector<int> plan_fetched;    // ORACLE_FETCH without a FETCH op: experts copied synchronously before this step
 +        std::vector<int>     load_batch;  // [C]  copy batch (step parity) of the pending load
 +        std::vector<double>  score;       // [E]  decayed request count (dfa)
 +        std::vector<int64_t> last;        // [E]  last step the score was updated
@@ -3081,6 +3283,19 @@ index 0000000..1cac201
 +    bool oracle_bypass = false;         // LLAMA_EC_ORACLE_BYPASS=1: MIN with bypass on this step's misses (the limit's optimum)
 +                                        // instead of Belady prefetch of the window's experts
 +    uint64_t oracle_refused = 0;        // admissions not made because every resident is needed sooner
++    // LLAMA_EC_ORACLE_FETCH=1: the oracle's admissions of this step's misses are served by FETCH (the expert is copied
++    // into the victim's slot and run on the GPU this step: one host read, no background copy), decided before the
++    // step from the trace's record of it; bypassed misses run on the CPU. Reads are then the optimum's by construction.
++    // LLAMA_EC_ORACLE_LEAD=d (prefetch mode): only experts whose next use is at least d steps away are prefetched, so
++    // that the copy lands before the use; an expert needed sooner is a miss (and, with ORACLE_FETCH, fetched then).
++    bool oracle_fetch = false;
++    int  oracle_lead  = 0;
++    ggml_backend_buffer_t force_buf = nullptr;
++    int32_t * force_host = nullptr;     // [n_layers][1 + 2 * GGML_EC_MAX_K]: the forced FETCH plan of this step
++    uint64_t oracle_forced = 0;         // experts the plan asked FETCH to admit
++    uint64_t oracle_lead_skipped = 0;   // prefetch candidates skipped because their use comes within the lead
++    void oracle_plan_fetch();           // called in pre_compute: writes the forced plans for this step
++    void publish_landed(bool decode);   // the first part of pre_compute: helpers' state, landed copies published
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
 index a806126..d924971 100644

@@ -1230,10 +1230,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..5b7df43
+index 0000000..dfd4bd4
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1556 @@
+@@ -0,0 +1,1570 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1318,12 +1318,13 @@ index 0000000..5b7df43
 +    policy    = p == "static" ? STATIC : p == "lru" ? LRU : p == "oracle" ? ORACLE : DFA;
 +    if (policy == ORACLE) {
 +        oracle_w = std::max(0, env_int("LLAMA_EC_ORACLE_W", 0));
++        oracle_bypass = env_int("LLAMA_EC_ORACLE_BYPASS", 0) != 0;
 +        if (!load_oracle(getenv("LLAMA_EC_ORACLE"))) {
 +            LLAMA_LOG_WARN("%s: LLAMA_EC_POLICY=oracle but LLAMA_EC_ORACLE could not be read: using dfa\n", __func__);
 +            policy = DFA;
 +        } else {
-+            LLAMA_LOG_INFO("%s: oracle policy: %zu records of %d layers x %d experts, window %d (0 = rest of the sequence)\n",
-+                    __func__, oracle_seq.size(), oracle_L, oracle_k, oracle_w);
++            LLAMA_LOG_INFO("%s: oracle policy: %zu records of %d layers x %d experts, window %d (0 = rest of the sequence), %s\n",
++                    __func__, oracle_seq.size(), oracle_L, oracle_k, oracle_w, oracle_bypass ? "MIN with bypass (this step's misses admitted for their next use)" : "Belady prefetch within the window");
 +        }
 +    }
 +    half_life = env_double("LLAMA_EC_HALF_LIFE", 16.0);
@@ -2287,6 +2288,19 @@ index 0000000..5b7df43
 +                    }
 +                }
 +            }
++            if (oracle_bypass) {
++                // MIN with bypass (mosl.cachesim): only this step's misses are candidates, each admitted for its next
++                // use if that comes before the furthest next use among the residents (a resident served this step may
++                // be evicted); a miss never used again in the window is not admitted. The miss itself was served by the
++                // CPU this step, so the reads are the optimum's: every miss once, admissions in the background.
++                needed.clear();
++                for (int e : missed) {
++                    if (next_use[e] < INF && L.slot_of[e] < 0) {
++                        needed.push_back(e);
++                    }
++                }
++                std::sort(needed.begin(), needed.end(), [&](int x, int y) { return next_use[x] < next_use[y]; });
++            }
 +            for (int e : needed) {
 +                if (budget <= 0 || (paced && max_pending > 0 && pending.load() >= max_pending)) {
 +                    break;
@@ -2308,12 +2322,12 @@ index 0000000..5b7df43
 +                    continue;
 +                }
 +                // Belady: evict the resident whose next use is furthest (never in the window first); never a slot
-+                // being loaded or an expert selected this step
++                // being loaded; in the prefetching mode never an expert selected this step (its slot may still be in use)
 +                int victim = -1;
 +                int64_t furthest = -1;
 +                for (int s = 0; s < L.C; ++s) {
 +                    const int c = L.resident[s];
-+                    if (c < 0 || L.loading[s] >= 0 || std::find(sel, sel + k, c) != sel + k) {
++                    if (c < 0 || L.loading[s] >= 0 || (!oracle_bypass && std::find(sel, sel + k, c) != sel + k)) {
 +                        continue;
 +                    }
 +                    if (next_use[c] > furthest) {
@@ -2420,8 +2434,8 @@ index 0000000..5b7df43
 +    fprintf(f, " \"prefetch_q\": %d, \"prefetch_top\": %d, \"prefetches\": %llu, \"prefetch_useful\": %llu, \"prefetch_late\": %d, \"llc\": %d, \"llc_bytes\": %llu,\n", pf_q,
 +            pf_top > 0 ? pf_top : max_used, (unsigned long long) pf, (unsigned long long) pu, (int) pf_late, (int) llc,
 +            (unsigned long long) (llc_lines.load() * 64));
-+    fprintf(f, " \"oracle_w\": %d, \"oracle_records\": %zu, \"oracle_refused\": %llu,\n", oracle_w, oracle_seq.size(),
-+            (unsigned long long) oracle_refused);
++    fprintf(f, " \"oracle_w\": %d, \"oracle_bypass\": %d, \"oracle_records\": %zu, \"oracle_refused\": %llu,\n", oracle_w, (int) oracle_bypass,
++            oracle_seq.size(), (unsigned long long) oracle_refused);
 +    fprintf(f, " \"defer_admit\": %d, \"host_us_per_step\": {\"n\": %llu, \"app\": %.1f, \"pre\": %.1f, \"inputs\": %.1f, \"launch\": %.1f, \"issue\": %.1f, \"sync\": %.1f, \"post\": %.1f},\n",
 +            (int) defer_admit, (unsigned long long) t_n, t_n ? t_acc[0] / t_n : 0.0, t_n ? t_acc[1] / t_n : 0.0, t_n ? t_acc[2] / t_n : 0.0,
 +            t_n ? t_acc[3] / t_n : 0.0, t_n ? t_acc[4] / t_n : 0.0, t_n ? t_acc[5] / t_n : 0.0, t_n ? t_acc[6] / t_n : 0.0);
@@ -2792,10 +2806,10 @@ index 0000000..5b7df43
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..69357bc
+index 0000000..1cac201
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,272 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -3064,6 +3078,8 @@ index 0000000..69357bc
 +    std::vector<int16_t> oracle_act;    // [n_rec][oracle_L][oracle_k] selected experts, -1 undefined
 +    std::vector<int16_t> oracle_seq;    // [n_rec] sequence id of the record
 +    int oracle_L = 0, oracle_k = 0, oracle_w = 0;
++    bool oracle_bypass = false;         // LLAMA_EC_ORACLE_BYPASS=1: MIN with bypass on this step's misses (the limit's optimum)
++                                        // instead of Belady prefetch of the window's experts
 +    uint64_t oracle_refused = 0;        // admissions not made because every resident is needed sooner
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp

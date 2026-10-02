@@ -130,7 +130,7 @@ def limit():
         optbytes.append(r["l3"]["bytes_per_token"] / 1e6)
         M(f"limEx{ {14: 'Low', 32: 'Mid', 51: 'High', 16: 'Low', 56: 'High'}[c] }{'G' if key.startswith('gpt') else 'Q'}", f"{L['exact']['tok_s']:.0f}")
     tex = r"""\begin{table}[t]\centering\small
-\caption{The speed limit under each tightening, tokens per second on the headline machine, and our cache as a
+\caption{The speed limit under each tightening, tokens per second on host B, and our cache as a
 percentage of the limit as published (exact optimum, highest probed host rate, datasheet GPU rate) and with every
 tightening at once. \emph{no-evict}: Belady's MIN with bypass that keeps a served expert for the step; \emph{exact}:
 the same, free to evict an expert after serving it; \emph{pool}: one pool of $LC$ slots shared across layers; \emph{median}:
@@ -414,7 +414,8 @@ def law_frozen():
     M("lawFrozenMed", f"{s['median_abs_pct']:.1f}"); M("lawFrozenPninety", f"{s['p90_abs_pct']:.1f}"); M("lawFrozenMax", f"{s['max_abs_pct']:.0f}")
     M("lawFrozenWithinTen", str(s["within_10pct"]))
     worst = max(d["rows"], key=lambda r: abs(r["error"]))
-    M("lawFrozenWorstCell", f"{worst['model']} {worst['budget'].replace('%', chr(92) + '%')} on the {worst['host'].split('(')[0].strip()} host".replace("089", "stock-clock"))
+    hostname = {"089": "host S", "093": "oracle host O1", "094": "oracle host O2", "095": "oracle host O3"}[worst['host'].split(' ')[0]]
+    M("lawFrozenWorstCell", f"{worst['model']} {worst['budget'].replace('%', chr(92) + '%')} on {hostname}")
 
 
 def cost():

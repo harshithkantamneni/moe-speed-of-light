@@ -3,6 +3,40 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 2 October, midday: job 095 lands (read once, foresight pays everywhere); the paper rewritten to one thesis
+
+- **Job 095 (`095_single_read@vast`, RTX 5090 + Ryzen 9 9950X, host memory 52.5 / 43.2 / 59.7 GB/s by CPU / link /
+  both, 61.5 at best; limits 121 / 302 / 512 and 68 / 150 / 303 tok/s; $1.50; results on `gpu` at 8a77cbc).** All 36
+  runs completed. Ratios to the online policy (paired, 30 sequences), gpt-oss 11 / 25 / 40% then Qwen3 12.5 / 25 /
+  43.75%: **fetch** (MIN with bypass, admitted misses fetched into their slot, one read, serialised) 1.286 / 1.316 /
+  1.254 / 1.345 / 1.379 / 1.264, reads 1.04-1.14x R*, hits within 1.1 points of the simulation, 32-64% of the limit,
+  62-75% of the gain v(F) predicts, the law under-predicting its time by 8-17% (the fetch's per-layer latency);
+  **lead-2** 1.26 / 1.45 / 1.38 / 1.22 / 1.41 / 1.40; **both-2** (unpaced) 1.394 / 1.489 / 1.392 / 1.421 / 1.476 /
+  1.407, 35-68% of the limit; **both-3 paced** 1.453 / 1.664 / 1.493 / 1.414 / 1.667 / 1.503, 38-68% of the limit,
+  56-61% of the gap closed at the host-bound cells, 85-110% of v(F), reads 1.18-1.58x R*, the law over-predicting by
+  5-36%; **hit-optimal** (two reads) 0.910 / 1.137 / 1.266 / 0.695 / 1.063 / 1.274, slower than every single-read
+  variant at every cell, reads 1.77-2.47x R*, host memory at 71-82% of the probe's best rate. Of 56 clauses 44 held
+  and 12 failed, all of size (`prereg/foresight_outcome_095.md`; scorecard 299 clauses, 54% strict, 64% with
+  held-on-point). Reading: read once, foresight pays everywhere, including the two lowest budgets where the
+  double-read oracles of 093 and 094 lost or gained 0-3%; the double read, not the foresight, was the problem.
+- **The accounting, measured (`scripts/accounting_measured.py`, `prereg/accounting_measured.json`).** On host O3 at
+  the host-bound cells the four states online, fetch, the faster prefetch state and the limit split the gap into the
+  bytes foresight saves (34-49%), the overlap foresight allows (8-23%) and the rest (39-43%); the model's shares are
+  52-66, 27-36 and 8-13%: it over-prices the bytes by a third to a half and the overlap by 1.5-3x and under-prices the
+  rest 3-5x (the prefetch's excess reads, the CPU misses still served in sequence, the GPU at 52-61% of datasheet).
+- **The paper rewritten (`paper/paper.tex`, main text 8.7 pages; appendix 20).** One thesis: a limit in seconds, the
+  accounting predicted then measured, and what the traces say would recover it. Abstract 150 words, 8 numbers; three
+  contributions; the instrument in 1.5 pages of Section 2 (the ablation, other cards, scope and parity moved to the
+  appendix with their figures); the law in Section 3 as the tool that places an engine in the limit's coordinates
+  and picks the split (Eq. 2 moved there), scoped to serialised execution; the limit in Section 4 with the audit as
+  one paragraph (figure in the appendix); Section 5 "Where the Seconds Go": the Shapley model as the prediction, the
+  factorial of oracles as the measurement (new Fig. 2, `scripts/fig_factorial.py`), the double-read trap, the measured
+  decomposition, and what remains; hosts named B, S, A and O1-O3 at first use instead of "listing B" and "the
+  stock-clock host"; the running example (gpt-oss-120b at 25%) carried through law, limit, accounting and oracle.
+  `paper/foresight_measured.tex` removed; Appendix E rewritten around the three oracle jobs with the single-read table
+  and the measured-accounting table. Macros: fsf*/fslt*/fsbt*/fsbp*/fsh* (095), fsbTotalReadsOpt*/fspTotalReadsOpt*/
+  fsmTotalReadsOpt* (total reads of the double-read oracles over R*), am* (the measured decomposition).
+
 ## 2 October, morning: two reviews at 5/10, the single-read oracles (job `095_single_read@vast`, running), the $0 corrections
 
 - **Review round 3** (`reports/Review round 3 (2 October).md`): with both oracle jobs in the paper, an MLSys PC member

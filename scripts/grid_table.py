@@ -55,7 +55,7 @@ def listing_b_rows():
                          limit_tok_s=lim["tok_s"], cpu_at_limit=lim["cpu_at_limit"], frac_ours=s["frac_of_limit"]["exact"]["ours"],
                          frac_ft=s["frac_of_limit"]["exact"]["freetoken"], frac_llama=s["frac_of_limit"]["exact"]["llama"],
                          gpu_only_ms=s["gpu_only"]["datasheet_ms"], t_ms=lim["t_ms"]))
-    return dict(card="RTX 5090", host="9950X3D (listing B)", b_host=sl["B_host"]["max"] / 1e9, b_gpu=1792, tables=dict(gptoss=tab["table_gpt"], qwen3=tab["table_qwen"]), rows=rows)
+    return dict(card="RTX 5090", host="9950X3D (host B)", b_host=sl["B_host"]["max"] / 1e9, b_gpu=1792, tables=dict(gptoss=tab["table_gpt"], qwen3=tab["table_qwen"]), rows=rows)
 
 
 def stockclock_rows():
@@ -67,7 +67,7 @@ def stockclock_rows():
                          ours_over_llama=r["ours_over_llama"], limit_tok_s=L["tok_s"], cpu_at_limit=L["cpu_at_limit"], frac_ours=L["frac"]["ours"],
                          frac_ft=L["frac"]["ft"], frac_llama=L["frac"]["llama"], t_ms=L["t_ms"]))
     hb = d["hosts"]["089 (9950X, stock clock)"]
-    return dict(card="RTX 5090", host="9950X (job 089)", b_host=d["b_host_max_gbs"], b_gpu=1792, tables=dict(gptoss=hb["table_gpt"], qwen3=hb["table_qwen"]), rows=rows)
+    return dict(card="RTX 5090", host="9950X (host S)", b_host=d["b_host_max_gbs"], b_gpu=1792, tables=dict(gptoss=hb["table_gpt"], qwen3=hb["table_qwen"]), rows=rows)
 
 
 def grid_rows(name, host_label):
@@ -131,7 +131,7 @@ machine's limit (the exact optimum's reads on the same trace, the machine's high
 datasheet rate). \emph{Bound}: what binds the limit; \emph{host} when the optimum's reads alone take longer than the
 GPU's whole read, so the GPU has slack, \emph{both} when the limit runs experts on the CPU until the two paths take
 equally long, which is where the all-in-VRAM speed can be exceeded. Ours and
-FreeToken are launch 2 (FreeToken's backend carried over from the headline machine's selection); the 40 and 43.75\%
+FreeToken are launch 2 (FreeToken's backend carried over from host B's selection); the 40 and 43.75\%
 budgets do not fit a 24\,GB card. $^\dagger$On the RTX 3090 FreeToken's carried-over hybrid backend ran below
 llama.cpp; its own calibration recommends its offload backend there, which we did not run, so those cells are
 reported, not counted. Mixtral-8x7B (26\,GB of experts, top-2 of 8) is ours against llama.cpp only, on the RTX 3090,
@@ -212,7 +212,7 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     fig, ax = plt.subplots(figsize=(3.4, 2.0))
     xs = {key: i for i, key in enumerate(ORDER)}
     mk = {"RTX 5090": "o", "RTX 4090": "s", "RTX 3090": "^"}
-    col = {"9950X3D (listing B)": "#1f5fa8", "9950X (job 089)": "#5b9bd5", "i5-12400 (job 091)": "#2f9e44", "i9-11900KF (job 092)": "#c0572b"}
+    col = {"9950X3D (host B)": "#1f5fa8", "9950X (host S)": "#5b9bd5", "i5-12400 (job 091)": "#2f9e44", "i9-11900KF (job 092)": "#c0572b"}
     for c in cards:
         for r in c["rows"]:
             x = xs[(r["model"], r["budget"])]

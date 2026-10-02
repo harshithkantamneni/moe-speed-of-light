@@ -21,9 +21,9 @@ import os
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-JOBS = [("093", "093_foresight@vast", "Ryzen 9 9950X (093)", {"online": "base", "no-overlap": "noovl", "all-CPU": "allcpu", "hit-opt.": "oracle_w0"}),
-        ("094", "094_foresight_bytes@vast", "Ryzen 9 7950X (094)", {"online": "base", "bypass": "bypass_w0", "hit-opt.": "prefetch_w0"}),
-        ("095", "095_single_read@vast", "Ryzen 9 9950X (095)", {"online": "base", "fetch": "fetch", "lead": "lead2", "both": "both2", "both, paced": "both3p", "hit-opt.": "hitopt"})]
+JOBS = [("093", "093_foresight@vast", "O1 (9950X, job 093)", {"online": "base", "no-overlap": "noovl", "all-CPU": "allcpu", "hit-opt.": "oracle_w0"}),
+        ("094", "094_foresight_bytes@vast", "O2 (7950X, job 094)", {"online": "base", "bypass": "bypass_w0", "hit-opt.": "prefetch_w0"}),
+        ("095", "095_single_read@vast", "O3 (9950X, job 095)", {"online": "base", "fetch": "fetch", "lead": "lead2", "both": "both2", "both, paced": "both3p", "hit-opt.": "hitopt"})]
 MACROS = {}
 
 
@@ -55,7 +55,8 @@ def main():
             # the measured decomposition where the single-read oracles exist: bytes (online -> fetch), the overlap foresight allows
             # (fetch -> both), the rest (both -> limit); the model's: none -> F, F -> OF, OF -> limit
             if "fetch" in cell["measured"] and "both" in cell["measured"]:
-                f_ms, b_ms = cell["measured"]["fetch"]["ms"], cell["measured"]["both"]["ms"]
+                f_ms = cell["measured"]["fetch"]["ms"]
+                b_ms = min(cell["measured"][k]["ms"] for k in ("both", "both, paced") if k in cell["measured"])   # the faster overlapped state
                 cell["decomposition"] = {"measured": {"bytes": (base_ms - f_ms) / gap, "overlap_given_foresight": (f_ms - b_ms) / gap, "rest": (b_ms - mt["limit_ms"]) / gap},
                                          "model": {"F": (mt["v_none_ms"] - mt["v_F_ms"]) / (mt["v_none_ms"] - mt["limit_ms"]),
                                                    "O_given_F": (mt["v_F_ms"] - mt["v_OF_ms"]) / (mt["v_none_ms"] - mt["limit_ms"]),
@@ -64,7 +65,7 @@ def main():
             host["cells"].append(cell)
             def ms(name):
                 return f"{cell['measured'][name]['ms']:.2f}" if name in cell["measured"] else "--"
-            lines.append(f"{hname} & {c['label']} & {base_ms:.2f} & {ms('no-overlap')} & {ms('all-CPU')} & {ms('bypass')} & {ms('hit-opt.')} & {ms('fetch')} & {ms('both')} & "
+            lines.append(f"{hname} & {c['label'].replace('%', chr(92) + '%')} & {base_ms:.2f} & {ms('no-overlap')} & {ms('all-CPU')} & {ms('bypass')} & {ms('hit-opt.')} & {ms('fetch')} & {ms('both')} & {ms('both, paced')} & "
                          f"{mt['limit_ms']:.2f} & {mt['v_F_ms']:.2f} & {mt['v_OF_ms']:.2f} & {mt['v_all_ms']:.2f} \\\\")
         out["hosts"].append(host)
     # macros from the measured decomposition (095) at the host-bound cells
@@ -97,10 +98,10 @@ def main():
                 "within-layer overlap off; \\emph{all CPU}: no FETCH table; \\emph{bypass}: MIN with bypass with background admissions (two reads per "
                 "admitted expert); \\emph{hit-opt.}: Belady prefetch (two reads); \\emph{fetch}: MIN with bypass, admitted misses fetched into their "
                 "slot (one read, serialised: the model's foresight-only state $v(F)$); \\emph{both}: fetch and the scheduled single-read prefetch "
-                "(one read, overlapped: the model's $v(O,F)$); \\emph{limit}: the limit on that host; $v(F)$, $v(O,F)$, $v(\\mathrm{all})$: the model.}\n")
+                "(one read, overlapped: the model's $v(O,F)$); \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{limit}: the limit on that host; $v(F)$, $v(O,F)$, $v(\\mathrm{all})$: the model.}\n")
         f.write("\\label{tab:accounting_measured}\n")
-        f.write("\\begin{tabular}{@{}llr|rrrr|rr|r|rrr@{}}\\toprule\n")
-        f.write("Host & Cell & online & no ovl. & all CPU & bypass & hit-opt. & fetch & both & limit & $v(F)$ & $v(O,F)$ & $v(\\mathrm{all})$ \\\\\\midrule\n")
+        f.write("\\begin{tabular}{@{}llr|rrrr|rrr|r|rrr@{}}\\toprule\n")
+        f.write("Host & Cell & online & no ovl. & all CPU & bypass & hit-opt. & fetch & both & paced & limit & $v(F)$ & $v(O,F)$ & $v(\\mathrm{all})$ \\\\\\midrule\n")
         f.write("\n".join(lines) + "\n")
         f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
     print("hosts:", [h["host"] for h in out["hosts"]], "macros:", len(MACROS))

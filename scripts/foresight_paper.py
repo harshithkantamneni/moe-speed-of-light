@@ -28,6 +28,7 @@ def bytes_oracle(tagof):
     M("fsbHostCpu", f"{hb['B_c']:.0f}"); M("fsbHostLink", f"{hb['B_p']:.0f}"); M("fsbHostBoth", f"{hb['B_cp']:.0f}"); M("fsbHostMax", f"{hb['b_host_max']:.1f}")
     high, low, lawerr, rr, recov, phigh, plow, plaw, fits_host, fits_gpu, w16, ideal = [], [], [], [], [], [], [], [], [], [], [], []
     lawgain, lowany, rr_host, pbytes, pvsb, simadm, closed_high, pgpu = [], [], [], [], [], [], [], []
+    tot_b, tot_p, low_vs_base = [], [], []
     rows = []
     for c in d["cells"]:
         tag = tagof[(c["model"], c["C"])]
@@ -56,6 +57,12 @@ def bytes_oracle(tagof):
             rr_host.append(o["misses_per_token"] / c["opt_reads_per_token"])
         else:
             pgpu.append(p["ratio_to_base"][0])
+        # total host reads (misses + admissions, the admitted expert read twice) over the optimum's reads
+        tot_b.append((o["misses_per_token"] + o["admits_per_token"]) / c["opt_reads_per_token"])
+        tot_p.append((p["misses_per_token"] + p["admits_per_token"]) / c["opt_reads_per_token"])
+        M(f"fsbTotalReadsOpt{tag}", f"{tot_b[-1]:.2f}"); M(f"fspTotalReadsOpt{tag}", f"{tot_p[-1]:.2f}")
+        if c["C"] in (14, 16):
+            low_vs_base.append((o["misses_per_token"] + o["admits_per_token"]) / (b["misses_per_token"] + b["admits_per_token"]) - 1)
         sc = sim["models"][c["model"]]["cells"][str(c["C"])]
         M(f"fslIdeal{tag}", f"{sc['by_d']['1']['misses_per_token']:.0f}"); M(f"fslThree{tag}", f"{sc['by_d']['3']['misses_per_token']:.0f}"); M(f"fslTwo{tag}", f"{sc['by_d']['2']['misses_per_token']:.0f}")
         fit = sc.get("engine", {}).get("d_fit")
@@ -97,6 +104,9 @@ def bytes_oracle(tagof):
     if fits_gpu:
         M("fslFitGpuMax", f"{max(fits_gpu):.1f}")
     M("fsbSixteenShareMin", f"{100 * min(w16):.0f}"); M("fsbSixteenShareMax", f"{100 * max(w16):.0f}")
+    M("fsbTotalReadsOptMin", f"{min(tot_b):.2f}"); M("fsbTotalReadsOptMax", f"{max(tot_b):.2f}")
+    M("fspTotalReadsOptMin", f"{min(tot_p):.2f}"); M("fspTotalReadsOptMax", f"{max(tot_p):.2f}")
+    M("fsbLowReadsVsBaseMin", f"{100 * min(low_vs_base):.0f}"); M("fsbLowReadsVsBaseMax", f"{100 * max(low_vs_base):.0f}")
     # the appendix table
     names = {"GLow": "gpt-oss 11\\%", "GMid": "gpt-oss 25\\%", "GHigh": "gpt-oss 40\\%", "QLow": "Qwen3 12.5\\%", "QMid": "Qwen3 25\\%", "QHigh": "Qwen3 43.75\\%"}
     with open(P("paper", "tab_foresight_bytes.tex"), "w") as f:
@@ -139,11 +149,15 @@ def single_read(tagof):
     low_gain = {k: [] for k in pref}
     bytes_share = []
     rows = []
+    hitdiff, readsdiff = [], []
     for c in d["cells"]:
         tag = tagof[(c["model"], c["C"])]
         r = c["runs"]; b = r["base"]
         hostb = c["model_terms"]["c_at_limit"] <= 0
         M(f"fsBase{tag}", f"{b['mean']:.1f}"); M(f"fsLimit{tag}", f"{c['model_terms']['limit_tok_s']:.0f}"); M(f"fsFracBase{tag}", f"{100 * b['frac_of_limit']:.0f}")
+        M(f"fsReadsBase{tag}", f"{b['misses_per_token'] + b['admits_per_token']:.0f}"); M(f"fsReadsOpt{tag}", f"{c['opt_reads_per_token']:.1f}")
+        M(f"fsHitBase{tag}", f"{100 * b['hit_rate']:.0f}"); M(f"fsHitOpt{tag}", f"{c['opt_hit_rate']:.0f}"); M(f"fsModelF{tag}", f"{1e3 / c['model_terms']['v_F_ms']:.0f}")
+        M(f"fsModelFFrac{tag}", f"{100 * c['model_terms']['limit_ms'] / c['model_terms']['v_F_ms']:.0f}"); M(f"fsModelOFFrac{tag}", f"{100 * c['model_terms']['limit_ms'] / c['model_terms']['v_OF_ms']:.0f}")
         for k, px in pref.items():
             if k not in r:
                 continue
@@ -153,6 +167,13 @@ def single_read(tagof):
             M(f"{px}Gain{tag}", f"{100 * o['gain']:.0f}"); M(f"{px}Frac{tag}", f"{100 * o['frac_of_limit']:.0f}"); M(f"{px}Hit{tag}", f"{100 * o['hit_rate']:.0f}")
             M(f"{px}Reads{tag}", f"{reads:.0f}"); M(f"{px}ReadsOpt{tag}", f"{reads / c['opt_reads_per_token']:.2f}")
             M(f"{px}LawErr{tag}", f"{100 * (o['law_ms'] / o['ms'] - 1):+.0f}"); M(f"{px}Closed{tag}", f"{100 * o['gap_closed']:.0f}")
+            M(f"{px}CpuMisses{tag}", f"{o['misses_per_token'] - o['fetches_per_token']:.0f}")      # misses served by the CPU
+            S_mb = 13.25 if c["model"].startswith("gpt-oss") else 9.44
+            util = reads * S_mb * 1e6 * o["mean"] / (hb["b_host_max"] * 1e9)                         # host traffic over the probe's best rate
+            M(f"{px}Util{tag}", f"{100 * util:.0f}")
+            agg[k].setdefault("util", []).append(util)
+            if hostb:
+                hostb_agg[k].setdefault("util", []).append(util)
             if o.get("foresight_recovered") is not None:
                 M(f"{px}Recov{tag}", f"{100 * o['foresight_recovered']:.0f}")
             agg[k]["gain"].append(o["gain"]); agg[k]["frac"].append(o["frac_of_limit"]); agg[k]["law"].append(o["law_ms"] / o["ms"] - 1)
@@ -169,6 +190,9 @@ def single_read(tagof):
         sc = sim["models"][c["model"]]["cells"][str(c["C"])]["modes"]
         M(f"fsfSimReads{tag}", f"{sc['fetch']['reads_per_token']:.0f}"); M(f"fsbtSimReads{tag}", f"{sc['both-2']['reads_per_token']:.0f}")
         M(f"fsfSimHit{tag}", f"{100 * sc['fetch']['hit_rate']:.0f}"); M(f"fsbtSimHit{tag}", f"{100 * sc['both-2']['hit_rate']:.0f}")
+        if "fetch" in r:
+            hitdiff.append(abs(r["fetch"]["hit_rate"] - sc["fetch"]["hit_rate"]))
+            readsdiff.append((r["fetch"]["misses_per_token"] + r["fetch"]["admits_per_token"]) / sc["fetch"]["reads_per_token"] - 1)
         rows.append((tag, c, r, sc))
     for k, px in pref.items():
         a = agg[k]
@@ -180,7 +204,10 @@ def single_read(tagof):
         M(f"{px}LawAbsMax", f"{100 * max(abs(x) for x in a['law']):.0f}")
         M(f"{px}ReadsOptMin", f"{min(a['reads']):.2f}"); M(f"{px}ReadsOptMax", f"{max(a['reads']):.2f}")
         M(f"{px}HitMin", f"{100 * min(a['hit']):.0f}"); M(f"{px}HitMax", f"{100 * max(a['hit']):.0f}")
+        M(f"{px}UtilMin", f"{100 * min(a['util']):.0f}"); M(f"{px}UtilMax", f"{100 * max(a['util']):.0f}")
         h = hostb_agg[k]
+        if h.get("util"):
+            M(f"{px}HostUtilMin", f"{100 * min(h['util']):.0f}"); M(f"{px}HostUtilMax", f"{100 * max(h['util']):.0f}")
         if h["gain"]:
             M(f"{px}HostGainMin", f"{100 * min(h['gain']):.0f}"); M(f"{px}HostGainMax", f"{100 * max(h['gain']):.0f}")
             M(f"{px}HostFracMin", f"{100 * min(h['frac']):.0f}"); M(f"{px}HostFracMax", f"{100 * max(h['frac']):.0f}")
@@ -192,7 +219,13 @@ def single_read(tagof):
             M(f"{px}LowGainMin", f"{100 * min(low_gain[k]):.0f}"); M(f"{px}LowGainMax", f"{100 * max(low_gain[k]):.0f}")
     if bytes_share:
         M("fsBytesShareMin", f"{100 * min(bytes_share):.0f}"); M("fsBytesShareMax", f"{100 * max(bytes_share):.0f}")
+    hbc = [c for c in d["cells"] if c["model_terms"]["c_at_limit"] <= 0]
+    M("fsModelFFracHostMin", f"{100 * min(c['model_terms']['limit_ms'] / c['model_terms']['v_F_ms'] for c in hbc):.0f}"); M("fsModelFFracHostMax", f"{100 * max(c['model_terms']['limit_ms'] / c['model_terms']['v_F_ms'] for c in hbc):.0f}")
+    M("fsModelOFFracHostMin", f"{100 * min(c['model_terms']['limit_ms'] / c['model_terms']['v_OF_ms'] for c in hbc):.0f}"); M("fsModelOFFracHostMax", f"{100 * max(c['model_terms']['limit_ms'] / c['model_terms']['v_OF_ms'] for c in hbc):.0f}")
+    M("fsHostCells", str(len(hbc)))
     M("fsfCells", str(len(rows)))
+    if hitdiff:
+        M("fsfSimHitDiffMax", f"{100 * max(hitdiff):.1f}"); M("fsfSimReadsDiffMin", f"{100 * min(readsdiff):+.0f}"); M("fsfSimReadsDiffMax", f"{100 * max(readsdiff):+.0f}")
     # the appendix table
     names = {"GLow": "gpt-oss 11\\%", "GMid": "gpt-oss 25\\%", "GHigh": "gpt-oss 40\\%", "QLow": "Qwen3 12.5\\%", "QMid": "Qwen3 25\\%", "QHigh": "Qwen3 43.75\\%"}
     with open(P("paper", "tab_single_read.tex"), "w") as f:
@@ -206,6 +239,7 @@ def single_read(tagof):
                 "fetch and lead; \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{hit-opt.}: the hit-optimal oracle. The simulation "
                 "columns give the trace's prediction of reads and hits for fetch and both.}\n")
         f.write("\\label{tab:single_read}\n")
+        f.write("\\resizebox{\\textwidth}{!}{%\n")
         f.write("\\begin{tabular}{@{}lrr|lrrrrr|lrrrr|lrrrr|lr|lr|rrrr@{}}\\toprule\n")
         f.write(" & \\multicolumn{2}{c|}{online} & \\multicolumn{5}{c|}{fetch} & \\multicolumn{4}{c|}{both} & \\multicolumn{4}{c|}{hit-opt.} & \\multicolumn{2}{c|}{lead} & \\multicolumn{2}{c|}{paced} & \\multicolumn{4}{c}{simulated} \\\\\n")
         f.write("Cell & tok/s & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & law & ratio & hits & reads/R$^*$ & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & ratio & \\% lim. & ratio & \\% lim. & fetch reads & hits & both reads & hits \\\\\\midrule\n")
@@ -222,7 +256,7 @@ def single_read(tagof):
             f.write("%s & %.1f & %.0f%s%s%s%s%s%s & %.0f & %.0f & %.0f & %.0f \\\\\n" % (
                 names[tag], r["base"]["mean"], 100 * r["base"]["frac_of_limit"], cell("fetch"), law, cell("both2"), cell("hitopt"), cell("lead2", False), cell("both3p", False),
                 sc["fetch"]["reads_per_token"], 100 * sc["fetch"]["hit_rate"], sc["both-2"]["reads_per_token"], 100 * sc["both-2"]["hit_rate"]))
-        f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
+        f.write("\\bottomrule\\end{tabular}}\\end{table*}\n")
 
 
 def main():
@@ -303,6 +337,8 @@ def main():
     if wl:
         M("fsmNegWinMin", f"{min(wl):.2f}"); M("fsmNegWinMax", f"{max(wl):.2f}")
     M("fsmAdmitRatioMin", f"{min(admits):.2f}"); M("fsmAdmitRatioMax", f"{max(admits):.2f}")
+    tot = [(c["runs"]["oracle_w0"]["misses_per_token"] + c["runs"]["oracle_w0"]["admits_per_token"]) / c["opt_reads_per_token"] for c in cells if "oracle_w0" in c["runs"]]
+    M("fsmTotalReadsOptMin", f"{min(tot):.2f}"); M("fsmTotalReadsOptMax", f"{max(tot):.2f}")
     for tag, w, wt in w50m:
         M(f"fsmWfifty{tag}", f"{w:.1f}")
     if w50m:

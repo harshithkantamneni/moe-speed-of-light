@@ -84,19 +84,19 @@ def headline():
                 f"{ours_s} & {ci(x['ratio'], 3)}{x['note']} & {x['xl']:.2f}$\\times$ & "
                 + (f"{lim:.0f} & {100 * x['ours'] / lim:.0f}\\%" if lim else "\\pend & \\pend") + " \\\\")
     hb = sc["hosts"]["listing B (081)"]; ha = sc["hosts"]["089 (9950X, stock clock)"]
-    head1 = (r"\multicolumn{9}{l}{\textbf{Listing B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f} \\" %
+    head1 = (r"\multicolumn{9}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f} \\" %
              (hb["mem_clock_mhz"], hb["B_c"], hb["B_p"], hb["B_both"]))
-    head2 = (r"\multicolumn{9}{l}{\textbf{Stock-clock host}: Ryzen 9 9950X, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f; FreeToken's backend carried over from listing B} \\" %
+    head2 = (r"\multicolumn{9}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f; FreeToken's backend carried over from host B} \\" %
              (ha["mem_clock_mhz"], ha["B_c"], ha["B_p"], ha["B_both"]))
     body = head1 + "\n" + "\n".join(line(x) for x in rows[:3]) + "\n" + "\n".join(line(x) for x in rows[3:]) + "\n\\midrule\n" + head2 + "\n" + "\n".join(line(x) for x in rows2)
     vram = vr["vram"]
     tex = r"""\begin{table*}[t]\centering\small
 \caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts. 30 AIME-25 problems, first 256 decode tokens,
 greedy, session; our cache uses the FETCH split computed from each machine's bandwidth probe; FreeToken uses its faster
-backend per budget, picked on listing B on a separate launch and carried over to the second host. Ratios are of mean
+backend per budget, picked on host B on a separate launch and carried over to the second host. Ratios are of mean
 speeds, paired by problem, with 95\% bootstrap intervals. \emph{Speed limit}: the ceiling of \cref{sec:limit} for an
 exact-routing system with the same slots per layer on that machine (exact optimum, that host's highest probed rate,
-datasheet GPU rate, which listing B's card exceeds by 3\%; \cref{tab:limit} tightens it). FreeToken keeps one pooled
+datasheet GPU rate, which host B's card exceeds by 3\%; \cref{tab:limit} tightens it). FreeToken keeps one pooled
 cache and llama.cpp pins whole layers: against the pooled bound their designs allow they stand at
 \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every weight in the VRAM of an RTX PRO 6000 (the RTX 5090's
 datasheet bandwidth, 96\,GB), stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.

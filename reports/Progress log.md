@@ -3,6 +3,49 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 2 October, morning: two reviews at 5/10, the single-read oracles (job `095_single_read@vast`, running), the $0 corrections
+
+- **Review round 3** (`reports/Review round 3 (2 October).md`): with both oracle jobs in the paper, an MLSys PC member
+  and a performance-modeling professor each gave 5/10 (down from 6 and 6.5). The agreed diagnosis: both oracles as
+  built read an admitted expert twice (the CPU serves the miss, the background copy reads it again), so their host
+  bytes were 1.7-2.0x the optimum's R* and neither realised the foresight state the accounting prices; the hit-optimal
+  oracle sat at the DRAM roof (45-52 GB/s of 50.5) at 44% of the limit = R*/reads x utilisation, which is the Fig. 2
+  plateau; the main text blamed copy latency and the queue cap and left the double read in the table captions. The
+  abstract overclaimed ("the limit's own policy", "mostly on the bytes it saves", the regime claim refuted by its own
+  test at 11-12.5%), the bound was applied to pooled (FreeToken) and whole-layer (llama.cpp) systems, the audit median
+  was the 29-row subset, the scorecard rate counted held-on-point, and the writing still hid the paper. Both: the
+  decisive experiment is a single-read oracle (reads = R*), run as a factorial with prefetch overlap, worth about +2;
+  with the rewrite, the bound scoped and the number fixes, a clear accept (8); the step to 9 is a realisable foresight
+  mechanism (a learned Belady approximation or a routing forecaster at W = 2-4).
+- **The single-read oracles, in the engine.** `LLAMA_EC_ORACLE_FETCH=1`: MIN with bypass decided before the step
+  from the trace's record of it; each admitted miss is copied by the GPU's FETCH op into the victim's slot and run
+  from there this step (one read, on the critical path; a forced plan the host writes per layer, the plan kernel
+  executes it instead of the table); bypassed misses run on the CPU; reads = misses = the optimum's up to the
+  within-sequence lookahead. `LLAMA_EC_ORACLE_LEAD=d`: the scheduled single-read prefetch: an expert whose first use
+  is at least d steps away is copied ahead if MIN with bypass would admit it at that use (the victim is needed later
+  than the expert's use after that one, or never); sooner uses miss (and, with FETCH, are fetched then). Simulated on
+  the traces (`scripts/foresight_single_read_sim.py`, `prereg/foresight_single_read_sim.json`): fetch reads 40.0 /
+  17.6 / 9.3 and 101.3 / 47.3 / 17.7 per token against R* 38.3 / 15.3 / 6.8 and 96.5 / 43.4 / 13.7, hits 72-95%;
+  fetch + lead-2 reads 48.9 / 23.1 / 12.3 and 117.9 / 64.7 / 24.2 with hits 84-99%. The engine's modes match the
+  simulation on the CPU toy model within 2% (a synchronous-copy fallback stands in for FETCH there).
+- **Job 095 (RTX 5090 + Ryzen 9 9950X, offer 46402211, $0.50/h; running since 05:34 UTC; a first instance on a
+  9950X3D stalled while loading its image, $0.16).** Six configurations per cell at all six cells: base, fetch,
+  lead-2 (unpaced), both-2 (unpaced), both-3 paced, and the hit-optimal oracle unpaced. Seven predictions in the
+  header (fetch's reads within 10% of the simulation and hits within 3 points; fetch faster than base everywhere with
+  the law within 10%; both-2's reads within 25% and hits within 5 points of the simulation; both-2 at 55-85% of the
+  limit at the host-bound cells and faster than the hit-optimal oracle; the law over-predicts both-2 by 15-50%;
+  both-2 gains at least 25% at gpt-oss 11% and Qwen3 12.5%; paced within 10% of unpaced).
+- **The $0 corrections (main at 272e0da):** the abstract's llama.cpp/FreeToken fractions over both hosts, and both
+  scored against the pooled bound their designs allow (18-40% and 8-20%; `scripts/wsg_tables.py`,
+  `prereg/pooled_fractions.json`); the audit median over all 52 rows (14.5%) beside the trace-scored 29 (9.5%) and
+  the 52-row table with every source cited (Fate added) in a new appendix; the scorecard's strict rate (48%) beside
+  the point-estimate rate (61%); the bound's class stated (exact routing, whole experts, C per layer, one token per
+  pass) and listing B's probe reading 3% above the datasheet GPU rate; the law scoped to engines that read host
+  memory in sequence with GPU work, the blind test's scope stated (our cache, gpt-oss, RTX 5090s), and the
+  frozen-constant law scored on the three later RTX 5090 hosts (24 measurements: median 7.0%, p90 11.9%, worst 16%;
+  `scripts/law_frozen_later.py`); the host-lottery figure in one unit; the trace study's baseline named; Table 3's
+  "084" column renamed; draft and review references removed; Fig. 3's medians explained.
+
 ## 2 October, early: job 093 in the paper (hit-optimal foresight: +25-56% at 25% and above, -8% below); job `094_foresight_bytes@vast` running
 
 - **Job 093 landed (RTX 5090 + Ryzen 9 9950X; a weak host memory: 43.7 / 45.8 / 49.4 GB/s by CPU / link / both,

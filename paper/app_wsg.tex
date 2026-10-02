@@ -62,6 +62,36 @@ a throttled card and was rerun, with its predictions unchanged, as 084b/084c. Th
 
 \input{tab_scorecard}
 
+\section{The law's form and its failures}\label{app:law}
+\paragraph{Is the max the right form?} In 19 of the \lawCfg{} configurations nothing is copied, so they test one
+roof. We therefore refit the law and its alternatives on the same \lawRows{} measurements under leave-one-host-out
+validation (each of the \lawHostsLoho{} hosts predicted with constants fitted on the other \lawHostsLohoOther): the token-level max of
+\cref{eq:law} with $G$ refit has a median error of \lohoMaxMed\% (90th percentile \lohoMaxPninety\%); the additive form
+$G+X_c/B_c+X_p/B_p$, \lohoAddMed\% (\lohoAddPninety\%); a per-layer max summed over layers from the engine's per-layer
+miss histograms, \lohoLayerMed\% (\lohoLayerPninety\%). The additive form ties in sample but misses the three
+rows that copy misses on demand behind a 53\,GB/s link, where both paths carry most of the bytes, by
+\lohoAddFastFetchMin\%, while the max is within $\pm$0.2\% there; on the slow-link copy rows the additive form is the
+closer of the two. The per-layer form neither beats the max nor explains its failures: the Jensen gap between a sum
+of per-layer maxima and the maximum of sums is a fifth of the Core Ultra's residual, none of the EPYC 7352's, and has
+the wrong sign on the EPYC 9655 and on the prefetch rows. We keep \cref{eq:law}, with its evidence stated: the max beats the sum on three fast-link rows and ties
+elsewhere, so the form is settled only where both paths carry most of the bytes. FreeToken's own runs are not
+predicted, because its counters are not exposed; the law covers our engine and llama.cpp.
+
+\paragraph{Where it fails, and why.} Each failure now has a measured cause. (i) Copying misses on demand (FETCH) at
+25\% is over-predicted by \lohoFrozenFetchUltra\% on the Core Ultra 7 and \lohoFrozenFetchEpyc\% on the EPYC 7352 (links
+of 36 and 26\,GB/s); \lohoMaxFetchUltra\% and \lohoMaxFetchEpyc\% with $G$ refit. The engine's per-layer timers show
+why: a CPU miss served beside a copy takes \fetchBesideMin--\fetchBesideMax\% longer than one served alone, so the two
+paths share DRAM less evenly than the probe's combined rate says; a variant of the law that uses the probe's
+per-path rates under contention and a per-layer hand-off constant predicts both rows within \lohoAsymFetchUltra\% and
+\lohoAsymFetchEpyc\%, at a worse median (\lohoAsymMed\%). (ii) llama.cpp on a Core Ultra 7 with 8 performance and 16 efficiency cores runs at 46\% of the
+law at its default thread count, because it splits every matrix evenly across its threads; our helpers claim work
+dynamically and stay on the law on the same machine. We did not test llama.cpp restricted to the performance cores.
+(iii) On a 12-channel EPYC 9655 (559\,GB/s) host memory stops being the limit (\lohoMaxEpycMin{} to
+\lohoMaxEpycMax\%): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
+that no desktop host has (their intercepts are at or below zero), the latency of the hand-off at a bandwidth where a
+13\,MB expert takes 24\,$\mu$s. (iv) Prefetch configurations are under-predicted by \lohoMaxPfMin{} to
+\lohoMaxPfMax\%: their copies overlap attention, which the law charges in full.
+
 \section{The grid}\label{app:grid}
 \Cref{tab:grid} lists every cell of \cref{tab:headline}'s protocol on the four machines we measured, each against its
 own limit; \cref{sec:system} discusses it and \cref{fig:grid} plots the fractions. The 24\,GB cards run the cells

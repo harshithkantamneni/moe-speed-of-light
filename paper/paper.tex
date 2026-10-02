@@ -148,44 +148,26 @@ misses by \lawLlamaOffMin--\lawLlamaOffMax\%. With its constants frozen, the law
 not written before the runs) at a median \lawFrozenMed\%, 90th percentile \lawFrozenPninety\%, worst
 \lawFrozenMax\% (\lawFrozenWorstCell).
 
-\paragraph{Is the max the right form?} In 19 of the \lawCfg{} configurations nothing is copied, so they test one
-roof. We therefore refit the law and its alternatives on the same \lawRows{} measurements under leave-one-host-out
-validation (each of the \lawHostsLoho{} hosts predicted with constants fitted on the other \lawHostsLohoOther): the token-level max of
-\cref{eq:law} with $G$ refit has a median error of \lohoMaxMed\% (90th percentile \lohoMaxPninety\%); the additive form
-$G+X_c/B_c+X_p/B_p$, \lohoAddMed\% (\lohoAddPninety\%); a per-layer max summed over layers from the engine's per-layer
-miss histograms, \lohoLayerMed\% (\lohoLayerPninety\%). The additive form ties in sample but misses the three
-rows that copy misses on demand behind a 53\,GB/s link, where both paths carry most of the bytes, by
-\lohoAddFastFetchMin\%, while the max is within $\pm$0.2\% there; on the slow-link copy rows the additive form is the
-closer of the two. The per-layer form neither beats the max nor explains its failures: the Jensen gap between a sum
-of per-layer maxima and the maximum of sums is a fifth of the Core Ultra's residual, none of the EPYC 7352's, and has
-the wrong sign on the EPYC 9655 and on the prefetch rows. We keep \cref{eq:law}, with its evidence stated: the max beats the sum on three fast-link rows and ties
-elsewhere, so the form is settled only where both paths carry most of the bytes. FreeToken's own runs are not
-predicted, because its counters are not exposed; the law covers our engine and llama.cpp.
-
-\paragraph{Where it fails, and why.} Each failure now has a measured cause. (i) Copying misses on demand (FETCH) at
-25\% is over-predicted by \lohoFrozenFetchUltra\% on the Core Ultra 7 and \lohoFrozenFetchEpyc\% on the EPYC 7352 (links
-of 36 and 26\,GB/s); \lohoMaxFetchUltra\% and \lohoMaxFetchEpyc\% with $G$ refit. The engine's per-layer timers show
-why: a CPU miss served beside a copy takes \fetchBesideMin--\fetchBesideMax\% longer than one served alone, so the two
-paths share DRAM less evenly than the probe's combined rate says; a variant of the law that uses the probe's
-per-path rates under contention and a per-layer hand-off constant predicts both rows within \lohoAsymFetchUltra\% and
-\lohoAsymFetchEpyc\%, at a worse median (\lohoAsymMed\%). (ii) llama.cpp on a Core Ultra 7 with 8 performance and 16 efficiency cores runs at 46\% of the
-law at its default thread count, because it splits every matrix evenly across its threads; our helpers claim work
-dynamically and stay on the law on the same machine. We did not test llama.cpp restricted to the performance cores.
-(iii) On a 12-channel EPYC 9655 (559\,GB/s) host memory stops being the limit (\lohoMaxEpycMin{} to
-\lohoMaxEpycMax\%): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
-that no desktop host has (their intercepts are at or below zero), the latency of the hand-off at a bandwidth where a
-13\,MB expert takes 24\,$\mu$s. (iv) Prefetch configurations are under-predicted by \lohoMaxPfMin{} to
-\lohoMaxPfMax\%: their copies overlap attention, which the law charges in full.
+\paragraph{Its form and its failures.} In 19 of the \lawCfg{} configurations nothing is copied, so they test one
+roof; refit under leave-one-host-out validation, the token-level max has a median error of \lohoMaxMed\% (90th
+percentile \lohoMaxPninety\%), the additive form $G+X_c/B_c+X_p/B_p$ \lohoAddMed\% (\lohoAddPninety\%) and a
+per-layer max summed over layers \lohoLayerMed\% (\lohoLayerPninety\%); the max beats the sum only on the three rows
+that copy misses on demand behind a 53\,GB/s link, where both paths carry most of the bytes, and ties elsewhere. Each
+failure has a measured cause (\cref{app:law}): on-demand copies behind a slow link share DRAM less evenly than the
+probe's combined rate says (the Core Ultra 7 and the EPYC 7352); llama.cpp splits every matrix evenly across threads
+and runs at 46\% of the law on a hybrid-core host, where our helpers claim work dynamically and stay on it; and on a
+12-channel EPYC 9655 host memory stops being the limit and a per-layer latency floor that no desktop host has takes
+over. $G$ (\lawGRefit\,ms refit) exceeds the whole all-in-VRAM token (\vramMs\,ms) because it absorbs a shortfall the
+probe does not see: the helpers read at \helperRateMin--\helperRateMax$\times$ the probe's time per expert, and a
+fitted rate factor is collinear with $G$ at this sample size. FreeToken's own runs are not predicted, because its
+counters are not exposed; the law covers our engine and llama.cpp.
 
 \paragraph{What the law says.} For an engine that reads host memory in sequence with its GPU work, as these do,
 every mechanism acts only through the bytes read from host memory per token and the number of read paths in use. A second path adds bandwidth on every host we
 measured but the 12-channel EPYC ($B_{cp}$ against $\max(B_c,B_p)$: \secondMin--\secondMax\% on the Ryzen hosts, \secondUltra\% on the
 Core Ultra, \secondEpyc\% on the Zen~2 EPYC), and that is the whole gain available to fetching or splitting misses
 between the CPU and PCIe. Prefetching never reduces the bytes; what it can buy is overlap, which the law does not
-price and \cref{sec:limit} measures. $G$ (\lawGRefit\,ms refit) exceeds the whole
-all-in-VRAM token (\vramMs\,ms) because it absorbs a shortfall the probe does not see: the helpers read at
-\helperRateMin--\helperRateMax$\times$ the probe's time per expert on desktop hosts, and a fitted rate factor is
-collinear with $G$ at this sample size. And the ``host lottery'' is the DRAM: two rentals of the same CPU differed by
+price and \cref{sec:limit} measures. And the ``host lottery'' is the DRAM: two rentals of the same CPU differed by
 19--22\% in speed, which is 62 against 47\,GB/s of host bandwidth (24--32\%).
 
 \section{The Speed Limit, and Where the Seconds Go}\label{sec:limit}

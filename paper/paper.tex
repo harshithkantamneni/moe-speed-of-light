@@ -340,21 +340,19 @@ resident, 4.0\%). Right: our cache, FreeToken and stock llama.cpp on listing B a
 \cref{tab:headline}. \Cref{tab:audit} lists every row with its source.}\label{fig:audit}
 \end{figure}
 Rule 11 of scientific benchmarking asks for an upper bound beside every measurement~\cite{hoefler2015benchmarking}.
-We applied a bound of the same construction as \cref{eq:limit} (Belady's optimum with bypass per layer, CPU and
-PCIe paths, a maximum per layer step; \texttt{scripts/audit.py}), with each paper's stated hardware at datasheet rates
-and a routing trace of its model where we have one, to \audAllN{} published measurements of MoE offloading from \audSources{} sources,
-collected for an audit of this literature (\cref{app:audit}). \Cref{fig:audit} shows the result. The
-\audTraceN{} trace-based measurements reach a median \audTraceMed\% of their own speed of light (quartiles
-\audTraceQone--\audTraceQthree\%, best \audTraceMax\%); the \audIidN{} that needed an i.i.d. routing assumption,
-\audIidMed\%, an overestimate; measurements with no GPU expert capacity (the CPU-only rate is their bound) and with
-every expert resident are plotted apart. Our own reference points are not like for like: their ceilings are probed,
-and a probed ceiling is lower than a datasheet one by the ratio of achieved to nominal host bandwidth, which we did
-not record for the published machines and so do not quantify; it would raise the published percentages by that
-ratio, which on our own hosts would be a factor of about 1.1--1.4; the bound also drops every latency, which the
-four rows with every expert resident, at a median \audAllfitMed\% with nothing offloaded, show is not small for
-small models at batch 1. Even so, against a latency-free datasheet ceiling the trace-scored measurements sit at a
-median tenth, and three quarters of them below a fifth, of what their machines could deliver, and \cref{fig:shapley}
-says what the missing part is made of.
+We applied a bound of the same construction as \cref{eq:limit} (Belady's optimum with bypass per layer, CPU and PCIe
+paths, a maximum per layer step; \texttt{scripts/audit.py}), with each paper's stated hardware at datasheet rates and
+a routing trace of its model where we have one, to \audAllN{} published batch-1 measurements from \audSources{}
+sources (\cref{fig:audit}; every row and its source in \cref{app:audit}). The \audTraceN{} trace-scored
+measurements reach a median \audTraceMed\% of their own speed of light (quartiles \audTraceQone--\audTraceQthree\%,
+best \audTraceMax\%); the \audIidN{} that needed an i.i.d. routing assumption, \audIidMed\%, an overestimate; all
+\audAllN, \audAllMed\%. The ceiling is a latency-free datasheet one, which our own probed ceilings are not (the
+achieved-to-nominal host bandwidth ratio, about 1.1--1.4 on our hosts, would raise the published percentages by
+that factor), and the \audAllfitN{} rows with every expert resident sit at a median \audAllfitMed\% with nothing
+offloaded, so for small models at batch 1 the dropped latencies are not small; pooled, layer-pinning and speculative
+systems are scored against a per-layer one-token bound that is not theirs (\cref{app:audit}). Even so, the
+trace-scored measurements sit at a median tenth, and three quarters of them below a fifth, of what their machines
+could deliver, and \cref{fig:shapley} says what the missing part is made of.
 
 \section{The Expert Cache as the Instrument}\label{sec:system}
 \paragraph{Design.} Our cache is a 3{,}700-line patch to llama.cpp. Each MoE layer has $C$ GPU slots. Routing is

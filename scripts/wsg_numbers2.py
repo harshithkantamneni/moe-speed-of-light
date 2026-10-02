@@ -388,7 +388,9 @@ def scorecard():
     M("scHeld", str(t["held"])); M("scHeldPoint", str(t["held (point)"])); M("scFailed", str(t["failed"]))
     M("scUntested", str(t["untested"])); M("scVoid", str(t["void"])); M("scClauses", str(t["clauses"]))
     M("scHeldAnyPct", pct(t["held_any_share_of_scored"]))
-    for era, nm in (("073-075", "Early"), ("076-081", "Mid"), ("082-087", "Late"), ("088-092", "Rev")):
+    rev = next(k for k in s["by_era"] if k.startswith("088"))         # the review-era key grows with every job
+    M("scRevEra", rev.replace("-", "--")); M("scLastJob", rev.split("-")[1])
+    for era, nm in (("073-075", "Early"), ("076-081", "Mid"), ("082-087", "Late"), (rev, "Rev")):
         if era not in s["by_era"]:
             continue
         e = s["by_era"][era]
@@ -396,7 +398,7 @@ def scorecard():
         M(f"sc{nm}Clauses", str(e["clauses"])); M(f"sc{nm}Scored", str(e["scored"]))
     M("scSignHeldPct", pct(s["by_type"]["sign"]["held_any_share_of_scored"]))
     M("scMidSign", str(s["by_era"]["076-081"]["by_type"]["sign"]["clauses"]))
-    bt = s["by_era"]["088-092"]["by_type"]
+    bt = s["by_era"][rev]["by_type"]
     M("scRevFailBand", str(bt["band"]["failed"])); M("scRevFailThr", str(bt["threshold"]["failed"]))
     M("scRevFailEq", str(bt["equality"]["failed"])); M("scRevFailSign", str(bt["sign"]["failed"]))
     M("scRevSignHeld", str(bt["sign"]["held"] + bt["sign"]["held (point)"])); M("scRevSignClauses", str(bt["sign"]["clauses"]))

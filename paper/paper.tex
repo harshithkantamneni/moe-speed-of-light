@@ -20,21 +20,21 @@
 
 
 \begin{abstract}
-A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and each decoded
-token waits for the ones it needs. We ask how fast such a machine could decode, how far real systems are from that,
-and what separates them. A \emph{host-memory law}, a fixed GPU term plus host bytes over the probed rate of the read
-paths in use, predicts decode time blind on \lawHosts{} machines with \lawMedian\% median error. Belady's optimum with
-bypass on the model's own routing gives a \emph{speed limit} in seconds for any exact-routing system with a given
-per-layer expert budget: stock llama.cpp, FreeToken and our llama.cpp expert cache reach
-\llLimExPctMin--\llLimExPctMax\%, \ftLimExPctMin--\ftLimExPctMax\% and \bothLimitPctMin--\bothLimitPctMax\% of it on
-two RTX 5090 hosts (probed ceilings), and \audAllN{} published measurements a median \audTraceMed\% of theirs
-(datasheet ceilings). A Shapley \emph{accounting} over every order of fixes says the rest is mostly missing routing
-foresight where the host binds and host reads serialised with GPU work where it does not\fsMeasuredAbstract. Nine
-models' traces say how far ahead foresight must reach ($W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens) and that
-speculative batching does not supply it. The cache, the instrument of these measurements, leads FreeToken at
-\bothLeadCells{} of \bothCells{} cells (\bothLeadGptMin--\bothLeadGptMax\% on gpt-oss-120b, \bothLeadQwenMin{} to
-\bothLeadQwenMax\% on Qwen3-30B-A3B) and runs \bothLlamaXMin--\bothLlamaXMax$\times$ llama.cpp. Every prediction was
-committed before its measurement; of \scClauses{} scored clauses, \scHeldAnyPct\% held.
+A Mixture-of-Experts model too large for one consumer GPU keeps most experts in host memory; each decoded token
+waits for the ones it needs. How fast could it decode, and what separates real systems from that? A
+\emph{host-memory law}, a GPU term plus host bytes over the probed rate of the paths that read them, predicts decode
+time blind on \lawHosts{} machines with \lawMedian\% median error. Belady's optimum with bypass on the model's routing
+gives a \emph{speed limit} in seconds for any exact-routing system with a per-layer expert budget: llama.cpp,
+FreeToken and our llama.cpp expert cache reach \llLimExPctMin--\llLimExPctMax, \ftLimExPctMin--\ftLimExPctMax{} and
+\bothLimitPctMin--\bothLimitPctMax\% of it on two RTX 5090 hosts, and \audAllN{} published measurements a median
+\audTraceMed\% of theirs. A Shapley \emph{accounting} says the rest is mostly missing routing foresight where the
+host binds and serialised host reads where the GPU does. An oracle of future routing in the engine tests the first:
+\fsmPosGainMin--\fsmPosGainMax\% faster at expert budgets of 25\% and above, \fsmLossRange\% slower below, where the
+optimum's foresight is in bytes, not hits. Nine models' traces give the horizon it needs
+($W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens) and show that speculative batching does not supply it. The cache
+leads FreeToken at \bothLeadCells{} of \bothCells{} cells (gpt-oss-120b \bothLeadGptMin--\bothLeadGptMax\%,
+Qwen3-30B-A3B \bothLeadQwenMin{} to \bothLeadQwenMax\%) and runs \bothLlamaXMin--\bothLlamaXMax$\times$ llama.cpp.
+Every prediction was committed before its measurement; \scHeldAnyPct\% of \scClauses{} scored clauses held.
 \end{abstract}
 
 \section{Introduction}
@@ -530,7 +530,10 @@ it tells a system which path to use for a miss on a given machine; and with the 
 limit in seconds that published systems reach a median tenth of. An accounting that no order of fixes can bias
 says what the rest is: where the host binds, the policy's ignorance of future routing, and where the GPU binds, host
 reads that wait for it. Nine models' traces say that neither an online policy nor batching alone buys that
-foresight; it must come from knowing the routing a few to tens of tokens ahead.
+foresight; it must come from knowing the routing a few to tens of tokens ahead. Given it by an oracle, the engine
+runs \fsmPosGainMin--\fsmPosGainMax\% faster where the link can carry the copies in time, and the law over-predicts
+those runs: foresight buys overlap with it. Where the host binds hardest a hit-optimal oracle loses, because the
+foresight the limit assumes is in bytes, not hits.
 
 {\small\bibliographystyle{plain}\bibliography{refs,refs_wsg}}
 

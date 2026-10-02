@@ -1,7 +1,7 @@
 {
  "meta": {
   "written": "2026-09-30",
-  "purpose": "Every committed prediction of GPU jobs 073-092, split into its separable clauses and scored under one stated interval rule. Hand-encoded from the job-script headers on the gpu branch, the prereg/*.json statistics and the prereg/*_outcome_*.md notes. Read by scripts/scorecard.py, which writes prereg/scorecard.json and paper/tab_scorecard.tex.",
+  "purpose": "Every committed prediction of GPU jobs 073-093, split into its separable clauses and scored under one stated interval rule. Hand-encoded from the job-script headers on the gpu branch, the prereg/*.json statistics and the prereg/*_outcome_*.md notes. Read by scripts/scorecard.py, which writes prereg/scorecard.json and paper/tab_scorecard.tex.",
   "ci_rule": "A clause is 'held' only when its point estimate is on the predicted side and its 95% paired-bootstrap interval excludes the threshold (for a band, lies entirely inside it); a clause whose point estimate is on the predicted side but whose interval includes the threshold, or for which no interval exists, is 'held (point)'; a clause whose point estimate is on the wrong side is 'failed'; 'untested' means the clause could not be evaluated; 'void' means the job was voided. Deterministic clauses (tables, counts of problems, whether a run completed) have no interval and are held or failed outright.",
   "types": {
    "sign": "a direction only: A ahead of / beats / leads B (threshold 1 on a ratio of means)",
@@ -42,12 +42,13 @@
     "086",
     "087"
    ],
-   "088-092": [
+   "088-093": [
     "088",
     "089",
     "090",
     "091",
-    "092"
+    "092",
+    "093"
    ]
   },
   "supplementary_intervals": "Where a prereg JSON has no interval for a clause, one was computed for this scorecard from the job's raw rows (results/<job>/bs1.jsonl) with scripts/samehost_stats.boot_ratio (paired by problem, 10,000 resamples, seed 0) or the same bootstrap of a single mean; the source field says so.",
@@ -2171,7 +2172,7 @@
   },
   {
    "job": "088",
-   "era": "088-092",
+   "era": "088-093",
    "script": "jobs/088_slowlink_fair@vast.sh",
    "commit": "c70e311",
    "host": "RTX 5090 + Core i9-14900K, Vast offer 48829099 (PCIe 4.0-class link, 29.9 GB/s zero-copy; the CPU model of job 085)",
@@ -2375,7 +2376,7 @@
   },
   {
    "job": "089",
-   "era": "088-092",
+   "era": "088-093",
    "script": "jobs/089_headline_stockclock@vast.sh",
    "commit": "c70e311",
    "host": "RTX 5090 (memory clock 14,001 MHz, 400 W) + Ryzen 9 9950X, Vast offer 49539124 (a first host, offer 51871552, passed the gates and had no network; nothing measured)",
@@ -2884,7 +2885,7 @@
   },
   {
    "job": "090",
-   "era": "088-092",
+   "era": "088-093",
    "script": "jobs/090_parity_a100@vast.sh",
    "commit": "c70e311",
    "host": "RTX PRO 6000 (96 GB) + Xeon 6960P, Vast offer 50107112 (the first rental, offer 31632904, was a 40 GB A100 stopped by the VRAM gate)",
@@ -3054,7 +3055,7 @@
   },
   {
    "job": "091",
-   "era": "088-092",
+   "era": "088-093",
    "script": "jobs/091_grid_4090@vast.sh",
    "commit": "4a69c56",
    "host": "RTX 4090 (24 GB, PCIe 4.0 x16, 400 W) + Core i5-12400, 125 GB RAM, Vast offer 49588631; host reads 37 GB/s",
@@ -3411,7 +3412,7 @@
   },
   {
    "job": "092",
-   "era": "088-092",
+   "era": "088-093",
    "script": "jobs/092_grid_3090@vast.sh",
    "commit": "4a69c56",
    "host": "RTX 3090 (24 GB, PCIe 4.0 x16, 350 W) + Core i9-11900KF, 125 GB RAM, Vast offer 53295594; host reads 45 GB/s (CPU alone; CPU + link 41-43)",
@@ -3675,6 +3676,652 @@
      "status": "held (point)",
      "paper_log": "",
      "note": "Ratios of means from two launches; no interval for their difference.",
+     "decimals": 1
+    }
+   ]
+  },
+  {
+   "job": "093",
+   "era": "088-093",
+   "script": "jobs/093_foresight@vast.sh",
+   "commit": "4b25772",
+   "host": "RTX 5090 (14,001 MHz) + Ryzen 9 9950X, 123 GB RAM, Vast offer 48822557; host reads 44 GB/s by the CPU, 46 over the link, 50.5 at best",
+   "outcome_note": "prereg/foresight_outcome_093.md",
+   "clauses": [
+    {
+     "id": "093-P1a",
+     "short": "oracle (W = all) faster than base, gpt-oss 11%",
+     "prediction": 1,
+     "clause": "the oracle at W = 0 (the rest of the sequence) is faster than base at gpt-oss 11% (paired interval above 1)",
+     "type": "sign",
+     "quantity": "oracle W=0 / base, gpt-oss 11%",
+     "threshold": "> 1",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 0.923,
+     "ci": [
+      0.914,
+      0.933
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Slower: the hit-optimal oracle admits 35-63 experts per token, more host bytes than the policy, and the copies land late (hit rate 66-68% against the optimum's 73-75%)."
+    },
+    {
+     "id": "093-P1b",
+     "short": "oracle (W = all) faster than base, gpt-oss 25%",
+     "prediction": 1,
+     "clause": "the oracle at W = 0 (the rest of the sequence) is faster than base at gpt-oss 25% (paired interval above 1)",
+     "type": "sign",
+     "quantity": "oracle W=0 / base, gpt-oss 25%",
+     "threshold": "> 1",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 1.398,
+     "ci": [
+      1.384,
+      1.412
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "093-P1c",
+     "short": "oracle (W = all) faster than base, Qwen3 12.5%",
+     "prediction": 1,
+     "clause": "the oracle at W = 0 (the rest of the sequence) is faster than base at Qwen3 12.5% (paired interval above 1)",
+     "type": "sign",
+     "quantity": "oracle W=0 / base, Qwen3 12.5%",
+     "threshold": "> 1",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 0.916,
+     "ci": [
+      0.911,
+      0.922
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Slower: the hit-optimal oracle admits 35-63 experts per token, more host bytes than the policy, and the copies land late (hit rate 66-68% against the optimum's 73-75%)."
+    },
+    {
+     "id": "093-P1d",
+     "short": "oracle (W = all) faster than base, Qwen3 25%",
+     "prediction": 1,
+     "clause": "the oracle at W = 0 (the rest of the sequence) is faster than base at Qwen3 25% (paired interval above 1)",
+     "type": "sign",
+     "quantity": "oracle W=0 / base, Qwen3 25%",
+     "threshold": "> 1",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 1.247,
+     "ci": [
+      1.235,
+      1.259
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": ""
+    },
+    {
+     "id": "093-P2a",
+     "short": "oracle gain 20-80%, gpt-oss 11%",
+     "prediction": 2,
+     "clause": "the oracle's gain over base at W = 0 is 20-80% at gpt-oss 11%",
+     "type": "band",
+     "quantity": "100 (oracle W=0 / base - 1), gpt-oss 11%",
+     "threshold": "20-80%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": -7.7,
+     "ci": [
+      -8.6,
+      -6.7
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "A loss, not a gain (see P1).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P2b",
+     "short": "oracle gain 20-80%, gpt-oss 25%",
+     "prediction": 2,
+     "clause": "the oracle's gain over base at W = 0 is 20-80% at gpt-oss 25%",
+     "type": "band",
+     "quantity": "100 (oracle W=0 / base - 1), gpt-oss 25%",
+     "threshold": "20-80%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 39.8,
+     "ci": [
+      38.4,
+      41.2
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": "",
+     "decimals": 1
+    },
+    {
+     "id": "093-P2c",
+     "short": "oracle gain 20-80%, Qwen3 12.5%",
+     "prediction": 2,
+     "clause": "the oracle's gain over base at W = 0 is 20-80% at Qwen3 12.5%",
+     "type": "band",
+     "quantity": "100 (oracle W=0 / base - 1), Qwen3 12.5%",
+     "threshold": "20-80%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": -8.4,
+     "ci": [
+      -8.9,
+      -7.8
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "A loss, not a gain (see P1).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P2d",
+     "short": "oracle gain 20-80%, Qwen3 25%",
+     "prediction": 2,
+     "clause": "the oracle's gain over base at W = 0 is 20-80% at Qwen3 25%",
+     "type": "band",
+     "quantity": "100 (oracle W=0 / base - 1), Qwen3 25%",
+     "threshold": "20-80%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 24.7,
+     "ci": [
+      23.5,
+      25.9
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": "",
+     "decimals": 1
+    },
+    {
+     "id": "093-P3a",
+     "short": "W = 16 captures >= half of the W = 0 gain, gpt-oss 11%",
+     "prediction": 3,
+     "clause": "the oracle at W = 16 captures at least half of the W = 0 gain at gpt-oss 11%",
+     "type": "threshold",
+     "quantity": "gain at W=16 / gain at W=0, gpt-oss 11%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w16.gain / oracle_w0.gain",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "",
+     "note": "No W = 0 gain to capture (the oracle lost at this cell).",
+     "decimals": 0
+    },
+    {
+     "id": "093-P3b",
+     "short": "W = 16 captures >= half of the W = 0 gain, gpt-oss 25%",
+     "prediction": 3,
+     "clause": "the oracle at W = 16 captures at least half of the W = 0 gain at gpt-oss 25%",
+     "type": "threshold",
+     "quantity": "gain at W=16 / gain at W=0, gpt-oss 25%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w16.gain / oracle_w0.gain",
+     "measured": 87.0,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "",
+     "note": "Ratios of means; no interval for the quotient of gains.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P3c",
+     "short": "W = 16 captures >= half of the W = 0 gain, Qwen3 12.5%",
+     "prediction": 3,
+     "clause": "the oracle at W = 16 captures at least half of the W = 0 gain at Qwen3 12.5%",
+     "type": "threshold",
+     "quantity": "gain at W=16 / gain at W=0, Qwen3 12.5%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w16.gain / oracle_w0.gain",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "",
+     "note": "No W = 0 gain to capture (the oracle lost at this cell).",
+     "decimals": 0
+    },
+    {
+     "id": "093-P3d",
+     "short": "W = 16 captures >= half of the W = 0 gain, Qwen3 25%",
+     "prediction": 3,
+     "clause": "the oracle at W = 16 captures at least half of the W = 0 gain at Qwen3 25%",
+     "type": "threshold",
+     "quantity": "gain at W=16 / gain at W=0, Qwen3 25%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w16.gain / oracle_w0.gain",
+     "measured": 100.0,
+     "ci": null,
+     "status": "held (point)",
+     "paper_log": "",
+     "note": "Ratios of means; no interval for the quotient of gains.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P3e",
+     "short": "W = 4 captures >= half of the W = 0 gain, gpt-oss 11%",
+     "prediction": 3,
+     "clause": "the oracle at W = 4 captures at least half of the W = 0 gain at gpt-oss 11% (the trace study's W50 there is 3.1 / 1.5 tokens)",
+     "type": "threshold",
+     "quantity": "gain at W=4 / gain at W=0, gpt-oss 11%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "",
+     "note": "No W = 0 gain to capture (the oracle lost at this cell)."
+    },
+    {
+     "id": "093-P3f",
+     "short": "W = 4 captures >= half of the W = 0 gain, Qwen3 12.5%",
+     "prediction": 3,
+     "clause": "the oracle at W = 4 captures at least half of the W = 0 gain at Qwen3 12.5% (the trace study's W50 there is 3.1 / 1.5 tokens)",
+     "type": "threshold",
+     "quantity": "gain at W=4 / gain at W=0, Qwen3 12.5%",
+     "threshold": ">= 50%",
+     "source": "prereg/foresight_093.json",
+     "measured": null,
+     "ci": null,
+     "status": "untested",
+     "paper_log": "",
+     "note": "No W = 0 gain to capture (the oracle lost at this cell)."
+    },
+    {
+     "id": "093-P4a",
+     "short": "ours with the oracle at 45-65% of the limit, gpt-oss 11%",
+     "prediction": 4,
+     "clause": "with the oracle at W = 0 ours reaches 45-65% of this host's speed limit at gpt-oss 11% (exact optimum's reads, this host's highest probed rate 50.5 GB/s, datasheet 1,792 GB/s)",
+     "type": "band",
+     "quantity": "oracle W=0 mean speed / limit, gpt-oss 11%",
+     "threshold": "45-65%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.frac_of_limit (interval: bootstrap of the mean over the fixed limit)",
+     "measured": 44.0,
+     "ci": [
+      43.2,
+      44.7
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Just below the band; base already stood at 48-49% of this host's limit at the two lowest budgets because the limit's host rate is this host's weak 50.5 GB/s.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P4b",
+     "short": "ours with the oracle at 45-65% of the limit, gpt-oss 25%",
+     "prediction": 4,
+     "clause": "with the oracle at W = 0 ours reaches 45-65% of this host's speed limit at gpt-oss 25% (exact optimum's reads, this host's highest probed rate 50.5 GB/s, datasheet 1,792 GB/s)",
+     "type": "band",
+     "quantity": "oracle W=0 mean speed / limit, gpt-oss 25%",
+     "threshold": "45-65%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.frac_of_limit (interval: bootstrap of the mean over the fixed limit)",
+     "measured": 43.7,
+     "ci": [
+      42.5,
+      44.8
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Just below the band; base already stood at 48-49% of this host's limit at the two lowest budgets because the limit's host rate is this host's weak 50.5 GB/s.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P4c",
+     "short": "ours with the oracle at 45-65% of the limit, Qwen3 12.5%",
+     "prediction": 4,
+     "clause": "with the oracle at W = 0 ours reaches 45-65% of this host's speed limit at Qwen3 12.5% (exact optimum's reads, this host's highest probed rate 50.5 GB/s, datasheet 1,792 GB/s)",
+     "type": "band",
+     "quantity": "oracle W=0 mean speed / limit, Qwen3 12.5%",
+     "threshold": "45-65%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.frac_of_limit (interval: bootstrap of the mean over the fixed limit)",
+     "measured": 44.8,
+     "ci": [
+      44.1,
+      45.5
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Just below the band; base already stood at 48-49% of this host's limit at the two lowest budgets because the limit's host rate is this host's weak 50.5 GB/s.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P4d",
+     "short": "ours with the oracle at 45-65% of the limit, Qwen3 25%",
+     "prediction": 4,
+     "clause": "with the oracle at W = 0 ours reaches 45-65% of this host's speed limit at Qwen3 25% (exact optimum's reads, this host's highest probed rate 50.5 GB/s, datasheet 1,792 GB/s)",
+     "type": "band",
+     "quantity": "oracle W=0 mean speed / limit, Qwen3 25%",
+     "threshold": "45-65%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.frac_of_limit (interval: bootstrap of the mean over the fixed limit)",
+     "measured": 44.5,
+     "ci": [
+      43.3,
+      45.8
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Just below the band; base already stood at 48-49% of this host's limit at the two lowest budgets because the limit's host rate is this host's weak 50.5 GB/s.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P5a",
+     "short": "oracle hit rate within 3 points of the optimum's, gpt-oss 11%",
+     "prediction": 5,
+     "clause": "the oracle's hit rate at W = 0 is within 3 points of the trace optimum's (73.4%) at gpt-oss 11%",
+     "type": "band",
+     "quantity": "oracle hit rate minus the optimum's, points, gpt-oss 11%",
+     "threshold": "within +-3",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.hit_rate; the optimum's from speed_limit_v2.json",
+     "measured": -5.9,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "",
+     "note": "Deterministic counters over 7,680 steps. Copies land late at the lowest budgets; at gpt-oss 25% the oracle exceeds the bypass optimum's hit rate (it admits single-use experts the optimum bypasses).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P5b",
+     "short": "oracle hit rate within 3 points of the optimum's, gpt-oss 25%",
+     "prediction": 5,
+     "clause": "the oracle's hit rate at W = 0 is within 3 points of the trace optimum's (89.3%) at gpt-oss 25%",
+     "type": "band",
+     "quantity": "oracle hit rate minus the optimum's, points, gpt-oss 25%",
+     "threshold": "within +-3",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.hit_rate; the optimum's from speed_limit_v2.json",
+     "measured": 3.1,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "",
+     "note": "Deterministic counters over 7,680 steps. Copies land late at the lowest budgets; at gpt-oss 25% the oracle exceeds the bypass optimum's hit rate (it admits single-use experts the optimum bypasses).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P5c",
+     "short": "oracle hit rate within 3 points of the optimum's, Qwen3 12.5%",
+     "prediction": 5,
+     "clause": "the oracle's hit rate at W = 0 is within 3 points of the trace optimum's (74.9%) at Qwen3 12.5%",
+     "type": "band",
+     "quantity": "oracle hit rate minus the optimum's, points, Qwen3 12.5%",
+     "threshold": "within +-3",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.hit_rate; the optimum's from speed_limit_v2.json",
+     "measured": -9.2,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "",
+     "note": "Deterministic counters over 7,680 steps. Copies land late at the lowest budgets; at gpt-oss 25% the oracle exceeds the bypass optimum's hit rate (it admits single-use experts the optimum bypasses).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P5d",
+     "short": "oracle hit rate within 3 points of the optimum's, Qwen3 25%",
+     "prediction": 5,
+     "clause": "the oracle's hit rate at W = 0 is within 3 points of the trace optimum's (88.7%) at Qwen3 25%",
+     "type": "band",
+     "quantity": "oracle hit rate minus the optimum's, points, Qwen3 25%",
+     "threshold": "within +-3",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.hit_rate; the optimum's from speed_limit_v2.json",
+     "measured": 0.4,
+     "ci": null,
+     "status": "held",
+     "paper_log": "",
+     "note": "Deterministic counters over 7,680 steps.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P5e",
+     "short": "oracle admissions within 30% of the optimum's reads, gpt-oss 11%",
+     "prediction": 5,
+     "clause": "the oracle's admissions per token are within 30% of the optimum's reads per token (38.3) at gpt-oss 11%",
+     "type": "band",
+     "quantity": "admissions per token / optimum's reads - 1, gpt-oss 11%",
+     "threshold": "within +-30%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.admits_per_token",
+     "measured": -9.0,
+     "ci": null,
+     "status": "held",
+     "paper_log": "",
+     "note": "Deterministic counters.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P5f",
+     "short": "oracle admissions within 30% of the optimum's reads, gpt-oss 25%",
+     "prediction": 5,
+     "clause": "the oracle's admissions per token are within 30% of the optimum's reads per token (15.3) at gpt-oss 25%",
+     "type": "band",
+     "quantity": "admissions per token / optimum's reads - 1, gpt-oss 25%",
+     "threshold": "within +-30%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.admits_per_token",
+     "measured": 31.0,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "",
+     "note": "Deterministic counters.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P5g",
+     "short": "oracle admissions within 30% of the optimum's reads, Qwen3 12.5%",
+     "prediction": 5,
+     "clause": "the oracle's admissions per token are within 30% of the optimum's reads per token (96.5) at Qwen3 12.5%",
+     "type": "band",
+     "quantity": "admissions per token / optimum's reads - 1, Qwen3 12.5%",
+     "threshold": "within +-30%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.admits_per_token",
+     "measured": -35.0,
+     "ci": null,
+     "status": "failed",
+     "paper_log": "",
+     "note": "Deterministic counters.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P5h",
+     "short": "oracle admissions within 30% of the optimum's reads, Qwen3 25%",
+     "prediction": 5,
+     "clause": "the oracle's admissions per token are within 30% of the optimum's reads per token (43.4) at Qwen3 25%",
+     "type": "band",
+     "quantity": "admissions per token / optimum's reads - 1, Qwen3 25%",
+     "threshold": "within +-30%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.admits_per_token",
+     "measured": 7.0,
+     "ci": null,
+     "status": "held",
+     "paper_log": "",
+     "note": "Deterministic counters.",
+     "decimals": 0
+    },
+    {
+     "id": "093-P6a",
+     "short": "no-overlap 5-25% slower than base, gpt-oss 11%",
+     "prediction": 6,
+     "clause": "base with LLAMA_EC_OVERLAP=0 (a layer's CPU misses no longer concurrent with its GPU hits) is 5-25% slower than base at gpt-oss 11%",
+     "type": "band",
+     "quantity": "100 (1 - noovl / base), gpt-oss 11%",
+     "threshold": "5-25%",
+     "source": "prereg/foresight_093.json cells[].runs.noovl.ratio_to_base",
+     "measured": -0.5,
+     "ci": [
+      -1.0,
+      -0.1
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "No effect: the engine's within-layer overlap is worth nothing in mailbox mode.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6b",
+     "short": "no-overlap 5-25% slower than base, gpt-oss 25%",
+     "prediction": 6,
+     "clause": "base with LLAMA_EC_OVERLAP=0 (a layer's CPU misses no longer concurrent with its GPU hits) is 5-25% slower than base at gpt-oss 25%",
+     "type": "band",
+     "quantity": "100 (1 - noovl / base), gpt-oss 25%",
+     "threshold": "5-25%",
+     "source": "prereg/foresight_093.json cells[].runs.noovl.ratio_to_base",
+     "measured": 0.2,
+     "ci": [
+      0.1,
+      0.2
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "No effect: the engine's within-layer overlap is worth nothing in mailbox mode.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6c",
+     "short": "no-overlap 5-25% slower than base, Qwen3 12.5%",
+     "prediction": 6,
+     "clause": "base with LLAMA_EC_OVERLAP=0 (a layer's CPU misses no longer concurrent with its GPU hits) is 5-25% slower than base at Qwen3 12.5%",
+     "type": "band",
+     "quantity": "100 (1 - noovl / base), Qwen3 12.5%",
+     "threshold": "5-25%",
+     "source": "prereg/foresight_093.json cells[].runs.noovl.ratio_to_base",
+     "measured": -0.0,
+     "ci": [
+      -0.1,
+      0.0
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "No effect: the engine's within-layer overlap is worth nothing in mailbox mode.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6d",
+     "short": "no-overlap 5-25% slower than base, Qwen3 25%",
+     "prediction": 6,
+     "clause": "base with LLAMA_EC_OVERLAP=0 (a layer's CPU misses no longer concurrent with its GPU hits) is 5-25% slower than base at Qwen3 25%",
+     "type": "band",
+     "quantity": "100 (1 - noovl / base), Qwen3 25%",
+     "threshold": "5-25%",
+     "source": "prereg/foresight_093.json cells[].runs.noovl.ratio_to_base",
+     "measured": 0.1,
+     "ci": [
+      0.0,
+      0.2
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "No effect: the engine's within-layer overlap is worth nothing in mailbox mode.",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6e",
+     "short": "all-CPU 0-10% slower than base, gpt-oss 11%",
+     "prediction": 6,
+     "clause": "base with no FETCH table (every miss on the CPU) is 0-10% slower than base at gpt-oss 11%, where the law's table copies some misses",
+     "type": "band",
+     "quantity": "100 (1 - allcpu / base), gpt-oss 11%",
+     "threshold": "0-10%",
+     "source": "prereg/foresight_093.json cells[].runs.allcpu.ratio_to_base",
+     "measured": 7.8,
+     "ci": [
+      7.2,
+      8.4
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": "",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6f",
+     "short": "all-CPU 0-10% slower than base, gpt-oss 25%",
+     "prediction": 6,
+     "clause": "base with no FETCH table (every miss on the CPU) is 0-10% slower than base at gpt-oss 25%, where the law's table copies some misses",
+     "type": "band",
+     "quantity": "100 (1 - allcpu / base), gpt-oss 25%",
+     "threshold": "0-10%",
+     "source": "prereg/foresight_093.json cells[].runs.allcpu.ratio_to_base",
+     "measured": 9.3,
+     "ci": [
+      8.7,
+      9.8
+     ],
+     "status": "held",
+     "paper_log": "",
+     "note": "",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6g",
+     "short": "all-CPU 0-10% slower than base, Qwen3 12.5%",
+     "prediction": 6,
+     "clause": "base with no FETCH table (every miss on the CPU) is 0-10% slower than base at Qwen3 12.5%, where the law's table copies some misses",
+     "type": "band",
+     "quantity": "100 (1 - allcpu / base), Qwen3 12.5%",
+     "threshold": "0-10%",
+     "source": "prereg/foresight_093.json cells[].runs.allcpu.ratio_to_base",
+     "measured": 14.7,
+     "ci": [
+      14.1,
+      15.3
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "The law's table is worth more than 10% on Qwen3 here (the table copies up to 7 of a layer's 8 misses on this host).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P6h",
+     "short": "all-CPU 0-10% slower than base, Qwen3 25%",
+     "prediction": 6,
+     "clause": "base with no FETCH table (every miss on the CPU) is 0-10% slower than base at Qwen3 25%, where the law's table copies some misses",
+     "type": "band",
+     "quantity": "100 (1 - allcpu / base), Qwen3 25%",
+     "threshold": "0-10%",
+     "source": "prereg/foresight_093.json cells[].runs.allcpu.ratio_to_base",
+     "measured": 14.6,
+     "ci": [
+      14.0,
+      15.2
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "The law's table is worth more than 10% on Qwen3 here (the table copies up to 7 of a layer's 8 misses on this host).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P7a",
+     "short": "oracle gain below 15% at the GPU-bound cell, gpt-oss 40%",
+     "prediction": 7,
+     "clause": "the oracle's gain over base at W = 0 is below 15% at gpt-oss 40% (GPU-bound at the limit)",
+     "type": "threshold",
+     "quantity": "100 (oracle W=0 / base - 1), gpt-oss 40%",
+     "threshold": "< 15%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 48.5,
+     "ci": [
+      46.2,
+      50.9
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Far above: with few misses per token the link carries every copy ahead of time and nearly every miss disappears (hit rate 98-99%).",
+     "decimals": 1
+    },
+    {
+     "id": "093-P7b",
+     "short": "oracle gain below 15% at the GPU-bound cell, Qwen3 43.75%",
+     "prediction": 7,
+     "clause": "the oracle's gain over base at W = 0 is below 15% at Qwen3 43.75% (GPU-bound at the limit)",
+     "type": "threshold",
+     "quantity": "100 (oracle W=0 / base - 1), Qwen3 43.75%",
+     "threshold": "< 15%",
+     "source": "prereg/foresight_093.json cells[].runs.oracle_w0.ratio_to_base",
+     "measured": 56.5,
+     "ci": [
+      53.3,
+      59.2
+     ],
+     "status": "failed",
+     "paper_log": "",
+     "note": "Far above: with few misses per token the link carries every copy ahead of time and nearly every miss disappears (hit rate 98-99%).",
      "decimals": 1
     }
    ]

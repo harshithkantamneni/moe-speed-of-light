@@ -18,6 +18,86 @@ def M(k, v):
     MACROS[k] = v
 
 
+def bytes_oracle(tagof):
+    """Macros for job 094 (the MIN-with-bypass oracle beside the hit-optimal one on a fourth host) and the copy-latency
+    simulation (prereg/foresight_latency_sim.json): fsb* the bypass oracle, fsp* the prefetch oracle on that host, fsl*
+    the simulation."""
+    d = json.load(open(P("prereg", "foresight_094.json")))
+    sim = json.load(open(P("prereg", "foresight_latency_sim.json")))
+    hb = d["host"]
+    M("fsbHostCpu", f"{hb['B_c']:.0f}"); M("fsbHostLink", f"{hb['B_p']:.0f}"); M("fsbHostBoth", f"{hb['B_cp']:.0f}"); M("fsbHostMax", f"{hb['b_host_max']:.1f}")
+    high, low, lawerr, rr, recov, phigh, plow, plaw, fits_host, fits_gpu, w16, ideal = [], [], [], [], [], [], [], [], [], [], [], []
+    rows = []
+    for c in d["cells"]:
+        tag = tagof[(c["model"], c["C"])]
+        r = c["runs"]; b, o, p, o16 = r["base"], r["bypass_w0"], r["prefetch_w0"], r["bypass_w16"]
+        hostb = c["model_terms"]["c_at_limit"] <= 0
+        M(f"fsbRatio{tag}", f"{o['ratio_to_base'][0]:.2f}"); M(f"fsbRatioLo{tag}", f"{o['ratio_to_base'][1]:.2f}"); M(f"fsbRatioHi{tag}", f"{o['ratio_to_base'][2]:.2f}")
+        M(f"fsbGain{tag}", f"{100 * o['gain']:.0f}"); M(f"fsbHit{tag}", f"{100 * o['hit_rate']:.0f}"); M(f"fsbHitBase{tag}", f"{100 * b['hit_rate']:.0f}")
+        M(f"fsbMisses{tag}", f"{o['misses_per_token']:.0f}"); M(f"fsbMissesBase{tag}", f"{b['misses_per_token']:.0f}"); M(f"fsbAdmits{tag}", f"{o['admits_per_token']:.0f}")
+        M(f"fsbReadsRatio{tag}", f"{o['misses_per_token'] / c['opt_reads_per_token']:.2f}")
+        M(f"fsbLawErr{tag}", f"{100 * (o['law_ms'] / o['ms'] - 1):+.0f}"); M(f"fsbClosed{tag}", f"{100 * o['gap_closed']:.0f}"); M(f"fsbRecovered{tag}", f"{100 * o['foresight_recovered']:.0f}")
+        M(f"fspRatio{tag}", f"{p['ratio_to_base'][0]:.2f}"); M(f"fspRatioLo{tag}", f"{p['ratio_to_base'][1]:.2f}"); M(f"fspRatioHi{tag}", f"{p['ratio_to_base'][2]:.2f}")
+        M(f"fspGain{tag}", f"{100 * p['gain']:.0f}"); M(f"fspLawErr{tag}", f"{100 * (p['law_ms'] / p['ms'] - 1):+.0f}")
+        M(f"fspReads{tag}", f"{p['misses_per_token'] + p['admits_per_token']:.0f}"); M(f"fsbReadsBase{tag}", f"{b['misses_per_token'] + b['admits_per_token']:.0f}")
+        M(f"fsbSixteenRatio{tag}", f"{o16['ratio_to_base'][0]:.2f}")
+        lawerr.append(o["law_ms"] / o["ms"] - 1); rr.append(o["misses_per_token"] / c["opt_reads_per_token"])
+        if c["C"] in (14, 16):
+            low.append(o["gain"]); plow.append(-p["gain"])
+        else:
+            high.append(o["gain"]); recov.append(o["foresight_recovered"]); phigh.append(p["gain"]); plaw.append(p["law_ms"] / p["ms"] - 1)
+        sc = sim["models"][c["model"]]["cells"][str(c["C"])]
+        M(f"fslIdeal{tag}", f"{sc['by_d']['1']['misses_per_token']:.0f}"); M(f"fslThree{tag}", f"{sc['by_d']['3']['misses_per_token']:.0f}"); M(f"fslTwo{tag}", f"{sc['by_d']['2']['misses_per_token']:.0f}")
+        fit = sc.get("engine", {}).get("d_fit")
+        M(f"fslFit{tag}", f"{fit:.1f}" if fit is not None else "$<$1")
+        if fit is not None:
+            (fits_host if hostb else fits_gpu).append(fit)
+        if hostb:
+            ideal.append(sc["by_d"]["1"]["misses_per_token"] / c["opt_reads_per_token"] - 1)
+        if o["ratio_to_base"][1] > 1:
+            w16.append(o16["gain"] / o["gain"])
+        rows.append((tag, b, o, o16, p, c, sc))
+    M("fsbGainHighMin", f"{100 * min(high):.0f}"); M("fsbGainHighMax", f"{100 * max(high):.0f}")
+    M("fsbGainLowMin", f"{100 * min(low):.0f}"); M("fsbGainLowMax", f"{100 * max(low):.0f}")
+    M("fsbLawErrMin", f"{100 * min(lawerr):.0f}"); M("fsbLawErrMax", f"{100 * max(lawerr):.0f}")
+    M("fsbReadsRatioMin", f"{min(rr):.2f}"); M("fsbReadsRatioMax", f"{max(rr):.2f}")
+    M("fsbRecovHighMin", f"{100 * min(recov):.0f}"); M("fsbRecovHighMax", f"{100 * max(recov):.0f}")
+    M("fspGainHighMin", f"{100 * min(phigh):.0f}"); M("fspGainHighMax", f"{100 * max(phigh):.0f}")
+    M("fspLossMin", f"{100 * min(plow):.0f}"); M("fspLossMax", f"{100 * max(plow):.0f}")
+    M("fspLawErrHighMin", f"{100 * min(plaw):.0f}"); M("fspLawErrHighMax", f"{100 * max(plaw):.0f}")
+    # the hit-optimal oracle's gain at the four cells of 25% and above over both hosts (job 093's cells carry fsmGain*)
+    both = phigh + [float(MACROS[k]) / 100 for k in ("fsmGainGMid", "fsmGainGHigh", "fsmGainQMid", "fsmGainQHigh")]
+    M("fsHitGainMin", f"{100 * min(both):.0f}"); M("fsHitGainMax", f"{100 * max(both):.0f}")
+    M("fslFitHostMin", f"{min(fits_host):.1f}"); M("fslFitHostMax", f"{max(fits_host):.1f}")
+    M("fslIdealOverMin", f"{100 * min(ideal):.0f}"); M("fslIdealOverMax", f"{100 * max(ideal):.0f}")
+    if fits_gpu:
+        M("fslFitGpuMax", f"{max(fits_gpu):.1f}")
+    M("fsbSixteenShareMin", f"{100 * min(w16):.0f}"); M("fsbSixteenShareMax", f"{100 * max(w16):.0f}")
+    # the appendix table
+    names = {"GLow": "gpt-oss 11\\%", "GMid": "gpt-oss 25\\%", "GHigh": "gpt-oss 40\\%", "QLow": "Qwen3 12.5\\%", "QMid": "Qwen3 25\\%", "QHigh": "Qwen3 43.75\\%"}
+    with open(P("paper", "tab_foresight_bytes.tex"), "w") as f:
+        f.write("% generated by scripts/foresight_paper.py from prereg/foresight_094.json and prereg/foresight_latency_sim.json\n")
+        f.write("\\begin{table*}[t]\\centering\\scriptsize\\setlength{\\tabcolsep}{2.2pt}\n")
+        f.write("\\caption{The bytes-optimal oracle (MIN with bypass) beside the hit-optimal one on a fourth host (RTX 5090, Ryzen 9 7950X, host memory "
+                "\\fsbHostMax\\,GB/s at best). Per cell: the online policy's speed; each oracle's ratio to it with the whole sequence in view (paired, 95\\% interval), "
+                "its hit rate, its host reads per token as the engine counts them (misses, each run on the CPU or fetched on demand; admissions in parentheses) "
+                "and the law on its own counters against its measured time; the optimum's reads and hit rate from the trace; "
+                "and MIN with bypass simulated on the trace with the engine's lookahead (within the sequence) under a copy latency of 1 (ideal), 2 and 3 steps, "
+                "with the latency at which the simulation meets the engine's misses.}\n")
+        f.write("\\label{tab:foresight_bytes}\n")
+        f.write("\\begin{tabular}{@{}lr|lrrr|lrrr|rr|rrrr@{}}\\toprule\n")
+        f.write(" & & \\multicolumn{4}{c|}{bypass oracle, $W{=}$all} & \\multicolumn{4}{c|}{hit-optimal oracle, $W{=}$all} & \\multicolumn{2}{c|}{optimum} & \\multicolumn{4}{c}{simulated misses/token} \\\\\n")
+        f.write("Cell & online & ratio & hits & reads (adm.) & law & ratio & hits & reads (adm.) & law & reads & hits & $d{=}1$ & 2 & 3 & fit \\\\\\midrule\n")
+        for tag, b, o, o16, p, c, sc in rows:
+            fit = sc.get("engine", {}).get("d_fit")
+            f.write("%s & %.1f & %.2f [%.2f, %.2f] & %.0f & %.0f (%.0f) & %+.0f\\%% & %.2f [%.2f, %.2f] & %.0f & %.0f (%.0f) & %+.0f\\%% & %.1f & %.0f & %.0f & %.0f & %.0f & %s \\\\\n" % (
+                names[tag], b["mean"], o["ratio_to_base"][0], o["ratio_to_base"][1], o["ratio_to_base"][2], 100 * o["hit_rate"], o["misses_per_token"], o["admits_per_token"], 100 * (o["law_ms"] / o["ms"] - 1),
+                p["ratio_to_base"][0], p["ratio_to_base"][1], p["ratio_to_base"][2], 100 * p["hit_rate"], p["misses_per_token"], p["admits_per_token"], 100 * (p["law_ms"] / p["ms"] - 1),
+                c["opt_reads_per_token"], c["opt_hit_rate"], sc["by_d"]["1"]["misses_per_token"], sc["by_d"]["2"]["misses_per_token"], sc["by_d"]["3"]["misses_per_token"],
+                ("%.1f" % fit) if fit is not None else "$<$1"))
+        f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
+
+
 def main():
     d = json.load(open(P("prereg", "foresight_093.json")))
     cells = d["cells"]
@@ -101,10 +181,9 @@ def main():
     M("fsmHostCpu", f"{hb['B_c']:.0f}"); M("fsmHostLink", f"{hb['B_p']:.0f}"); M("fsmHostBoth", f"{hb['B_cp']:.0f}"); M("fsmHostMax", f"{hb['b_host_max']:.1f}")
     M("fsmCells", str(len([c for c in cells if "oracle_w0" in c["runs"]])))
     # the abstract's and the contributions' clauses
-    M("fsMeasuredContrib", " (\\fsmPosGainMin--\\fsmPosGainMax\\% faster at budgets of 25\\% and above, \\fsmLossRange\\% slower below)")
-    for k in ("fsBytesOracle", "fsBytesPointer"):                 # the bytes-optimal oracle (job 094), once measured
-        if k not in MACROS:
-            M(k, "")
+    M("fsMeasuredContrib", " (worth \\fsbGainHighMin--\\fsbGainHighMax\\% on the bytes it saves and \\fsHitGainMin--\\fsHitGainMax\\% with the overlap "
+                           "it allows, at budgets of 25\\% and above; at most \\fsbGainLowMax\\% below)")
+    bytes_oracle(tagof)
     with open(P("paper", "wsg_foresight.tex"), "w") as f:
         f.write("% generated by scripts/foresight_paper.py from prereg/foresight_093.json\n")
         for k in sorted(MACROS):

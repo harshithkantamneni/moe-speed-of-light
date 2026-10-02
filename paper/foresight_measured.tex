@@ -1,35 +1,40 @@
 \begin{figure}[t]\centering
 \includegraphics[width=\linewidth]{figs/foresight.pdf}
-\caption{Foresight in the engine, measured (job 093, a third RTX 5090 host): speed as a percentage of this host's
-limit against the window $W$ of future routing the oracle policy sees, at the four host-bound cells. ``none'' is the
-online policy; ``all'' the whole sequence. The tick at the right is the accounting's foresight-only term for the
-cell, the speed the model predicts with that one fix.}
+\caption{Foresight in the engine, measured on another rented RTX 5090 (Ryzen 9 9950X): speed as a percentage of this
+host's limit against the window $W$ of future routing the oracle policy sees, at the four host-bound cells. ``none''
+is the online policy; ``all'' the whole sequence; points are connected for the trend only. The tick at the right is
+the accounting's foresight-only term for the cell, the speed the model predicts with that one fix.}
 \label{fig:foresight}
 \end{figure}
 
-\paragraph{Foresight, measured.} We then gave the engine the foresight the accounting assumes and measured what it is
-worth (\cref{fig:foresight}; a third RTX 5090 host, a Ryzen 9 9950X whose memory reads \fsmHostCpu\,GB/s by the CPU,
-\fsmHostLink{} over the link and \fsmHostBoth{} by both). An oracle policy reads the routing of the next $W$ decode
-steps from a trace recorded on the same machine over the same teacher-forced text, admits the experts those steps will
-route to, soonest first, and evicts the resident whose next use is furthest (Belady within the window); the copies
-ride the normal admission path, and an expert still in flight at its step runs on the CPU as any miss. This is the
-hit-optimal oracle: it admits an expert for one future use as readily as for ten. With the whole sequence in view it
-runs \fsmRatioGMid$\times$ [\fsmRatioLoGMid, \fsmRatioHiGMid] the online policy at gpt-oss 25\% and
-\fsmRatioQMid$\times$ [\fsmRatioLoQMid, \fsmRatioHiQMid] at Qwen3 25\%, closing \fsmClosedGMid{} and
-\fsmClosedQMid\% of the gap to this host's limit and recovering \fsmRecoveredGMid{} and \fsmRecoveredQMid\% of the
-accounting's foresight term; at the two GPU-bound cells, where the accounting ranks foresight second, it runs
-\fsmRatioGHigh$\times$ and \fsmRatioQHigh$\times$. Half of the gpt-oss gain arrives at $W{=}\fsmWfiftyGMid$ tokens,
-where the trace study puts $W_{50}$ at 9.4 for this $C/k$ (\cref{sec:traces}); Qwen3's at \fsmWfiftyQMid{} (trace:
-3.7). Where the host binds hardest the same oracle \emph{loses}, \fsmLossRange\% at gpt-oss 11\% and Qwen3 12.5\%,
-at every window (\fsmNegWinMin--\fsmNegWinMax$\times$). There it reads more host bytes than the online policy,
+\paragraph{Foresight, measured.} We then gave the engine foresight of future routing and measured what it is worth
+(\cref{fig:foresight}; another rented RTX 5090, a Ryzen 9 9950X whose memory reads \fsmHostCpu\,GB/s by the CPU,
+\fsmHostLink{} over the link and \fsmHostBoth{} by both, weaker than the stock-clock host's). An oracle policy reads
+the routing of the next $W$ decode steps from a trace recorded on the same machine over the same teacher-forced text,
+admits the experts those steps will route to, soonest first, and evicts the resident whose next use is furthest
+(Belady within the window); the copies ride the admission path, paced in 16\,MB pieces (pacing the online policy
+itself changes it by under 1\%), and an expert still in flight at its step runs on the CPU like any other miss. This
+is the hit-optimal oracle, not the bytes-optimal foresight the accounting assumes: it admits an expert for one future
+use as readily as for ten. With the whole sequence in view it runs \fsmRatioGMid$\times$ [\fsmRatioLoGMid,
+\fsmRatioHiGMid] the online policy at gpt-oss 25\% and \fsmRatioQMid$\times$ [\fsmRatioLoQMid, \fsmRatioHiQMid] at
+Qwen3 25\%, closing \fsmClosedGMid{} and \fsmClosedQMid\% of the gap to this host's limit; its speed-up is
+\fsmRecoveredGMid{} and \fsmRecoveredQMid\% of what the foresight-only term $v(F)$ predicts, reached while reading
+nearly the online policy's experts per token (\fsmReadsOracleGMid{} against \fsmReadsBaseGMid; \fsmReadsOracleQMid{}
+against \fsmReadsBaseQMid). At the two GPU-bound cells, where the accounting ranks foresight second on listing B and
+level with overlap on this host, it runs \fsmRatioGHigh$\times$ [\fsmRatioLoGHigh, \fsmRatioHiGHigh] and
+\fsmRatioQHigh$\times$ [\fsmRatioLoQHigh, \fsmRatioHiQHigh]. Half of the gain at gpt-oss 25\% arrives between
+$W{=}4$ and 16 (\fsmWfiftyGMid{} tokens by log interpolation), near the 10 its trace gives in \cref{sec:traces} (the
+fit: 9.3); at Qwen3 25\%, \fsmWfiftyQMid{} (trace 3.9, fit 3.7). Where the host binds hardest the same oracle
+\emph{loses}: \fsmLossRange\% at gpt-oss 11\% and Qwen3 12.5\% with the whole sequence in view, and at every window
+(\fsmNegWinMin--\fsmNegWinMax$\times$). There it reads more host bytes than the online policy,
 \fsmReadsOracleGLow{} and \fsmReadsOracleQLow{} experts per token (misses plus admissions) against
-\fsmReadsBaseGLow{} and \fsmReadsBaseQLow, because Belady admits an expert used once where the optimum's
-\fsmReadsOptGLow{} and \fsmReadsOptQLow{} reads per token come from bypass, and its copies compete with the helpers
-for the same memory and land late (\fsmHitOracleGLow{} and \fsmHitOracleQLow\% hits against the optimum's
+\fsmReadsBaseGLow{} and \fsmReadsBaseQLow, because Belady admits an expert used once where the optimum, at
+\fsmReadsOptGLow{} and \fsmReadsOptQLow{} reads per token, bypasses it; and its copies compete with the helpers for
+the same memory and land late (\fsmHitOracleGLow{} and \fsmHitOracleQLow\% hits against the optimum's
 \fsmHitOptGLow{} and \fsmHitOptQLow\%). The accounting's term is the optimum's reads, foresight in bytes, which a
-hit-optimal oracle does not supply; a bytes-optimal one is measured in \cref{app:foresight}. Two interior terms are
-tested on the way. Turning off the engine's within-layer overlap of a layer's CPU misses with its GPU hits changes
-speed by under 1\% at every cell, so the ``overlap'' the accounting charges is host reads serialised with GPU work
-across the step, not within a layer. And the law evaluated on the oracle runs' own counters over-predicts their time
-by \fsmLawErrPosMin--\fsmLawErrPosMax\% at the four cells where the oracle gains: the admissions' reads overlapped the
-step, which the law charges in sequence. Foresight buys overlap with it.
+hit-optimal oracle does not supply\fsBytesPointer. Two other parts of the model are probed on the way. Turning off
+the engine's within-layer overlap of a layer's CPU misses with its GPU hits changes speed by under 1\% at every cell,
+so the overlap the accounting charges must come from across the step, and from rebalancing, not from within a
+layer. And the law, with its GPU term calibrated on the online run, evaluated on the oracle runs' own counters
+over-predicts their time by \fsmLawErrPosMin--\fsmLawErrPosMax\% at the four cells where the oracle gains: the
+admissions' reads overlapped the step, which the law charges in sequence. Foresight brings that overlap with it.

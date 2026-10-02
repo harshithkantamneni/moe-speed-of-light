@@ -14,7 +14,7 @@ Rule & Where and how \\\midrule\endhead
 9. Document all factors and the setup. & Machines, probes, power limits, memory clocks (\cref{sec:setting}), software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
 10. Report measurement, synchronisation and summarisation. & One client times every system from streamed token arrivals; no server-side timers enter a comparison (\cref{sec:setting}). \\
 11. Show upper performance bounds. & The speed limit (\cref{sec:limit}) and all-in-VRAM speed are columns of \cref{tab:headline}; \cref{tab:limit} tightens the limit four ways; \cref{sec:audit} applies it to the published literature. \\
-12. Plot enough to interpret; connect points only for trends. & \Cref{fig:shapley,fig:ablation} are bar charts; \cref{fig:ratio,fig:audit} are scatter plots; no interpolation. \\
+12. Plot enough to interpret; connect points only for trends. & \Cref{fig:shapley,fig:ablation} are bar charts; \cref{fig:ratio,fig:audit,fig:grid} are scatter plots; \cref{fig:foresight} connects measured windows for the trend only, and its $W_{50}$ is a stated log interpolation between two measured windows. \\
 \bottomrule
 \end{longtable}
 
@@ -80,15 +80,19 @@ $C{=}4$ cell was lost to the job's deadline, and one launch-order check exceeded
 \fsmHostCpu\,GB/s by the CPU at the helper count, \fsmHostLink{} over the link, \fsmHostBoth{} with both and
 \fsmHostMax{} at best; the law's FETCH tables for it are \texttt{0,0,1,2,3} (gpt-oss) and \texttt{0,0,1,2,3,4,5,6,7}
 (Qwen3), and every cell but gpt-oss 40\% and Qwen3 43.75\% is host-bound at the limit. The oracle's window sweep
-(ratio to the online policy, whole sequence in view at the right of \cref{fig:foresight}): gpt-oss 25\% runs 0.81,
-0.98, 1.35, 1.40 and 1.40$\times$ at $W{=}$2, 4, 16, 64 and all, Qwen3 25\% 0.99, 1.07, 1.25, 1.25 and 1.25; at
-gpt-oss 11\% and Qwen3 12.5\% every window loses (\fsmNegWinMin--\fsmNegWinMax$\times$). An unpaced copy path
-(each copy published two steps after it is issued) reaches 98--99\% hits at every cell but runs slower than the paced
-one at all four host-bound cells. With no FETCH table (every miss on the CPU) the online policy runs
-\fsmAllcpuMin--\fsmAllcpuMax\% slower; with the engine's within-layer overlap turned off, \fsmNoovlMin--\fsmNoovlMax\%.
-The law on each oracle run's own counters over-predicts its time by \fsmLawErrPosMin--\fsmLawErrPosMax\% at the four
-cells where the oracle gains (12.25 against a measured 9.22\,ms at gpt-oss 25\%, 7.89 against 5.99 at 40\%, 22.5
-against 18.2 and 11.3 against 8.1\,ms on Qwen3): the admissions' reads overlapped the step. The predictions and
+(ratio to the online policy; \cref{fig:foresight} plots the same runs as fractions of the limit): gpt-oss 25\% runs
+0.81, 0.98, 1.35, 1.40 and 1.40$\times$ at $W{=}$2, 4, 16, 64 and all, Qwen3 25\% 0.99, 1.07, 1.25, 1.25 and 1.25;
+at gpt-oss 11\% and Qwen3 12.5\% every window loses (\fsmNegWinMin--\fsmNegWinMax$\times$). An unpaced copy path
+(each copy published two steps after it is issued), run at the four host-bound cells, reaches 98--99\% hits at three
+of them (75\% at Qwen3 12.5\%) and runs slower than the paced oracle at three (0.96, 1.18, 0.72 and 1.14$\times$
+the online policy); at gpt-oss 11\% it is the faster of the two and still loses, so copies that arrive in time do not
+remove the loss there: the extra bytes do. With no FETCH table (every miss on the CPU) the online policy runs
+\fsmAllcpuMin--\fsmAllcpuMax\% slower at the four host-bound cells; with the engine's within-layer overlap turned
+off it changes by under 1\% at every cell (0.5\% faster to 0.6\% slower). The law, with its GPU term calibrated on the
+online run, evaluated on each oracle run's own counters over-predicts its time by
+\fsmLawErrPosMin--\fsmLawErrPosMax\% at the four cells where the oracle gains (12.25 against a measured 9.22\,ms at
+gpt-oss 25\%, 7.89 against 5.99 at 40\%, 22.5 against 18.2 at Qwen3 25\% and 11.3 against 8.1 at 43.75\%): the
+admissions' reads overlapped the step. The predictions and
 their outcomes are in \texttt{prereg/foresight\_outcome\_093.md}; of 36 clauses, 9 held, 2 held on the point estimate, 21 failed
 and 4 were untested (\cref{app:prereg}). \fsBytesOracle
 

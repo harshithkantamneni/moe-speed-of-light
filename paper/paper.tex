@@ -28,9 +28,9 @@ gives a \emph{speed limit} in seconds for any exact-routing system with a per-la
 FreeToken and our llama.cpp expert cache reach \llLimExPctMin--\llLimExPctMax, \ftLimExPctMin--\ftLimExPctMax{} and
 \bothLimitPctMin--\bothLimitPctMax\% of it on two RTX 5090 hosts, and \audAllN{} published measurements a median
 \audTraceMed\% of theirs. A Shapley \emph{accounting} says the rest is mostly missing routing foresight where the
-host binds and serialised host reads where the GPU does. An oracle of future routing in the engine tests the first:
-\fsmPosGainMin--\fsmPosGainMax\% faster at expert budgets of 25\% and above, \fsmLossRange\% slower below, where the
-optimum's foresight is in bytes, not hits. Nine models' traces give the horizon it needs
+host binds and serialised host reads where the GPU does. A hit-optimal oracle of future routing in the engine runs
+\fsmPosGainMin--\fsmPosGainMax\% faster at expert budgets of 25\% and above and \fsmLossRange\% slower below, where it
+reads more host bytes than the online policy: the optimum's foresight is in bytes, not hits. Nine models' traces give the horizon it needs
 ($W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens) and show that speculative batching does not supply it. The cache
 leads FreeToken at \bothLeadCells{} of \bothCells{} cells (gpt-oss-120b \bothLeadGptMin--\bothLeadGptMax\%,
 Qwen3-30B-A3B \bothLeadQwenMin{} to \bothLeadQwenMax\%) and runs \bothLlamaXMin--\bothLlamaXMax$\times$ llama.cpp.
@@ -66,7 +66,7 @@ per layer, from the exact Belady optimum with bypass, two host read paths and me
 reported beside every measured speed on four machines, and applied to \audAllN{} published measurements (\cref{sec:audit}).
 \item \textbf{An accounting, and its check} (\cref{sec:limit}): Shapley attribution of the gap to the limit, which no
 ordering of fixes can bias, with the regime it predicts (foresight where the host binds, overlap where the GPU does),
-and the largest term measured in the engine with an oracle of future routing\fsMeasuredContrib.
+and its largest term tested in the engine with a hit-optimal oracle of future routing\fsMeasuredContrib.
 \item \textbf{What the traces say} (\cref{sec:traces}): across nine models, which policy earns its reads, how fast
 the hot set drifts, how many tokens of foresight are worth half the optimum, and what batched speculative
 verification cannot buy.
@@ -262,7 +262,7 @@ cells, where it is then the largest cost in \shGpuGrossOrdersGHigh{} and \shGpuG
 host reads with GPU work and rebalances 13--30 experts per token onto the CPU; the profile below finds that overlap
 alone, with the engine's present split, would save 5--10\%. The interior states of the model are not measured, with
 one exception: \cref{sec:traces} and the oracle measurement below test the foresight term, the one no engineering of
-read paths can recover.
+read paths can recover, and that measurement probes two other parts of the model on the way.
 Foresight is largest in every one of the \shOrders{} orders at Qwen3 12.5\%, in \shOrdersGLow{} of them at gpt-oss
 11\% and Qwen3 25\%, and ties overlap within \shTieMs\,ms at gpt-oss 25\%.
 
@@ -531,9 +531,9 @@ limit in seconds that published systems reach a median tenth of. An accounting t
 says what the rest is: where the host binds, the policy's ignorance of future routing, and where the GPU binds, host
 reads that wait for it. Nine models' traces say that neither an online policy nor batching alone buys that
 foresight; it must come from knowing the routing a few to tens of tokens ahead. Given it by an oracle, the engine
-runs \fsmPosGainMin--\fsmPosGainMax\% faster where the link can carry the copies in time, and the law over-predicts
-those runs: foresight buys overlap with it. Where the host binds hardest a hit-optimal oracle loses, because the
-foresight the limit assumes is in bytes, not hits.
+runs \fsmPosGainMin--\fsmPosGainMax\% faster where the oracle reads no more host bytes than the online policy, and
+the law over-predicts those runs: foresight brings overlap with it. Where the host binds hardest a hit-optimal
+oracle loses, because the foresight the limit assumes is in bytes, not hits.
 
 {\small\bibliographystyle{plain}\bibliography{refs,refs_wsg}}
 

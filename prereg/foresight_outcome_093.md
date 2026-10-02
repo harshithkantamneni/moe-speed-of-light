@@ -34,8 +34,8 @@ ten. 46 runs (4 host-bound cells x 10 configurations, 2 GPU-bound cells x 3), te
 
 Reads per token = misses + admissions (an admitted miss is read twice in this engine: by the CPU at its step and by
 the copy). The window sweep (ratio to base): gpt-oss 25%: W = 2 0.81, 4 0.98, 16 1.35, 64 1.40, all 1.40 — half of the
-full-window gain at W50 = 9.2 tokens (the trace study's W50 for this C/k: 9.4); Qwen3 25%: 0.99, 1.07, 1.25, 1.25,
-1.25 — W50 = 6.1 (trace: 3.7). At gpt-oss 11% and Qwen3 12.5% every window loses (0.78-0.92 and 0.91-0.92). The
+full-window gain at W50 = 9.2 tokens (the trace study's W50 for this cell: 10.5 measured, 9.3 from the fit); Qwen3 25%:
+0.99, 1.07, 1.25, 1.25, 1.25 — W50 = 6.1 (trace: 3.9 measured, 3.7 fit). At gpt-oss 11% and Qwen3 12.5% every window loses (0.78-0.92 and 0.91-0.92). The
 unpaced copy path (published two steps later), run at the four host-bound cells, reaches 98-99% hits at three of them
 (75% at Qwen3 12.5%) and is slower than the paced oracle at three (0.96, 1.18, 0.72, 1.14 x base); at gpt-oss 11% it
 is the faster of the two (1.04 x the paced oracle) and still loses to the online policy. The law evaluated on each oracle run's
@@ -69,8 +69,8 @@ hits): 0.99-1.01 x base at every cell — the engine's within-layer overlap is w
 
 **Reading.** Foresight is worth a great deal in this engine where the misses per token are few enough for the link to
 carry their copies ahead of time: +25 to +57% at 25% and above, closing 31-49% of the gap to the limit and recovering
-52-103% of the accounting's foresight term; the W50 of the trace study is reproduced on gpt-oss (9.2 against 9.4
-tokens). Where the host binds hardest (11-12.5%) a hit-optimal oracle is the wrong foresight: it reads more bytes than
+52-103% of the accounting's foresight term; the W50 of the trace study is nearly reproduced on gpt-oss (9.2 against 10.5
+measured on the trace, 9.3 from the fit; on Qwen3 6.1 against 3.9). Where the host binds hardest (11-12.5%) a hit-optimal oracle is the wrong foresight: it reads more bytes than
 the online policy (82 and 195 per token against 63 and 160) because Belady admits experts used once, and the optimum's
 38 and 97 reads need bypass, which this oracle lacks; the copies it issues cannot be carried in time (hit rates 66-67%
 against the optimum's 73-75%) and compete with the helpers for the same DRAM, and the unpaced path shows that

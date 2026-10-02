@@ -387,7 +387,7 @@ def scorecard():
     t = s["total"]
     M("scHeld", str(t["held"])); M("scHeldPoint", str(t["held (point)"])); M("scFailed", str(t["failed"]))
     M("scUntested", str(t["untested"])); M("scVoid", str(t["void"])); M("scClauses", str(t["clauses"]))
-    M("scHeldAnyPct", pct(t["held_any_share_of_scored"]))
+    M("scHeldAnyPct", pct(t["held_any_share_of_scored"])); M("scScored", str(t["scored"])); M("scHeldStrictPct", pct(t["held_share_of_scored"]))
     rev = next(k for k in s["by_era"] if k.startswith("088"))         # the review-era key grows with every job
     M("scRevEra", rev.replace("-", "--")); M("scLastJob", rev.split("-")[1])
     for era, nm in (("073-075", "Early"), ("076-081", "Mid"), ("082-087", "Late"), (rev, "Rev")):

@@ -31,7 +31,7 @@ job was voided. Of \scClauses{} clauses, \scHeld{} held, \scHeldPoint{} held on 
 when the system was being built, \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions
 made after a same-host pilot, \scLateHeld{} of \scLateScored{} in jobs 082--087, and \scRevHeld{} of \scRevScored{} in the jobs run after the
 reviews (088 onward), where \scRevSignHeld{} of \scRevSignClauses{} sign clauses held and \scRevFailBand{} of
-\scRevBandClauses{} bands failed. The bands that failed are the sizes of effects whose direction held: our slow-link
+\scRevBandClauses{} bands failed. Most bands that failed are the sizes of effects whose direction held: our slow-link
 lead landed at 1.51--1.58$\times$ against a predicted 1.10--1.50; the rerun of \cref{tab:headline} on a second host
 (job 089) gave ratios \scRatioFailMin--\scRatioFailMax{} below the headline machine's at \scRatioFailCells{} of six
 cells against a predicted $\pm$0.06, host-bound speeds \scOursHybDropMin--\scOursHybDropMax\% lower against a
@@ -41,7 +41,7 @@ FreeToken and its fraction of the limit overshot their bands, FreeToken's carrie
 band, and two launch-order checks exceeded 3\%; in the oracle job (093; \cref{sec:limit}) the oracle's gain fell
 outside 20--80\% at the two lowest budgets (it lost), its speed fell just below the predicted 45--65\% of the limit
 at all four host-bound cells (43.7--44.8\%), its hit rate and admissions missed the optimum's by more than the
-predicted 3 points and 30\%, no-overlap cost 0\% against a predicted 5--25\%, and all-CPU cost 15\% on Qwen3
+predicted 3 points and 30\% at three and two of the four, no-overlap cost 0\% against a predicted 5--25\%, and all-CPU cost 15\% on Qwen3
 against a predicted 0--10\%; in the bytes-oracle job (094) the bands missed as \cref{app:foresight} describes.
 The \scRevFailThr{} threshold failures are ours at 1.56--1.78$\times$ llama.cpp on the
 slow hosts against a predicted 1.8, the Mixtral tie against a predicted 1.3$\times$, the hit-optimal oracle's gain
@@ -91,35 +91,41 @@ and 1.25; at gpt-oss 11\% and Qwen3 12.5\% every window loses (\fsmNegWinMin--\f
 path (each copy published two steps after it is issued), run at the four host-bound cells, reaches 98--99\% hits at
 three of them (75\% at Qwen3 12.5\%) and runs slower than the paced oracle at three (0.96, 1.18, 0.72 and
 1.14$\times$ the online policy); at gpt-oss 11\% it is the faster of the two and still loses, so copies that arrive in
-time do not remove the loss there: the extra bytes do. With no FETCH table (every miss on the CPU) the online policy
-runs \fsmAllcpuMin--\fsmAllcpuMax\% slower at the four host-bound cells; with the engine's within-layer overlap turned
-off it changes by under 1\% at every cell (0.5\% faster to 0.6\% slower). The law, with its GPU term calibrated on the
+time do not remove the loss there: the extra bytes cause it. Pacing the online policy's own copies changes it by under 1\% (\fsmPacedMin--\fsmPacedMax$\times$). With no
+FETCH table (every miss on the CPU) the online policy runs \fsmAllcpuMin--\fsmAllcpuMax\% slower at the four
+host-bound cells; with the engine's within-layer overlap of a layer's CPU
+misses with its GPU hits turned off it changes by under 1\% at every cell (0.5\% faster to 0.6\% slower), so the
+overlap the accounting charges is across the step and in rebalancing, not within a layer. The law, with its GPU term calibrated on the
 online run, evaluated on each hit-optimal run's own counters over-predicts its time by
 \fsmLawErrPosMin--\fsmLawErrPosMax\% at the four cells where that oracle gains on the first host (12.25 against a
 measured 9.22\,ms at gpt-oss 25\%, 7.89 against 5.99 at 40\%, 22.5 against 18.2 at Qwen3 25\% and 11.3 against 8.1 at
 43.75\%) and by \fspLawErrHighMin--\fspLawErrHighMax\% on the second; on the bytes-optimal oracle it is within
 \fsbLawErrMax\% at every cell. The bytes-optimal oracle with a 16-token window keeps
-\fsbSixteenShareMin--\fsbSixteenShareMax\% of the whole-sequence gain at the five cells where that gain is positive
-(more than all of it at gpt-oss 11\%, where the shorter window admits less).
+\fsbSixteenShareMin--\fsbSixteenShareMax\% of the whole-sequence gain at the five cells where that gain's interval
+excludes zero (more than all of it at gpt-oss 11\%, where the shorter window admits less).
 
 \paragraph{Why the bytes-optimal oracle reads more than the optimum.} Its misses are
-\fsbReadsRatioMin--\fsbReadsRatioMax$\times$ the optimum's reads. The engine's paced copy path moves one 16\,MB piece
-at a time from pageable host memory on a single copier thread, behind the demand copies, and publishes a landed copy
-at the start of the next step; at 16--30 admissions per token (210--280\,MB) it lags the admissions by steps, and an
-expert still in flight is a miss the CPU reads again. The last four columns of \cref{tab:foresight_bytes} simulate
-MIN with bypass on the measured routing trace with the engine's own semantics (the lookahead within the sequence,
-residents carried over) and a copy that lands $d$ steps after it is issued, during which the expert misses and is not
-re-admitted: at $d{=}1$, the ideal, the misses come within \fslIdealOverMin--\fslIdealOverMax\% of the limit's optimum
-at the host-bound cells (the optimum also sees across sequences); the engine's misses meet the simulation at
-$d{=}$\fslFitHostMin--\fslFitHostMax{} at the host-bound cells and at or below \fslFitGpuMax{} at the GPU-bound
-ones, where the admissions are few. The predictions and their outcomes are in
+\fsbReadsRatioHostMin--\fsbReadsRatioHostMax$\times$ the optimum's reads at the four host-bound cells (at the two
+GPU-bound ones the ideal simulation below is itself 1.3--1.4$\times$ the optimum, which sees across sequences, and the
+engine's misses are at or below it). The engine's paced copy path moves one 16\,MB piece at a time from pageable host
+memory on a single copier thread, behind the demand copies, publishes a landed copy at the start of the next step, and
+admits nothing while 64 copies are queued; at 16--30 admissions per token (210--285\,MB) it lags the admissions by
+steps, and an expert still in flight is a miss the CPU reads again. The last four columns of \cref{tab:foresight_bytes}
+simulate MIN with bypass on the measured routing trace with the engine's own semantics (the lookahead within the
+sequence, residents carried over, no queue cap) and a copy that lands $d$ steps after it is issued, during which the
+expert misses and is not re-admitted: at $d{=}1$, the ideal, the misses come within
+\fslIdealOverMin--\fslIdealOverMax\% of the limit's optimum at the host-bound cells; the engine's misses meet the
+simulation at $d{=}$\fslFitHostMin--\fslFitHostMax{} there, about three steps, and at or below \fslFitGpuMax{} at
+the GPU-bound cells. At the fitted latency the simulation admits \fsbSimAdmitMin--\fsbSimAdmitMax$\times$ what
+the engine admitted, so the queue cap, not only the latency, keeps the engine's misses above the ideal. The predictions and their outcomes are in
 \texttt{prereg/foresight\_outcome\_093.md} and \texttt{094.md}: of 36 clauses for the first job, 9 held, 2 held on
 the point estimate, 21 failed and 4 were untested; of 38 for the second, 12 held, 1 on the point estimate, 24 failed
 and 1 was untested (\cref{app:prereg}). The second job's failures are of size, not direction: the bypass oracle's
-reads were predicted within 15\% of the optimum's and came 29--47\% above (the copy latency); its gain was predicted
-at 10--45\% at the host-bound cells and came below that at the two lowest budgets; the law was predicted to
-over-predict it by 10--40\% and over-predicted by 5--9\%; and the two oracles were predicted within 15\% of each other
-at 25\% and above, where the hit-optimal one was 1.25--1.38$\times$ faster.
+misses were predicted within 15\% of the optimum's reads and came 29--47\% above (the copy latency and the queue
+cap); its hit rate was predicted within 4 points of the optimum's and fell 5--11 points short at three cells; its gain
+was predicted at 10--45\% at the host-bound cells and came below that at the two lowest budgets; the law was predicted
+to over-predict it by 10--40\% at the host-bound cells and over-predicted by 5--9\%; and the two oracles were
+predicted within 15\% of each other at 25\% and above, where the hit-optimal one was 1.24--1.38$\times$ faster.
 
 \input{tab_foresight}
 \input{tab_foresight_bytes}

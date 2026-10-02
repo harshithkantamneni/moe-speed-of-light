@@ -29,13 +29,13 @@ FreeToken and our llama.cpp expert cache reach \llLimExPctMin--\llLimExPctMax, \
 \bothLimitPctMin--\bothLimitPctMax\% of it on two RTX 5090 hosts; \audAllN{} published measurements, a median
 \audTraceMed\% of theirs. A Shapley \emph{accounting} says the rest is mostly missing routing foresight where the
 host binds and serialised host reads where the GPU does. In the engine, the limit's own policy given future routing
-runs \fsbGainHighMin--\fsbGainHighMax\% faster at expert budgets of 25\% and above on the bytes it saves, and a
-hit-optimal oracle \fsHitGainMin--\fsHitGainMax\% faster by overlapping copies with the step; at the lowest budgets
-the first gains \fsbGainLowMax\% at most and the second loses. Nine models' traces give the horizon foresight needs,
+runs \fsbGainHighMin--\fsbGainHighMax\% faster at expert budgets of 25\% and above, mostly on the bytes it saves,
+and a hit-optimal oracle \fsHitGainMin--\fsHitGainMax\% faster on two hosts by overlapping copies with the step; at
+the lowest budgets the first gains \fsbGainLowMaxAny\% at most and the second loses. Nine models' traces give the horizon foresight needs,
 $W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens, which speculative batching does not supply. The cache leads FreeToken
 at \bothLeadCells{} of \bothCells{} cells (\bothLeadQwenMin{} to $+$\bothLeadGptMax\%) and runs
 \bothLlamaXMin--\bothLlamaXMax$\times$ llama.cpp. Every prediction was committed before its measurement;
-\scHeldAnyPct\% of \scClauses{} scored clauses held.
+\scHeldAnyPct\% of \scScored{} scored clauses held.
 \end{abstract}
 
 \section{Introduction}
@@ -263,7 +263,7 @@ cells, where it is then the largest cost in \shGpuGrossOrdersGHigh{} and \shGpuG
 host reads with GPU work and rebalances 13--30 experts per token onto the CPU; the profile below finds that overlap
 alone, with the engine's present split, would save 5--10\%. The interior states of the model are not measured, with
 one exception: \cref{sec:traces} and the oracle measurement below test the foresight term, the one no engineering of
-read paths can recover, and that measurement probes two other parts of the model on the way.
+read paths can recover, and those measurements probe two other parts of the model on the way.
 Foresight is largest in every one of the \shOrders{} orders at Qwen3 12.5\%, in \shOrdersGLow{} of them at gpt-oss
 11\% and Qwen3 25\%, and ties overlap within \shTieMs\,ms at gpt-oss 25\%.
 
@@ -314,8 +314,8 @@ experts per token: half of the gap closes at $W_{50}\approx\fsPre\,(C/k)^{\fsExp
 range \fsExpLomoMin--\fsExpLomoMax, and without the \fsInterp{} points whose $W_{50}$ lies below one token it is
 \fsExpNoInterp), and 90\% needs a median of \fsNinety$\,C/k$. Small caches ($C/k\le2$) recover half of the gap with
 one or two tokens of foresight; gpt-oss-120b at 25\% ($C/k{=}8$) needs about \fsGptQuarter{} tokens, and at 50\%
-about \fsGptHalf{} (both measured on its trace; the fit gives 9 and 24); in the engine, half of the oracle's gain at
-25\% arrived by $W{\approx}\fsmWfiftyGMid$ (\cref{sec:limit}). The law adds the condition: foresight is worth these reads only where the host binds; where the
+about \fsGptHalf{} (both measured on its trace; the fit gives 9 and 24); in the engine, half of the hit-optimal oracle's
+gain at gpt-oss 25\% arrived by $W{\approx}\fsmWfiftyGMid$ (\cref{sec:limit}). The law adds the condition: foresight is worth these reads only where the host binds; where the
 bus is already saturated, as on the slow devices of~\cite{wisp2026,budgetingbytes2026}, it is worth nothing.
 Predicting the next layer's experts, the usual form of prediction~\cite{hwang2024pregated,zhu2025preattention},
 gives no cross-token foresight: it can raise the hit rate by prefetching but never lowers host bytes, which is what we
@@ -518,9 +518,9 @@ Each comparison uses one confirmation launch, except Qwen3 at 25\%, which is fro
 systems.
 \item \textbf{The bound, the accounting and the audit.} Exact routing only: expert skipping, substitution or
 deferral change the model and fall outside it; a per-layer budget, which a pooled cache can beat by 5--10\%. Two of
-the accounting's five terms are definitions (\cref{sec:limit}). The oracles read a recorded trace, not a predictor,
-and ran on two rented hosts with weak host memory; their copies land two to three steps after they are issued, so
-what they measure is this engine's foresight, not the limit's. The published rows use datasheet ceilings and, for
+the accounting's five terms are definitions (\cref{sec:limit}). The oracles read a recorded trace, not a predictor, on
+two rented hosts with weak host memory, and their copies land about three steps late: they measure this engine's
+foresight, not the limit's. The published rows use datasheet ceilings and, for
 eleven of them, i.i.d. routing.
 \item \textbf{Constants and outputs.} $G$, $g$ and $L_c$ are fitted once and frozen; the per-layer model overstates
 differences between FETCH tables about 1.8$\times$. Output parity is measured by teacher-forced KL divergence, agreement and loss
@@ -535,11 +535,10 @@ limit in seconds that published systems reach a median tenth of. An accounting t
 says what the rest is: where the host binds, the policy's ignorance of future routing, and where the GPU binds, host
 reads that wait for it. Nine models' traces say that neither an online policy nor batching alone buys that
 foresight; it must come from knowing the routing a few to tens of tokens ahead. Given it by an oracle, the engine
-runs \fsbGainHighMin--\fsbGainHighMax\% faster on the bytes the limit's policy saves and
-\fspGainHighMin--\fspGainHighMax\% faster when the same foresight copies experts ahead of their use: in the engine
-the accounting's two largest terms are one mechanism, because foresight is what makes the overlap possible. Where the
-host binds hardest neither form gains more than \fsbGainLowMax\%: the copies land late and compete with the helpers
-for the same memory.
+runs \fsbGainHighMin--\fsbGainHighMax\% faster, mostly on the bytes the limit's policy saves, and on the same host
+\fspGainHighMin--\fspGainHighMax\% faster when the same foresight copies experts ahead of their use: the overlap the
+accounting prices arrived only with foresight. Where the host binds hardest neither form gains more than
+\fsbGainLowMaxAny\%.
 
 {\small\bibliographystyle{plain}\bibliography{refs,refs_wsg}}
 

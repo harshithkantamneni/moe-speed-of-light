@@ -1,0 +1,485 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/094_foresight_bytes@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ export BASE
++ export -f build_tree platform getmodel
+++ date +%s
++ T0=1790899868
++ BUDGET=14400
++ RESERVE=600
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/094_foresight_bytes@vast/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA GeForce RTX 5090, 32607 MiB, 3105 MHz, 14001 MHz, 5, 5, 16, 16, 580.159.03, 600.00 W
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz (listing B 17001, the common clock 14001)'
++ tee /w/results/094_foresight_bytes@vast/gate.txt
+memory clock max 14001 MHz (listing B 17001, the common clock 14001)
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
++ nvidia-smi -q
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/094_foresight_bytes@vast/bw_gate.txt
++ DR=1692
++ echo 'device read 1692 GB/s'
++ tee -a /w/results/094_foresight_bytes@vast/gate.txt
+device read 1692 GB/s
++ '[' 1692 -ge 1500 ']'
++ free -g
+++ awk '/Mem:/{print $2}' /w/results/094_foresight_bytes@vast/free.txt
++ RAMGB=124
++ echo 'host RAM 124 GB'
++ tee -a /w/results/094_foresight_bytes@vast/gate.txt
+host RAM 124 GB
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet numpy
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/094_foresight_bytes@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32)'
+usable physical cores 16 (nproc 32)
++ mkdir -p /work/models
++ DLG=6083
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6084
++ VE=/work/venv
++ VEP=6086
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/094_foresight_bytes@vast/build_lc-ec.txt
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107120 Oct  2 00:13 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch
++ tee /w/results/094_foresight_bytes@vast/patch_sha.txt
+25f7d5f1b050e37f4d8bf42b38a0fb52f422d4fa05cf267146abf91a8017c6e2  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle.patch
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/094_foresight_bytes@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/094_foresight_bytes@vast/concur.txt 14 13253760 4 /w/results/094_foresight_bytes@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,2,3
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/094_foresight_bytes@vast/concur.txt 14 9437184 8 /w/results/094_foresight_bytes@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,2,3,4,5,6,7
++ tee /w/results/094_foresight_bytes@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-10-02T00:14:25Z): gpt-oss 0,0,1,2,3 (listing B 0,0,1,1,2; job 089 0,0,1,2,3); qwen3 0,0,1,2,3,4,5,6,7'
+law tables (2026-10-02T00:14:25Z): gpt-oss 0,0,1,2,3 (listing B 0,0,1,1,2; job 089 0,0,1,2,3); qwen3 0,0,1,2,3,4,5,6,7
++ '[' -n 0,0,1,2,3 ']'
++ '[' -n 0,0,1,2,3,4,5,6,7 ']'
++ python3 - /w/results/094_foresight_bytes@vast/fetch_table_law_gptoss.json /w/results/094_foresight_bytes@vast/fetch_table_law_qwen3.json
++ cat /w/results/094_foresight_bytes@vast/law_oracle.json
+{
+ "time_utc": "2026-10-02T00:14:25Z",
+ "B": {
+  "gpt": {
+   "B_c": 43.95,
+   "B_p": 45.7,
+   "B_both": 49.8,
+   "g_us": 37.0,
+   "L_c_us": 20.0,
+   "table": [
+    0,
+    0,
+    1,
+    2,
+    3
+   ],
+   "modelled_layer_us": [
+    37.0,
+    321.6,
+    532.3,
+    798.4,
+    1064.6
+   ]
+  },
+  "qwen": {
+   "B_c": 43.95,
+   "B_p": 45.7,
+   "B_both": 49.8,
+   "g_us": 48.0,
+   "L_c_us": 20.0,
+   "table": [
+    0,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "modelled_layer_us": [
+    48.0,
+    234.7,
+    379.0,
+    568.5,
+    758.0,
+    947.5,
+    1137.0,
+    1326.5,
+    1516.0
+   ]
+  }
+ },
+ "predicted": {
+  "g_C14": {
+   "reads": 38.3,
+   "t_ms": 15.01,
+   "tok_s": 66.6,
+   "link_bound_tok_s": 62.8
+  },
+  "g_C32": {
+   "reads": 15.3,
+   "t_ms": 8.89,
+   "tok_s": 112.5,
+   "link_bound_tok_s": 108.0
+  },
+  "g_C51": {
+   "reads": 6.8,
+   "t_ms": 6.63,
+   "tok_s": 150.9,
+   "link_bound_tok_s": 147.2
+  },
+  "q_C16": {
+   "reads": 96.5,
+   "t_ms": 22.59,
+   "tok_s": 44.3,
+   "link_bound_tok_s": 41.3
+  },
+  "q_C32": {
+   "reads": 43.4,
+   "t_ms": 12.52,
+   "tok_s": 79.8,
+   "link_bound_tok_s": 75.4
+  },
+  "q_C56": {
+   "reads": 13.7,
+   "t_ms": 6.9,
+   "tok_s": 145.0,
+   "link_bound_tok_s": 140.3
+  }
+ }
+}
+++ date +%s
++ echo 'builds and probe done, waiting for the downloads (197 s since launch)'
+builds and probe done, waiting for the downloads (197 s since launch)
++ wait 6083 6086
++ cat /w/results/094_foresight_bytes@vast/dl_gguf.txt
+++ date +%s
++ t0=1790899882
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 2039 s'
+gguf hf download rc=0 in 2039 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  2 00:45 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ tail -1 /w/results/094_foresight_bytes@vast/venv_install.txt
++ echo 'venv install rc: + uv pip install -q numpy transformers sentencepiece safetensors protobuf'
+venv install rc: + uv pip install -q numpy transformers sentencepiece safetensors protobuf
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ MB=mailbox=1:tdec=1:helpers=14:kappa=1
++ PACED=paced=1:chunk=16777216:max_pending=64
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ lookahead g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 24
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl n=24
+++ date +%s
++ local t0=1790901921
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/094_foresight_bytes@vast/la_g.bin
+++ date +%s
+++ ls -la /w/results/094_foresight_bytes@vast/la_g.bin
+++ awk '{print $5}'
++ echo 'lookahead g rc=0 in 579 s: 17725440 bytes'
+lookahead g rc=0 in 579 s: 17725440 bytes
++ cat /w/results/094_foresight_bytes@vast/la_g.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/094_foresight_bytes@vast/la_g.err
++ rm -f /w/results/094_foresight_bytes@vast/la_g.err
++ '[' -s /w/results/094_foresight_bytes@vast/la_g.bin ']'
++ run_cell g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 14 0,0,1,2,3 1
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=14 law=0,0,1,2,3 full=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_g.bin
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1
++ local cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w0.json'
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w0.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w16.json'
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w0.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w16.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_prefetch_w0.json'
++ echo 'cell g C14 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w0.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w16.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_prefetch_w0.json'
+++ date +%s
++ local t0=1790902500
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C14_base.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w0.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_bypass_w16.json;slots=14:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C14_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C14 rc=0 in 840 s'
+cell g C14 rc=0 in 840 s
+++ date +%s
++ echo 'ec_g_C14 0 840'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_g_C14.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_g_C14.err
++ run_cell g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 32 0,0,1,2,3 1
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=32 law=0,0,1,2,3 full=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_g.bin
++ local base=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0
++ local orc=slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1
++ local cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w0.json'
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w16.json'
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_prefetch_w0.json'
++ echo 'cell g C32 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_prefetch_w0.json'
+++ date +%s
++ local t0=1790903340
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C32_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C32 rc=0 in 524 s'
+cell g C32 rc=0 in 524 s
+++ date +%s
++ echo 'ec_g_C32 0 524'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_g_C32.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_g_C32.err
++ run_cell g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 51 0,0,1,2,3 0
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=51 law=0,0,1,2,3 full=0
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_g.bin
++ local base=slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0
++ local orc=slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1
++ local cfg=slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json
++ cfg='slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w0.json'
++ cfg='slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w0.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w16.json'
++ cfg='slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w0.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w16.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_prefetch_w0.json'
++ echo 'cell g C51 configs: slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w0.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w16.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_prefetch_w0.json'
+++ date +%s
++ local t0=1790903864
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=51:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_g_C51_base.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w0.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_bypass_w16.json;slots=51:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_g_C51_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C51 rc=0 in 422 s'
+cell g C51 rc=0 in 422 s
+++ date +%s
++ echo 'ec_g_C51 0 422'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_g_C51.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_g_C51.err
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf /w/results/094_foresight_bytes@vast/la_g.bin
++ df -h /work
++ tail -1
++ wait 6084
++ cat /w/results/094_foresight_bytes@vast/dl_qwen3.txt
+++ date +%s
++ t0=1790899882
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:07,  3.38it/s]Fetching 26 files:  15%|█▌        | 4/26 [00:00<00:02, 10.85it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:19<00:01, 10.85it/s]Fetching 26 files:  27%|██▋       | 7/26 [09:26<32:05, 101.37s/it]Fetching 26 files:  31%|███       | 8/26 [10:16<27:13, 90.76s/it] Fetching 26 files:  35%|███▍      | 9/26 [10:59<22:43, 80.19s/it]Fetching 26 files:  38%|███▊      | 10/26 [11:41<18:51, 70.73s/it]Fetching 26 files:  42%|████▏     | 11/26 [11:44<13:18, 53.24s/it]Fetching 26 files:  46%|████▌     | 12/26 [12:35<12:16, 52.64s/it]Fetching 26 files:  50%|█████     | 13/26 [12:50<09:08, 42.21s/it]Fetching 26 files:  54%|█████▍    | 14/26 [13:11<07:14, 36.18s/it]Fetching 26 files:  58%|█████▊    | 15/26 [13:45<06:30, 35.46s/it]Fetching 26 files:  62%|██████▏   | 16/26 [13:46<04:14, 25.48s/it]Fetching 26 files:  65%|██████▌   | 17/26 [15:30<07:17, 48.61s/it]Fetching 26 files:  69%|██████▉   | 18/26 [15:35<04:46, 35.78s/it]Fetching 26 files:  73%|███████▎  | 19/26 [15:35<02:56, 25.23s/it]Fetching 26 files:  77%|███████▋  | 20/26 [15:50<02:11, 21.95s/it]Fetching 26 files:  81%|████████  | 21/26 [16:02<01:35, 19.02s/it]Fetching 26 files:  85%|████████▍ | 22/26 [16:18<01:12, 18.09s/it]Fetching 26 files:  88%|████████▊ | 23/26 [18:37<02:43, 54.43s/it]Fetching 26 files:  92%|█████████▏| 24/26 [18:52<01:24, 42.45s/it]Fetching 26 files:  96%|█████████▌| 25/26 [18:57<00:31, 31.35s/it]Fetching 26 files: 100%|██████████| 26/26 [21:05<00:00, 60.28s/it]Fetching 26 files: 100%|██████████| 26/26 [21:05<00:00, 48.67s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 1266 s'
+qwen3 hf download rc=0 in 1266 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/094_foresight_bytes@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Oct  2 01:27 /work/models/Qwen3-30B-A3B-BF16.gguf
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ CQ=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
+30 /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ lookahead q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 36
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl n=36
+++ date +%s
++ local t0=1790904438
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --ncmoe 36 --lookahead /w/results/094_foresight_bytes@vast/la_q.bin
+++ date +%s
+++ ls -la /w/results/094_foresight_bytes@vast/la_q.bin
+++ awk '{print $5}'
++ echo 'lookahead q rc=0 in 839 s: 29521920 bytes'
+lookahead q rc=0 in 839 s: 29521920 bytes
++ cat /w/results/094_foresight_bytes@vast/la_q.bin.json
+{"arch": "qwen3moe", "n_layer": 48, "n_expert": 128, "k": 8, "n_embd": 2048, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/094_foresight_bytes@vast/la_q.err
++ rm -f /w/results/094_foresight_bytes@vast/la_q.err
++ '[' -s /w/results/094_foresight_bytes@vast/la_q.bin ']'
++ run_cell q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 16 0,0,1,2,3,4,5,6,7 1
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl C=16 law=0,0,1,2,3,4,5,6,7 full=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_q.bin
++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0
++ local orc=slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1
++ local cfg=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w0.json'
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w0.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w16.json'
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w0.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w16.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_prefetch_w0.json'
++ echo 'cell q C16 configs: slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w0.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w16.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_prefetch_w0.json'
+++ date +%s
++ local t0=1790905277
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=16:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C16_base.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w0.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_bypass_w16.json;slots=16:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C16_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell q C16 rc=0 in 1318 s'
+cell q C16 rc=0 in 1318 s
+++ date +%s
++ echo 'ec_q_C16 0 1318'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_q_C16.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_q_C16.err
++ run_cell q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 32 0,0,1,2,3,4,5,6,7 1
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl C=32 law=0,0,1,2,3,4,5,6,7 full=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_q.bin
++ local base=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0
++ local orc=slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1
++ local cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w0.json'
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w16.json'
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_prefetch_w0.json'
++ echo 'cell q C32 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_prefetch_w0.json'
+++ date +%s
++ local t0=1790906595
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C32_base.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w0.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_bypass_w16.json;slots=32:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C32_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell q C32 rc=0 in 782 s'
+cell q C32 rc=0 in 782 s
+++ date +%s
++ echo 'ec_q_C32 0 782'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_q_C32.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_q_C32.err
++ run_cell q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 56 0,0,1,2,3,4,5,6,7 0
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl C=56 law=0,0,1,2,3,4,5,6,7 full=0
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/094_foresight_bytes@vast/la_q.bin
++ local base=slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0
++ local orc=slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1
++ local cfg=slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json
++ cfg='slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w0.json'
++ cfg='slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w0.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w16.json'
++ cfg='slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w0.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w16.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_prefetch_w0.json'
++ echo 'cell q C56 configs: slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w0.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w16.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_prefetch_w0.json'
+++ date +%s
++ local t0=1790907377
++ R 70m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 16 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec 'slots=56:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:paced=0:overlap=1:oracle_w=0:stats=/w/results/094_foresight_bytes@vast/st_q_C56_base.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w0.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=1:oracle_w=16:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_bypass_w16.json;slots=56:policy=oracle:oracle=/w/results/094_foresight_bytes@vast/la_q.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3,4,5,6,7:overlap=1:oracle_bypass=0:oracle_w=0:paced=1:chunk=16777216:max_pending=64:stats=/w/results/094_foresight_bytes@vast/st_q_C56_prefetch_w0.json'
++ local rc=0
+++ date +%s
++ echo 'cell q C56 rc=0 in 475 s'
+cell q C56 rc=0 in 475 s
+++ date +%s
++ echo 'ec_q_C56 0 475'
++ tail -n 30 /w/results/094_foresight_bytes@vast/ec_q_C56.err
++ rm -f /w/results/094_foresight_bytes@vast/ec_q_C56.err
++ rm -f /w/results/094_foresight_bytes@vast/la_q.bin
++ rm -f /w/results/094_foresight_bytes@vast/la_g.bin /w/results/094_foresight_bytes@vast/la_q.bin
++ python3 - /w/results/094_foresight_bytes@vast
++ tee /w/results/094_foresight_bytes@vast/summary.txt
+st_g_C14_base                  47.97 tok/s n=30  vs base 1.0  hit 0.583  admits/token 3.5
+st_g_C14_bypass_w0             49.58 tok/s n=30  vs base 1.033  hit 0.652  admits/token 16.0
+st_g_C14_bypass_w16            50.80 tok/s n=30  vs base 1.059  hit 0.65  admits/token 12.5
+st_g_C14_prefetch_w0           46.36 tok/s n=30  vs base 0.966  hit 0.708  admits/token 39.0
+st_g_C32_base                  78.59 tok/s n=30  vs base 1.0  hit 0.793  admits/token 4.2
+st_g_C32_bypass_w0             92.81 tok/s n=30  vs base 1.181  hit 0.861  admits/token 8.8
+st_g_C32_bypass_w16            87.56 tok/s n=30  vs base 1.115  hit 0.835  admits/token 6.5
+st_g_C32_prefetch_w0          128.26 tok/s n=30  vs base 1.631  hit 0.949  admits/token 23.2
+st_g_C51_base                 113.80 tok/s n=30  vs base 1.0  hit 0.894  admits/token 3.7
+st_g_C51_bypass_w0            140.18 tok/s n=30  vs base 1.233  hit 0.939  admits/token 4.4
+st_g_C51_bypass_w16           122.89 tok/s n=30  vs base 1.081  hit 0.909  admits/token 3.7
+st_g_C51_prefetch_w0          178.09 tok/s n=30  vs base 1.568  hit 0.982  admits/token 12.3
+st_q_C16_base                  27.29 tok/s n=30  vs base 1.0  hit 0.596  admits/token 5.0
+st_q_C16_bypass_w0             27.34 tok/s n=30  vs base 1.002  hit 0.64  admits/token 30.2
+st_q_C16_bypass_w16            27.88 tok/s n=30  vs base 1.021  hit 0.64  admits/token 26.3
+st_q_C16_prefetch_w0           25.81 tok/s n=30  vs base 0.945  hit 0.668  admits/token 64.6
+st_q_C32_base                  44.97 tok/s n=30  vs base 1.0  hit 0.78  admits/token 5.2
+st_q_C32_bypass_w0             50.85 tok/s n=30  vs base 1.13  hit 0.834  admits/token 21.3
+st_q_C32_bypass_w16            50.48 tok/s n=30  vs base 1.122  hit 0.827  admits/token 17.4
+st_q_C32_prefetch_w0           63.30 tok/s n=30  vs base 1.406  hit 0.911  admits/token 51.8
+st_q_C56_base                  83.19 tok/s n=30  vs base 1.0  hit 0.916  admits/token 5.4
+st_q_C56_bypass_w0             98.95 tok/s n=30  vs base 1.19  hit 0.951  admits/token 8.8
+st_q_C56_bypass_w16            91.57 tok/s n=30  vs base 1.102  hit 0.936  admits/token 8.1
+st_q_C56_prefetch_w0          134.73 tok/s n=30  vs base 1.624  hit 0.991  admits/token 26.7
+++ cat /w/results/094_foresight_bytes@vast/oneline.txt
++ ONE='094 g_C14_base 48.0 g_C14_bypass_w0 49.6 g_C32_base 78.6 g_C32_bypass_w0 92.8 g_C51_base 113.8 g_C51_bypass_w0 140.2 q_C16_base 27.3 q_C16_bypass_w0 27.3 q_C32_base 45.0 q_C32_bypass_w0 50.8 q_C56_base 83.2 q_C56_bypass_w0 98.9; device read 1692 GB/s'
++ python3 /w/jobs/ec2/manifest.py /w/results/094_foresight_bytes@vast 094_foresight_bytes@vast 1790899868 '094 g_C14_base 48.0 g_C14_bypass_w0 49.6 g_C32_base 78.6 g_C32_bypass_w0 92.8 g_C51_base 113.8 g_C51_bypass_w0 140.2 q_C16_base 27.3 q_C16_bypass_w0 27.3 q_C32_base 45.0 q_C32_bypass_w0 50.8 q_C56_base 83.2 q_C56_bypass_w0 98.9; device read 1692 GB/s' law_gptoss=0,0,1,2,3 law_qwen3=0,0,1,2,3,4,5,6,7 device_read_gbs=1692 memory_clock_max_mhz=14001
+manifest: 77 files, 7984 s; 094 g_C14_base 48.0 g_C14_bypass_w0 49.6 g_C32_base 78.6 g_C32_bypass_w0 92.8 g_C51_base 113.8 g_C51_bypass_w0 140.2 q_C16_base 27.3 q_C16_bypass_w0 27.3 q_C32_base 45.0 q_C32_bypass_w0 50.8 q_C56_base 83.2 q_C56_bypass_w0 98.9; device read 1692 GB/s
++ cat /w/results/094_foresight_bytes@vast/skipped.txt
++ echo 'SUMMARY: 094 g_C14_base 48.0 g_C14_bypass_w0 49.6 g_C32_base 78.6 g_C32_bypass_w0 92.8 g_C51_base 113.8 g_C51_bypass_w0 140.2 q_C16_base 27.3 q_C16_bypass_w0 27.3 q_C32_base 45.0 q_C32_bypass_w0 50.8 q_C56_base 83.2 q_C56_bypass_w0 98.9; device read 1692 GB/s'
+SUMMARY: 094 g_C14_base 48.0 g_C14_bypass_w0 49.6 g_C32_base 78.6 g_C32_bypass_w0 92.8 g_C51_base 113.8 g_C51_bypass_w0 140.2 q_C16_base 27.3 q_C16_bypass_w0 27.3 q_C32_base 45.0 q_C32_bypass_w0 50.8 q_C56_base 83.2 q_C56_bypass_w0 98.9; device read 1692 GB/s

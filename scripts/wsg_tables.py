@@ -94,9 +94,11 @@ def headline():
 \caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts. 30 AIME-25 problems, first 256 decode tokens,
 greedy, session; our cache uses the FETCH split computed from each machine's bandwidth probe; FreeToken uses its faster
 backend per budget, picked on listing B on a separate launch and carried over to the second host. Ratios are of mean
-speeds, paired by problem, with 95\% bootstrap intervals. \emph{Speed limit}: the fastest any exact-routing system with
-the same slots per layer can decode on that machine (\cref{sec:limit}: exact optimum, that host's highest probed rate,
-datasheet GPU rate; \cref{tab:limit} tightens it). With every weight in the VRAM of an RTX PRO 6000 (the RTX 5090's
+speeds, paired by problem, with 95\% bootstrap intervals. \emph{Speed limit}: the ceiling of \cref{sec:limit} for an
+exact-routing system with the same slots per layer on that machine (exact optimum, that host's highest probed rate,
+datasheet GPU rate, which listing B's card exceeds by 3\%; \cref{tab:limit} tightens it). FreeToken keeps one pooled
+cache and llama.cpp pins whole layers: against the pooled bound their designs allow they stand at
+\ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every weight in the VRAM of an RTX PRO 6000 (the RTX 5090's
 datasheet bandwidth, 96\,GB), stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.
 $^\dagger$Launch 1 for both systems: FreeToken's backend was picked on the launch it is scored on, which favours it,
 and the row has no confirmation launch.}\label{tab:headline}
@@ -132,6 +134,28 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
         M("limitPctMax", pct(max(lims)))
     lims2 = [x["ours"] / x["limit"] for x in both if x.get("limit")]
     M("bothLimitPctMin", pct(min(lims2))); M("bothLimitPctMax", pct(max(lims2)))
+    M("llLimBothMin", pct(min(x["llama"] / x["limit"] for x in both))); M("llLimBothMax", pct(max(x["llama"] / x["limit"] for x in both)))
+    M("ftLimBothMin", pct(min(x["ft"] / x["limit"] for x in both))); M("ftLimBothMax", pct(max(x["ft"] / x["limit"] for x in both)))
+    # the pooled bound (one pool of L*C slots; the optimum's reads 'global' in speed_limit_v2.json) on each host, for the
+    # systems without a per-layer budget: FreeToken keeps one LRU over all layers, llama.cpp pins whole layers
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    from speed_limit import MODELS as _MODELS, limit as _limit, host_rates as _host_rates  # noqa: E402
+    pooled = []
+    for host_rows, b_host in ((rows, sl2["B_host"]["max"]), (rows2, 1e9 * sc["b_host_max_gbs"])):
+        for x in host_rows:
+            key = "gpt-oss-120b" if x["model"].startswith("gpt") else "qwen3-30b-a3b-bf16"
+            c = {"11%": 14, "25%": 32, "40%": 51, "12.5%": 16, "43.75%": 56}[x["budget"]] if key == "gpt-oss-120b" or x["budget"] != "25%" else 32
+            m2 = sl2["models"][key]; mm = _MODELS[key]
+            r_pool = m2["rows"][str(c)]["reads_per_token"]["global"]
+            t_pool, _ = _limit(r_pool, m2["L"] * m2["k"], mm["S"], mm["D"], b_host, sl2["B_gpu_datasheet"])
+            x["limit_pooled"] = 1 / t_pool
+            pooled.append(x)
+    M("ftPoolPctMin", pct(min(x["ft"] / x["limit_pooled"] for x in pooled))); M("ftPoolPctMax", pct(max(x["ft"] / x["limit_pooled"] for x in pooled)))
+    M("llPoolPctMin", pct(min(x["llama"] / x["limit_pooled"] for x in pooled))); M("llPoolPctMax", pct(max(x["llama"] / x["limit_pooled"] for x in pooled)))
+    M("oursPoolPctMin", pct(min(x["ours"] / x["limit_pooled"] for x in pooled))); M("oursPoolPctMax", pct(max(x["ours"] / x["limit_pooled"] for x in pooled)))
+    M("poolOverLayerMin", f"{100 * (min(x['limit_pooled'] / x['limit'] for x in pooled) - 1):.0f}"); M("poolOverLayerMax", f"{100 * (max(x['limit_pooled'] / x['limit'] for x in pooled) - 1):.0f}")
+    json.dump([{k: v for k, v in x.items()} for x in pooled], open(P("prereg", "pooled_fractions.json"), "w"), indent=1)
     law = [r["law_over_cur_L1"][0] for r in h["rows"]] + [s["ratios"]["C32 law / cur (L1)"][0], s["ratios"]["law / cur (L1)"][0]]
     M("lawGainMin", f"{100 * (min(law) - 1):.1f}")
     M("lawGainMax", f"{100 * (max(law) - 1):.1f}")
@@ -403,6 +427,9 @@ Host CPU & Job & $n$ & Median & Max & llama.cpp \\
     M("secondUltra", f"{100 * gains['069c_profile_270k']:.0f}")
     M("secondEpyc", f"{100 * gains['069c_profile_epyc7352']:.0f}")
     M("lawMedian", f"{100 * st.median(allc):.1f}")
+    ll_off = [r["err"] for (cpu, job), v in hosts.items() for r in v if r["engine"] != "cache" and "Ryzen" not in short.get(cpu, cpu)]
+    if ll_off:
+        M("lawLlamaOffMin", f"{100 * min(ll_off):+.0f}"); M("lawLlamaOffMax", f"{100 * max(ll_off):+.0f}")
     M("lawRowsMedian", f"{100 * st.median([abs(e) for e in cache_err]):.1f}")   # per measurement, the LOHO note's basis
     M("lawDeskN", str(len(desk_err)))
     M("lawDeskMedian", f"{100 * st.median(desk_err):.1f}")

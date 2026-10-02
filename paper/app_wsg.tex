@@ -29,8 +29,7 @@ the point estimate is on the wrong side; \emph{untested} when the clause could n
 job was voided. Of \scClauses{} clauses, \scHeld{} held, \scHeldPoint{} held on the point estimate, \scFailed{} failed,
 \scUntested{} were untested and \scVoid{} void: \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075,
 when the system was being built, \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions
-made after a same-host pilot, \scLateHeld{} of \scLateScored{} in jobs 082--087, and \scRevHeld{} of \scRevScored{} in the jobs run after the
-reviews (088 onward), where \scRevSignHeld{} of \scRevSignClauses{} sign clauses held and \scRevFailBand{} of
+made after a same-host pilot, \scLateHeld{} of \scLateScored{} in jobs 082--087, and \scRevHeld{} of \scRevScored{} in jobs 088 onward, where \scRevSignHeld{} of \scRevSignClauses{} sign clauses held and \scRevFailBand{} of
 \scRevBandClauses{} bands failed. Most bands that failed are the sizes of effects whose direction held: our slow-link
 lead landed at 1.51--1.58$\times$ against a predicted 1.10--1.50; the rerun of \cref{tab:headline} on a second host
 (job 089) gave ratios \scRatioFailMin--\scRatioFailMax{} below the headline machine's at \scRatioFailCells{} of six
@@ -51,7 +50,7 @@ gain at three cells; the \scRevFailEq{} equality failures are the 4090 host's FE
 expert than predicted; the \scRevFailSign{} sign failures are LRU behind FreeToken at gpt-oss 11\%, where we
 predicted it would still lead, and the hit-optimal oracle slower than the online policy at gpt-oss 11\% and Qwen3
 12.5\%.
-Against the earlier draft's log, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
+Against the running log kept during the study, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
 held was never run; job 085b's own restatement of its fourth prediction, ``at least 2 of 3'', failed at 1 of 3,
 though the pooled 4 of 6 held), job 073's ``identical outputs'' is scored on fully identical outputs (0--3\%) rather
 than on agreement of the first 160 characters (27--47\%), and ten clauses the log counted as held, among them job
@@ -200,6 +199,19 @@ stock graph with every expert in host memory, and pay for the cache's resident e
 In \texttt{llama-batched-bench} at 25\% on the stock-clock host (job 089, both models) our prefill at 512 and 2{,}048
 tokens runs \bbPrefillMin--\bbPrefillMax\% of stock llama.cpp's and our decode at 2 and 4 parallel sequences
 \bbBatchMin--\bbBatchMax\% of it (the tool feeds both engines the same random tokens).
+
+\section{The audit's rows}\label{app:audit}
+\Cref{tab:audit} lists the \audAllN{} published measurements of \cref{sec:audit} with their bounds. The sources are
+Fiddler~\cite{kamahori2024fiddler}, ProMoE~\cite{song2024promoe}, KTransformers~\cite{ktransformers},
+HybriMoE~\cite{zhong2025hybrimoe}, Fate~\cite{fate2025}, SP-MoE~\cite{spmoe}, MoE-SpeQ~\cite{moespeq}, the CPU--GPU
+collaborative inference of Huang et al.~\cite{huang2025cpugpu}, FreeToken~\cite{freetoken}, SeqMoE~\cite{wang2026seqmoe},
+NVIDIA's pipelined sharding~\cite{pipelinedsharding2026}, a llama.cpp fork~\cite{leloch2026} and a llama.cpp pull
+request~\cite{llamacpppr27861}. Three caveats apply to every row: the ceilings are datasheet ones where ours are
+probed; the trace is the model's own sampled text, sometimes of a sibling variant (an FP8 trace for a Q4 deployment);
+and systems whose cache is pooled across layers, whose placement pins whole layers, or which verify several tokens per
+pass are scored against the per-layer one-token bound, which is not theirs.
+
+\input{tab_audit}
 
 \section{Artifact description}\label{app:artifact}
 \begin{itemize}\setlength\itemsep{1pt}

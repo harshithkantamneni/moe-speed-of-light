@@ -132,15 +132,15 @@ def limit():
     tex = r"""\begin{table}[t]\centering\small
 \caption{The speed limit under each tightening, tokens per second on the headline machine, and our cache as a
 percentage of the limit as published (exact optimum, highest probed host rate, datasheet GPU rate) and with every
-tightening at once. \emph{084}: the optimum used in the earlier draft; \emph{exact}: Belady's MIN with bypass that
-may evict an expert after serving it; \emph{pool}: one pool of $LC$ slots shared across layers; \emph{median}:
+tightening at once. \emph{no-evict}: Belady's MIN with bypass that keeps a served expert for the step; \emph{exact}:
+the same, free to evict an expert after serving it; \emph{pool}: one pool of $LC$ slots shared across layers; \emph{median}:
 $B_{\mathrm{host}}$ the median of six concurrent probe samples instead of the highest; \emph{GPU}: the GPU term from
 the measured all-in-VRAM time instead of the datasheet rate; \emph{layers}: the per-layer sum, which no system without
 cross-layer prefetch can beat; \emph{all}: exact, pool, median and GPU together (a warm start, not included, changes
 the limit by at most 1.4\%).}\label{tab:limit}
 \setlength\tabcolsep{2.5pt}\resizebox{\linewidth}{!}{%
 \begin{tabular}{llrrrrrrrrr}\toprule
-Model & Experts & 084 & exact & pool & median & GPU & layers & all & \multicolumn{2}{c}{Ours, \% of} \\
+Model & Experts & no-evict & exact & pool & median & GPU & layers & all & \multicolumn{2}{c}{Ours, \% of} \\
  & on GPU & & & & & & & & exact & all \\\midrule
 """ + "\n".join(lines[:3]) + "\n\\midrule\n" + "\n".join(lines[3:]) + r"""
 \bottomrule\end{tabular}}\end{table}
@@ -406,6 +406,17 @@ def scorecard():
     M("scSignClauses", str(s["by_type"]["sign"]["clauses"]))
 
 
+def law_frozen():
+    """The frozen-constant law on the RTX 5090 hosts rented after the blind test (prereg/law_frozen_later.json)."""
+    d = load("law_frozen_later.json")
+    s = d["summary"]
+    M("lawFrozenN", str(s["n"])); M("lawFrozenHosts", str(len({r["host"] for r in d["rows"]})))
+    M("lawFrozenMed", f"{s['median_abs_pct']:.1f}"); M("lawFrozenPninety", f"{s['p90_abs_pct']:.1f}"); M("lawFrozenMax", f"{s['max_abs_pct']:.0f}")
+    M("lawFrozenWithinTen", str(s["within_10pct"]))
+    worst = max(d["rows"], key=lambda r: abs(r["error"]))
+    M("lawFrozenWorstCell", f"{worst['model']} {worst['budget'].replace('%', chr(92) + '%')} on the {worst['host'].split('(')[0].strip()} host".replace("089", "stock-clock"))
+
+
 def cost():
     """The ledger's rentals, distinct machines (Vast offers) and GPU-hour cost for jobs 058 up to the last finished job."""
     import re
@@ -614,6 +625,7 @@ def main():
     audit()
     scorecard()
     crossrental()
+    law_frozen()
     cost()
     slowlink()
     stockclock()

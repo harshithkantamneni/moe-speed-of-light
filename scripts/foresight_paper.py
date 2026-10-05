@@ -28,7 +28,7 @@ def bytes_oracle(tagof):
     M("fsbHostCpu", f"{hb['B_c']:.0f}"); M("fsbHostLink", f"{hb['B_p']:.0f}"); M("fsbHostBoth", f"{hb['B_cp']:.0f}"); M("fsbHostMax", f"{hb['b_host_max']:.1f}")
     high, low, lawerr, rr, recov, phigh, plow, plaw, fits_host, fits_gpu, w16, ideal = [], [], [], [], [], [], [], [], [], [], [], []
     lawgain, lowany, rr_host, pbytes, pvsb, simadm, closed_high, pgpu = [], [], [], [], [], [], [], []
-    tot_b, tot_p, low_vs_base = [], [], []
+    tot_b, tot_p, low_vs_base, ideal_gpu = [], [], [], []
     rows = []
     for c in d["cells"]:
         tag = tagof[(c["model"], c["C"])]
@@ -74,6 +74,8 @@ def bytes_oracle(tagof):
             simadm.append(sa / o["admits_per_token"])
         if hostb:
             ideal.append(sc["by_d"]["1"]["misses_per_token"] / c["opt_reads_per_token"] - 1)
+        else:
+            ideal_gpu.append(sc["by_d"]["1"]["misses_per_token"] / c["opt_reads_per_token"] - 1)
         if o["ratio_to_base"][1] > 1:
             w16.append(o16["gain"] / o["gain"])
         rows.append((tag, b, o, o16, p, c, sc))
@@ -102,7 +104,9 @@ def bytes_oracle(tagof):
     M("fslFitHostMin", f"{min(fits_host):.1f}"); M("fslFitHostMax", f"{max(fits_host):.1f}")
     M("fslIdealOverMin", f"{100 * min(ideal):.0f}"); M("fslIdealOverMax", f"{100 * max(ideal):.0f}")
     if fits_gpu:
-        M("fslFitGpuMax", f"{max(fits_gpu):.1f}")
+        M("fslFitGpuMax", f"{max(fits_gpu):.1f}"); M("fslFitGpuMin", f"{min(fits_gpu):.1f}")
+    if ideal_gpu:
+        M("fslIdealOverGpuMin", f"{100 * min(ideal_gpu):.0f}"); M("fslIdealOverGpuMax", f"{100 * max(ideal_gpu):.0f}")
     M("fsbSixteenShareMin", f"{100 * min(w16):.0f}"); M("fsbSixteenShareMax", f"{100 * max(w16):.0f}")
     M("fsbTotalReadsOptMin", f"{min(tot_b):.2f}"); M("fsbTotalReadsOptMax", f"{max(tot_b):.2f}")
     M("fspTotalReadsOptMin", f"{min(tot_p):.2f}"); M("fspTotalReadsOptMax", f"{max(tot_p):.2f}")

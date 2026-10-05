@@ -57,7 +57,10 @@ def main():
             if "fetch" in cell["measured"] and "both" in cell["measured"]:
                 f_ms = cell["measured"]["fetch"]["ms"]
                 b_ms = min(cell["measured"][k]["ms"] for k in ("both", "both, paced") if k in cell["measured"])   # the faster overlapped state
+                h_ms = cell["measured"]["hit-opt."]["ms"] if "hit-opt." in cell["measured"] else None
                 cell["decomposition"] = {"measured": {"bytes": (base_ms - f_ms) / gap, "overlap_given_foresight": (f_ms - b_ms) / gap, "rest": (b_ms - mt["limit_ms"]) / gap},
+                                         # the other feasible order: overlap first (online -> the Belady prefetch at about the online policy's bytes), then the bytes given overlap (-> the faster single-read prefetch state)
+                                         "measured_overlap_first": ({"overlap": (base_ms - h_ms) / gap, "bytes_given_overlap": (h_ms - b_ms) / gap, "rest": (b_ms - mt["limit_ms"]) / gap} if h_ms is not None else None),
                                          "model": {"F": (mt["v_none_ms"] - mt["v_F_ms"]) / (mt["v_none_ms"] - mt["limit_ms"]),
                                                    "O_given_F": (mt["v_F_ms"] - mt["v_OF_ms"]) / (mt["v_none_ms"] - mt["limit_ms"]),
                                                    "rest": (mt["v_OF_ms"] - mt["limit_ms"]) / (mt["v_none_ms"] - mt["limit_ms"])},
@@ -90,6 +93,9 @@ def main():
             tag = {"gpt-oss 11%": "GLow", "gpt-oss 25%": "GMid", "gpt-oss 40%": "GHigh", "Qwen3 12.5%": "QLow", "Qwen3 25%": "QMid", "Qwen3 43.75%": "QHigh"}[c["cell"]]
             for key, px in (("bytes", "amBytes"), ("overlap_given_foresight", "amOverlap"), ("rest", "amRest")):
                 M(f"{px}{tag}", f"{100 * c['decomposition']['measured'][key]:.0f}")
+            of = c["decomposition"].get("measured_overlap_first")
+            if of:
+                M(f"amOvlFirst{tag}", f"{100 * of['overlap']:.0f}"); M(f"amBytesGivenOvl{tag}", f"{100 * of['bytes_given_overlap']:.0f}")
             M(f"amModelF{tag}", f"{100 * c['decomposition']['model']['F']:.0f}"); M(f"amModelO{tag}", f"{100 * c['decomposition']['model']['O_given_F']:.0f}")
     json.dump(out, open(P("prereg", "accounting_measured.json"), "w"), indent=1)
     with open(P("paper", "wsg_accounting.tex"), "w") as f:

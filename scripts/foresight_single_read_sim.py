@@ -1,5 +1,7 @@
 """Predictions for job 095: the single-read oracles simulated per layer on the measured routing traces with the engine's
-semantics (lookahead within the sequence; residents carried over between sequences).
+semantics (lookahead within the sequence; residents carried over between sequences, their next use recomputed at each
+sequence start as the engine does; the version the predictions were registered against left a carried-over resident's
+next use at "never", which evicted it first and over-counted reads at the larger budgets).
 
   fetch    MIN with bypass, each admitted miss fetched into the victim's slot and served from it this step (one read on
            the critical path); bypassed misses run on the CPU. Reads per token = misses (= the optimum's reads up to
@@ -61,6 +63,16 @@ def sim(R, E, cap, seqs, do_fetch, lead, land):
         for e in range(E):
             if state[e] == 2 and ready[e] <= t:
                 state[e] = 1
+        if t == 0 or seqs[t] != seqs[t - 1]:
+            # a new sequence: every expert's next use is its first use in this sequence (the engine recomputes next uses
+            # within the current sequence for residents carried over, as oracle_plan_fetch does)
+            for e in range(E):
+                nu[e] = INF
+            for tt in range(T - 1, t - 1, -1):
+                if seqs[tt] != seqs[t]:
+                    continue
+                for j in range(k):
+                    nu[R[tt, j]] = tt
         for j in range(k):
             selected[R[t, j]] = True
             nu[R[t, j]] = nxt[t, j]

@@ -3,6 +3,60 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 5 October: number check 4 and review round 4 (both 4/10); the corrections; what the reviews ask for next
+
+- **Number check 4** (`reports/Number check 4 (2 October).md`, an independent re-derivation of about 285 statements):
+  22 defects, all in prose and captions, none in a macro or table. The serious one: the hit-optimal oracle is not a
+  double-reading oracle. Its counters in job 095 show 1-3 CPU misses per token against 14-84 admissions at five of six
+  cells (98-99% hits), so at most 2-6% of its admissions were read twice; its 1.77-2.47x R* is over-admission (Belady
+  prefetch without bypass admits what the optimum bypasses and re-copies what it evicts; its admissions alone are
+  1.57-2.16x R*). "Two reads per admitted expert" is right for the bytes-optimal oracle (094) and the online policy.
+  Also: "slower than every single-read variant at every cell" false at the two GPU-bound cells (hit-opt ties fetch
+  within a point); "44-45% of the limit at every window" false (what is constant is utilisation, 89-94%); the two
+  oracle-gain ranges reversed; the regime claim wrong on O3; the contribution bullet's shares are the four host-bound
+  cells; the running example's lead 1.27x not 1.29x and its table copying from two misses; power limits 350-600 W;
+  prompt lengths 52-879 tokens; the 3090 host as a second exception to "a second path adds bandwidth"; 16 timed
+  clauses scored held without an interval (intervals now computed by `scripts/scorecard_intervals_oracle.py`: all 16
+  hold, the strict rate stays 54%). All fixed in the paper (main at 3ba8a49 and after).
+- **Review round 4** (`reports/Review 4a MLSys PC (2 October).md`, `Review 4b professor (2 October).md`): **4/10 and
+  4/10, weak reject** (round 3: 5 and 5; the structure is cleaner and the claims more visible, and both reviewers
+  dug into the repository). The professor would still take the student and support the fellowship. Where they agree:
+  (1) the oracle evidence is one host, one launch, six configurations in a fixed order; the same-host comparator is
+  the *unpaced* Belady prefetch (the paced one, faster on O1 at three of four host-bound cells, was not run on O3);
+  serve-then-copy was not run on O3, so "reads an admitted expert twice" is inferred across hosts; the two mechanisms
+  (over-admission, the second read) are never separated on one host; an online single-read admission (decayed
+  frequency with fetch-on-admit, no foresight) is the missing control for the "bytes foresight saves" step, since the
+  online policy itself double-reads 3-7 admissions per token; (2) the Shapley accounting is a model whose endpoints
+  are fitted and whose intermediate states no engine realises, and at the running example foresight edges overlap by
+  0.14 ms of 6.84 (largest in 70 of 120 orders); it should be demoted to "what the model implies" with the
+  measurement leading; (3) the writing: one thesis, a glossary, fewer numbers per sentence; (4) the audit: a
+  different bound from Eq. 3 (per-layer, dense in sequence), 9 of 29 trace rows outside the class (speculative,
+  lossy), 21 rows with an imputed upper-bound capacity, classes pooled; (5) the law: the blind predictor set the link
+  bytes to fetches + prefetches (no admission copies) while the re-score counted admissions; G larger than the
+  all-in-VRAM token; (6) W50 is a perfect-foresight horizon and its stated baseline is the single-read dfa, not the
+  deployed policy; the speculation claim holds only once rejected drafts are charged; (7) FreeToken fairness (defaults,
+  backend carried over, VRAM not reported, KTransformers absent); (8) a simulator bug (professor): the "warm cache"
+  explanation of the two failed 095 reads clauses is impossible (fresh context per configuration); the simulators left
+  a carried-over resident's next use at "never". Fixed: both simulators recompute next uses at each sequence start and
+  now match the engine within 0-4% at every cell (outcome note 095 carries the correction; the clauses stay scored
+  against the registered values).
+- **Corrections applied today ($0):** the audit paragraph (in-class median 13.6% over 20 rows, speculative and lossy
+  rows named, the imputed capacities disclosed, the audit bound's construction stated; the abstract and conclusion
+  use the in-class figure); the W50 baseline named; the accounting paragraph gives the near tie and the overlap-first
+  order on O3 (overlap 17 and 9% of the gap at the two 25% cells, bytes given it 40 and 52%); the running example's
+  lead attributed to the admission policy (77%) and the CPU path; host B's card about 9% above the common-clock
+  cards, host S's power limit and SM clock stated; VRAM reported (ours 9.5-25.9 GB, llama.cpp 9.5-25.3, FreeToken
+  28.4-28.6); the 3090 FreeToken ratios no longer printed; Fig. 5's caption; "as the law predicts" removed; the
+  launch-order 11% effect reported; Cao et al. 1995 cited; checklist rules 4 and 10 reworded; the scorecard's sign
+  count strict.
+- **Not done, and what each costs:** a confirmatory randomised, replicated oracle factorial on three hosts (online /
+  MIN-bypass fetch / serve-then-copy / single-read prefetch unpaced and paced / Belady prefetch paced and unpaced /
+  Belady single-read, two launches each, cold start per configuration; about $40 and a week, one engine flag to add);
+  an online fetch-on-admit admission path for the deployed policy (2-3 days of engine work, ~$5), which both reviewers
+  call the missing control and the practical result; a re-score of the law under one definition of the link bytes;
+  FreeToken's thread count and fetch cap swept per host and KTransformers added (~$10); a realisable forecaster (4-6
+  weeks, the step both reviewers tie to a 9). Both reviewers put items 1-5 of their lists at a 6-7.
+
 ## 2 October, midday: job 095 lands (read once, foresight pays everywhere); the paper rewritten to one thesis
 
 - **Job 095 (`095_single_read@vast`, RTX 5090 + Ryzen 9 9950X, host memory 52.5 / 43.2 / 59.7 GB/s by CPU / link /

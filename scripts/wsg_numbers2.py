@@ -380,6 +380,20 @@ def audit():
         M(f"aud{nm}Max", f"{cs[key]['max']:.1f}")
     srcs = {r.get("source", r.get("paper")) for r in a["rows"]} if isinstance(a["rows"], list) else set(a["rows"])
     M("audSources", str(len(a["by_source"]) if isinstance(a["by_source"], (dict, list)) else len(srcs)))
+    # the trace-scored rows inside the bound's class (exact routing, one token per pass): no speculative or lossy systems;
+    # and the rows whose per-layer capacity was imputed as an upper bound from the card's memory (audit.json budget_imputed)
+    full = load("audit", "audit.json")["rows"]
+    byid = {r["id"]: r for r in full}
+    inclass = [r["pct_of_sol"] for r in a["rows"] if r["cls"] == "trace" and not byid[r["id"]].get("speculative") and not byid[r["id"]].get("lossy")]
+    inclass.sort()
+    import statistics
+    M("audInclassN", str(len(inclass))); M("audInclassMed", f"{statistics.median(inclass):.1f}")
+    M("audInclassQone", f"{inclass[len(inclass) // 4]:.1f}"); M("audInclassQthree", f"{inclass[(3 * len(inclass)) // 4]:.1f}")
+    M("audInclassBelowFifth", str(sum(1 for x in inclass if x < 20)))
+    M("audImputedN", str(sum(1 for r in full if r.get("budget_imputed"))))
+    M("audImputedTraceN", str(sum(1 for r in a["rows"] if r["cls"] == "trace" and byid[r["id"]].get("budget_imputed"))))
+    M("audSpecN", str(sum(1 for r in a["rows"] if r["cls"] == "trace" and byid[r["id"]].get("speculative"))))
+    M("audLossyN", str(sum(1 for r in a["rows"] if r["cls"] == "trace" and byid[r["id"]].get("lossy"))))
 
 
 def scorecard():

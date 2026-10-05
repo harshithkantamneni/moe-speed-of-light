@@ -48,6 +48,14 @@ def sim(R, E, cap, d, seqs):
         for e in range(E):
             if state[e] == 2 and ready[e] <= t:
                 state[e] = 1
+        if t == 0 or seqs[t] != seqs[t - 1]:
+            for e in range(E):
+                nu[e] = INF
+            for tt in range(T - 1, t - 1, -1):
+                if seqs[tt] != seqs[t]:
+                    continue
+                for j in range(k):
+                    nu[R[tt, j]] = tt
         for j in range(k):
             e = R[t, j]
             n = nxt[t, j]

@@ -110,3 +110,17 @@ and the single-use experts it leaves to the CPU), the CPU misses still served in
 counts at the datasheet rate. Of 56 clauses, 44 held, 12 failed; the failures are of size (the law's error on the
 serialised oracle, the band for both2's share of the limit at the 25% cells, the paced path faster than the unpaced
 one, the warm cache at the GPU-bound cells); every sign clause held.
+
+**Correction (5 October).** The explanation given above for the two failed reads clauses (P1c, P1f: "the engine's cache
+is warm from the previous configuration's run") is wrong: `llama-ec-bench` creates a fresh context per configuration
+and the cache starts empty. The cause was in the simulator the predictions were registered against
+(`scripts/foresight_single_read_sim.py` and `foresight_latency_sim.py`): a resident carried over from the previous
+sequence kept the next use it had at the end of that sequence, "never", and so was evicted first, where the engine's
+`oracle_plan_fetch` recomputes every expert's next use within the current sequence. Corrected (next uses recomputed at
+each sequence start), the simulation gives fetch reads 39.3 / 16.0 / 7.5 and 100.4 / 44.9 / 14.5 per token against the
+engine's 39.9 / 16.5 / 7.7 and 100.8 / 45.2 / 14.7 (within 0-4% at every cell; hits within 0.4 points), and both-2
+46.3 / 22.3 / 12.0 and 115.2 / 61.4 / 23.2 against 47.0 / 22.2 / 10.8 and 115.6 / 61.5 / 22.1. The clauses stay scored
+against the registered values (the prediction was the registered simulator's number); the two failures are the
+simulator's, not the engine's. The job-094 latency simulation changes likewise: the ideal (d = 1) misses are now within
+0-4% of the optimum at the host-bound cells and 6-10% above it at the GPU-bound ones, and the engine's misses fit
+d = 2.8-4.7 steps at the host-bound cells and 3.0-3.5 at the GPU-bound ones.

@@ -6,13 +6,13 @@ Rule & Where and how \\\midrule\endhead
 1. Report the base case of a speed-up and its absolute performance. & Every ratio in \cref{tab:headline} is next to both absolute speeds; llama.cpp is configured with per-layer expert offload at equal expert memory, the setting its users run. \\
 2. Explain subsets of benchmarks or resources. & Two models chosen for size and precision (MXFP4, BF16), a third that is FreeToken's own headline model; budgets span what fits a 32\,GB card; the 43.75\% budget is omitted where it does not fit. All 30 AIME-25 problems are used. \\
 3. Arithmetic mean for costs, harmonic mean for rates. & Every problem decodes the same number of tokens, so the harmonic mean of rates is total tokens over total time; ratios of total time agree with the reported ratios of mean rates within 0.003. \\
-4. Avoid summarising ratios. & Ratios are computed from mean speeds, never averaged across budgets or models; ranges list the per-budget values. \\
+4. Avoid summarising ratios. & Ratios of means are never averaged across budgets or models; ranges list the per-budget values, and the medians reported across models (\cref{tab:policy}) or across published rows (\cref{app:audit}) are medians of per-cell quantities, labelled as such. \\
 5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval. \\
 6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
 7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
 8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
 9. Document all factors and the setup. & Machines, probes, power limits, memory clocks (\cref{sec:setting}), software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
-10. Report measurement, synchronisation and summarisation. & One client times every system from streamed token arrivals; no server-side timers enter a comparison (\cref{sec:setting}). \\
+10. Report measurement, synchronisation and summarisation. & One client times every system of \cref{tab:headline} from streamed token arrivals; the oracle comparisons of \cref{sec:gap} are timed in process by \texttt{llama-ec-bench} over teacher-forced text, every policy by the same timer (\cref{sec:setting}). \\
 11. Show upper performance bounds. & The speed limit (\cref{sec:limit}) and all-in-VRAM speed are columns of \cref{tab:headline}; \cref{tab:limit} tightens the limit four ways; \cref{sec:limit} applies it to the published literature. \\
 12. Plot enough to interpret; connect points only for trends. & \Cref{fig:shapley,fig:factorial,fig:ablation} are bar charts; \cref{fig:ratio,fig:audit,fig:grid} are scatter plots; \cref{fig:foresight} connects measured windows for the trend only, and its $W_{50}$ is a stated log interpolation between two measured windows. \\
 \bottomrule
@@ -37,15 +37,16 @@ cells against a predicted $\pm$0.06, host-bound speeds \scOursHybDropMin--\scOur
 predicted $\pm$12\%, and LRU \scLruFailMin--\scLruFailMax\% slower than decayed frequency at the two GPU-heavy
 cells against a predicted 10--30\%; on the 4090 and 3090 hosts (jobs 091, 092; \cref{app:grid}) our lead over
 FreeToken and its fraction of the limit overshot their bands, FreeToken's carried-over backend fell far below its
-band, and two launch-order checks exceeded 3\%; in the first oracle job (093; \cref{sec:gap}) the oracle's gain fell
+band, and two launch-order checks exceeded 3\% (7\% and, at gpt-oss 11\% on the 3090 host, 11\%); in the first oracle job (093; \cref{sec:gap}) the oracle's gain fell
 outside 20--80\% at the two lowest budgets (it lost), its speed fell just below the predicted 45--65\% of the limit
 at all four host-bound cells (43.7--44.8\%), its hit rate and admissions missed the optimum's by more than the
 predicted 3 points and 30\% at three and two of the four, no-overlap cost 0\% against a predicted 5--25\%, and all-CPU cost 15\% on Qwen3
 against a predicted 0--10\%; in the bytes-oracle job (094) the bands missed as \cref{app:foresight} describes; in
 the single-read job (095) 44 of 56 clauses held, and the 12 that failed are of size: the law on the fetch oracle's
 counters was predicted within 10\% and missed by 13--17\% at four cells, the fetch oracle's reads were predicted within
-10\% of the simulation's and came 17\% below at the two GPU-bound cells (the engine's cache was warm from the previous
-configuration), the prefetching oracle was predicted at 55--85\% of the limit at the host-bound cells and reached
+10\% of the simulation's and came 17\% below at the two GPU-bound cells (the registered simulator left a resident
+carried over from the previous sequence with no next use, and so evicted it first; corrected, the simulation is within
+\fsfSimReadsDiffMax\% of the engine's reads at every cell, \cref{app:foresight}), the prefetching oracle was predicted at 55--85\% of the limit at the host-bound cells and reached
 44 and 51\% at the two 25\% cells, the law's over-prediction of it was predicted at 15--50\% and came to 7 and 13\% at
 the two lowest budgets, and the paced variant, predicted within 10\% of the unpaced one, was 12--13\% faster at the
 two 25\% cells.
@@ -95,7 +96,7 @@ per-path rates under contention and a per-layer hand-off constant predicts both 
 law at its default thread count, because it splits every matrix evenly across its threads; our helpers claim work
 dynamically and stay on the law on the same machine. We did not test llama.cpp restricted to the performance cores.
 (iii) On a 12-channel EPYC 9655 (559\,GB/s) host memory stops being the limit (\lohoMaxEpycMin{} to
-\lohoMaxEpycMax\%): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
+\lohoMaxEpycMax\% with $G$ refit under leave-one-host-out validation; \cref{tab:law} gives the blind errors): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
 that no desktop host has (their intercepts are at or below zero), the latency of the hand-off at a bandwidth where a
 13\,MB expert takes 24\,$\mu$s. (iv) Prefetch configurations are under-predicted by \lohoMaxPfMin{} to
 \lohoMaxPfMax\%: their copies overlap attention, which the law charges in full.
@@ -124,7 +125,8 @@ reads where whole-layer pinning hits \grMixPinCTwo\%, so there is little localit
 (\grMixCTwo{} [\grMixCTwoLo, \grMixCTwoHi]); on the 128-expert models the same cache hits \grHitMin--\grHitMax\% at
 11--25\% resident. Across \ratioHostsN{} hosts the gpt-oss lead over FreeToken grows with the host's CPU-to-link
 ratio, from \ratioNearMin--\ratioNearMax$\times$ where the CPU reads \ratioNearXMin--\ratioNearXMax$\times$ its link's
-rate to \slFtMin--\slFtMax$\times$ behind a link of half the bandwidth, as the law predicts, and the Qwen3 lead stays
+rate to \slFtMin--\slFtMax$\times$ behind a link of half the bandwidth, in the direction the law's split implies
+(the law does not predict FreeToken's runs), and the Qwen3 lead stays
 at \ratioQwenLo--\ratioQwenHi$\times$ (\cref{fig:ratio}, \cref{app:system}).
 
 \begin{figure}[t]\centering
@@ -167,11 +169,13 @@ admission when no resident's next use is further than the candidate's. The singl
 the non-resident experts whose first use is at least $d$ steps away ($d{=}2$ unpaced, 3 paced), provided the victim's
 next use is further than the candidate's use after that first one; an expert used sooner than $d$ steps away misses
 on the CPU, or is fetched when the two are combined. The same policies simulated on the trace with the engine's
-semantics (the lookahead within the sequence, residents carried over) predict the engine's reads and hit rates: the
-fetch oracle's hit rate within \fsfSimHitDiffMax{} points and its reads within \fsfSimReadsDiffMin{} to
-\fsfSimReadsDiffMax\% (the engine reads fewer at the GPU-bound cells, where its cache is warm from the previous
-configuration's run and the simulation starts cold), the combined oracle's hits within two points
-(\cref{tab:single_read}). The paced copy path copies one 16\,MB piece at a time on a single copier thread and
+semantics (the lookahead within the sequence, residents carried over with their next use recomputed at each sequence
+start) predict the engine's reads and hit rates: the fetch oracle's hit rate within \fsfSimHitDiffMax{} points and its
+reads within \fsfSimReadsDiffMin{} to \fsfSimReadsDiffMax\%, the combined oracle's hits within two points
+(\cref{tab:single_read}). The simulator the job's predictions were registered against gave a resident carried over
+from the previous sequence no next use, so it was evicted first; that over-counted the fetch oracle's reads by 17\%
+at the two GPU-bound cells, which is why two of its reads clauses failed (\cref{app:prereg}). Each configuration of
+\texttt{llama-ec-bench} starts with a cold cache in a fresh context. The paced copy path copies one 16\,MB piece at a time on a single copier thread and
 publishes a landed copy at the start of the next step; the unpaced path copies each admission as one transfer. The
 hit-optimal oracle's background admissions drive host memory at \fshHostUtilMin--\fshHostUtilMax\% of the probe's best
 rate at the host-bound cells, the prefetching single-read oracles at \fsPrefetchHostUtilMin--\fsPrefetchHostUtilMax\%
@@ -187,8 +191,9 @@ oracle at \fsfHostUtilMin--\fsfHostUtilMax\%. The predictions and their outcomes
 \caption{The first oracle job (093, host O1): speed as a percentage of this host's limit against the window $W$ of
 future routing the hit-optimal oracle sees, at the four host-bound cells. ``none'' is the online policy; ``all'' the
 whole sequence; points are connected for the trend only. The tick at the right is the model's foresight-only term for
-the cell, the speed it predicts with that one fix; the oracle, reading every admitted expert twice, stays at
-\fsmHostFracMin--\fsmHostFracMax\% of the limit at every window.}
+the cell, the speed it predicts with that one fix; the oracle's host traffic sits at \fsmUtilWinMin--\fsmUtilWinMax\%
+of the probe's best rate at every window, so its speed is $R^\star$ over its reads times that utilisation,
+\fsmHostFracMin--\fsmHostFracMax\% of the limit with the whole sequence in view.}
 \label{fig:foresight}
 \end{figure}
 
@@ -233,8 +238,8 @@ the whole-sequence gain at the five cells where that gain's interval excludes ze
 
 \paragraph{Why the bytes-optimal oracle's misses stay above the optimum's reads.} Besides the second read, its misses alone are
 \fsbReadsRatioHostMin--\fsbReadsRatioHostMax$\times$ the optimum's reads at the four host-bound cells (at the two
-GPU-bound ones the ideal simulation below is itself 1.3--1.4$\times$ the optimum, which sees across sequences, and the
-engine's misses are below it at gpt-oss 40\% and just above it at Qwen3 43.75\%). The engine's paced copy path moves one 16\,MB piece at a time from pageable host
+GPU-bound ones the ideal simulation below is itself \fslIdealOverGpuMin--\fslIdealOverGpuMax\% above the optimum,
+which sees across sequences). The engine's paced copy path moves one 16\,MB piece at a time from pageable host
 memory on a single copier thread, behind the demand copies, publishes a landed copy at the start of the next step, and
 admits nothing while 64 copies are queued; at the 16--30 admissions per token (210--285\,MB) of the two lowest
 budgets it lags the admissions by steps, and an expert still in flight is a miss the CPU reads again. The last four columns of \cref{tab:foresight_bytes}
@@ -242,8 +247,8 @@ simulate MIN with bypass on the measured routing trace with the engine's own sem
 sequence, residents carried over, no queue cap) and a copy that lands $d$ steps after it is issued, during which the
 expert misses and is not re-admitted: at $d{=}1$, the ideal, the misses come within
 \fslIdealOverMin--\fslIdealOverMax\% of the limit's optimum at the host-bound cells; the engine's misses meet the
-simulation at $d{=}$\fslFitHostMin--\fslFitHostMax{} there, about three steps, and at or below \fslFitGpuMax{} at
-the GPU-bound cells. At the fitted latency the simulation admits \fsbSimAdmitMin--\fsbSimAdmitMax$\times$ what
+simulation at $d{=}$\fslFitHostMin--\fslFitHostMax{} there and at \fslFitGpuMin--\fslFitGpuMax{} at the GPU-bound
+cells, three to five steps. At the fitted latency the simulation admits \fsbSimAdmitMin--\fsbSimAdmitMax$\times$ what
 the engine admitted, so the queue cap, not only the latency, keeps the engine's misses above the ideal. The predictions and their outcomes are in
 \texttt{prereg/foresight\_outcome\_093.md} and \texttt{094.md}: of 36 clauses for the first job, 9 held, 2 held on
 the point estimate, 21 failed and 4 were untested; of 38 for the second, 12 held, 1 on the point estimate, 24 failed
@@ -340,7 +345,7 @@ fetch cap and thread count were left at their defaults, while our FETCH table wa
 model-dependent: largest with few large experts (gpt-oss, top-4 of 128), smallest with many small ones.
 
 \paragraph{Other systems and outputs.} Two newer llama.cpp-based systems, Pipelined Sharding~\cite{pipelinedsharding2026} and
-leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.44$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
+leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.45$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
 the better of them (job 077). Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
 VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
 \klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
@@ -363,8 +368,9 @@ tokens runs \bbPrefillMin--\bbPrefillMax\% of stock llama.cpp's and our decode a
 own speed of light, computed from the paper's hardware at datasheet rates and, where a routing trace of the model
 exists, the per-layer Belady optimum (filled); hollow points assume uniform routing, which overstates the optimum's
 reads and so the percentage; the dotted lines are the class medians (no GPU expert capacity, \audNocapMed\%; every
-expert resident, \audAllfitMed\%). Right: our cache, FreeToken and stock llama.cpp on host B against the probed limit
-of \cref{tab:headline}.}\label{fig:audit}
+expert resident, \audAllfitMed\%). Right: our cache, FreeToken and stock llama.cpp on host B against the probed
+per-layer limit of \cref{tab:headline} (the pooled bound FreeToken's and llama.cpp's designs allow is
+\poolOverLayerMin--\poolOverLayerMax\% higher).}\label{fig:audit}
 \end{figure}
 \Cref{tab:audit} lists the \audAllN{} published measurements of \cref{sec:limit} with their bounds. The sources are
 Fiddler~\cite{kamahori2024fiddler}, ProMoE~\cite{song2024promoe}, KTransformers~\cite{ktransformers},

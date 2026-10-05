@@ -120,7 +120,7 @@ def main():
             dag = r"$^\dagger$" if "3090" in c["card"] else ""
             lines.append("%s & %s & %s & %s & %.1f & %s & %s & %.0f & %s & %.0f \\\\" % (
                 r["model"], r["budget"].replace("%", r"\%"), f"{r['llama']:.1f}" if r.get("llama") else "--", f"{r['ft']:.1f}{dag}" if r.get("ft") else "--",
-                r["ours"], fmt_ratio(r["ours_over_ft"]) + dag, f"{r['ours_over_llama'][0]:.2f}" if r.get("ours_over_llama") else "--",
+                r["ours"], (fmt_ratio(r["ours_over_ft"]) if not dag else "--"), f"{r['ours_over_llama'][0]:.2f}" if r.get("ours_over_llama") else "--",
                 r["limit_tok_s"], reg, 100 * r["frac_ours"]))
         for m in c.get("mixtral", []) or []:
             lines.append("Mixtral-8x7B Q4\\_K\\_M & $C{=}%d$ (%d\\%%) & %.2f & -- & %.2f & -- & %.3f [%.3f, %.3f] & -- & -- & -- \\\\" % (
@@ -133,8 +133,8 @@ GPU's whole read, so the GPU has slack, \emph{both} when the limit runs experts 
 equally long, which is where the all-in-VRAM speed can be exceeded. Ours and
 FreeToken are launch 2 (FreeToken's backend carried over from host B's selection); the 40 and 43.75\%
 budgets do not fit a 24\,GB card. $^\dagger$On the RTX 3090 FreeToken's carried-over hybrid backend ran below
-llama.cpp; its own calibration recommends its offload backend there, which we did not run, so those cells are
-reported, not counted. Mixtral-8x7B (26\,GB of experts, top-2 of 8) is ours against llama.cpp only, on the RTX 3090,
+llama.cpp; its own calibration recommends its offload backend there, which we did not run, so its speed is reported
+and no ratio against it is printed. Mixtral-8x7B (26\,GB of experts, top-2 of 8) is ours against llama.cpp only, on the RTX 3090,
 launch 1.}\label{tab:grid}
 \setlength\tabcolsep{3pt}\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrcr}\toprule

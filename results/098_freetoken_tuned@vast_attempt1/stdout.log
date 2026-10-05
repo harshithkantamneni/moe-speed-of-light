@@ -1,0 +1,122 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/098_freetoken_tuned@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ command -v cmake
+++ apt-get update -qq
+W: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ date +%s
++ T0=1791242756
++ BUDGET=21600
++ RESERVE=600
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/098_freetoken_tuned@vast/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA GeForce RTX 5090, 32607 MiB, 3090 MHz, 14001 MHz, 5, 1, 16, 16, 595.71.05, 400.00 W
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz (listing B reported 17001)'
++ tee /w/results/098_freetoken_tuned@vast/gate.txt
+memory clock max 14001 MHz (listing B reported 17001)
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
++ nvidia-smi -q
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/098_freetoken_tuned@vast/bw_gate.txt
++ DR=1695
++ echo 'device read 1695 GB/s'
++ tee -a /w/results/098_freetoken_tuned@vast/gate.txt
+device read 1695 GB/s
++ '[' 1695 -ge 1500 ']'
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/098_freetoken_tuned@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32)'
+usable physical cores 16 (nproc 32)
++ HFD=/work/models/gpt-oss-120b
++ mkdir -p /work/models
++ DLH=6318
++ DLG=6319
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6321
++ FT=/work/ft
++ export FT_DIR=/work/ft
++ FT_DIR=/work/ft
++ cd /work
++ git init -q ft
++ cd ft
++ git remote add origin https://github.com/FlashML-org/FreeToken
++ git fetch -q --depth 1 origin 0d652e73a452d014ac5441a15baa75348e9fcb0a
++ git checkout -q FETCH_HEAD
++ nvcc --version
++ tail -2
++ tee /w/results/098_freetoken_tuned@vast/nvcc_version.txt
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
++ echo 'FreeToken install rc=1'
+FreeToken install rc=1
++ PY=/work/ft/.venv/bin/python
++ FTBIN=/work/ft/.venv/bin/ft
++ /work/ft/.venv/bin/python -c 'import freetoken, huggingface_hub'
++ echo 'FreeToken not importable, stopping'
+FreeToken not importable, stopping
++ cat /w/results/098_freetoken_tuned@vast/ft_import.txt
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'freetoken'
++ tail -20 /w/results/098_freetoken_tuned@vast/ft_install.txt
+             return self.get_requires_for_build_wheel(config_settings)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           File "/root/.cache/uv/builds-v0/.tmpD0qvFG/lib/python3.12/site-packages/setuptools/build_meta.py", line 333, in get_requires_for_build_wheel
+             return self._get_build_requires(config_settings, requirements=[])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           File "/root/.cache/uv/builds-v0/.tmpD0qvFG/lib/python3.12/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+             self.run_setup()
+           File "/root/.cache/uv/builds-v0/.tmpD0qvFG/lib/python3.12/site-packages/setuptools/build_meta.py", line 317, in run_setup
+             exec(code, locals())
+           File "<string>", line 90, in <module>
+           File "<string>", line 22, in _check_toolchain
+           File "/work/ft/python/freetoken/kernel/_toolchain.py", line 73, in check_nvcc_matches_torch
+             raise RuntimeError(
+         RuntimeError: nvcc 12.8 would build kernels linking libcudart.so.12, but torch 2.11.0+cu130 ships CUDA 13.0 (libcudart.so.13). Install a CUDA 13.x toolkit, or set FREETOKEN_ALLOW_CUDA_MISMATCH=1 to override.
+
+hint: Build failures usually indicate a problem with the package or the build environment
+
+real	12m9.688s
+user	0m8.595s
+sys	0m2.945s
++ kill 6318 6319 6321
++ exit 3

@@ -432,6 +432,22 @@ Host CPU & Job & $n$ & Median & Max & llama.cpp \\
     if ll_off:
         M("lawLlamaOffMin", f"{100 * min(ll_off):+.0f}"); M("lawLlamaOffMax", f"{100 * max(ll_off):+.0f}")
     M("lawRowsMedian", f"{100 * st.median([abs(e) for e in cache_err]):.1f}")   # per measurement, the LOHO note's basis
+    # a naive baseline on the same blind measurements: one read path, every host read at the best single probed rate,
+    # the same frozen G and the same registered reads (jobs/ec2/law_predict.py) -- bytes over bandwidth
+    READS = {"C14": (66.0423, 0.0), "C32": (34.8770, 0.0), "C56": (17.9388, 0.0),
+             "C14_fetch": (18.6979, 40.8704), "C32_fetch": (7.9193, 22.5924), "C56_fetch": (3.1087, 12.1107),
+             "C14_pf": (36.5547, 29.4674), "C32_pf": (16.3418, 19.6842), "C56_pf": (7.5723, 11.4512), "C32_fetch_pf": (3.1986, 31.1198)}
+    naive = []
+    for r in rows:
+        if r["engine"] != "cache" or r["config"] not in READS:
+            continue
+        job = r["job"].replace("073a_samehost_v2_attempt1", "073_samehost_v2")
+        d = json.load(open(os.path.join(os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results"), job, "law_prediction.json")))
+        c, l = READS[r["config"]]
+        t = 4.819346e-3 + (c + l) * 13253760.0 / (max(d["B_c"], d["B_p"]) * 1e9)
+        naive.append(abs((1 / t) / r["measured"] - 1))
+    M("lawNaiveMed", f"{100 * st.median(naive):.1f}"); M("lawNaivePninety", f"{100 * np.percentile(naive, 90):.0f}")
+    M("lawRowsPninety", f"{100 * np.percentile([abs(e) for e in cache_err], 90):.0f}")
     M("lawDeskN", str(len(desk_err)))
     M("lawDeskMedian", f"{100 * st.median(desk_err):.1f}")
     M("lawDeskPninety", f"{100 * np.percentile(desk_err, 90):.1f}")

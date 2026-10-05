@@ -103,6 +103,11 @@ def train(key, C, kind="logit", n_times=3000, extra=12, stride=4, seed=0, cross=
     H = max(1, int(round(C / k)))
     t0 = time.time()
     PX = trans_all(R3, E, H, T, stride) if cross else np.zeros((L, E, L, E), np.float32)
+    PXq = None
+    if cross == 2:
+        # the engine's form: PX quantised to 8 bits (q / 255), a quarter of the bytes it reads per step
+        PXq = np.round(PX * 255.0).astype(np.uint8)
+        PX = PXq.astype(np.float64) / 255.0
     rng = np.random.default_rng(seed)
     Ms, pops, Xs, Ys = [], [], [], []
     for l in range(L):
@@ -118,7 +123,7 @@ def train(key, C, kind="logit", n_times=3000, extra=12, stride=4, seed=0, cross=
     model = make_model(kind)
     model.fit(np.concatenate(Xs), np.concatenate(Ys))
     print(f"   {key} C={C}: trained on {T} tokens of the mixed-domain trace in {time.time() - t0:.0f} s", flush=True)
-    return dict(model=model, Ms=np.stack(Ms), pops=np.stack(pops), PX=PX, H=H, L=L, E=E, k=k, kappa=float(kappa), cross=cross)
+    return dict(model=model, Ms=np.stack(Ms), pops=np.stack(pops), PX=PX, PXq=PXq, H=H, L=L, E=E, k=k, kappa=float(kappa), cross=int(cross))
 
 
 def test(key, C, tr):
@@ -170,7 +175,9 @@ def export(path, tr):
         f.write(np.asarray([m.intercept_[0]], np.float32).tobytes())
         f.write(np.asarray(tr["pops"], np.float32).tobytes())
         f.write(np.asarray(tr["Ms"], np.float32).tobytes())
-        if tr["cross"]:
+        if tr["cross"] == 2:
+            f.write(np.ascontiguousarray(tr["PXq"]).tobytes())
+        elif tr["cross"]:
             f.write(np.asarray(tr["PX"], np.float32).tobytes())
 
 
@@ -181,21 +188,24 @@ def main():
     ap.add_argument("--model", default="logit")
     ap.add_argument("--export-dir")
     ap.add_argument("--no-cross", action="store_true")
+    ap.add_argument("--quant8", action="store_true", help="cross-layer table quantised to 8 bits (the engine's form)")
     ap.add_argument("--out")
     a = ap.parse_args()
     out = json.load(open(a.out)) if a.out and os.path.exists(a.out) else {}
     for key in a.models.split(","):
         cells = [int(c) for c in a.cells.split(",")] if a.cells else CELLS[key]
         for C in cells:
-            tr = train(key, C, a.model, cross=not a.no_cross)
+            tr = train(key, C, a.model, cross=0 if a.no_cross else (2 if a.quant8 else 1))
             r = test(key, C, tr)
             r["coef"] = tr["model"].coef_[0].tolist() if hasattr(tr["model"], "coef_") else None
-            out[f"{key} C{C}" + (" nocross" if a.no_cross else "")] = r
+            r["intercept"] = float(tr["model"].intercept_[0]) if hasattr(tr["model"], "intercept_") else None
+            r["H"] = tr["H"]; r["cross"] = tr["cross"]
+            out[f"{key} C{C}" + (" nocross" if a.no_cross else (" q8" if a.quant8 else ""))] = r
             if a.out:
                 json.dump(out, open(a.out, "w"), indent=1)
             if a.export_dir and hasattr(tr["model"], "coef_"):
                 os.makedirs(a.export_dir, exist_ok=True)
-                export(os.path.join(a.export_dir, f"learned_{key}_C{C}{'_nocross' if a.no_cross else ''}.bin"), tr)
+                export(os.path.join(a.export_dir, f"learned_{key}_C{C}{'_nocross' if a.no_cross else ('_q8' if a.quant8 else '')}.bin"), tr)
 
 
 if __name__ == "__main__":

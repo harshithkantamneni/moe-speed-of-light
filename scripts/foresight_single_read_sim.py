@@ -10,6 +10,8 @@ next use at "never", which evicted it first and over-counted reads at the larger
            MIN eviction rule (victim = furthest next use; refuse if it is needed sooner than the candidate); an expert
            needed sooner than d steps misses on the CPU and is not admitted then. Reads = CPU misses + copies.
   both-d   lead-d plus fetch for this step's misses (MIN rule).
+  leadnb-d lead-d without the bypass test: Belady within the window (admit if the victim is needed after the
+           expert's first use), each admitted expert still read once.
 
     python scripts/foresight_single_read_sim.py --out prereg/foresight_single_read_sim.json
 """
@@ -45,7 +47,7 @@ def next_use_table(R, E, seqs):
 
 
 @njit(cache=True)
-def sim(R, E, cap, seqs, do_fetch, lead, land):
+def sim(R, E, cap, seqs, do_fetch, lead, land, bypass_test=True):
     """Returns per-step: misses served by the CPU, fetches (misses served by a fetch into a slot), copies (prefetch
     admissions), in-flight misses. land = steps after issue at which a prefetched expert is resident."""
     T, k = R.shape
@@ -145,8 +147,11 @@ def sim(R, E, cap, seqs, do_fetch, lead, land):
                             best, victim = v, c
                 if victim < 0:
                     break
-                if best < INF and best <= se:
-                    continue   # the victim is needed before this expert's reuse: MIN would bypass it
+                if bypass_test:
+                    if best < INF and best <= se:
+                        continue   # the victim is needed before this expert's reuse: MIN would bypass it
+                elif best <= cand_f[order[q]]:
+                    break      # Belady within the window: every evictable resident is needed before this expert
                 state[victim] = 0; size -= 1
                 state[e] = 2; ready[e] = t + land; size += 1; copies[t] += 1
         for j in range(k):
@@ -154,12 +159,12 @@ def sim(R, E, cap, seqs, do_fetch, lead, land):
     return cpu_miss, fetched, copies, inflight
 
 
-def run(act, seqs, E, cap, do_fetch, lead, land):
+def run(act, seqs, E, cap, do_fetch, lead, land, bypass_test=True):
     L, T = act.shape[1], act.shape[0]
     cm = fe = co = inf = 0
     for il in range(L):
         R = np.ascontiguousarray(act[:, il, :].astype(np.int64))
-        a, b, c, d = sim(R, E, cap, seqs, do_fetch, lead, land)
+        a, b, c, d = sim(R, E, cap, seqs, do_fetch, lead, land, bypass_test)
         cm += int(a.sum()); fe += int(b.sum()); co += int(c.sum()); inf += int(d.sum())
     req = T * L * act.shape[2]
     return dict(cpu_misses_per_token=cm / T, fetches_per_token=fe / T, copies_per_token=co / T, reads_per_token=(cm + fe + co) / T,
@@ -180,6 +185,8 @@ def main():
             for d in (2, 3, 4):
                 cell["modes"][f"lead-{d}"] = run(act, seqs, E, cap, False, d, d)
                 cell["modes"][f"both-{d}"] = run(act, seqs, E, cap, True, d, d)
+            # the Belady single-read prefetch (job 096's belady1r): the lead without the bypass test
+            cell["modes"]["leadnb-2"] = run(act, seqs, E, cap, False, 2, 2, False)
             out["models"][model]["cells"][str(cap)] = cell
             print(f"{model} C={cap} ({budget[cap]}), optimum {OPT[(model, cap)]:.1f} reads/token:")
             for m, r in cell["modes"].items():

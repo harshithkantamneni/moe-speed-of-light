@@ -75,6 +75,7 @@ def main():
     dec = [c for h in out["hosts"] for c in h["cells"] if "decomposition" in c]
     if dec:
         hb = [c for c in dec if c["host_bound"]]
+        M("amHostsN", str(sum(1 for h in out["hosts"] if any("decomposition" in c for c in h["cells"]))))
         for key, px in (("bytes", "amBytes"), ("overlap_given_foresight", "amOverlap"), ("rest", "amRest")):
             vals = [100 * c["decomposition"]["measured"][key] for c in hb]
             M(f"{px}HostMin", f"{min(vals):.0f}"); M(f"{px}HostMax", f"{max(vals):.0f}")

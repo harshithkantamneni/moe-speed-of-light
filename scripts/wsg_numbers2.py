@@ -425,8 +425,14 @@ def law_frozen():
     d = load("law_frozen_later.json")
     s = d["summary"]
     M("lawFrozenN", str(s["n"])); M("lawFrozenHosts", str(len({r["host"] for r in d["rows"]})))
-    M("lawFrozenMed", f"{s['median_abs_pct']:.1f}"); M("lawFrozenPninety", f"{s['p90_abs_pct']:.1f}"); M("lawFrozenMax", f"{s['max_abs_pct']:.0f}")
+    M("lawFrozenMed", f"{s['median_abs_pct']:.1f}"); M("lawFrozenPninety", f"{s['p90_abs_pct']:.0f}"); M("lawFrozenMax", f"{s['max_abs_pct']:.0f}")
     M("lawFrozenWithinTen", str(s["within_10pct"]))
+    a = d["summary_adm"]; nv = d["summary_naive"]
+    M("lawFrozenAdmMed", f"{a['median_abs_pct']:.1f}"); M("lawFrozenAdmPninety", f"{a['p90_abs_pct']:.0f}"); M("lawFrozenAdmMax", f"{a['max_abs_pct']:.0f}")
+    M("lawFrozenNaiveMed", f"{nv['median_abs_pct']:.1f}"); M("lawFrozenNaivePninety", f"{nv['p90_abs_pct']:.0f}")
+    g = [r["error"] for r in d["rows"] if r["model"].startswith("gpt")]; q = [r["error"] for r in d["rows"] if not r["model"].startswith("gpt")]
+    M("lawFrozenGptMin", f"{100 * min(g):+.0f}"); M("lawFrozenGptMax", f"{100 * max(g):+.0f}")
+    M("lawFrozenQwenMin", f"{100 * min(q):+.0f}"); M("lawFrozenQwenMax", f"{100 * max(q):+.0f}")
     worst = max(d["rows"], key=lambda r: abs(r["error"]))
     hostname = {"089": "host S", "093": "oracle host O1", "094": "oracle host O2", "095": "oracle host O3"}[worst['host'].split(' ')[0]]
     M("lawFrozenWorstCell", f"{worst['model']} {worst['budget'].replace('%', chr(92) + '%')} on {hostname}")

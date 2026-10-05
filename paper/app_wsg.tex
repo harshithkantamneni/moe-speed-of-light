@@ -71,6 +71,57 @@ a throttled card and was rerun, with its predictions unchanged, as 084b/084c. Th
 \input{tab_scorecard}
 
 \section{The law's form and its failures}\label{app:law}
+\paragraph{The blind test in full.} On every machine of the blind test the job wrote the law's prediction from its own
+probe before any model ran (\cref{tab:law}; all of its cache rows are gpt-oss-120b on RTX 5090 hosts). Over
+\lawCfg{} configurations on \lawHosts{} machines (\lawMeas{} measurements; one machine ran twice) the median error is
+\lawMedian\% per configuration; without the 12-channel EPYC 9655 it is \lawDeskMedian\% over \lawDeskN{}
+configurations (90th percentile \lawDeskPninety\%). llama.cpp \texttt{--n-cpu-moe} is predicted within 4\% on the
+Ryzen hosts, including two Qwen3 configurations on host B (+3.6\%, +4.0\%; for Qwen3, $G{=}4.3$\,ms, the mean
+residual of three llama.cpp runs on another host), and misses by \lawLlamaOffMin--\lawLlamaOffMax\% on the
+hybrid-core and server hosts. With its constants frozen, the law scores the cache on the \lawFrozenHosts{} RTX 5090
+hosts rented later (\lawFrozenN{} measurements at the six cells of \cref{tab:headline}, not written before the runs)
+at a median \lawFrozenMed\%, 90th percentile \lawFrozenPninety\%, worst \lawFrozenMax\% (\lawFrozenWorstCell).
+Refit under leave-one-host-out validation, the token-level max has a median error of \lohoMaxMed\% (90th percentile
+\lohoMaxPninety\%), the additive form $G+X_c/B_c+X_p/B_p$ \lohoAddMed\% (\lohoAddPninety\%) and a per-layer max summed
+over layers \lohoLayerMed\% (\lohoLayerPninety\%); the max beats the sum on the three rows that copy misses on
+demand behind a 53\,GB/s link, where both paths carry most of the bytes, and on the EPYC 9655 rows, where both fail,
+the sum is closer on the two rows that copy behind a slow link, and elsewhere the two are within a few points
+(\cref{app:law}). Each failure has a
+measured cause (\cref{app:law}): on-demand copies behind a slow link share DRAM less evenly than the probe's combined
+rate says; llama.cpp splits every matrix evenly across threads and runs at 46\% of the law on a hybrid-core host; and
+on a 12-channel EPYC host memory stops being the limit and a per-layer latency floor takes over. $G$
+(\lawGRefit\,ms refit) exceeds the whole all-in-VRAM token (\vramMs\,ms) because it absorbs a shortfall the probe does
+not see: the helpers read at \helperRateMin--\helperRateMax$\times$ the probe's time per expert, and a fitted rate
+factor is collinear with $G$ at this sample size.
+
+\input{tab_law}
+
+\paragraph{What the law says, and the split it picks.} \Cref{eq:law} is a calibrated model of execution that reads host
+memory in sequence with its GPU work, as our cache and llama.cpp do. For such an engine every mechanism acts only
+through the bytes read from host memory per token and the number of read paths in use: a second path adds bandwidth on
+every host of the blind test but the 12-channel EPYC ($B_{cp}$ against $\max(B_c,B_p)$: \secondMin--\secondMax\%
+on its Ryzen hosts, \secondUltra\% on the Core Ultra, \secondEpyc\% on the Zen~2 EPYC; the RTX 3090 host's Core
+i9-11900KF, where the two paths together read less than the CPU alone, is a second exception), and that is the whole
+gain available to fetching or splitting misses between the CPU and PCIe. Prefetching never reduces the bytes; what
+it can buy is overlap of the reads with the step, which the law does not price and \cref{sec:gap} measures (there
+the law over-predicts overlapped execution by up to \fspLawErrHighMax\%). The law's job in the system is the split.
+Its
+per-layer form,
+\begin{equation}
+T(n,f)=\max\!\big(\tfrac{fS}{B_p}+g,\ [n{>}f](L_c+\tfrac{(n-f)S}{B_c}),\ [0{<}f{<}n]\tfrac{nS}{B_{cp}}\big),
+\label{eq:split}
+\end{equation}
+with $g$ the GPU's expert work per layer (48\,$\mu$s for Qwen3, 37\,$\mu$s for gpt-oss, from profiles) and
+$L_c{=}20\,\mu$s the hand-off, picks for each count $n$ of missed experts the number $f$ to copy with the smallest
+$T$. On host B the law's table beats the fixed table we used before at every budget of both models, by
+\lawGainMin--\lawGainMax\%; on hosts whose link we measured at 27--30\,GB/s instead of 53 it fetches less and gains
+\hpGptLawMin--\hpGptLawMax\% on gpt-oss and \hpQwenLawMin--\hpQwenLawMax\% on Qwen3, the per-machine split mattering
+most where the link is slow (\cref{app:system}). In the running example on host B the table is
+\texttt{\scTableGptB} ($f(0..4)$): one missed expert runs on the CPU, hidden behind the GPU's other experts; from two
+misses the law copies one. The lead over FreeToken at that cell, \ftRatioGptMid$\times$, is mostly the admission
+policy (\scPolicyShareGptMin\% of it by the LRU ablation of \cref{app:system}), the rest the CPU path that FreeToken's
+bandwidth model declines to use there.
+
 \paragraph{Is the max the right form?} In 19 of the \lawCfg{} configurations nothing is copied, so they test one
 roof. We therefore refit the law and its alternatives on the same \lawRows{} measurements under leave-one-host-out
 validation (each of the \lawHostsLoho{} hosts predicted with constants fitted on the other \lawHostsLohoOther): the token-level max of
@@ -148,6 +199,38 @@ llama.cpp at two cells against a predicted 1.8, Mixtral tied at $C{=}2$ against 
 $C{=}4$ cell was lost to the job's deadline, and one launch-order check exceeded 3\% (7\%).
 
 \input{tab_grid}
+
+\section{The accounting as a model}\label{app:accounting}
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/shapley.pdf}
+\caption{The accounting as a model: Shapley attribution of the gap between our cache's measured time per token and
+the speed limit, for every cell of \cref{tab:headline} on host B, averaged over all \shOrders{} orders in which the
+five fixes can be applied. Fixes: overlapping host reads with GPU work, which in \cref{eq:limit}'s form also moves
+experts onto the CPU until the two paths balance; the optimum's reads instead of the best online policy's (foresight);
+the best online policy's reads at the probe's highest rate instead of the engine's reads through \cref{eq:law}
+(policy and read paths); the engine's per-token host work; and GPU kernels at the datasheet rate, the term that
+closes the model on the measured time. Whiskers: the range of foresight's marginal cost over the orders.}
+\label{fig:shapley}
+\end{figure}
+
+ Between the measured time of a cell and its limit lie five modelled fixes:
+overlap of host reads with GPU work (in \cref{eq:limit}'s form, which also rebalances experts onto the CPU), the
+optimum's reads instead of the online policy's (\emph{foresight}), the best online policy's reads at the probe's
+highest rate instead of the engine's through \cref{eq:law} (policy and read paths), the engine's per-token host work,
+and GPU kernels at the datasheet rate. Adding them in a fixed order makes the first one added look largest, so we
+report each fix's Shapley value, its average marginal cost over every order (\cref{fig:shapley}), a method with a
+precedent in performance debugging of microservices~\cite{shapleyiq2024}. Two of the five terms are definitions
+rather than measurements: the GPU term is the residual, its factor calibrated per cell so that the model with no fix
+applied reproduces the measured time, and ``overlap'' is \cref{eq:limit}'s form. On host B the model has two regimes.
+In the four host-bound cells missing foresight is the largest cost, \shFsHostMin--\shFsHostMax\% of the gap
+(\shFsHostTokMin--\shFsHostTokMax\% of the token; in the running example \shFsGMid\%, where it edges overlap by
+\shTieMs\,ms and is the largest marginal cost in \shOrdersGMid{} of the \shOrders{} orders); in the two GPU-bound cells
+host reads serialised with GPU work is largest, \shOvlGpuMin--\shOvlGpuMax\% of the gap, and foresight second at
+\shFsGpuMin\%. Policy and read paths cost \shPolMin--\shPolMax\%, per-token host work \shHostMin--\shHostMax\%, and
+GPU kernels below datasheet, net of the overlap the engine achieves, \shGpuMin--\shGpuMax\%. The regimes are a
+property of the host: recomputed for the three oracle hosts, whose host memory is weaker, foresight edges overlap at
+three of their six GPU-bound cells. The model prices foresight and overlap as nearly independent players, and the
+interior states it values are not realised by any online policy. The rest of this section measures them.
 
 \section{Foresight in the engine}\label{app:foresight}
 Three jobs ran oracle policies in the engine, each on a rented RTX 5090 host with weaker host memory than host B's.
@@ -315,7 +398,7 @@ for gpt-oss: the per-machine split matters most where the link is slow. On the R
 (job 085) was confounded: FreeToken's hybrid backend ran gpt-oss at \iNineHybridMin--\iNineHybridMax\,tok/s, below its
 own offload backend (\iNineOffloadMin--\iNineOffloadMax), because its CPU executor spread 23 threads across the 8
 performance and 16 efficiency cores and its calibration then sent two thirds of the misses over the slow link, the
-same failure \cref{sec:law} reports for llama.cpp; the 1.4--2.0$\times$ lead that gave us measured a thread
+same failure \cref{app:law} reports for llama.cpp; the 1.4--2.0$\times$ lead that gave us measured a thread
 configuration. We reran it (job 088, a second rental of the same CPU model) with FreeToken's executor on 8 threads
 pinned to the performance cores: its hybrid backend then runs \slHybGainMin--\slHybGainMax$\times$ faster than before
 (\slHybLow, \slHybMid{} and \slHybHigh\,tok/s; its calibration now copies \slFetchFrac\% of misses), beating its own

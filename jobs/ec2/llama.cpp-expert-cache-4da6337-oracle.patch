@@ -1341,10 +1341,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..77740b3
+index 0000000..9c2db88
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1800 @@
+@@ -0,0 +1,2016 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1452,6 +1452,13 @@ index 0000000..77740b3
 +        LLAMA_LOG_WARN("%s: LLAMA_EC_FETCH_ON_ADMIT needs the decayed-frequency policy: ignored\n", __func__);
 +        fetch_admit = false;
 +    }
++    if (const char * lp = getenv("LLAMA_EC_LEARNED"); lp && *lp) {
++        if (!fetch_admit) {
++            LLAMA_LOG_WARN("%s: LLAMA_EC_LEARNED needs LLAMA_EC_FETCH_ON_ADMIT=1: ignored\n", __func__);
++        } else if (!load_learned(lp)) {
++            LLAMA_LOG_WARN("%s: LLAMA_EC_LEARNED=%s could not be read: the decayed score orders admissions\n", __func__, lp);
++        }
++    }
 +    overlap_cpu = env_int("LLAMA_EC_OVERLAP", 1) != 0;
 +    check_ids   = env_int("LLAMA_EC_CHECK", 0) != 0;
 +    max_admit   = env_int("LLAMA_EC_MAX_ADMIT", 0);
@@ -1510,6 +1517,22 @@ index 0000000..77740b3
 +        LLAMA_LOG_WARN("%s: LLAMA_EC_SLOTS set, but no MoE layer has its experts in host memory; cache disabled\n", __func__);
 +        n_slots = 0;
 +        return;
++    }
++    if (lm) {
++        if ((int) layers.size() != lm->L || layers[0].n_expert != lm->E || max_used != lm->k) {
++            LLAMA_LOG_WARN("%s: LLAMA_EC_LEARNED: the file is for %d layers x %d experts, top-%d; the model has %zu x %d, top-%d: ignored\n",
++                           __func__, lm->L, lm->E, lm->k, layers.size(), layers[0].n_expert, max_used);
++            lm.reset();
++        } else {
++            const size_t LE = (size_t) lm->L * lm->E;
++            lsc.assign(5 * LE, 0.0);
++            llast.assign(LE, -1);
++            lprev.assign((size_t) lm->L * lm->k, -1);
++            lz0.assign(LE, 0.0f);
++            lz1.assign(LE, 0.0f);   // the first step fills free slots (C >= k), so its logits are never compared
++            LLAMA_LOG_INFO("%s: learned admission order: %d layers x %d experts, top-%d, H %d, %d features%s\n", __func__,
++                           lm->L, lm->E, lm->k, lm->H, lm->nf, lm->cross ? " (with cross-layer transitions)" : "");
++        }
 +    }
 +
 +    size_t n_tensors = 1;
@@ -2053,7 +2076,11 @@ index 0000000..77740b3
 +                continue;
 +            }
 +            const int r = L.resident[s];
-+            cand.emplace_back(r < 0 ? -1.0 : L.score[r] * ec_decay_pow(decay, step - L.last[r]), s);
++            if (lm) {
++                cand.emplace_back(r < 0 ? -1e30 : (double) lz(i, r, false), s);
++            } else {
++                cand.emplace_back(r < 0 ? -1.0 : L.score[r] * ec_decay_pow(decay, step - L.last[r]), s);
++            }
 +        }
 +        std::sort(cand.begin(), cand.end());
 +        for (size_t q = 0; q < cand.size() && (int) q < E; ++q) {
@@ -2072,8 +2099,8 @@ index 0000000..77740b3
 +                    rk[e] = 0;
 +                    continue;
 +                }
-+                const double sc = L.score[e] * ec_decay_pow(decay, step - L.last[e]) + 1.0;
-+                const size_t r = std::lower_bound(keys.begin(), keys.end(), sc - kappa) - keys.begin();
++                const double sc = lm ? (double) lz(i, e, true) : L.score[e] * ec_decay_pow(decay, step - L.last[e]) + 1.0;
++                const size_t r = std::lower_bound(keys.begin(), keys.end(), lm ? sc : sc - kappa) - keys.begin();
 +                rk[e] = (int16_t) std::min<size_t>(r, 32767);
 +            }
 +        }
@@ -2224,6 +2251,186 @@ index 0000000..77740b3
 +        return;
 +    }
 +    copy_expert(L, s, e, false);
++}
++
++bool llama_expert_cache::load_learned(const char * path) {
++    FILE * f = fopen(path, "rb");
++    if (!f) {
++        return false;
++    }
++    auto rd = [&](void * p, size_t n) { return fread(p, 1, n, f) == n; };
++    char magic[4];
++    int32_t hdr[7];
++    auto m = std::make_unique<learned_model>();
++    bool ok = rd(magic, 4) && memcmp(magic, "ECLP", 4) == 0 && rd(hdr, sizeof(hdr)) && hdr[0] == 1;
++    if (ok) {
++        m->L = hdr[1]; m->E = hdr[2]; m->k = hdr[3]; m->nf = hdr[4]; m->H = hdr[5]; m->cross = hdr[6];
++        ok = m->L > 0 && m->E > 0 && m->k > 0 && m->nf == 11 && rd(m->hl, sizeof(m->hl));
++    }
++    if (ok) {
++        const size_t L = m->L, E = m->E;
++        m->w.resize(m->nf);
++        m->pop.resize(L * E);
++        m->M.resize(L * E * E);
++        ok = rd(m->w.data(), m->nf * sizeof(float)) && rd(&m->b, sizeof(float)) && rd(m->pop.data(), L * E * sizeof(float))
++             && rd(m->M.data(), L * E * E * sizeof(float));
++        if (ok && m->cross == 2) {
++            m->PX8.resize(L * E * L * E);   // 8-bit table: q / 255
++            ok = rd(m->PX8.data(), m->PX8.size());
++        } else if (ok && m->cross) {
++            m->PX.resize(L * E * L * E);
++            ok = rd(m->PX.data(), m->PX.size() * sizeof(float));
++        }
++    }
++    fclose(f);
++    if (ok) {
++        lm = std::move(m);
++    }
++    return ok;
++}
++
++void llama_expert_cache::learned_update() {
++    // this step's selection: the decayed counts at five half-lives (every count decays by one step, the requested ones
++    // gain 1; equal to scripts/learned_policy5.py's count * d^(t - last) + 1), the last request, the experts of the step
++    const auto t0 = std::chrono::steady_clock::now();
++    const int E = lm->E, k = lm->k;
++    double d[5];
++    for (int h = 0; h < 5; ++h) {
++        d[h] = std::pow(0.5, 1.0 / lm->hl[h]);
++    }
++    for (size_t li = 0; li < layers.size(); ++li) {
++        const int32_t * sel = routing_host.data() + (3 * li + 0) * max_used;
++        double * sc = lsc.data() + li * 5 * E;
++        int64_t * last = llast.data() + li * E;
++        for (int h = 0; h < 5; ++h) {
++            double * ch = sc + (size_t) h * E;
++            for (int e = 0; e < E; ++e) {
++                ch[e] *= d[h];
++            }
++        }
++        for (int j = 0; j < k; ++j) {
++            const int e = j < layers[li].n_used ? sel[j] : -1;
++            lprev[li * k + j] = (e >= 0 && e < E) ? e : -1;
++            if (e < 0 || e >= E) {
++                continue;
++            }
++            for (int h = 0; h < 5; ++h) {
++                // the count decays from the last request: sc * d^(step - last) + 1; the loop above already applied
++                // one step of decay, so an expert requested at the previous step is right; others were decayed every step
++                sc[(size_t) h * E + e] += 1.0;
++            }
++            last[e] = step;
++        }
++    }
++    learned_update_logits();
++    learned_ns += (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - t0).count();
++    learned_steps++;
++}
++
++void llama_expert_cache::learned_update_logits() {
++    // the logits for the coming step tn = step + 1: z0 (not requested at tn) for the experts resident now, which are
++    // the only victims; z1 (requested at tn) for the others, the only misses. The count at tn is the stored count
++    // decayed by one more step.
++    const int L = lm->L, E = lm->E, k = lm->k;
++    const int64_t tn = step + 1;
++    double d[5];
++    for (int h = 0; h < 5; ++h) {
++        d[h] = std::pow(0.5, 1.0 / lm->hl[h]);
++    }
++    if (lrec.empty()) {
++        lrec.resize(1 << 16);
++        for (size_t x = 0; x < lrec.size(); ++x) {
++            lrec[x] = std::log1p((double) x);
++        }
++    }
++    const float * w = lm->w.data();
++    std::vector<float> tx, tmax;
++    if (lm->cross == 2) {
++        // integer sums of the 8-bit table rows of the previous step's experts at every layer (exact), then / 255
++        std::vector<int32_t> txi((size_t) L * E, 0);
++        std::vector<uint8_t> tmq((size_t) L * E, 0);
++        for (int lp = 0; lp < L; ++lp) {
++            for (int j = 0; j < k; ++j) {
++                const int i = lprev[(size_t) lp * k + j];
++                if (i < 0) {
++                    continue;
++                }
++                const uint8_t * row = lm->PX8.data() + ((size_t) lp * E + i) * (size_t) L * E;
++                for (size_t x = 0; x < (size_t) L * E; ++x) {
++                    txi[x] += row[x];
++                    tmq[x] = std::max(tmq[x], row[x]);
++                }
++            }
++        }
++        tx.resize((size_t) L * E);
++        tmax.resize((size_t) L * E);
++        for (size_t x = 0; x < (size_t) L * E; ++x) {
++            tx[x]   = (float) ((double) txi[x] / 255.0);
++            tmax[x] = (float) ((double) tmq[x] / 255.0);
++        }
++    } else if (lm->cross) {
++        tx.assign((size_t) L * E, 0.0f);
++        tmax.assign((size_t) L * E, 0.0f);
++        for (int lp = 0; lp < L; ++lp) {
++            for (int j = 0; j < k; ++j) {
++                const int i = lprev[(size_t) lp * k + j];
++                if (i < 0) {
++                    continue;
++                }
++                const float * row = lm->PX.data() + ((size_t) lp * E + i) * (size_t) L * E;
++                for (size_t x = 0; x < (size_t) L * E; ++x) {
++                    tx[x] += row[x];
++                    tmax[x] = std::max(tmax[x], row[x]);
++                }
++            }
++        }
++    }
++    std::vector<float> ts(E);
++    for (int li = 0; li < L; ++li) {
++        std::fill(ts.begin(), ts.end(), 0.0f);
++        for (int j = 0; j < k; ++j) {
++            const int i = lprev[(size_t) li * k + j];
++            if (i < 0) {
++                continue;
++            }
++            const float * row = lm->M.data() + ((size_t) li * E + i) * E;
++            for (int e = 0; e < E; ++e) {
++                ts[e] += row[e];
++            }
++        }
++        const layer & Ly = layers[li];
++        std::vector<char> res_now(E, 0);
++        for (int e = 0; e < E; ++e) {
++            res_now[e] = Ly.slot_of[e] >= 0;
++        }
++        for (int x : Ly.loading) {
++            if (x >= 0 && x < E) {
++                res_now[x] = 1;
++            }
++        }
++        const double * sc = lsc.data() + (size_t) li * 5 * E;
++        const int64_t * last = llast.data() + (size_t) li * E;
++        for (int e = 0; e < E; ++e) {
++            const bool res = res_now[e] != 0;
++            const double flag = res ? 0.0 : 1.0;
++            const int64_t dt = tn - last[e];
++            double z = lm->b + w[5] * (last[e] >= 0 ? (dt < (int64_t) lrec.size() ? lrec[dt] : std::log1p((double) dt)) : 12.0)
++                     + w[6] * flag + w[7] * ts[e] / k + w[8] * lm->pop[(size_t) li * E + e];
++            if (lm->cross) {
++                z += w[9] * tx[(size_t) li * E + e] / (L * k) + w[10] * tmax[(size_t) li * E + e];
++            }
++            if (last[e] >= 0) {
++                for (int h = 0; h < 5; ++h) {
++                    z += w[h] * std::log1p(sc[(size_t) h * E + e] * d[h] + flag);
++                }
++            } else {
++                z += flag * (w[0] + w[1] + w[2] + w[3] + w[4]) * 0.6931471805599453;
++            }
++            (res ? lz0 : lz1)[(size_t) li * E + e] = (float) z;
++            // the other one is not used this step (a resident is never a miss, a non-resident never a victim)
++            (res ? lz1 : lz0)[(size_t) li * E + e] = res ? (float) (z + w[6]) : (float) (z - w[6]);
++        }
++    }
 +}
 +
 +void llama_expert_cache::fetch_now(layer & L, int s, int e) {
@@ -2679,6 +2886,9 @@ index 0000000..77740b3
 +            continue;   // fetch-on-admit: this step's admissions were fetched by the GPU's plan (one read); no background copies
 +        }
 +        const bool sync_fetch = fetch_admit;   // fetch-on-admit without FETCH ops: admit synchronously, counted as a fetch
++        if (lm) {
++            std::stable_sort(missed.begin(), missed.end(), [&](int a, int b) { return lz(li, a, true) > lz(li, b, true); });
++        }
 +        for (int e : missed) {
 +            if (!sync_fetch && (budget <= 0 || (paced && max_pending > 0 && pending.load() >= max_pending))) {
 +                break;
@@ -2711,7 +2921,8 @@ index 0000000..77740b3
 +                if (c < 0 || L.loading[s] >= 0 || std::find(sel, sel + k, c) != sel + k) {
 +                    continue;
 +                }
-+                const double key = policy == LRU ? (double) L.stamp[c]
++                const double key = lm ? (double) lz(li, c, false)
++                                 : policy == LRU ? (double) L.stamp[c]
 +                                                 : L.score[c] * ec_decay_pow(decay, step - L.last[c]);
 +                if (victim < 0 || key < best) {
 +                    best = key;
@@ -2721,7 +2932,7 @@ index 0000000..77740b3
 +            if (victim < 0) {
 +                continue;
 +            }
-+            if (policy == DFA && !(L.score[e] > best + kappa)) {
++            if (lm ? !((double) lz(li, e, true) > best) : (policy == DFA && !(L.score[e] > best + kappa))) {
 +                continue;
 +            }
 +            const int v = L.resident[victim];
@@ -2747,6 +2958,9 @@ index 0000000..77740b3
 +            }
 +            issued[b] = true;
 +        }
++    }
++    if (lm) {
++        learned_update();
 +    }
 +    step++;
 +}
@@ -2777,6 +2991,8 @@ index 0000000..77740b3
 +            (unsigned long long) oracle_forced, (unsigned long long) oracle_lead_skipped);
 +    fprintf(f, " \"oracle_nobypass\": %d, \"fetch_on_admit\": %d, \"fetch_admits_sync\": %llu,\n",
 +            (int) oracle_nobypass, (int) fetch_admit, (unsigned long long) fetch_admits);
++    fprintf(f, " \"learned\": %d, \"learned_cross\": %d, \"learned_us_per_step\": %.2f,\n", (int) (lm != nullptr),
++            lm ? lm->cross : 0, learned_steps ? 1e-3 * (double) learned_ns / (double) learned_steps : 0.0);
 +    fprintf(f, " \"defer_admit\": %d, \"host_us_per_step\": {\"n\": %llu, \"app\": %.1f, \"pre\": %.1f, \"inputs\": %.1f, \"launch\": %.1f, \"issue\": %.1f, \"sync\": %.1f, \"post\": %.1f},\n",
 +            (int) defer_admit, (unsigned long long) t_n, t_n ? t_acc[0] / t_n : 0.0, t_n ? t_acc[1] / t_n : 0.0, t_n ? t_acc[2] / t_n : 0.0,
 +            t_n ? t_acc[3] / t_n : 0.0, t_n ? t_acc[4] / t_n : 0.0, t_n ? t_acc[5] / t_n : 0.0, t_n ? t_acc[6] / t_n : 0.0);
@@ -3147,10 +3363,10 @@ index 0000000..77740b3
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..e5c926f
+index 0000000..f6c8d01
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,303 @@
+@@ -0,0 +1,334 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -3453,6 +3669,37 @@ index 0000000..e5c926f
 +    size_t adm_per = 0;
 +    uint64_t fetch_admits = 0;          // admissions made by fetching (CPU fallback: counted here; GPU: fetches include them)
 +    void fetch_now(layer & L, int slot, int e);   // synchronous single-read admission (CPU fallback of fetch-on-admit)
++    // LLAMA_EC_LEARNED=<file> (with FETCH_ON_ADMIT=1): the admission test and the victim order come from a learned
++    // reuse predictor (scripts/learned_policy6.py) instead of the decayed score. At the end of step t-1 the host
++    // computes, per layer and expert, the predictor's logit for step t with the requested-at-t flag off (z0: victims
++    // are the residents not requested at t) and on (z1: a miss at t); a miss is fetched into the slot of the
++    // non-requested resident with the lowest z0 when its z1 is higher (one read), else it runs on the CPU. Features:
++    // decayed request counts at five half-lives, steps since the last request, the flag, a same-layer transition score
++    // from step t-1's experts, the training popularity and (if the file has them) cross-layer transition scores from
++    // step t-1's experts at every layer.
++    struct learned_model {
++        int L = 0, E = 0, k = 0, nf = 0, H = 0, cross = 0;
++        float hl[5] = {0, 0, 0, 0, 0};
++        std::vector<float> w;     // [nf]
++        float b = 0.0f;
++        std::vector<float> pop;   // [L][E]
++        std::vector<float> M;     // [L][E][E]
++        std::vector<float> PX;    // [L][E][L][E] if cross == 1
++        std::vector<uint8_t> PX8; // [L][E][L][E] if cross == 2 (q / 255)
++    };
++    std::unique_ptr<learned_model> lm;
++    std::vector<double>  lsc;     // [layers][5][E] decayed request counts
++    std::vector<int64_t> llast;   // [layers][E] last decode step requested, -1 never
++    std::vector<int32_t> lprev;   // [layers][k] the previous step's experts, -1 none
++    std::vector<float>   lz0, lz1;   // [layers][E] logits for the coming step
++    std::vector<double>  lrec;       // log1p(dt) for dt < 65536
++    uint64_t learned_ns = 0, learned_steps = 0;
++    bool load_learned(const char * path);
++    void learned_update();        // end of post_compute: counts from this step's selection, logits for the next
++    void learned_update_logits();
++    float lz(size_t li, int e, bool requested) const {
++        return requested ? lz1[li * lm->E + e] : lz0[li * lm->E + e];
++    }
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
 index a806126..d924971 100644

@@ -31,10 +31,10 @@ index cc3f8cd..ea8c543 100644
      //
 diff --git a/ggml/include/ggml-ec.h b/ggml/include/ggml-ec.h
 new file mode 100644
-index 0000000..9092609
+index 0000000..7b8a95b
 --- /dev/null
 +++ b/ggml/include/ggml-ec.h
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,98 @@
 +#pragma once
 +
 +// Device-driven CPU hand-off for MoE decode (expert cache "mailbox" mode).
@@ -109,6 +109,11 @@ index 0000000..9092609
 +    int32_t    * force;                            // FETCH: optional device pointer into pinned memory: [n, (expert, slot) pairs]
 +                                                   // the host decided for this step (n < 0: use the table). Each listed expert
 +                                                   // that misses this step is fetched into its slot; the other misses stay on the CPU.
++    const int16_t * rank;                          // FETCH, fetch-on-admit: optional device pointer into pinned memory: [n_expert]
++                                                   // for each expert, how many leading eviction candidates its decayed score
++                                                   // beats by more than kappa if it is requested this step (the admission
++                                                   // test); a miss that beats the next candidate is fetched into it (one
++                                                   // read) before the table fetches the rest (see ec-plan.h)
 +};
 +
 +struct ggml_ec_op {
@@ -339,12 +344,106 @@ index 8d9cf69..005d774 100644
      for (int64_t i0 = threadIdx.x; i0 < ne0; i0 += blockDim.x) {
          dst_row[i0] = src0_row[i0] + src1_row[i0];
      }
+diff --git a/ggml/src/ggml-cuda/ec-plan.h b/ggml/src/ggml-cuda/ec-plan.h
+new file mode 100644
+index 0000000..4921d35
+--- /dev/null
++++ b/ggml/src/ggml-cuda/ec-plan.h
+@@ -0,0 +1,87 @@
++#pragma once
++// The FETCH plan of one layer and one decode step, shared by the CUDA kernel and the host unit test
++// (tests/test-ec-plan.cpp). gid[k]: the GPU slot of each selected expert (-1 = miss); cid[k]: the expert id of each
++// miss (-1 = hit); vic[V]: eviction candidates, slots in ascending decayed score (free slots first), -1 = end;
++// table[m]: how many of m misses to fetch (the per-machine split); rk[k] (optional, fetch-on-admit): for each miss,
++// the number of leading eviction candidates whose decayed score the miss's score beats by more than kappa (the
++// decayed-frequency admission test, computed by the host before the step). og/oc: the ids after fetching; plan:
++// n, then (expert, slot) pairs. Returns n.
++//
++// Without rk: the first table[m] misses in selection order are fetched into the lowest-score candidates (as before).
++// With rk: first every miss the admission test admits is fetched into the next candidate it beats, in selection order
++// (a miss that does not beat the next candidate stays for now and the candidate is kept for the next miss, as the
++// host-side decayed-frequency loop does); then, if fewer than table[m] were fetched, the remaining misses are
++// fetched by the table into the next candidates. A slot serving a hit of this step is never a candidate.
++#include <stdint.h>
++
++#if defined(__CUDACC__)
++#define EC_HD __host__ __device__
++#else
++#define EC_HD
++#endif
++
++static inline EC_HD int ec_next_victim(const int32_t * gid, const int32_t * vic, int k, int V, int from) {
++    for (int p = from; p < V; ++p) {
++        const int c = vic[p];
++        if (c < 0) {
++            return V;
++        }
++        bool busy = false;
++        for (int jj = 0; jj < k; ++jj) {
++            busy |= gid[jj] == c;
++        }
++        if (!busy) {
++            return p;
++        }
++    }
++    return V;
++}
++
++static inline EC_HD int ec_plan(const int32_t * gid, const int32_t * cid, const int32_t * vic, int k, int V,
++                                const int32_t * table, const int16_t * rk,
++                                int32_t * og, int32_t * oc, int32_t * plan) {
++    int m = 0;
++    for (int j = 0; j < k; ++j) {
++        og[j] = gid[j];
++        oc[j] = cid[j];
++        m += cid[j] >= 0;
++    }
++    int n = 0, vi = 0;
++    if (rk) {
++        for (int j = 0; j < k; ++j) {
++            if (oc[j] < 0) {
++                continue;
++            }
++            const int p = ec_next_victim(gid, vic, k, V, vi);
++            if (p >= V) {
++                break;
++            }
++            if (p < rk[j]) {
++                plan[1 + 2 * n] = oc[j];
++                plan[2 + 2 * n] = vic[p];
++                og[j] = vic[p];
++                oc[j] = -1;
++                n++;
++                vi = p + 1;
++            }
++        }
++    }
++    const int T = table[m < k ? m : k];
++    for (int j = 0; j < k && n < T; ++j) {
++        if (oc[j] < 0) {
++            continue;
++        }
++        const int p = ec_next_victim(gid, vic, k, V, vi);
++        if (p >= V) {
++            break;
++        }
++        vi = p + 1;
++        plan[1 + 2 * n] = oc[j];
++        plan[2 + 2 * n] = vic[p];
++        og[j] = vic[p];
++        oc[j] = -1;
++        n++;
++    }
++    plan[0] = n;
++    return n;
++}
 diff --git a/ggml/src/ggml-cuda/ec.cu b/ggml/src/ggml-cuda/ec.cu
 new file mode 100644
-index 0000000..e661bdc
+index 0000000..9614070
 --- /dev/null
 +++ b/ggml/src/ggml-cuda/ec.cu
-@@ -0,0 +1,424 @@
+@@ -0,0 +1,397 @@
++#include "ec-plan.h"
 +#include "ec.cuh"
 +
 +#include "ggml-ec.h"
@@ -462,22 +561,29 @@ index 0000000..e661bdc
 +static __global__ void ec_fetch_plan_kernel(const int32_t * __restrict__ gid, const int32_t * __restrict__ cid,
 +                                            const int32_t * __restrict__ vic, const int k, const int V,
 +                                            const ggml_ec_fetch f, int32_t * __restrict__ out) {
++    // fetch-on-admit: each miss's admission rank, read from pinned host memory by one thread per selected expert
++    __shared__ int16_t rk[GGML_EC_MAX_K];
++    if (f.rank) {
++        if (threadIdx.x < (unsigned) k) {
++            const int e = cid[threadIdx.x];
++            rk[threadIdx.x] = e >= 0 && e < f.n_expert ? ((const volatile int16_t *) f.rank)[e] : (int16_t) 0;
++        }
++        __syncthreads();
++    }
 +    if (threadIdx.x != 0) {
 +        return;
 +    }
 +    int32_t * og = out;
 +    int32_t * oc = out + k;
 +    int32_t * plan = out + 2 * k;
-+    int m = 0;
-+    for (int j = 0; j < k; ++j) {
-+        og[j] = gid[j];
-+        oc[j] = cid[j];
-+        m += cid[j] >= 0;
-+    }
-+    int n = 0, vi = 0;
++    int n = 0;
 +    const int32_t * fr = f.force;
 +    const int nf = fr ? ((const volatile int32_t *) fr)[0] : -1;
 +    if (nf >= 0) {
++        for (int j = 0; j < k; ++j) {
++            og[j] = gid[j];
++            oc[j] = cid[j];
++        }
 +        // forced plan (an oracle policy): fetch exactly the listed misses into the listed slots
 +        for (int q = 0; q < nf && q < GGML_EC_MAX_K; ++q) {
 +            const int e = fr[1 + 2 * q], s = fr[2 + 2 * q];
@@ -504,44 +610,9 @@ index 0000000..e661bdc
 +            n++;
 +        }
 +        plan[0] = n;
-+        volatile int32_t * lg = f.log;
-+        for (int i = 0; i < 2 * n; ++i) {
-+            lg[1 + i] = plan[1 + i];
-+        }
-+        lg[0] = n;
-+        __threadfence_system();
-+        return;
++    } else {
++        n = ec_plan(gid, cid, vic, k, V, f.table, f.rank ? rk : nullptr, og, oc, plan);
 +    }
-+    const int T = f.table[m < k ? m : k];
-+    for (int j = 0; j < k && n < T; ++j) {
-+        if (cid[j] < 0) {
-+            continue;
-+        }
-+        int v = -1;
-+        while (vi < V && v < 0) {
-+            const int c = vic[vi++];
-+            if (c < 0) {
-+                vi = V;
-+                break;
-+            }
-+            bool busy = false;   // a slot serving a hit of this step cannot be overwritten
-+            for (int jj = 0; jj < k; ++jj) {
-+                busy |= gid[jj] == c;
-+            }
-+            if (!busy) {
-+                v = c;
-+            }
-+        }
-+        if (v < 0) {
-+            break;
-+        }
-+        plan[1 + 2 * n] = cid[j];
-+        plan[2 + 2 * n] = v;
-+        og[j] = v;
-+        oc[j] = -1;
-+        n++;
-+    }
-+    plan[0] = n;
 +    volatile int32_t * lg = f.log;
 +    for (int i = 0; i < 2 * n; ++i) {
 +        lg[1 + i] = plan[1 + i];
@@ -1270,10 +1341,10 @@ index 0000000..a1c14ac
 +#endif
 diff --git a/src/llama-expert-cache.cpp b/src/llama-expert-cache.cpp
 new file mode 100644
-index 0000000..394dfaf
+index 0000000..77740b3
 --- /dev/null
 +++ b/src/llama-expert-cache.cpp
-@@ -0,0 +1,1731 @@
+@@ -0,0 +1,1800 @@
 +#include "llama-expert-cache.h"
 +
 +#include "llama-impl.h"
@@ -1361,6 +1432,7 @@ index 0000000..394dfaf
 +        oracle_bypass = env_int("LLAMA_EC_ORACLE_BYPASS", 0) != 0;
 +        oracle_fetch  = env_int("LLAMA_EC_ORACLE_FETCH", 0) != 0;
 +        oracle_lead   = std::max(0, env_int("LLAMA_EC_ORACLE_LEAD", 0));
++        oracle_nobypass = env_int("LLAMA_EC_ORACLE_NOBYPASS", 0) != 0;
 +        if (!load_oracle(getenv("LLAMA_EC_ORACLE"))) {
 +            LLAMA_LOG_WARN("%s: LLAMA_EC_POLICY=oracle but LLAMA_EC_ORACLE could not be read: using dfa\n", __func__);
 +            policy = DFA;
@@ -1368,10 +1440,18 @@ index 0000000..394dfaf
 +            LLAMA_LOG_INFO("%s: oracle policy: %zu records of %d layers x %d experts, window %d (0 = rest of the sequence), %s%s, lead %d\n",
 +                    __func__, oracle_seq.size(), oracle_L, oracle_k, oracle_w, oracle_bypass ? "MIN with bypass (this step's misses admitted for their next use)" : "Belady prefetch within the window",
 +                    oracle_fetch ? " + MIN-with-bypass admissions served by FETCH (one read)" : "", oracle_lead);
++            if (oracle_nobypass) {
++                LLAMA_LOG_INFO("%s: oracle: the lead prefetch admits by Belady within the window (no bypass test)\n", __func__);
++            }
 +        }
 +    }
 +    half_life = env_double("LLAMA_EC_HALF_LIFE", 16.0);
 +    kappa     = env_double("LLAMA_EC_KAPPA", 0.0);
++    fetch_admit = env_int("LLAMA_EC_FETCH_ON_ADMIT", 0) != 0;
++    if (fetch_admit && policy != DFA) {
++        LLAMA_LOG_WARN("%s: LLAMA_EC_FETCH_ON_ADMIT needs the decayed-frequency policy: ignored\n", __func__);
++        fetch_admit = false;
++    }
 +    overlap_cpu = env_int("LLAMA_EC_OVERLAP", 1) != 0;
 +    check_ids   = env_int("LLAMA_EC_CHECK", 0) != 0;
 +    max_admit   = env_int("LLAMA_EC_MAX_ADMIT", 0);
@@ -1653,6 +1733,19 @@ index 0000000..394dfaf
 +                    }
 +                    LLAMA_LOG_INFO("%s: oracle: FETCH serves the MIN-with-bypass admissions of each step (forced plans)\n", __func__);
 +                }
++                if (fetch_admit && policy == DFA) {
++                    adm_per = (size_t) n_expert_max();
++                    adm_buf = ggml_backend_buft_alloc_buffer(host_buft, layers.size() * adm_per * sizeof(int16_t));
++                    GGML_ASSERT(adm_buf && "expert cache: failed to allocate the admission ranks");
++                    adm_host = (int16_t *) ggml_backend_buffer_get_base(adm_buf);
++                    memset(adm_host, 0, layers.size() * adm_per * sizeof(int16_t));
++                    for (size_t li = 0; li < layers.size(); ++li) {
++                        fetch_args[li].rank = (const int16_t *) dev_ptr(adm_host) + li * adm_per;
++                        fetch_args[li].n_expert = layers[li].n_expert;
++                    }
++                    LLAMA_LOG_INFO("%s: fetch-on-admit: FETCH serves the decayed-frequency admissions (one read), table %s as the floor\n",
++                                   __func__, ft_str(fetch_table).c_str());
++                }
 +            }
 +            if (pf_q > 0 || llc) {
 +                const size_t per = 1 + 2 * GGML_EC_MAX_K;
@@ -1877,6 +1970,10 @@ index 0000000..394dfaf
 +    if (buf) {
 +        ggml_backend_buffer_free(buf);
 +    }
++    if (adm_buf) {
++        ggml_backend_buffer_free(adm_buf);
++        adm_buf = nullptr;
++    }
 +    if (force_buf) {
 +        ggml_backend_buffer_free(force_buf);
 +    }
@@ -1961,6 +2058,24 @@ index 0000000..394dfaf
 +        std::sort(cand.begin(), cand.end());
 +        for (size_t q = 0; q < cand.size() && (int) q < E; ++q) {
 +            v[q] = cand[q].second;
++        }
++        if (adm_host) {
++            // fetch-on-admit: for each expert not resident, the number of leading candidates its score, if it is
++            // requested this step, beats by more than kappa (post_compute's decayed-frequency test, score[e] > key + kappa)
++            int16_t * rk = adm_host + i * adm_per;
++            std::vector<double> keys(cand.size());
++            for (size_t q = 0; q < cand.size(); ++q) {
++                keys[q] = cand[q].first;
++            }
++            for (int e = 0; e < L.n_expert; ++e) {
++                if (L.slot_of[e] >= 0) {
++                    rk[e] = 0;
++                    continue;
++                }
++                const double sc = L.score[e] * ec_decay_pow(decay, step - L.last[e]) + 1.0;
++                const size_t r = std::lower_bound(keys.begin(), keys.end(), sc - kappa) - keys.begin();
++                rk[e] = (int16_t) std::min<size_t>(r, 32767);
++            }
 +        }
 +    }
 +}
@@ -2109,6 +2224,17 @@ index 0000000..394dfaf
 +        return;
 +    }
 +    copy_expert(L, s, e, false);
++}
++
++void llama_expert_cache::fetch_now(layer & L, int s, int e) {
++    // the CPU-build stand-in for the GPU's FETCH of an admitted miss: the expert is copied now and is resident from
++    // the next step; its one read is the miss itself, so it is counted as a fetched miss, not as an admission
++    copy_expert(L, s, e, false);
++    L.resident[s] = e;
++    L.slot_of[e]  = s;
++    L.cpu_of[e]   = -1;
++    L.fetches++;
++    fetch_admits++;
 +}
 +
 +void llama_expert_cache::issue_deferred() {
@@ -2528,7 +2654,7 @@ index 0000000..394dfaf
 +                    oracle_refused++;
 +                    break;   // nothing evictable
 +                }
-+                if (oracle_lead > 0 && !oracle_bypass) {
++                if (oracle_lead > 0 && !oracle_bypass && !oracle_nobypass) {
 +                    // the scheduled single-read prefetch: admit only if MIN with bypass would admit this expert at its
 +                    // coming use, i.e. the victim is needed later than the expert's use after that one (or never)
 +                    if (furthest < INF && furthest <= second_use[e]) {
@@ -2549,8 +2675,12 @@ index 0000000..394dfaf
 +            }
 +            continue;
 +        }
++        if (fetch_admit && fetch_enabled(L.il)) {
++            continue;   // fetch-on-admit: this step's admissions were fetched by the GPU's plan (one read); no background copies
++        }
++        const bool sync_fetch = fetch_admit;   // fetch-on-admit without FETCH ops: admit synchronously, counted as a fetch
 +        for (int e : missed) {
-+            if (budget <= 0 || (paced && max_pending > 0 && pending.load() >= max_pending)) {
++            if (!sync_fetch && (budget <= 0 || (paced && max_pending > 0 && pending.load() >= max_pending))) {
 +                break;
 +            }
 +            if (std::find(L.loading.begin(), L.loading.end(), e) != L.loading.end()) {
@@ -2564,6 +2694,10 @@ index 0000000..394dfaf
 +                }
 +            }
 +            if (free_slot >= 0) {
++                if (sync_fetch) {
++                    fetch_now(L, free_slot, e);
++                    continue;
++                }
 +                admit(L, free_slot, e);
 +                budget--;
 +                any = true;
@@ -2594,6 +2728,10 @@ index 0000000..394dfaf
 +            L.resident[victim] = -1;
 +            L.slot_of[v] = -1;
 +            L.cpu_of[v]  = v;
++            if (sync_fetch) {
++                fetch_now(L, victim, e);
++                continue;
++            }
 +            admit(L, victim, e);
 +            budget--;
 +            any = true;
@@ -2637,6 +2775,8 @@ index 0000000..394dfaf
 +    fprintf(f, " \"oracle_w\": %d, \"oracle_bypass\": %d, \"oracle_records\": %zu, \"oracle_refused\": %llu, \"oracle_fetch\": %d, \"oracle_lead\": %d, \"oracle_forced\": %llu, \"oracle_lead_skipped\": %llu,\n",
 +            oracle_w, (int) oracle_bypass, oracle_seq.size(), (unsigned long long) oracle_refused, (int) oracle_fetch, oracle_lead,
 +            (unsigned long long) oracle_forced, (unsigned long long) oracle_lead_skipped);
++    fprintf(f, " \"oracle_nobypass\": %d, \"fetch_on_admit\": %d, \"fetch_admits_sync\": %llu,\n",
++            (int) oracle_nobypass, (int) fetch_admit, (unsigned long long) fetch_admits);
 +    fprintf(f, " \"defer_admit\": %d, \"host_us_per_step\": {\"n\": %llu, \"app\": %.1f, \"pre\": %.1f, \"inputs\": %.1f, \"launch\": %.1f, \"issue\": %.1f, \"sync\": %.1f, \"post\": %.1f},\n",
 +            (int) defer_admit, (unsigned long long) t_n, t_n ? t_acc[0] / t_n : 0.0, t_n ? t_acc[1] / t_n : 0.0, t_n ? t_acc[2] / t_n : 0.0,
 +            t_n ? t_acc[3] / t_n : 0.0, t_n ? t_acc[4] / t_n : 0.0, t_n ? t_acc[5] / t_n : 0.0, t_n ? t_acc[6] / t_n : 0.0);
@@ -3007,10 +3147,10 @@ index 0000000..394dfaf
 +}
 diff --git a/src/llama-expert-cache.h b/src/llama-expert-cache.h
 new file mode 100644
-index 0000000..b1eac94
+index 0000000..e5c926f
 --- /dev/null
 +++ b/src/llama-expert-cache.h
-@@ -0,0 +1,286 @@
+@@ -0,0 +1,303 @@
 +#pragma once
 +
 +// Expert cache for MoE decode with experts resident in host memory.
@@ -3296,6 +3436,23 @@ index 0000000..b1eac94
 +    uint64_t oracle_lead_skipped = 0;   // prefetch candidates skipped because their use comes within the lead
 +    void oracle_plan_fetch();           // called in pre_compute: writes the forced plans for this step
 +    void publish_landed(bool decode);   // the first part of pre_compute: helpers' state, landed copies published
++    // LLAMA_EC_ORACLE_NOBYPASS=1 (with ORACLE_LEAD=d, prefetch mode): the scheduled single-read prefetch without the
++    // MIN-with-bypass test: every expert whose first use is at least d steps away is copied ahead into the slot of the
++    // resident needed furthest, if that resident is needed after the expert's first use (Belady within the window):
++    // each admitted expert is read once, but experts the optimum would bypass are admitted too.
++    bool oracle_nobypass = false;
++    // LLAMA_EC_FETCH_ON_ADMIT=1 (decayed-frequency policy): a miss the admission test admits is fetched into the
++    // victim's slot in the step that misses it and run there (one host read), instead of being served by the CPU and
++    // copied in the background (two reads); the FETCH table still fetches at least f(m) of the step's m misses; no
++    // background admissions. The host writes each expert's admission rank before the step (fill_maps); the GPU's FETCH
++    // plan applies it (ec-plan.h). Without FETCH ops (a CPU build) the admissions are copied synchronously and
++    // counted as fetches.
++    bool fetch_admit = false;
++    ggml_backend_buffer_t adm_buf = nullptr;
++    int16_t * adm_host = nullptr;       // [n_layers][n_expert_max]: admission ranks of this step
++    size_t adm_per = 0;
++    uint64_t fetch_admits = 0;          // admissions made by fetching (CPU fallback: counted here; GPU: fetches include them)
++    void fetch_now(layer & L, int slot, int e);   // synchronous single-read admission (CPU fallback of fetch-on-admit)
 +};
 diff --git a/src/llama-graph.cpp b/src/llama-graph.cpp
 index a806126..d924971 100644
@@ -3831,6 +3988,120 @@ index 32c3f3d..2a69045 100644
      for (ggml_type type_a : all_types) {
          for (int i = 1; i < 10; ++i) {
              test_cases.emplace_back(new test_mul_mat(type_a,    GGML_TYPE_F32, 16,  i, 1*256, { 1,  1}, {1, 1}));
+diff --git a/tests/test-ec-plan.cpp b/tests/test-ec-plan.cpp
+new file mode 100644
+index 0000000..56b7714
+--- /dev/null
++++ b/tests/test-ec-plan.cpp
+@@ -0,0 +1,108 @@
++// Unit test of the FETCH plan (ggml/src/ggml-cuda/ec-plan.h) against a direct reference: with no ranks it must be
++// the original table plan; with ranks it must equal the host-side decayed-frequency admission loop (each miss in
++// selection order tested against the lowest-score candidate not serving a hit and not yet taken; a miss that fails
++// leaves the candidate for the next miss) followed by the table fill.
++#include "../ggml/src/ggml-cuda/ec-plan.h"
++
++#include <cstdio>
++#include <cstdlib>
++#include <random>
++#include <vector>
++#include <algorithm>
++
++static int ref_plan(const std::vector<int> & gid, const std::vector<int> & cid, const std::vector<int> & vic,
++                    const std::vector<double> & vkey, const std::vector<int> & table, const std::vector<double> * adm,
++                    double kappa, std::vector<int> & pe, std::vector<int> & ps) {
++    const int k = (int) gid.size();
++    std::vector<char> taken(vic.size(), 0);
++    std::vector<char> fetched(k, 0);
++    auto busy = [&](int c) { for (int j = 0; j < k; ++j) if (gid[j] == c) return true; return false; };
++    auto next = [&](void) -> int {   // lowest-key candidate not busy, not taken, before the first -1
++        for (size_t p = 0; p < vic.size(); ++p) {
++            if (vic[p] < 0) return -1;
++            if (!taken[p] && !busy(vic[p])) return (int) p;
++        }
++        return -1;
++    };
++    int m = 0;
++    for (int j = 0; j < k; ++j) m += cid[j] >= 0;
++    if (adm) {
++        for (int j = 0; j < k; ++j) {
++            if (cid[j] < 0) continue;
++            const int p = next();
++            if (p < 0) break;
++            if ((*adm)[j] > vkey[p] + kappa) {
++                taken[p] = 1; fetched[j] = 1; pe.push_back(cid[j]); ps.push_back(vic[p]);
++            }
++        }
++    }
++    const int T = table[std::min(m, k)];
++    for (int j = 0; j < k && (int) pe.size() < T; ++j) {
++        if (cid[j] < 0 || fetched[j]) continue;
++        // the table takes the next candidate after the last one taken (candidates are consumed in order)
++        int last = -1;
++        for (size_t p = 0; p < vic.size(); ++p) if (taken[p]) last = (int) p;
++        int p = -1;
++        for (size_t q = last + 1; q < vic.size(); ++q) {
++            if (vic[q] < 0) break;
++            if (!busy(vic[q])) { p = (int) q; break; }
++        }
++        if (p < 0) break;
++        taken[p] = 1; fetched[j] = 1; pe.push_back(cid[j]); ps.push_back(vic[p]);
++    }
++    return (int) pe.size();
++}
++
++int main() {
++    std::mt19937 rng(7);
++    int fails = 0, cases = 0, nonzero = 0;
++    for (int it = 0; it < 200000; ++it) {
++        const int E = 16 + (int) (rng() % 48), C = 2 + (int) (rng() % (E / 2)), k = 1 + (int) (rng() % 8);
++        const double kappa = (rng() % 3) * 0.5 + 1e-7;   // off-grid: no exact ties between score + 1 - kappa and a key
++        // residency: C slots, some free
++        std::vector<int> slot_of(E, -1), resident(C, -1);
++        std::vector<int> perm(E); for (int e = 0; e < E; ++e) perm[e] = e; std::shuffle(perm.begin(), perm.end(), rng);
++        for (int s = 0; s < C; ++s) if (rng() % 8) { resident[s] = perm[s]; slot_of[perm[s]] = s; }
++        std::vector<double> score(E); std::uniform_real_distribution<double> U(0.0, 10.0); for (auto & x : score) x = U(rng);   // continuous: no ties
++        // candidates: free slots first (key -1), then residents by score; some slots loading (excluded)
++        std::vector<std::pair<double, int>> cand;
++        for (int s = 0; s < C; ++s) {
++            if (rng() % 10 == 0) continue;   // loading
++            cand.emplace_back(resident[s] < 0 ? -1.0 : score[resident[s]], s);
++        }
++        std::sort(cand.begin(), cand.end());
++        std::vector<int> vic(E, -1); std::vector<double> vkey(E, 0.0);
++        for (size_t q = 0; q < cand.size(); ++q) { vic[q] = cand[q].second; vkey[q] = cand[q].first; }
++        // selection: k distinct experts
++        std::vector<int> sel(perm.begin(), perm.end()); std::shuffle(sel.begin(), sel.end(), rng); sel.resize(k);
++        std::vector<int> gid(k), cid(k);
++        for (int j = 0; j < k; ++j) { gid[j] = slot_of[sel[j]]; cid[j] = slot_of[sel[j]] < 0 ? sel[j] : -1; }
++        std::vector<int> table(k + 1); for (int m = 0; m <= k; ++m) table[m] = (int) (rng() % (m + 1));
++        const bool use_rank = rng() % 2;
++        std::vector<double> adm(k); std::vector<int16_t> rk(k, 0);
++        for (int j = 0; j < k; ++j) {
++            adm[j] = cid[j] >= 0 ? score[sel[j]] + 1.0 : 0.0;
++            if (cid[j] >= 0) {
++                std::vector<double> keys(cand.size()); for (size_t q = 0; q < cand.size(); ++q) keys[q] = cand[q].first;
++                rk[j] = (int16_t) (std::lower_bound(keys.begin(), keys.end(), adm[j] - kappa) - keys.begin());
++            }
++        }
++        std::vector<int32_t> og(k), oc(k), plan(1 + 2 * 16);
++        const int n = ec_plan(gid.data(), cid.data(), vic.data(), k, E, table.data(), use_rank ? rk.data() : nullptr, og.data(), oc.data(), plan.data());
++        std::vector<int> pe, ps;
++        const int nr = ref_plan(gid, cid, vic, vkey, table, use_rank ? &adm : nullptr, kappa, pe, ps);
++        bool ok = n == nr;
++        for (int i = 0; ok && i < n; ++i) ok = plan[1 + 2 * i] == pe[i] && plan[2 + 2 * i] == ps[i];
++        // consistency of og/oc with the plan
++        for (int j = 0; ok && j < k; ++j) {
++            if (oc[j] >= 0) ok = og[j] == gid[j];
++        }
++        cases++; nonzero += n > 0;
++        if (!ok) {
++            if (fails < 5) fprintf(stderr, "mismatch at it %d: n %d ref %d (rank %d)\n", it, n, nr, (int) use_rank);
++            fails++;
++        }
++    }
++    printf("%d cases (%d with fetches), %d mismatches\n", cases, nonzero, fails);
++    return fails ? 1 : 0;
++}
 diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
 index c8ad1db..0ed8d16 100644
 --- a/tools/CMakeLists.txt
@@ -3861,10 +4132,10 @@ index 0000000..2e52e6a
 +target_compile_features(llama-ec-cpubench PRIVATE cxx_std_17)
 diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
 new file mode 100644
-index 0000000..3615605
+index 0000000..3efccfa
 --- /dev/null
 +++ b/tools/ec-bench/ec-bench.cpp
-@@ -0,0 +1,574 @@
+@@ -0,0 +1,581 @@
 +// ec-bench: teacher-forced decode benchmark on real token sequences.
 +//
 +// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
@@ -4082,6 +4353,7 @@ index 0000000..3615605
 +    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path, la_path;
 +    float gen_temp = 0.8f;
 +    int gen_seed = 42;
++    int order_seed = -1;                               // >= 0: run the configurations in an order shuffled with this seed
 +    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
 +    bool host_experts = false;
 +    bool no_mmap = false;
@@ -4106,6 +4378,7 @@ index 0000000..3615605
 +        else if (a == "--gen-temp") gen_temp = std::stof(next());
 +        else if (a == "--gen-seed") gen_seed = std::stoi(next());
 +        else if (a == "--lookahead") la_path = next();      // record router predictions from earlier hidden states (see la_state)
++        else if (a == "--order-seed") order_seed = std::stoi(next());
 +        else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 1; }
 +    }
 +    auto corpus = read_corpus(corpus_path);
@@ -4212,6 +4485,11 @@ index 0000000..3615605
 +        }
 +        if (configs.empty()) {
 +            configs.emplace_back();
++        }
++        if (order_seed >= 0 && configs.size() > 1) {
++            std::mt19937 rng((uint32_t) order_seed);
++            std::shuffle(configs.begin(), configs.end(), rng);
++            fprintf(stderr, "[ec-bench] configurations in an order shuffled with seed %d\n", order_seed);
 +        }
 +    }
 +

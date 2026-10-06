@@ -70,7 +70,9 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
         f.write("\\begin{footnotesize}\n\\begin{longtable}{@{}p{0.13\\textwidth}p{0.42\\textwidth}p{0.20\\textwidth}p{0.10\\textwidth}p{0.10\\textwidth}@{}}\n")
         hosts = {"099": "Hosts Pa--Pj; cells gpt-oss 11\\% (g11) and 25\\% (g25), Qwen3 12.5\\% (P10).",
                  "100": "Hosts a (Pd again), b (5700X3D), c (Ph again), f (9950X, x8 link), e (13900KF, never ran); cells gpt-oss 11\\% (g11) and 25\\% (g25).",
-                 "101": "Hosts a (Pf again), b (9800X3D, slower link); cells gpt-oss 11\\% (g11) and 25\\% (g25)."}[job]
+                 "101": "Hosts a (Pf again), b (9800X3D, slower link); cells gpt-oss 11\\% (g11) and 25\\% (g25).",
+                 "102": "Hosts a (Pd again), b (9950X), c (9800X3D, link 0.55 of its CPU rate); cells gpt-oss $C{=}14$ (11\\%) and $C{=}32$ (25\\%). "
+                        "Clause P2below's measured value is the analytic per-layer fraction minus the measured one."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -124,6 +126,10 @@ def main():
     if os.path.exists(p101):
         write_099(json.load(open(p101))["clauses"], P("paper", "tab_scorecard_101.tex"), job="101",
                   title="the crossover machine relaunched, and a second 9800X3D", script="job101.py", label="scorecard101")
+    p102 = P("prereg", "scorecard_102.json")
+    if os.path.exists(p102):
+        write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",
+                  title="can the bound's host term be reached", script="job102.py", label="scorecard102")
     p100 = P("prereg", "scorecard_100.json")
     if os.path.exists(p100):
         j100 = json.load(open(p100))["clauses"]

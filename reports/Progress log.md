@@ -23,8 +23,8 @@
   launch, the order dependence of the accounting (now stated), and the absence of a realisable mechanism. The professor
   would take the student. Their factual errors are fixed (commit 62a451f); the scorecard table moved to
   `paper/supplement.pdf` (paper 26 pages, main text 8).
-- **Spend this round:** $14.56 (096 $5.40, 097 $3.60, 098 $3.10 with attempt 1, 54xxxxx failed starts $0.50, rest
-  idle/setup); credit left $25.68.
+- **Spend this round:** $14.56 by the credit balance ($40.24 before job 096, $25.68 now); the ledger's estimate is
+  $9.63 (096 $5.44, 097 $2.45, 098 $1.74), the difference being disk and bandwidth charges the ledger does not track.
 
 ## 6 October: the plan to a 9, executed: jobs 096 and 098 in, the learned order gated and in the engine (job 097 running)
 

@@ -172,14 +172,13 @@ def main():
             hw = np.array([0.5 * (p[2] - p[1]) for p in per])
             bt = []
             arrs = [h["_arr"][lab] for h in hs if ref in h["_arr"][lab] and x in h["_arr"][lab]]
+            # crossed two-stage bootstrap: every host ran the same problems, so one draw of problems is applied to every
+            # drawn host (hosts and problems are crossed, not nested)
+            npb = min(len(a[ref]) for a in arrs)
             for _ in range(2000):
                 pick = RNG.integers(0, len(arrs), len(arrs))
-                v = []
-                for i in pick:
-                    a = arrs[i]
-                    q = RNG.integers(0, len(a[ref]), len(a[ref]))
-                    v.append(a[ref][q].mean() / a[x][q].mean())
-                bt.append(np.mean(v))
+                q = RNG.integers(0, npb, npb)
+                bt.append(np.mean([arrs[i][ref][q].mean() / arrs[i][x][q].mean() for i in pick]))
             stats[nm] = dict(hosts=len(per), mean=float(vals.mean()), min=float(vals.min()), max=float(vals.max()), sd=float(vals.std(ddof=1)),
                              ci=[float(np.percentile(bt, 2.5)), float(np.percentile(bt, 97.5))], within_halfwidth_median=float(np.median(hw)))
         for x in HYB:
@@ -249,6 +248,36 @@ def main():
                     fr.append(s_["fetches"] / max(1, s_["misses"]))
             if fr:
                 MC[f"pnLinkPct{xn}"] = f"{100 * np.mean(fr):.0f}"
+    # the windows against the deployed cache (they extend admit-every-miss, so every admission is fetched in the step)
+    for lab, nm in (("gpt-oss 11%", "Low"), ("gpt-oss 25%", "Mid")):
+        hs = [h for h in hosts if lab in h["cells"]]
+        for x, xn in (("w4", "Four"), ("w16", "Sixteen"), ("w8r5", "EightHalf")):
+            v = []
+            for h in hs:
+                t = h["cells"][lab]["ms"]
+                if x in t and "base" in t:
+                    v.append(t["base"] / t[x])
+            if v:
+                MC[f"pnSlower{xn}{nm}"] = str(sum(r < 1 for r in v))
+                MC[f"pnVsBase{xn}{nm}Min"] = f"{min(v):.2f}"; MC[f"pnVsBase{xn}{nm}Max"] = f"{max(v):.2f}"
+    # hosts with the same CPU model: how much the deployed cache's time per token differs between them
+    by = {}
+    for h in hosts:
+        by.setdefault(h["cpu"], []).append(h)
+    diffs = []
+    for cpu, hh in by.items():
+        if len(hh) >= 2:
+            for lab in ("gpt-oss 11%", "gpt-oss 25%"):
+                t = [h["cells"][lab]["ms"]["base"] for h in hh if lab in h["cells"]]
+                if len(t) >= 2:
+                    diffs.append(max(t) / min(t) - 1)
+    if diffs:
+        MC["pnSameCpuDiffMin"] = f"{100 * min(diffs):.0f}"; MC["pnSameCpuDiffMax"] = f"{100 * max(diffs):.0f}"
+        MC["pnSameCpuPairs"] = str(sum(len(hh) >= 2 for hh in by.values()))
+    eo = [abs(v) for h in hosts for c in h["cells"].values() for k_, v in c.get("engine_over_replay", {}).items() if k_ != "fetch_vs_min"]
+    if eo:
+        MC["pnReplayMax"] = f"{100 * max(eo):.1f}"
+    MC["pnProblems"] = str(min(c["n"] for h in hosts for c in h["cells"].values()))
     rng("pnLink", [h["B_p"] for h in hosts], "{:.0f}")
     rng("pnCpu", [h["B_c"] for h in hosts], "{:.0f}")
     rng("pnHostRate", [h["b_host"] for h in hosts], "{:.0f}")

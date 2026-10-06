@@ -119,13 +119,13 @@ def bytes_oracle(tagof):
         f.write("\\caption{The bytes-optimal oracle (MIN with bypass) beside the hit-optimal one on the second oracle host (RTX 5090, Ryzen 9 7950X, host memory "
                 "\\fsbHostMax\\,GB/s at best). Per cell: the online policy's speed; each oracle's ratio to it with the whole sequence in view (paired, 95\\% interval), "
                 "its hit rate, its misses per token (experts read from host memory by the CPU or by a demand copy; its background admissions in parentheses: the bypass oracle's are this step's CPU-served misses, each read a second time by the copy, the hit-optimal one's are prefetches of what the optimum would bypass as readily as of what it would admit) "
-                "and the law on its own counters against its measured time; the optimum's reads and hit rate from the trace; "
+                "and the calibrated model on its own counters against its measured time; the optimum's reads and hit rate from the trace; "
                 "and MIN with bypass simulated on the trace with the engine's lookahead (within the sequence) under a copy latency of 1 (ideal), 2 and 3 steps, "
                 "with the latency at which the simulation meets the engine's misses.}\n")
         f.write("\\label{tab:foresight_bytes}\n")
         f.write("\\begin{tabular}{@{}lr|lrrr|lrrr|rr|rrrr@{}}\\toprule\n")
         f.write(" & & \\multicolumn{4}{c|}{bypass oracle, $W{=}$all} & \\multicolumn{4}{c|}{hit-optimal oracle, $W{=}$all} & \\multicolumn{2}{c|}{optimum} & \\multicolumn{4}{c}{simulated misses/token} \\\\\n")
-        f.write("Cell & online & ratio & hits & misses (adm.) & law & ratio & hits & misses (adm.) & law & reads & hits & $d{=}1$ & 2 & 3 & fit \\\\\\midrule\n")
+        f.write("Cell & online & ratio & hits & misses (adm.) & model & ratio & hits & misses (adm.) & model & reads & hits & $d{=}1$ & 2 & 3 & fit \\\\\\midrule\n")
         for tag, b, o, o16, p, c, sc in rows:
             fit = sc.get("engine", {}).get("d_fit")
             f.write("%s & %.1f & %.2f [%.2f, %.2f] & %.0f & %.0f (%.0f) & %+.0f\\%% & %.2f [%.2f, %.2f] & %.0f & %.0f (%.0f) & %+.0f\\%% & %.1f & %.0f & %.0f & %.0f & %.0f & %s \\\\\n" % (
@@ -266,7 +266,7 @@ def single_read(tagof):
         f.write("\\caption{The single-read oracles (job 095; RTX 5090, Ryzen 9 9950X, host memory \\fsfHostMax\\,GB/s at best) beside the hit-optimal one. "
                 "Per cell: the online policy's speed and its share of this host's limit; for each oracle with the whole sequence in view, its ratio to the online "
                 "policy (paired, 95\\% interval), hit rate, host reads per token (CPU misses + fetches + admissions) as a multiple of the "
-                "optimum's (each read counted once), share of the limit and the law on its own counters against its measured time. \\emph{fetch}: MIN with bypass, admitted misses "
+                "optimum's (each read counted once), share of the limit and the calibrated model on its own counters against its measured time. \\emph{fetch}: MIN with bypass, admitted misses "
                 "fetched into their slot this step; \\emph{lead}: the scheduled single-read prefetch (first use at least two steps away); \\emph{both}: "
                 "fetch and lead; \\emph{paced}: both on the paced copy path with a three-step lead; \\emph{hit-opt.}: the hit-optimal oracle (Belady prefetch without bypass, unpaced). The simulation "
                 "columns give the trace's prediction of reads and hits for fetch and both.}\n")
@@ -274,7 +274,7 @@ def single_read(tagof):
         f.write("\\resizebox{\\textwidth}{!}{%\n")
         f.write("\\begin{tabular}{@{}lrr|lrrrrr|lrrrr|lrrrr|lr|lr|rrrr@{}}\\toprule\n")
         f.write(" & \\multicolumn{2}{c|}{online} & \\multicolumn{5}{c|}{fetch} & \\multicolumn{4}{c|}{both} & \\multicolumn{4}{c|}{hit-opt.} & \\multicolumn{2}{c|}{lead} & \\multicolumn{2}{c|}{paced} & \\multicolumn{4}{c}{simulated} \\\\\n")
-        f.write("Cell & tok/s & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & law & ratio & hits & reads/R$^*$ & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & ratio & \\% lim. & ratio & \\% lim. & fetch reads & hits & both reads & hits \\\\\\midrule\n")
+        f.write("Cell & tok/s & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & model & ratio & hits & reads/R$^*$ & \\% lim. & ratio & hits & reads/R$^*$ & \\% lim. & ratio & \\% lim. & ratio & \\% lim. & fetch reads & hits & both reads & hits \\\\\\midrule\n")
         for tag, c, r, sc in rows:
             def cell(k, full=True):
                 if k not in r:

@@ -50,7 +50,9 @@ def ms_of(d, tag, C):
 
 
 def main():
-    dirs = [d for d in sorted(glob.glob(f"{RES}/09[5-9]*@vast")) if os.path.exists(f"{d}/concur.txt") and "freetoken" not in d]
+    # every machine once: 097a re-ran O4's machine (096a), so it is left out here
+    dirs = [d for d in sorted(glob.glob(f"{RES}/09[5-9]*@vast")) if os.path.exists(f"{d}/concur.txt") and "freetoken" not in d
+            and "097a" not in d]
     rows = []
     for d in dirs:
         bc, bp, bb = host_rates(d)
@@ -81,9 +83,30 @@ def main():
                 pred_bg = tmodel(xc, xp, xg, Gs[True], True)
                 meas = ms["base"] / ms[st]
                 rows.append(dict(host=os.path.basename(d), cell=lab, state=st, link_over_cpu=bp / bc, G_ms=1e3 * Gs[False],
+                                 B=[bc, bp, bb], X=[xc, xp, xg], X_base=list(X("base")), t_base_ms=ms["base"], t_ms=ms[st],
                                  measured_ratio=meas, predicted_ratio=ms["base"] * 1e-3 / pred,
                                  err=(ms["base"] * 1e-3 / pred) / meas - 1,
                                  predicted_ratio_bg=ms["base"] * 1e-3 / pred_bg, err_bg=(ms["base"] * 1e-3 / pred_bg) / meas - 1))
+    # frozen G, out of sample: for each host, G of each cell is the median of the other hosts' fits at that cell; every
+    # state's time (the deployed state's included) is then predicted from the probe and the counters alone
+    Gcell = {}
+    for r in rows:
+        Gcell.setdefault(r["cell"], {})[r["host"]] = r["G_ms"] * 1e-3
+    one = lambda xc, xp, B, G: G + (xc + xp) / (max(B) * 1e9)   # one path: every host byte at the best probed rate
+    for r in rows:
+        bc, bp, bb = r["B"]
+        G = float(np.median([g for h, g in Gcell[r["cell"]].items() if h != r["host"]]))
+        xc, xp, _ = r["X"]
+        xcb, xpb, _ = r["X_base"]
+        tb = G + max(xcb / (bc * 1e9), xpb / (bp * 1e9), (xcb + xpb) / (bb * 1e9))
+        tx = G + max(xc / (bc * 1e9), xp / (bp * 1e9), (xc + xp) / (bb * 1e9))
+        r["G_frozen_ms"] = 1e3 * G
+        r["err_frozen"] = tx / (r["t_ms"] * 1e-3) - 1
+        r["err_frozen_base"] = tb / (r["t_base_ms"] * 1e-3) - 1
+        r["predicted_ratio_frozen"] = tb / tx
+        # the one-path model, G calibrated on the deployed state like the two-path one
+        G1 = r["t_base_ms"] * 1e-3 - (xcb + xpb) / (max(r["B"]) * 1e9)
+        r["predicted_ratio_onepath"] = (r["t_base_ms"] * 1e-3) / one(xc, xp, r["B"], G1)
     json.dump(rows, open(P("prereg", "hostdep_model.json"), "w"), indent=1)
     M = {}
     for grp, sts in (("Step", ("foa", "aa", "fetch", "w1", "w4", "w16", "w8r5", "allr5")), ("Bg", ("bypass", "both3p"))):
@@ -98,6 +121,26 @@ def main():
     if f:
         M["hmFetchSignRight"] = str(sum((r["measured_ratio"] > 1) == (r["predicted_ratio"] > 1) for r in f))
         M["hmFetchN"] = str(len(f))
+        M["hmFetchSignFrozen"] = str(sum((r["measured_ratio"] > 1) == (r["predicted_ratio_frozen"] > 1) for r in f))
+        M["hmFetchSignOnePath"] = str(sum((r["measured_ratio"] > 1) == (r["predicted_ratio_onepath"] > 1) for r in f))
+        M["hmFetchLosses"] = str(sum(r["measured_ratio"] < 1 for r in f))
+        M["hmFetchLossesOnePath"] = str(sum(r["measured_ratio"] < 1 and r["predicted_ratio_onepath"] < 1 for r in f))
+    # frozen G (leave one host out): error of every in-step state's time, the deployed state's included
+    fe = [abs(r["err_frozen"]) for r in rows if r["state"] in ("foa", "aa", "fetch", "w1", "w4", "w16", "w8r5", "allr5")]
+    fb = {(r["host"], r["cell"]): abs(r["err_frozen_base"]) for r in rows}
+    if fe:
+        M["hmFrozenStepMed"] = f"{100 * np.median(fe):.1f}"
+        M["hmFrozenStepPninety"] = f"{100 * np.percentile(fe, 90):.0f}"
+        M["hmFrozenBaseMed"] = f"{100 * np.median(list(fb.values())):.1f}"
+        M["hmFrozenBaseMax"] = f"{100 * max(fb.values()):.0f}"
+        gs = sorted({(r["host"], r["cell"]): r["G_ms"] for r in rows}.values())
+        M["hmGMin"] = f"{min(gs):.1f}"; M["hmGMax"] = f"{max(gs):.1f}"
+    fg = [r["err_frozen"] for r in rows if r["state"] in ("bypass", "both3p")]
+    if fg:
+        M["hmFrozenBgMed"] = f"{100 * np.median(np.abs(fg)):.0f}"
+        M["hmFrozenBgFaster"] = str(sum(e < 0 for e in fg)); M["hmFrozenBgN"] = str(len(fg))
+    M["hmHostCells"] = str(len({(r["host"], r["cell"]) for r in rows}))
+    M["hmHostsN"] = str(len({r["host"] for r in rows}))
     # the share of MIN's time gain over admit-every-miss that each exact window recovers: predicted against measured
     by = {}
     for r in rows:

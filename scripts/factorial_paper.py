@@ -99,6 +99,25 @@ def main():
     rng("fxUsualQuarterFour", u25)
     ulow = [max(h[c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for h in new for c in ("gpt-oss 11%", "Qwen3 12.5%")]
     rng("fxUsualLow", ulow)
+    put("fxUsualLowGainMax", f"{100 * (max(ulow) - 1):.0f}")
+    # jobs 093-097 average per-problem speeds (tok/s); the ratio of mean times differs by at most this much
+    dmax = 0.0
+    for j in ("093", "094", "095", "096a", "096b", "097a", "097b"):
+        f = P("prereg", f"foresight_{j}.json")
+        if not os.path.exists(f):
+            continue
+        for c in json.load(open(f))["cells"]:
+            b = c["runs"].get("base")
+            if not b:
+                continue
+            tb = {q: 1e3 / v for q, v in b["tok_s"].items()}
+            for k, r in c["runs"].items():
+                common = [q for q in tb if q in r["tok_s"]]
+                if k == "base" or not common:
+                    continue
+                rt = sum(tb[q] for q in common) / sum(1e3 / r["tok_s"][q] for q in common)
+                dmax = max(dmax, abs(rt - r["ratio_to_base"][0]))
+    put("fxMeanKindDiffMax", f"{dmax:.3f}")
     rng("fxFetchLow", [h[c]["runs"]["fetch"]["ratio_to_base"][0] for h in new for c in ("gpt-oss 11%", "Qwen3 12.5%")])
     u5 = [max(H["Five"]["cells"][c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for c in HB]
     rng("fxUsualFive", u5)

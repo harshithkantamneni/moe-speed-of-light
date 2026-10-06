@@ -130,14 +130,14 @@ def limit():
         optbytes.append(r["l3"]["bytes_per_token"] / 1e6)
         M(f"limEx{ {14: 'Low', 32: 'Mid', 51: 'High', 16: 'Low', 56: 'High'}[c] }{'G' if key.startswith('gpt') else 'Q'}", f"{L['exact']['tok_s']:.0f}")
     tex = r"""\begin{table}[t]\centering\small
-\caption{The speed limit under each tightening, tokens per second on host B, and our cache as a
-percentage of the limit as published (exact optimum, highest probed host rate, datasheet GPU rate) and with every
+\caption{The bound under each tightening, tokens per second on host B, and our cache as a
+percentage of the bound as published (exact optimum, highest probed host rate, datasheet GPU rate) and with every
 tightening at once. \emph{no-evict}: Belady's MIN with bypass that keeps a served expert for the step; \emph{exact}:
 the same, free to evict an expert after serving it; \emph{pool}: one pool of $LC$ slots shared across layers; \emph{median}:
 $B_{\mathrm{host}}$ the median of six concurrent probe samples instead of the highest; \emph{GPU}: the GPU term from
 the measured all-in-VRAM time instead of the datasheet rate; \emph{layers}: the per-layer sum, which no system without
 cross-layer prefetch can beat; \emph{all}: exact, pool, median and GPU together (a warm start, not included, changes
-the limit by at most 1.4\%).}\label{tab:limit}
+the bound by at most 1.4\%).}\label{tab:limit}
 \setlength\tabcolsep{2.5pt}\resizebox{\linewidth}{!}{%
 \begin{tabular}{llrrrrrrrrr}\toprule
 Model & Experts & no-evict & exact & pool & median & GPU & layers & all & \multicolumn{2}{c}{Ours, \% of} \\
@@ -388,7 +388,7 @@ def audit():
     inclass.sort()
     import statistics
     M("audInclassN", str(len(inclass))); M("audInclassMed", f"{statistics.median(inclass):.1f}")
-    M("audInclassQone", f"{inclass[len(inclass) // 4]:.1f}"); M("audInclassQthree", f"{inclass[(3 * len(inclass)) // 4]:.1f}")
+    M("audInclassQone", f"{np.percentile(inclass, 25):.1f}"); M("audInclassQthree", f"{np.percentile(inclass, 75):.1f}")   # linear interpolation
     M("audInclassBelowFifth", str(sum(1 for x in inclass if x < 20)))
     M("audImputedN", str(sum(1 for r in full if r.get("budget_imputed"))))
     M("audImputedTraceN", str(sum(1 for r in a["rows"] if r["cls"] == "trace" and byid[r["id"]].get("budget_imputed"))))

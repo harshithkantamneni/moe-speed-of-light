@@ -93,10 +93,14 @@ def headline():
                 f"{ours_s} & {ci(x['ratio'], 3)}{x['note']} & {x['xl']:.2f}$\\times$ & "
                 + (f"{lim:.0f} & {100 * x['ours'] / lim:.0f}\\% & {x['limit_meas']:.0f} & {100 * x['ours'] / x['limit_meas']:.0f}\\%" if lim else "\\pend & \\pend & \\pend & \\pend") + " \\\\")
     hb = sc["hosts"]["listing B (081)"]; ha = sc["hosts"]["089 (9950X, stock clock)"]
-    head1 = (r"\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f} \\" %
-             (hb["mem_clock_mhz"], hb["B_c"], hb["B_p"], hb["B_both"]))
-    head2 = (r"\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f; FreeToken's backend carried over from host B} \\" %
-             (ha["mem_clock_mhz"], ha["B_c"], ha["B_p"], ha["B_both"]))
+    from scripts.speed_limit import host_rates as _hr
+    _gb = os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch") + "/results/"
+    bhB = _hr(open(_gb + "081_headline_law@vast/concur.txt").read()) / 1e9
+    bhS = _hr(open(_gb + "089_headline_stockclock@vast/concur.txt").read()) / 1e9
+    head1 = (r"\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f, highest (the bound's rate) %.0f} \\" %
+             (hb["mem_clock_mhz"], hb["B_c"], hb["B_p"], hb["B_both"], bhB))
+    head2 = (r"\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f, highest %.0f; FreeToken's backend carried over from host B} \\" %
+             (ha["mem_clock_mhz"], ha["B_c"], ha["B_p"], ha["B_both"], bhS))
     body = head1 + "\n" + "\n".join(line(x) for x in rows[:3]) + "\n" + "\n".join(line(x) for x in rows[3:]) + "\n\\midrule\n" + head2 + "\n" + "\n".join(line(x) for x in rows2)
     vram = vr["vram"]
     tex = r"""\begin{table*}[t]\centering\small
@@ -104,7 +108,7 @@ def headline():
 tokens, one session). Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals. Our cache uses each
 machine's fetch table; FreeToken uses its faster backend per budget, picked on host B on a separate launch.
 \emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
-rate, and at the rate all-in-VRAM decode measures at batch size 1 (52\% of datasheet for gpt-oss, 61\% for Qwen3;
+rate, and at the rate all-in-VRAM decode measures at batch size 1 (\gpuEffPctGpt\% of datasheet for gpt-oss, \gpuEffPctQwen\% for Qwen3;
 \cref{tab:limit} varies the other assumptions). Against the pooled bound their designs allow, FreeToken (one cache for all layers) and
 llama.cpp (whole layers pinned) stand at \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every
 weight in GPU memory (an RTX PRO 6000) stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.
@@ -406,7 +410,7 @@ def law():
                      + (f"{100 * st.median(c):.1f} & {100 * max(c):.1f}" if c else "-- & --") + " & "
                      + (", ".join(f"{100 * e:+.0f}" for e in l) if l else "--") + " \\\\")
     tex = r"""\begin{table}[t]\centering\small
-\caption{The law predicted blind: each machine wrote its prediction from its own bandwidth probe, with constants frozen
+\caption{The calibrated model predicted blind: each machine wrote its prediction from its own bandwidth probe, with constants frozen
 in the public repository, before any model run. Error of predicted over measured speed, gpt-oss-120b (cache rows) and
 llama.cpp \texttt{--n-cpu-moe} (last column, \%).}\label{tab:law}
 \setlength\tabcolsep{3pt}\resizebox{\linewidth}{!}{%
@@ -466,8 +470,8 @@ Host CPU & Job & $n$ & Median & Max & llama.cpp \\
 def split():
     s = load("split_080.json")
     m, rt = s["means"], s["ratios"]
-    rows = [("Lite", "0,0,1,1,1,2,2,3,3", "ours_C56_lite"), ("Law", "0,0,1,1,2,3,3,4,5", "ours_C56_law"),
-            ("Law, fetch a single miss", "0,1,1,1,2,3,3,4,5", "ours_C56_law_f1"), ("Fixed", "0,1,1,2,3,3,4,5,6", "ours_C56_cur"),
+    rows = [("Lite", "0,0,1,1,1,2,2,3,3", "ours_C56_lite"), ("Model", "0,0,1,1,2,3,3,4,5", "ours_C56_law"),
+            ("Model, fetch a single miss", "0,1,1,1,2,3,3,4,5", "ours_C56_law_f1"), ("Fixed", "0,1,1,2,3,3,4,5,6", "ours_C56_cur"),
             ("None (CPU only)", "0,\\ldots,0", "ours_C56_none"), ("All (fetch every miss)", "0,1,\\ldots,8", "ours_C56_all")]
     lines = []
     for name, t, k in rows:

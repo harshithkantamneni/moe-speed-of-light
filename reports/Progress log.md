@@ -3,6 +3,30 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (night): review round 9 (5/10 and 5/10), MLSys template, jobs 103-104
+
+**Status for Harshith (read this first).** Round 9: MLSys PC **5/10** (soundness 4, significance 3, clarity 2),
+professor **5/10** ("high end of the band"; soundness 3, methodology 4, clarity 2; "with the first four changes on my
+list I would expect a 7"). 9a checked 19 claims (all held, four minor caveats); 9b checked 24 (22 held). Both still put
+clarity at 2/5 and say the newest result rests on few machines.
+
+- **New result (jobs 103-104):** the engine now follows MIN's fewest-admission hit-optimal schedule (LP per host,
+  patch oracle4). On Pf, where greedy MIN copied in the step loses on four launches (0.86x), the fewest-admission set
+  gains (1.04x [1.02, 1.05]); on all three machines it ran on it adds 0.08-0.17 at gpt-oss 11% and copies 0.60-0.73x
+  as many experts. Job 103's plan never ran (scipy would not install beside Debian's numpy; fixed in 104 with a uv
+  environment). 104 failed 24 of 47 clauses, mostly the counter predictions at 25% and the interaction's direction.
+  The 5950X of 103d/104c turned out to be panel host Pg again (number check 10).
+- **Paper:** MLSys 2025 style (the 2026/2027 kit is not online), anonymous build (`\usepackage[accepted]{mlsys2025}`
+  restores your name); main text 9 pages; abstract 5 sentences; intro rewritten around three findings; Sections 2, 3,
+  5, Limitations and Conclusion shortened; a running example (O4 at 11%); the fewest-admission result folded into
+  Section 4, Fig. 2 and the accounting; author-year citations.
+- **Number check 10:** 13 defects, all fixed. After the reviews: "best oracle" scoped to MIN prefetched; duplicate
+  reference merged; ATSInfer given a label key; unreported hosts 100d and 103c now named in the appendix.
+- **Spend:** jobs 103-104 used about $2.9; $1.41 of Vast credit left. Every instance destroyed after its fetch (103c
+  never started and was destroyed without results).
+- **Desk issues left for you:** the 2027 style file when it appears; `paper.tex` in the public repo still carries your
+  name (the PDF does not).
+
 ## 6 October (evening): review round 8 (5/10 and 5/10), job 102, number check 9
 
 **Status for Harshith (read this first).** Round 8: MLSys PC **5/10** (clarity 2, soundness 4, significance 2),

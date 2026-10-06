@@ -10,7 +10,7 @@ reuse intervals under the engine's rule for a copy in the step; integral on ever
 Every host failed to install scipy beside Debian's numpy ("Cannot uninstall numpy 1.26.4"), so `minadm_plan.py` did not
 run and the plan configurations ran greedy MIN (the engine logs "COULD NOT BE READ"; their stats say oracle_plan 0).
 Every plan clause is untested. One host (103c, Ryzen 7 7800X3D) never started and was destroyed without results. The
-greedy states give two new machines: a second Core Ultra 9 285K behind a 40 GB/s link (ratio 0.48: fetch/base 1.05
+greedy states give two new machines: a second Core Ultra 9 285K (probe: copy engine 49.6, zero-copy 39.9 GB/s; ratio 0.48: fetch/base 1.05
 at gpt-oss 11%) and a Threadripper 3970X (0.40: 1.02). The Ryzen 9 5950X of 103d (0.62: 1.25) is panel host Pg again
 (same offer and GPU as job 099g; number check 10), so it is a relaunch, not a new machine. Pf, launched a third time, again
 loses with the greedy copy in the step (0.859; 0.875 and 0.860 before).
@@ -21,8 +21,8 @@ loses with the greedy copy in the step (0.859; 0.875 and 0.860 before).
 |---|---|---|---|---|---|---|
 | Pf (0.29) | 11% | 0.941 | 1.113 | 0.863 | 1.035 [1.023, 1.052] | 19.8 -> 11.8 |
 | Pf (0.29) | 25% | 1.133 | 1.217 | 0.964 | 1.059 | 9.7 -> 7.0 |
-| 285K, 40 GB/s (0.49) | 11% | 1.032 | 1.085 | 1.053 | 1.180 | |
-| 285K, 40 GB/s (0.49) | 25% | 1.197 | 1.206 | 1.119 | 1.175 | |
+| 285K, second (0.49) | 11% | 1.032 | 1.085 | 1.053 | 1.180 | |
+| 285K, second (0.49) | 25% | 1.197 | 1.206 | 1.119 | 1.175 | |
 | Pg again, 5950X (0.63) | 11% | 1.021 | 1.059 | 1.256 | 1.338 | |
 | Pg again, 5950X (0.63) | 25% | 1.198 | 1.151 | 1.325 | 1.353 | |
 

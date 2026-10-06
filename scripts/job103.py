@@ -24,8 +24,8 @@ RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 GL = {14: "g11", 32: "g25"}
 CELL = {14: "gpt-oss 11%", 32: "gpt-oss 25%"}
-NAMES = {"103a": "Pf again", "103b": "285K, 40 GB/s link", "103c": "7800X3D", "103d": "Pg again (5950X)", "103e": "3970X",
-         "104a": "Pf again", "104b": "285K, 40 GB/s link", "104c": "Pg again (5950X)"}
+NAMES = {"103a": "Pf again", "103b": "285K, second", "103c": "7800X3D", "103d": "Pg again (5950X)", "103e": "3970X",
+         "104a": "Pf again", "104b": "285K, second", "104c": "Pg again (5950X)"}
 RELAUNCHES = {"103a", "103d", "104a", "104c"}   # Pf and Pg of the panel (same offer and GPU as 099f and 099g)
 PREFIX = {"103": "je", "104": "jf"}
 COMMIT = {"103": "c19e186", "104": "dbabcc1"}

@@ -212,22 +212,38 @@ def main():
     return rows, M
 
 
-def sum_law(rows, G={14: 4.56, 32: 4.53}, S=13253760):
-    """time per token = G + host reads x S / B_host? Elasticity of (T - G) to B_host, and the fixed cost each state
-    implies, T - reads x S / B_host, over every launch (G: the model's constants, the GPU's own compute per token in
-    the profiles of job 069c)"""
+def profiled_G():
+    """the GPU's own kernel time per token in every Nsight profile (jobs 069c and 105): every category but the helper
+    wait and the expert copies; median per budget"""
+    out = {14: [], 32: []}
+    for C in (14, 32):
+        for f in sorted(glob.glob(f"{RES}/069c_profile_*@vast/prof_C{C}.json") + glob.glob(f"{RES}/105?_sumlaw@vast/prof_C{C}.json")):
+            d = json.load(open(f))["median_ms"]
+            out[C].append(sum(v for k, v in d.items() if k.startswith("cat_") and k not in ("cat_ec_wait", "cat_ec_copy")))
+    return {C: float(np.median(v)) for C, v in out.items()}, out
+
+
+def sum_law(rows, G=None, S=13253760):
+    """time per token = G + host reads x S / B_host, with G the median profiled GPU compute (nothing fitted)? The law's
+    error per launch; the elasticity of (T - G) to B_host (bootstrap over machines); and the fixed cost each state
+    implies, T - reads x S / B_host, over every launch"""
+    if G is None:
+        G, _ = profiled_G()
     out = {}
     for C in (14, 32):
-        x = np.array([r["B_host"] for r in rows if C in r["cells"]])
-        y = np.array([r["cells"][C]["base_ms"] for r in rows if C in r["cells"]])
+        sel = [r for r in rows if C in r["cells"]]
+        x = np.array([r["B_host"] for r in sel])
+        y = np.array([r["cells"][C]["base_ms"] for r in sel])
+        mach = [r["gpu_uuid"] or r["dir"] for r in sel]
+        groups = [np.array([i for i, m in enumerate(mach) if m == u]) for u in dict.fromkeys(mach)]
         e = {}
         for nm, yy in (("T", y), ("T_minus_G", y - G[C])):
             sl = stats.linregress(np.log(x), np.log(yy)).slope
             bs = []
             for _ in range(4000):
-                i = RNG.integers(0, len(x), len(x))
+                i = np.concatenate([groups[j] for j in RNG.integers(0, len(groups), len(groups))])
                 bs.append(stats.linregress(np.log(x[i]), np.log(yy[i])).slope)
-            e[nm] = dict(slope=float(sl), lo=float(np.percentile(bs, 2.5)), hi=float(np.percentile(bs, 97.5)))
+            e[nm] = dict(slope=float(sl), lo=float(np.percentile(bs, 2.5)), hi=float(np.percentile(bs, 97.5)), machines=len(groups))
         implied = {}
         for r in rows:
             c = r["cells"].get(C)
@@ -248,16 +264,22 @@ def sum_law(rows, G={14: 4.56, 32: 4.53}, S=13253760):
             summ[k] = dict(n=len(v), median=float(np.median(g)), q1=float(np.percentile(g, 25)), q3=float(np.percentile(g, 75)),
                            lo=float(g.min()), hi=float(g.max()), rho_ratio=float(stats.spearmanr([q["ratio"] for q in v], g).statistic) if len(v) > 4 else None,
                            reads=float(np.median([q["reads"] for q in v])))
-        base = implied.get("base", [])
-        q = np.array([(r_["G"]) for r_ in base])
-        effc = [((rr["cells"][C]["base_ms"] - G[C]) * 1e-3 * rr["B_host"] * 1e9 / S) /
-                next(b["reads"] for b in base if b["dir"] == rr["dir"]) for rr in rows if C in rr["cells"] and any(b["dir"] == rr["dir"] for b in base)]
-        lim = np.array([r["cells"][C]["limit_ms"] for r in rows if C in r["cells"] and "limit_ms" in r["cells"][C]])
-        yb = np.array([r["cells"][C]["base_ms"] for r in rows if C in r["cells"] and "limit_ms" in r["cells"][C]])
-        out[C] = dict(elasticity=e, implied_G=summ, eff_over_counted=dict(median=float(np.median(effc)), q1=float(np.percentile(effc, 25)),
-                      q3=float(np.percentile(effc, 75)), lo=float(min(effc)), hi=float(max(effc)), n=len(effc)),
-                      G_share_of_gap=dict(lo=float(np.min(G[C] / (yb - lim))), hi=float(np.max(G[C] / (yb - lim)))),
-                      G_share_of_time=dict(lo=float(np.min(G[C] / yb)), hi=float(np.max(G[C] / yb))))
+        base = {b["dir"]: b for b in implied.get("base", [])}
+        effc = [((rr["cells"][C]["base_ms"] - G[C]) * 1e-3 * rr["B_host"] * 1e9 / S) / base[rr["dir"]]["reads"] for rr in sel if rr["dir"] in base]
+        # the law's error per launch with the profiled G: (G + reads S / B_host) / T - 1
+        err = np.array([(G[C] + base[rr["dir"]]["reads"] * S / (rr["B_host"] * 1e9) * 1e3) / rr["cells"][C]["base_ms"] - 1
+                        for rr in sel if rr["dir"] in base])
+        # the serial GPU term's share of the gap to the bound, with each launch's implied G (the law exact per launch)
+        gl = [(base[r["dir"]]["G"], r["cells"][C]["base_ms"], r["cells"][C]["limit_ms"]) for r in sel if r["dir"] in base and "limit_ms" in r["cells"][C]]
+        sh = np.array([g / (t - lim) for g, t, lim in gl]); st = np.array([g / t for g, t, lim in gl])
+        out[C] = dict(G=G[C], elasticity=e, implied_G=summ,
+                      eff_over_counted=dict(median=float(np.median(effc)), q1=float(np.percentile(effc, 25)),
+                                            q3=float(np.percentile(effc, 75)), lo=float(min(effc)), hi=float(max(effc)), n=len(effc)),
+                      law_err=dict(n=len(err), median=float(np.median(err)), median_abs=float(np.median(np.abs(err))),
+                                   lo=float(err.min()), hi=float(err.max()), within6=int(np.sum(np.abs(err) <= 0.06)),
+                                   over6=int(np.sum(err > 0.06)), under6=int(np.sum(err < -0.06))),
+                      G_share_of_gap=dict(lo=float(sh.min()), hi=float(sh.max())),
+                      G_share_of_time=dict(lo=float(st.min()), hi=float(st.max())))
     return out
 
 

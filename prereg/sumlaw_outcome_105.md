@@ -26,8 +26,8 @@ predictions were not changed). Scored by `scripts/job105.py` into `prereg/scorec
    smallest profiled value, so it moves down (more conservative).
 2. **The deployed cache's time is within 6% of G_prof + R·S/B_host at every cell; median error ≤ 4%.**
    - At 11% it held on all four hosts: errors −1.5% to +4.7%, median 1.7%.
-   - At 25% it failed on three of four hosts: the law over-predicts by 3.8–9.3%, median 7.0%. That takes the pooled
-     median (4.2%) past 4%.
+   - At 25% it failed on three of four hosts, where the law over-predicts by 6.9–9.3%; on Pf it over-predicts by 3.8%
+     and held. The median over the four is 7.0%. That takes the pooled median (4.2%) past 4%, the fourth failure.
    - The cause was visible in the exploratory data: at 25% the implied G was 3.85 ms against about 4.4 profiled.
      Background admissions overlap the GPU's work, and at 25% they are 13–22% of the counted reads against 5–11% at
      11%. The law has no term for that overlap. We registered the same 6% band for both budgets and it failed at the
@@ -50,7 +50,7 @@ predictions were not changed). Scored by `scripts/job105.py` into `prereg/scorec
 
    On O4, where the link is as fast as the CPU, it is 0.01 behind the greedy set (no prediction). On the second
    slow-link machine (the 9960X) the greedy set loses (0.91) and the fewest-admission set gains (1.04), as on Pf. Loaded
-   by the CPU, the fewest-admission set gains on every host at both budgets (1.02–1.22).
+   by the CPU, the fewest-admission set gains on every host at both budgets (1.02–1.21).
 5. **Its in-step copies are ≤ 0.65× the greedy set's at 11%.** Held: 0.60 on every host. At 25% it is 0.73, not
    predicted.
 

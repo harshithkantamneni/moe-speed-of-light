@@ -48,7 +48,7 @@ def main():
             old, ob = speeds("099f_panel@vast", C)
             if C == 14:
                 f = c["speed"]["fetch"]
-                add("101a-P1-fetch-g11", "fetch/base below 1 at 11% (Pf again)", "sign", f[0], f[1:], lambda v: v < 1, "< 1", "Pf again")
+                add("101a-P1-loss-g11", "fetch/base below 1 at 11% (Pf again)", "sign", f[0], f[1:], lambda v: v < 1, "< 1", "Pf again")
             for k in ("fetch", "foa", "aa", "both3p", "bypass"):
                 if k in c["speed"] and old and k in old:
                     add(f"101a-P1-{k}-{GL[C]}", f"{k}/base within 0.03 of job 099f ({GL[C]})", "band", abs(c["speed"][k][0] - old[k]), None,
@@ -64,6 +64,7 @@ def main():
               if k in a["cells"][C]["speed"]]
         M["jbPfRelaunchMax"] = f"{max(dv):.3f}"
         M["jbPfRatio"] = f"{a['B_p'] / a['B_c']:.2f}"
+        M["jbPfPaced"] = f"{a['cells'][14]['speed']['both3p'][0]:.3f}"
         # every relaunch of a panel machine (jobs 100 and 101) together
         j100 = json.load(open(P("prereg", "job100.json")))
         rl = [abs(v) for h in j100["hosts"] for c in h["cells"].values() if "relaunch" in c for k, v in c["relaunch"].items() if k != "base_ms_ratio"]

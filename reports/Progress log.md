@@ -28,7 +28,17 @@ anonymisation are your call).
 - **Job 100f** (9950X behind an x8 link, ratio 0.54): in-step copy 1.07x (Pe/Pj 1.35/1.27, prediction 9 held);
   probe-only model over-predicts admit-every-miss and windows by up to 20% (probe read the link at 22, the engine's
   copies ran near 27). Outcome: `prereg/window_outcome_100.md` (41 held, 122 point, 27 failed, 26 untested).
-- **Job 101** (predictions in gpu commit 8b6c67a before launch): Pf relaunched and a 9800X3D behind a slower link.
+- **Job 101** (predictions in gpu commit 8b6c67a before launch; outcome `prereg/crossover_outcome_101.md`; all 25
+  clauses held): Pf relaunched loses again with the in-step copy (0.86x at 11%, first launch 0.875x) and the copy made
+  ahead breaks even again (0.997x); every ratio within 0.026 of the first launch. A 9800X3D behind a 27 GB/s link gains
+  1.14x from the in-step copy where the same CPU behind 46 GB/s (Pb) gained 1.34x. The model, given the counts, gets
+  every sign. Three panel machines have now been relaunched: within 1.9% in time and 0.030 in every ratio.
+- **Number check 8** (on the round-7 rewrite): 19 defects, all fixed - mainly "only" claims (MIN with two reads and
+  Belady also gain sometimes: now "helps most"), the either-alone range now spans both single changes (-15 to 26%),
+  the abstract's model claim scoped to in-step and deployed states (median 2.2%), the deployed-path miss split
+  described consistently, a duplicate clause id, an unsupported rental-market sentence removed.
+- **Spend:** jobs 100-101 used $6.52 of Vast credit; $6.86 left. Every instance destroyed after its fetch (100d and
+  100e had no results to fetch: one never finished its download, one never finished installing packages).
 
 ## 6 October (morning, unattended): review round 6 (5/10 and 6/10), number check 6, job 100
 

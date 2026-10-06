@@ -239,6 +239,12 @@ def main():
                         ("Both", "both_share")):
             rng(sub + nm, key)
     allc = allc_all
+    # either choice alone (cache alone or load alone) on the fast-link hosts
+    al = [100 * v["effects"][k] for hn, c, v in allc_all if ratio.get(hn) is not None and ratio[hn] >= 0.5
+          for k in ("set_two_share", "reads_online_share")]
+    if al:
+        f = lambda x: f"{x:.0f}".replace("-", "$-$")  # noqa: E731
+        M["fsBalAloneMin"] = f(min(al)); M["fsBalAloneMax"] = f(max(al))
     # the two-path bound's share of the gap, and the rest beyond it, by link class
     for sub, test in (("Bal", lambda r: r is not None and r >= 0.5), ("Slow", lambda r: r is not None and r < 0.5)):
         sl = [v["effects"]["slack_share"] for hn, c, v in allc_all if test(ratio.get(hn)) and "slack_share" in v["effects"]]
@@ -286,7 +292,7 @@ def main():
                     cells.append(f"{pc(np.mean(vals))}" + (f" {{\\scriptsize({pc(min(vals))} to {pc(max(vals))})}}" if len(vals) > 1 else ""))
                 rows.append(f"{grp} ({len(hs)}) & {c.replace('%', chr(92) + '%')} & {np.mean([e['gap'] for e in hs]):.1f} & " + " & ".join(cells) + r" \\")
     new = [h for h in res["hosts"] if h["host"].startswith("N")]
-    names = {"N100b": "5700X3D", "N100f": "9950X, x8", "N101b": "9800X3D, slow"}
+    names = {"N100b": "5700X3D", "N100f": "9950X, x8", "N101b": "9800X3D, slower link"}
     if new:
         rows.append(r"\midrule")
         for h in new:

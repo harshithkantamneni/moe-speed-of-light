@@ -28,5 +28,6 @@ cell. Scoring by machine: `scripts/job101.py` (`prereg/scorecard_101.json`, `pre
 
 The only machine on which the in-step copy loses loses again on a second launch, by the same amount, and the copy
 made ahead breaks even again (1.00 at 11%). The model gets the sign on both launches but over-predicts the in-step
-gain where the link is slower than the CPU (here by 0.06-0.22), as it did on job 100's slow-link hosts. The same CPU
+gain where the link is slower than the CPU at three of the four cells (by 0.06-0.23; under by 0.02 on Pf at 25%), as
+it did on job 100's slow-link hosts. The same CPU
 model behind a 27 GB/s link instead of 46 gains 1.14x from the in-step copy instead of 1.34x.

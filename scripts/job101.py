@@ -74,6 +74,21 @@ def main():
         for C in a["cells"]:
             _, ob = speeds("099f_panel@vast", C)
             rb.append(abs(a["cells"][C]["ms"]["base"] / ob - 1))
+        # jobs 103 and 104 relaunched Pf (103a, 104a) and Pg (103d, 104c, the same offer and GPU as 099g)
+        machines = {"099d", "099h", "099f"}
+        for rj, pj in (("103a", "099f"), ("104a", "099f"), ("103d", "099g"), ("104c", "099g")):
+            d = glob.glob(f"{RES}/{rj}_minadm@vast")
+            if not d:
+                continue
+            machines.add(pj)
+            for C in (14, 32):
+                new, nb = speeds(os.path.basename(d[0]), C)
+                old, ob = speeds(f"{pj}_panel@vast", C)
+                if not new or not old:
+                    continue
+                rb.append(abs(nb / ob - 1))
+                rl += [abs(new[k] - old[k]) for k in ("fetch", "foa", "bypass") if k in new and k in old]
+        nre = len(machines)
         M["jcRelaunchN"] = str(nre)
         M["jcRelaunchRatioMax"] = f"{max(rl):.3f}"
         M["jcRelaunchBaseMax"] = f"{100 * max(rb):.1f}"

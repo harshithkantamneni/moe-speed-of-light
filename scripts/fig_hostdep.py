@@ -49,7 +49,7 @@ def points():
         if not os.path.exists(pj):
             continue
         for h in json.load(open(pj))["hosts"]:
-            if h["job"] in ("100a", "100c", "101a", "103a"):   # relaunches of panel machines
+            if h["job"] in ("100a", "100c", "101a", "103a", "103d"):   # relaunches of panel machines (103d: Pg)
                 continue
             # job 104 relaunches job 103's machines and Pf: only its plan states are new
             only = ("fetchplan",) if h["job"].startswith("104") else None

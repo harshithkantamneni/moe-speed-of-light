@@ -71,11 +71,11 @@ failed on the Intel host (the per-layer fraction is higher at C = 32). Every oth
 
 ## What the paper takes from it
 
-The split ignores one constraint: read once, every expert MIN admits must cross the link to reach its slot.
-`scripts/readsched.py` computes, per probed host, the cap this puts on MIN's one-read schedule,
-min(1, (R*/A*) B_link / B_host), with A* MIN's admissions per token (57% of its reads at C = 14, 69% at C = 32) and
-B_link the probe's highest link rate (number check 9: the first version used the probe's zero-copy line and B_cp,
-which counted the combined-rate slack twice): 0.53-0.71 of the host term at 11% and 0.43-0.58 at 25% on hosts whose
-link reads at less than half their CPU rate, at least 0.86 and 0.70 on the others. On the slow-link hosts of the
-accounting this cap alone is 25-54% of the gap between the deployed cache and the bound; on the fast-link hosts it
-binds at 9 of 26 host-budgets, at most 22% (`prereg/readsched_gap.json`).
+The split ignores one constraint: read once, every admitted expert must cross the link to reach its slot. A first
+version of the paper turned the greedy MIN's admissions (57% of its reads at C = 14, 69% at C = 32) into a cap on
+"MIN's one-read schedule". Review 8b showed that this is a property of the greedy schedule, not of MIN: hit-optimal
+schedules with far fewer admissions exist. `scripts/linkaware.py` reproduces this with an LP over reuse intervals
+(integral solutions): the fewest admissions among hit-optimal schedules are 12.4 per token at C = 14 and 6.7 at C = 32,
+against the greedy 21.8 and 10.6; a bound that sends every admission over the link at the probe's highest link rate,
+trading misses against admissions, is at most 1% (C = 14) and 7% (C = 32) above the bound's host term on the 24 probes
+of jobs 095-102. The paper now reports that, and lists the greedy oracle's admissions as a limitation of the 2x2.

@@ -3,6 +3,31 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (evening): review round 8 (5/10 and 5/10), job 102, number check 9
+
+**Status for Harshith (read this first).** Round 8: MLSys PC **5/10** (clarity 2, soundness 4, significance 2),
+professor **5/10** (soundness 3, methodology 4, clarity 2). 8a recomputed 25 claims (24 held; one wording overclaim in
+Section 5, fixed); 8b recomputed 22 (19 held). 8b's main finding is real and partly fixed: the greedy MIN in
+`mosl.cachesim` (which the engine oracles follow) admits 21.8 experts per token at gpt-oss 11%, but hit-optimal
+schedules exist with only 12.4 (LP over reuse intervals, integral). That killed the "read-once cap" added this round
+(now replaced by a link-aware bound: at most 1% above the bound at 11%, 7% at 25%), but it also means "MIN's set" in
+the 2x2 is one arbitrary hit-optimal set; a minimum-admission oracle might change the slow-link loss and the
+interaction. That needs an engine change plus ~6 rentals (~$6; credit left $6.36). Desk issues again: author named on
+the title page, plain article class.
+
+- **Job 102** (read-schedule microbenchmark; predictions in gpu e089377 before launch; outcome
+  `prereg/readsched_outcome_102.md`): MIN's per-layer reads, no model, each free to take the CPU or the link, reach
+  86-96% of the bound's read time per layer and 93-97% per token on Pd, a 9950X and a 9800X3D. 28 clauses held on the
+  point value, 5 failed (the per-layer wait costs nothing measurable on the AMD hosts; C ordering on Pd). Cost $0.50.
+- **Clarity rewrite:** Section 5 restructured (window policies, then against the deployed cache first, then against
+  admitting every miss); Section 4's machines paragraph trimmed; Fig. 1 caption, conclusion and limitations updated.
+- **Number check 9:** 14 defects, all fixed (the cap used the probe's zero-copy line and counted the combined-rate
+  slack twice; "within 14%" was really 16% more time; extrapolation scoped; "link only" mislabelled as MIN's path;
+  Section 5 opening overstated the deployed-path result; slow-link wording made consistent).
+- **After review 8:** link-aware bound (`scripts/linkaware.py`, `prereg/linkaware.json`) replaces the cap; the worked
+  example's admission ratio now uses MIN loaded the deployed way (4.6x, was 5.9x from the in-step state); new
+  limitation on the greedy oracle.
+
 ## 6 October (afternoon, unattended): review round 7 (5/10 and 5/10), number check 7, jobs 100f and 101
 
 **Status for Harshith (read this first).** Round 7: MLSys PC **5/10**, professor **5/10** (would take the student;

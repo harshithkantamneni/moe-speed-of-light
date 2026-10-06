@@ -65,7 +65,7 @@ def main():
     ad = [h[c]["runs"]["fetch"]["oracle_forced_per_token"] / h[c]["runs"]["base"]["admits_per_token"] for h in new for c in HB]
     rng("fxMinAdmitsOverOnline", ad, "{:.0f}")
     ex = H["Four"]["cells"]["gpt-oss 11%"]["runs"]
-    put("fxExAdmitsOverOnline", f"{ex['fetch']['oracle_forced_per_token'] / ex['base']['admits_per_token']:.1f}")   # the worked example (O4, 11%)
+    put("fxExAdmitsOverOnline", f"{ex['bypass']['admits_per_token'] / ex['base']['admits_per_token']:.1f}")   # the worked example (O4, 11%): MIN loaded the deployed way
     oa = [h[c]["runs"]["base"]["admits_per_token"] for h in new for c in ALL]
     rng("fxOnlineAdmits", oa, "{:.1f}")
     # nb2 against hitopt (the second read alone), by model

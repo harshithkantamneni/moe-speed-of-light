@@ -14,7 +14,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
           ("bypass", "MIN, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "single read", "#7a7974", "v"),
-          ("aa", "admit every miss", "#4a3aa7", "D")]
+          ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "deployed + layer-ahead copy", "#a4243b", "P")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
 
 
@@ -45,7 +45,8 @@ def points():
                     if key in c["speed"]:
                         pts.append((h["host"], r, lab, k, c["speed"][key][0]))
     # job 100's new machines (its relaunches of Pd and Ph are left out: the same machines are already here)
-    for pj in (P("prereg", "job100.json"), P("prereg", "job101.json"), P("prereg", "job103.json"), P("prereg", "job104.json")):
+    for pj in (P("prereg", "job100.json"), P("prereg", "job101.json"), P("prereg", "job103.json"), P("prereg", "job104.json"),
+               P("prereg", "job105.json")):
         if not os.path.exists(pj):
             continue
         for h in json.load(open(pj))["hosts"]:
@@ -53,6 +54,11 @@ def points():
                 continue
             # job 104 relaunches job 103's machines and Pf: only its plan states are new
             only = ("fetchplan",) if h["job"].startswith("104") else None
+            # job 105's relaunches of Pf and O4: the layer-ahead copy is new on both, the fewest-admission set on O4
+            if h["job"] == "105e":
+                only = ("pf",)
+            elif h["job"] == "105f":
+                only = ("pf", "fetchplan")
             r = h["B_p"] / h["B_c"]
             for C, lab in (("14", "gpt-oss 11%"), ("32", "gpt-oss 25%")):
                 c = h["cells"].get(C)

@@ -75,7 +75,9 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "Clause P2below's measured value is the analytic per-layer fraction minus the measured one.",
                  "103": "Hosts a (Pf again), b (285K, 40 GB/s link), d (5950X), e (3970X); c never started. The plan could not be "
                         "computed (scipy did not install), so the engine ran greedy MIN in the plan configurations: every plan clause is untested.",
-                 "104": "Hosts a (Pf again), b (the 285K of 103b), c (the 5950X of 103d); cells gpt-oss 11\\% (g11) and 25\\% (g25)."}[job]
+                 "104": "Hosts a (Pf again), b (the 285K of 103b), c (the 5950X of 103d); cells gpt-oss 11\\% (g11) and 25\\% (g25).",
+                 "105": "Hosts a (EPYC 7402P), b (Threadripper 9960X), e (Pf again), f (O4 again); c never started, and d and g "
+                        "had throttled cards that the gate stopped. Cells gpt-oss 11\\% (g11) and 25\\% (g25)."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -134,6 +136,10 @@ def main():
         if os.path.exists(pj):
             write_099(json.load(open(pj))["clauses"], P("paper", f"tab_scorecard_{jb}.tex"), job=jb, title=title, script="job103.py",
                       label=f"scorecard{jb}")
+    p105 = P("prereg", "scorecard_105.json")
+    if os.path.exists(p105):
+        write_099(json.load(open(p105))["clauses"], P("paper", "tab_scorecard_105.tex"), job="105",
+                  title="the sum law with profiled GPU compute; layer-ahead copies across machines", script="job105.py", label="scorecard105")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

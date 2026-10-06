@@ -33,7 +33,7 @@ def main():
     M = {}
     pr = profiles()
     g = [p["G"] for p in pr]; ne = [p["nonexpert"] for p in pr]
-    M["slProfN"] = str(len(pr))
+    M["slProfN"] = str(len(pr)); M["slProfHosts"] = str(len({os.path.dirname(p["file"]) for p in pr}))
     M["slGprofMin"] = f"{min(g):.1f}"; M["slGprofMax"] = f"{max(g):.1f}"
     M["slGneMin"] = f"{min(ne):.1f}"; M["slGneMax"] = f"{max(ne):.1f}"
     M["slLaunches"] = str(ra["launches"]); M["slMachines"] = str(ra["machines"])

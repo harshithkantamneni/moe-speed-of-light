@@ -36,6 +36,7 @@
 \input{wsg_job103}
 \input{wsg_job104}
 \input{wsg_sumlaw}
+\input{wsg_job105}
 \input{wsg_pending}
 
 \mlsystitlerunning{Where the Seconds Go}
@@ -60,7 +61,7 @@ that read an expert only once it is requested, by the same reads in series with 
 with nothing fitted: its gap to the first bound is that serialisation (\slGGapLowMin--\slGGapLowMax\% at the smallest
 budget) plus reads MIN would not make. Oracles of the future routing built into the engine show that foresight pays when
 spent as MIN spends it, caching MIN's set and reading each expert once, and that which of MIN's many hit-optimal sets is
-used matters: the greedy one loses on a machine with a slow link, where the set with the fewest admissions gains.
+used matters: the greedy one loses on machines with a slow link, where the set with the fewest admissions gains.
 Degrading the oracle prices foresight: half of MIN's saving needs the routing of about \dcMed$\,C$ distinct experts per
 layer ahead, which no online policy, learned admission order, speculative batch or forecaster we tested approaches.
 \end{abstract}
@@ -85,7 +86,9 @@ on rented RTX 5090 hosts, with three findings.
 host reads any exact-routing policy can make, over the machine's measured read rate, bounds the time per token; for a
 system that reads on demand, the GPU's own compute adds in series. Our cache sits on the second relation itself: across
 \slLaunches{} launches on \slMachines{} machines its time is the profiled GPU compute (\slGprofMin--\slGprofMax\,ms) plus
-its counted reads at the machine's best rate, with nothing fitted. Its gap to the first bound is therefore that
+its counted reads at the machine's best rate, with nothing fitted; predicted before the runs on \jgHosts{} more launches,
+it came within \jgErrLowMin{} to \jgErrLowMax\% at gpt-oss 11\% and over-predicted by up to \jgErrMidMax\% at 25\%, where
+background copies overlap the GPU's work. Its gap to the first bound is therefore that
 serialisation (\slGGapLowMin--\slGGapLowMax\% at gpt-oss 11\%) plus the reads it makes beyond MIN's. The bounds' read
 time is reachable: MIN's reads, replayed layer by layer without the model, reach \jdLayerMin--\jdLayerMax\% of it, and
 requiring every admission to cross the link raises it by at most \laOverMidMax\%. Published systems in the same class
@@ -94,10 +97,10 @@ reach a median of \audInclassMed\% of the first bound.
 \textbf{(2) Foresight pays when spent as MIN spends it, and which MIN matters} (\cref{sec:gap}). With the future
 routing known, caching what MIN caches and copying each expert once, in the step, is
 \fxFetchAllGainMin--\fxFetchAllGainMax\% faster than our deployed cache on three hosts at six budgets. MIN has many
-hit-optimal schedules: the greedy one admits so eagerly that on a machine whose link reads at \jfPfRatio{} of its CPU
-rate it loses (\jfPfFetch$\times$, on four launches), while the one with the fewest admissions gains there
-(\jfPfPlan$\times$); on the three machines it ran on, it adds \jfGainLowMin--\jfGainLowMax{} to the speed ratio at
-gpt-oss 11\%. An order-free (Shapley)
+hit-optimal schedules: the greedy one admits so eagerly that on the \jhSlowMachines{} machines whose link reads at
+under a third of their CPU rate it loses (\jhSlowFetchMin--\jhSlowFetchMax$\times$), while the one with the fewest
+admissions gains there (\jhSlowPlanMin--\jhSlowPlanMax$\times$); wherever the link is slower than the CPU it adds
+\jhGainBalMin--\jhGainBalMax{} to the speed ratio at gpt-oss 11\%. An order-free (Shapley)
 accounting shows that what to cache and how to load interact: either alone closes at most \fsBalAloneMax\% of the gap,
 both together up to \fsBalBothMax\%. A model of the two read paths predicts the deployed cache and the in-step states
 within a median \hmFrozenStepMed\% on \hmHostsN{} hosts.
@@ -114,8 +117,8 @@ power law. No online policy, learned admission order, speculative batch or forec
 and the machine's probed rates: one for systems with foresight, one for systems that read on demand, with a
 microbenchmark and a link-aware variant showing their read time is nearly reachable (\cref{sec:limit}).
 \item A \textbf{law with nothing fitted}: time per token is the GPU's profiled compute plus the counted host reads at
-the machine's best rate, on \slLaunches{} launches on \slMachines{} machines, which splits the gap into serialisation
-and excess reads (\cref{sec:gap}).
+the machine's best rate, on \slLaunches{} launches on \slMachines{} machines and predicted before the runs on
+\jgHosts{} more, which splits the gap into serialisation and excess reads (\cref{sec:gap}).
 \item An \textbf{in-engine oracle factorial} that crosses what to cache with how each expert is loaded, on
 \fsAccHosts{} hosts, with an order-free accounting, a test of launch-to-launch variation, a model of the two read paths
 tested on hosts it was not fitted on, and a comparison of MIN's greedy and fewest-admission schedules in the engine
@@ -192,7 +195,7 @@ Its time is therefore at least the GPU's non-expert work plus the reads, in seri
 \label{eq:demand}
 \end{equation}
 where $T_{\text{GPU}}$, the GPU's attention, dense layers, norms and routers per token, is \slGneMin--\slGneMax\,ms for
-gpt-oss in Nsight profiles of our engine on three hosts. Every system we compare, ours included, reads on demand. Only
+gpt-oss in Nsight profiles of our engine on \slProfHosts{} hosts. Every system we compare, ours included, reads on demand. Only
 reading before routing, that is foresight, can approach \cref{eq:limit}; \cref{eq:demand} is the bound for everything
 else.
 
@@ -243,7 +246,11 @@ T \;=\; G + \frac{R\,S}{B_{\mathrm{host}}},
 with $R$ the host reads per token the engine counts (misses and admissions) and $G$ the GPU's own kernel time per
 token, \slGprofMin--\slGprofMax\,ms in the profiles. Solved for $G$ on each launch, \cref{eq:sum} gives a median of
 \slGLow\,ms at gpt-oss 11\% (interquartile range \slGLowQa--\slGLowQb, the profiled value; Spearman correlation with the
-link-to-CPU ratio \slGRhoLow) and \slGMid\,ms at 25\%, where some background copies overlap the GPU's work. With $G$ removed, the time scales with the host's read rate with an elasticity of
+link-to-CPU ratio \slGRhoLow) and \slGMid\,ms at 25\%, where some background copies overlap the GPU's work. Predicted
+before the runs on \jgHosts{} further launches, two of them new machines, with $G$ profiled on each host first
+(\jgGprofMin--\jgGprofMax\,ms; job 105, \cref{tab:job105}), \cref{eq:sum} came within \jgErrLowMin{} to
+\jgErrLowMax\% of the measured time at 11\%; at 25\% it over-predicted by \jgErrMidMin--\jgErrMidMax\%, beyond the
+6\% we had registered, by that overlap. With $G$ removed, the time scales with the host's read rate with an elasticity of
 \slElastLow{} (95\% interval \slElastLowLo{} to \slElastLowHi), as pure reads at $B_{\mathrm{host}}$ would. The
 deployed cache thus executes its own reads at the machine's best rate, and its whole gap to \cref{eq:limit} is two
 terms: the GPU's compute in series with the reads, \slGGapLowMin--\slGGapLowMax\% of the gap at 11\% and
@@ -263,8 +270,8 @@ every budget (O4 and O5 in a randomised order); the \pnHosts{} panel hosts (grey
 budgets, and \pnHostsQlow{} of them at Qwen3 12.5\%. The prefetched Belady variant and the learned admission order are
 in \cref{app:foresight,app:traces}. Within-host 95\% intervals are mostly narrower than the markers. On these hosts admitting what MIN
 admits and reading it once (\emph{MIN, 1 read}) gains at every budget; the usual ways of spending foresight
-(\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others. The panel machine whose link reads at \hdRatioMin{}
-of its CPU rate is the exception for MIN's greedy schedule, not for its fewest-admission one (\cref{fig:hostdep,tab:job104}).}
+(\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others. On the \jhSlowMachines{} machines whose link reads at under a third of
+their CPU rate, MIN's greedy schedule loses and its fewest-admission one gains (\cref{fig:hostdep,tab:job104,tab:job105}).}
 \label{fig:factorial}
 \end{figure*}
 
@@ -280,17 +287,20 @@ on O4 and O5 at the host-bound budgets.
 
 \paragraph{Which of MIN's schedules matters.} MIN has many hit-optimal schedules. The greedy rule our oracles follow
 admits a miss whenever some resident is needed later, and may evict it again before its next use; the schedule with the
-fewest admissions among those with the most hits (\cref{sec:limit}) admits far fewer. Job 104 gave the engine that
-schedule, computed on each host from its own routing trace, on three machines whose link reads at
-\jfRatioMin--\jfRatioMax{} of their CPU rate (\cref{tab:job104}). On the engine's 20 problems it copies
-\jfCopyRatioMin--\jfCopyRatioMax{} times as many experts in the step as the greedy schedule, for \jfMissDevMin--\jfMissDevMax\% more misses, and at gpt-oss
-11\% it is \jfGainLowMin--\jfGainLowMax{} faster relative to the deployed cache. On the machine whose link reads at
-\jfPfRatio{} of its CPU rate, where the greedy schedule loses on four launches (\jfPfFetch$\times$ here), it gains
-(\jfPfPlan$\times$, interval [\jfPfPlanLo, \jfPfPlanHi]). Loaded by the CPU instead, the same set also gains there
-(\cref{tab:job104}). On all three machines the fewest-admission set gains with either load and at both budgets; how
-much depends on the link.
+fewest admissions among those with the most hits (\cref{sec:limit}) admits far fewer. Jobs 104 and 105 gave the
+engine that schedule, computed on each host from its own routing trace, on \jhLaunches{} launches on \jhMachines{}
+machines whose link reads at \jhRatioMin--\jhRatioMax{} of their CPU rate (\cref{tab:job104,tab:job105}). On the
+engine's 20 problems it copies \jfCopyRatioMin--\jfCopyRatioMax{} times as many experts in the step as the greedy
+schedule, for \jfMissDevMin--\jfMissDevMax\% more misses. Where the link reads slower than the CPU it adds
+\jhGainBalMin--\jhGainBalMax{} to the greedy schedule's speed ratio at gpt-oss 11\% (\jhBalN{} launches); on the
+machine whose link is as fast as its CPU, where copies in the step are cheap, it changes it by \jhGainFast. On the
+\jhSlowMachines{} machines whose link reads at under a third of their CPU rate, the greedy schedule loses
+(\jhSlowFetchMin--\jhSlowFetchMax$\times$) and the fewest-admission one gains (\jhSlowPlanMin--\jhSlowPlanMax$\times$,
+\jhSlowLaunches{} launches). On every launch the fewest-admission set gains with either load and at both budgets, each
+95\% interval above 1; how much depends on the link.
 
 \input{tab_job104}
+\input{tab_job105}
 
 \paragraph{The machine decides how much.} Across machines, the gain of every state that copies over the link follows
 the link-to-CPU ratio (Spearman over machines, 95\% bootstrap interval): MIN copied in the step \rcFetchRatio{}
@@ -299,15 +309,17 @@ miss \rcAaRatio{} [\rcAaRatioLo, \rcAaRatioHi] (\cref{fig:hostdep}). MIN loaded 
 background, follows the link's absolute rate instead (\rcBypassBp{} [\rcBypassBpLo, \rcBypassBpHi], against
 \rcBypassRatio{} for the ratio): a background copy needs a fast link, an in-step copy a balanced one. The greedy
 schedule copied in the step still gains \jeNewFetchLowMin--\jeNewFetchLowMax$\times$ at 11\% on \jeNewN{} further
-machines with ratios \jeNewRatioMin{} and \jeNewRatioMax{}, and loses only on the machine at \hdRatioMin; made ahead
-of use, the same copies lose beyond their interval nowhere (at worst \jbPfPaced$\times$, there).
+machines with ratios \jeNewRatioMin{} and \jeNewRatioMax{}, and loses only on the \jhSlowMachines{} machines whose link
+reads at under a third of their CPU rate; made ahead of use, the same copies lose beyond their interval on no machine
+they ran on (at worst \jbPfPaced$\times$, on Pf).
 
 \begin{figure*}[t]\centering
 \includegraphics[width=\textwidth]{figs/hostdep.pdf}
 \caption{Which way of spending foresight pays depends on the machine: speed relative to the deployed cache on the same
 host against the host's link-to-CPU read-rate ratio from its own probe, at the two gpt-oss host-bound budgets, on hosts
 O3--O6, the panel and the new machines of the follow-ups. Stars: MIN's fewest-admission set, copied in the step (job
-104, three machines). Lines: least-squares fits in the log of the ratio, for the trend only.}
+104 and 105, \jhMachines{} machines). Crosses: the deployed cache with the engine's layer-ahead copy (job 105). Lines:
+least-squares fits in the log of the ratio, for the trend only.}
 \label{fig:hostdep}
 \end{figure*}
 
@@ -386,7 +398,11 @@ reads \lreFewerMin--\lreFewerMax\% fewer experts in the engine than the deployed
 \lreOverBaseMin--\lreOverBaseMax$\times$ the deployed cache. \emph{Speculative batches} save an online cache
 \bkSameNineMin--\bkSameNineMax\% of its reads at 90\% draft acceptance and cost \bkSameEightLossMin--\bkSameEightLossMax\% at
 80\% \citep{spmoe,moespac2026,cascade2025}. \emph{Layer-ahead predictors} \citep{hwang2024pregated,zhu2025preattention}
-reach \laRecallK\% recall in our engine but see less than one token ahead. \emph{Forecasters} trained on routing
+reach \laRecallK\% recall in our engine but see less than one token ahead, so they can only hide reads under the GPU's
+compute. The engine's layer-ahead copy spends them that way, copying one predicted expert per layer ahead of use
+(\jgPfUsefulLowMin\% of the copies are used): at gpt-oss 11\% it gains \jgPfLowFastMin$\times$ on the machine whose
+link is as fast as its CPU and loses on the other \jgPfLoseN, down to \jgPfLowMin$\times$ (job 105,
+\cref{tab:job105}); both signs were predicted from the link-to-CPU ratio before the runs. \emph{Forecasters} trained on routing
 histories, linear or recurrent, close at most \lfShareMaxGpt\% of the read gap on gpt-oss: their precision falls with the
 horizon (\lfPrecOneGpt{} one token ahead, \lfPrecFourGpt{} four ahead), and over a window they do no better than random
 errors of the same precision (\cref{fig:value}, dotted; \cref{app:value}).
@@ -425,9 +441,11 @@ caches \citep{jain2016hawkeye,song2020lrb} and in an SSD-backed expert cache \ci
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{Hardware and sample.} Rented consumer cards in desktop hosts; clocks could not be locked and power limits
 differed. The panel has \pnHosts{} hosts, one launch each (\jcRelaunchN{} machines relaunched later); the full 2$\times$2 ran at every
-budget on two hosts. Few hosts have a link slower than half their CPU rate, and the greedy copy loses on one machine
-only, so the crossover in \cref{fig:hostdep} rests on few points; the line at half was drawn after the panel ran.
-The fewest-admission schedule ran on three machines at two budgets.
+budget on two hosts. Few hosts have a link slower than half their CPU rate, and the greedy copy loses on
+\jhSlowMachines{} machines only, so the crossover in \cref{fig:hostdep} rests on few points; the line at half was drawn
+after the panel ran.
+The fewest-admission schedule ran on \jhMachines{} machines and the layer-ahead copy on \jgHosts{} machines, both at
+two budgets.
 \item \textbf{Workload.} Batch-1 decode of two models on AIME prompts, also used while developing the system,
 teacher-forced on each model's own greedy text. Prompts and batches above one bypass the cache.
 \item \textbf{The bound.} Exact routing and per-layer slots (pooling slots across layers lowers MIN's reads by
@@ -436,8 +454,9 @@ reader than our probe could exceed it. Its read time is nearly reachable in a mi
 whether the GPU's work overlaps the reads as the bound assumes we have not measured.
 \item \textbf{The oracles and the model.} Oracles read a recorded trace. In the engine the fewest-admission schedule
 misses \jfMissDevMin--\jfMissDevMax\% more than the greedy one, more than its replay predicts; its measured gains
-include that cost. The time model is optimistic for copies in the step on slow links and for background copies, and
-it fails on a 12-channel server host (\cref{app:law}). Degraded windows draw errors independently; a real forecaster's
+include that cost. \Cref{eq:sum} has no term for background copies that overlap the GPU's work, and over-predicts by
+up to \jgErrMidMax\% at gpt-oss 25\%, where they are a larger share of the reads. The two-path model is optimistic for
+copies in the step on slow links and for background copies, and it fails on a 12-channel server host (\cref{app:law}). Degraded windows draw errors independently; a real forecaster's
 errors are correlated with what the cache holds.
 \item \textbf{Outputs.} Parity is measured by teacher-forced KL divergence against an all-VRAM reference (mean
 \klMeanGpt{} and \klMeanQwen{} nats), not by task accuracy.
@@ -448,11 +467,12 @@ With experts in host memory, batch-1 MoE decode is the GPU's compute plus host b
 reads on demand. Our cache executes its reads at the machine's best rate, so what separates it from the bound is the
 serialisation of the GPU's work with the reads and the reads it makes beyond MIN's. Knowing the future removes both when
 it is spent as MIN spends it, caching MIN's set and reading each expert once, and the choice among MIN's hit-optimal
-schedules matters: the fewest-admission one gains on every machine it ran on, including the slow-link machine where the
+schedules matters: the fewest-admission one gains on every machine it ran on, including the slow-link machines where the
 greedy one loses. How much it gains is a property of the machine that its read rates largely predict. And foresight has
 a measurable price: about \dcMed$\,C$ distinct experts of each layer's coming routing to halve the excess reads, at
 accuracies no forecaster we know of or trained reaches, while one layer of foresight, which predictors already
-provide, can only hide reads under the GPU's own compute.
+provide, can only hide reads under the GPU's own compute and, spent by the engine's layer-ahead copy, pays only where
+the link is as fast as the CPU.
 
 \bibliography{refs,refs_wsg}
 \bibliographystyle{mlsys2025}

@@ -20,7 +20,8 @@
 #   4. layer_link is slower than layer by more than 10% on a host whose CPU path reads at least 1.5x its link, and
 #      within 10% where the two match;
 #   5. the two repetitions of each mode agree within 3%.
-# Hosts: 102a = a Core Ultra 9 285K behind a slow link (Pf of job 099, offer 40038866); 102b = a Ryzen 9 9950X (offer
+# Hosts: 102a = an i9-13900KF behind a slow link (Pd of job 099, offer 51748728; Pf's offer was gone at launch); 102b =
+# a Ryzen 9 9950X (offer
 # 52267630, listing 44.7 GB/s); 102c = a Ryzen 7 9800X3D behind a 27 GB/s link (offer 54227417).
 # Budget: the job stops starting steps 45 minutes after launch.
 set -x

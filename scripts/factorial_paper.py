@@ -89,6 +89,7 @@ def main():
     rng("fxPacedAllGain", al, "{:.0f}")
     by = [reads(h[c]["runs"]["bypass"]) / h[c]["opt_reads_per_token"] for h in new for c in ALL]
     rng("fxBypassReadsOverOpt", by, "{:.1f}")
+    rng("fxUsualReadsOverOpt", by + no, "{:.1f}")
     # the running example on O4
     c = H["Four"]["cells"]["gpt-oss 25%"]["runs"]
     for k, nm in (("foa", "Foa"), ("fetch", "Fetch"), ("both3p", "Paced"), ("nb2", "Nbtwo"), ("hitopt", "Hitopt"), ("bypass", "Bypass")):

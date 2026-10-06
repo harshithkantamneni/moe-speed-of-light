@@ -26,7 +26,7 @@ P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b", "O5", "#1baf7a", "^"),
          ("097a", "O4 (097)", "#eb6834", "D"), ("097b", "O5' (097)", "#1baf7a", "v")]
 ROWS = [("foa", "single read, online"), ("learned", "learned order"), ("bypass", "MIN, serve-then-copy"),
-        ("hitopt", "Belady, two reads"), ("nb2", "Belady, one read"), ("fetch", "MIN, fetch (one read)"),
+        ("hitopt", "Belady, two reads"), ("hitoptp", "Belady, two reads, paced"), ("nb2", "Belady, one read"), ("fetch", "MIN, fetch (one read)"),
         ("both3p", "MIN, fetch + prefetch")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%", "gpt-oss 40%", "Qwen3 12.5%", "Qwen3 25%", "Qwen3 43.75%"]
 HOSTBOUND = {"gpt-oss 11%", "gpt-oss 25%", "Qwen3 12.5%", "Qwen3 25%"}
@@ -39,7 +39,7 @@ def main():
         if os.path.exists(p):
             data[job] = {c["label"]: c for c in json.load(open(p))["cells"]}
     rows = [r for r in ROWS if any(r[0] in c["runs"] for d in data.values() for c in d.values())]
-    fig, axes = plt.subplots(1, 6, figsize=(7.1, 2.55), sharey=True)
+    fig, axes = plt.subplots(1, 6, figsize=(7.1, 2.75), sharey=True)
     plt.rcParams.update({"font.size": 7})
     for ax, lab in zip(axes, CELLS):
         ax.axvline(1.0, color="#52514e", lw=0.8, zorder=1)

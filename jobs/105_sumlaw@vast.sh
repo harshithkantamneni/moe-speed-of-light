@@ -23,6 +23,9 @@
 # Hosts: 105a = an EPYC 7402P server behind a 26.5 GB/s link (offer 53882094); 105b = a Threadripper 9960X, link 55
 # (53278552); 105c = a Ryzen 7 7800X3D, link 49 (53510760); 105d = a Threadripper PRO 7000-series, link 54 (54519277);
 # 105e = Pf again (Core Ultra 9 285K, link 27; 40038866).
+# Amended after launch, before these two started: 105d's card read 1072 GB/s and the gate stopped it; 105c's image
+# never pulled. Both destroyed without results. In their place: 105f = O4's Ryzen 9 9950X again (link/CPU 1.05;
+# 52267630) and 105g = a second Threadripper PRO 7000-series, link 54 (54519470). Predictions unchanged.
 # Budget: the job stops starting steps 2 h after launch.
 set -x
 exec 2>&1

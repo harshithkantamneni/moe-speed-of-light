@@ -1,0 +1,77 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/105_sumlaw@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=64
+++ NPROC=64
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ QWEN=0
+++ date +%s
++ T0=1791324382
++ BUDGET=7200
++ RESERVE=600
+++ date +%s
++ ORDER_SEED=24382
++ echo 'order seed base 24382; QWEN=0'
++ tee /w/results/105d_sumlaw@vast/order_seed.txt
+order seed base 24382; QWEN=0
++ NSEQ=20
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/105d_sumlaw@vast/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA GeForce RTX 5090, 32607 MiB, 3090 MHz, 14001 MHz, 5, 5, 16, 16, 580.178.04, 575.00 W
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/105d_sumlaw@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/105d_sumlaw@vast/bw_gate.txt
++ DR=1072
++ echo 'device read 1072 GB/s'
++ tee -a /w/results/105d_sumlaw@vast/gate.txt
+device read 1072 GB/s
++ '[' 1072 -ge 1500 ']'
++ echo 'GPU reads below 1500 GB/s: throttled card, stopping'
+GPU reads below 1500 GB/s: throttled card, stopping
++ exit 5

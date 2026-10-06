@@ -175,7 +175,7 @@ def main():
         print(f"\n{cell_label} (C {C}): base {base['mean']:.1f} tok/s ({T_base:.2f} ms); limit {1 / t_lim:.0f} tok/s; model v(F) {1e3 * vF:.2f} ms "
               f"= {1e3 / (1e3 * vF):.1f} tok/s; v(O) {1e3 * vO:.2f}; v(O,F) {1e3 * vOF:.2f}; shares {({f: round(100 * s) for f, s in model['shapley_share'].items()} if model['shapley_share'] else None)}")
         for short in ("base", "paced", "oracle_w2", "oracle_w4", "oracle_w16", "oracle_w64", "oracle_w0", "oracle_np", "noovl", "allcpu",
-                      "bypass_w0", "bypass_w16", "prefetch_w0", "foa", "fetch", "bypass", "lead2", "nb2", "both2", "both3p", "hitopt", "hitoptp"):
+                      "bypass_w0", "bypass_w16", "prefetch_w0", "foa", "learned", "fetch", "bypass", "lead2", "nb2", "both2", "both3p", "hitopt", "hitoptp"):
             if short in runs:
                 r = runs[short]
                 print(f"  {short:10s} {r['mean']:7.1f} tok/s  x base {r['ratio_to_base'][0]:.3f} [{r['ratio_to_base'][1]:.3f}, {r['ratio_to_base'][2]:.3f}]  "

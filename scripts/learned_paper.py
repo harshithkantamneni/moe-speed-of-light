@@ -38,10 +38,23 @@ def main():
     rng("lrnFewerDepHost", [100 * (1 - q[c]["learned"] / q[c]["dfa"]) for c in hb])
     rng("lrnNoCrossFetchHost", [100 * nc[c]["closed_fetch_to_opt"] for c in hb])
     rng("lrnFetchAll", [100 * q[c]["closed_fetch_to_opt"] for c in q])
-    rng("lrnOverOpt", [q[c]["learned"] / q[c]["opt"] for c in q], "{:.2f}")
+    rng("lrnOverOpt", [q[c]["learned"] / q[c]["opt"] for c in hb], "{:.2f}")
     put("lrnBeatsWOne", str(sum(q[c]["learned"] < q[c]["W1"] for c in q)))
     put("lrnBeatsWTwo", str(sum(q[c]["learned"] < q[c]["W2"] for c in q)))
     put("lrnCells", str(len(q)))
+    # the replay's single-read policy against the engine's fetch-on-admit runs (job 096, O4 and O5)
+    lab = {14: "gpt-oss 11%", 32: "gpt-oss 25%", 51: "gpt-oss 40%", 16: "Qwen3 12.5%", 56: "Qwen3 43.75%"}
+    diffs = []
+    for job in ("096a", "096b"):
+        f = P("prereg", f"foresight_{job}.json")
+        if os.path.exists(f):
+            cells = {c["label"]: c for c in json.load(open(f))["cells"]}
+            for m, C, *_ in CELLS:
+                lb = lab.get(C) if not (C == 32) else ("gpt-oss 25%" if m.startswith("gpt") else "Qwen3 25%")
+                r = cells[lb]["runs"]["foa"]
+                diffs.append(abs(q[(m, C)]["dfa-fetch"] / (r["misses_per_token"] + r["admits_per_token"]) - 1))
+    import math
+    put("lrnSimVsFoaMax", f"{math.ceil(100 * max(diffs)):.0f}" if diffs else "--")
     for m, C, tag, _, _ in CELLS:
         r = q[(m, C)]
         put(f"lrnFetch{tag}", f"{100 * r['closed_fetch_to_opt']:.0f}")
@@ -56,17 +69,17 @@ def main():
     with open(P("paper", "tab_learned.tex"), "w") as f:
         f.write("\\begin{table}[t]\\centering\\footnotesize\n")
         f.write("\\caption{A learned admission order, offline: host reads per token on the AIME-25 routing the engine runs, of the "
-                "deployed policy (decayed frequency, admissions served by the CPU and then copied: two reads each), the same scores "
-                "with each admission read once (single read), the learned order with single-read admission (trained on the model's "
+                "decayed frequency with each admission read once (single read; within "
+                f"{M['lrnSimVsFoaMax']}\\% of the engine's fetch-on-admit reads on hosts O4 and O5), the learned order with single-read admission (trained on the model's "
                 "mixed-domain trace; 8-bit cross-layer table, as in the engine), Belady within one and four tokens of perfect "
-                "foresight, and MIN with bypass. \\emph{closed}: the share of the single-read policy's excess over MIN that the "
+                "foresight, and MIN with bypass in its no-evict form (\\cref{tab:limit}). \\emph{closed}: the share of the single-read policy's excess over MIN that the "
                 "learned order removes. $^\\dagger$host-bound.}\\label{tab:learned}\n")
-        f.write("\\setlength\\tabcolsep{3.5pt}\n\\begin{tabular}{@{}lrrrrrrr@{}}\\toprule\n")
-        f.write("cell & deployed & single read & learned & $W{=}1$ & $W{=}4$ & MIN & closed \\\\\\midrule\n")
+        f.write("\\setlength\\tabcolsep{3.5pt}\n\\begin{tabular}{@{}lrrrrrr@{}}\\toprule\n")
+        f.write("cell & single read & learned & $W{=}1$ & $W{=}4$ & MIN & closed \\\\\\midrule\n")
         for m, C, tag, lab, h in CELLS:
             r = q[(m, C)]
             dag = "$^\\dagger$" if h else ""
-            f.write(f"{lab}{dag} & {r['dfa']:.1f} & {r['dfa-fetch']:.1f} & {r['learned']:.1f} & {r['W1']:.1f} & "
+            f.write(f"{lab}{dag} & {r['dfa-fetch']:.1f} & {r['learned']:.1f} & {r['W1']:.1f} & "
                     f"{r['W4']:.1f} & {r['opt']:.1f} & {100 * r['closed_fetch_to_opt']:.0f}\\% \\\\\n")
         f.write("\\bottomrule\n\\end{tabular}\n\\end{table}\n")
     print(len(M), "macros")

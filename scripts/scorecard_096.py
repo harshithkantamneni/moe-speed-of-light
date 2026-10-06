@@ -132,7 +132,7 @@ def main():
                 sb = 100 * (base_ms - R["fetch"]["ms"]) / gap; so = 100 * (R["fetch"]["ms"] - b_ms) / gap
                 add(f"P9a-{tag}", 9, f"bytes share 25-55% of the gap, {lab}", f"base -> fetch is 25-55% of the gap to the limit at {lab}", "band", "100 (base - fetch) / (base - limit), ms", "25 to 55%", sb, None, status_band(sb, 25, 55))
                 add(f"P9b-{tag}", 9, f"overlap share 5-30% of the gap, {lab}", f"fetch -> the faster prefetch state is 5-30% of the gap at {lab}", "band", "100 (fetch - best) / (base - limit), ms", "5 to 30%", so, None, status_band(so, 5, 30))
-        out.append(dict(job=f"096{hname}", era="088-097", script="jobs/096_factorial@vast.sh", commit="767e07f", host=hdesc + f" (host {hname})",
+        out.append(dict(job=f"096{hname}", era="088-098", script="jobs/096_factorial@vast.sh", commit="767e07f", host=hdesc + f" (host {hname})",
                         outcome_note="prereg/foresight_outcome_096.md", clauses=cl))
     # prediction 10: between hosts
     if len(per_host) == 2:
@@ -146,7 +146,7 @@ def main():
                                clause=f"between the two hosts, fetch / base differs by at most 0.15 at {lab}", type="threshold", quantity="|fetch/base (O4) - fetch/base (O5)|",
                                threshold="<= 0.15", source="prereg/foresight_096a.json, prereg/foresight_096b.json", measured=round(m, 3), ci=None,
                                status="held (point)" if m <= 0.15 else "failed", paper_log="", note="", decimals=3))
-        out.append(dict(job="096", era="088-097", script="jobs/096_factorial@vast.sh", commit="767e07f", host="O4 and O5", outcome_note="prereg/foresight_outcome_096.md", clauses=cl))
+        out.append(dict(job="096", era="088-098", script="jobs/096_factorial@vast.sh", commit="767e07f", host="O4 and O5", outcome_note="prereg/foresight_outcome_096.md", clauses=cl))
     path = P("prereg", "scorecard_clauses.json")
     d = json.load(open(path))
     d["jobs"] = [j for j in d["jobs"] if not str(j.get("job", "")).startswith("096")] + out

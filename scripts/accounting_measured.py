@@ -95,6 +95,14 @@ def main():
             M(f"{px}Min", f"{min(vals):.1f}"); M(f"{px}Max", f"{max(vals):.1f}")
         vals = [c["decomposition"]["measured"]["rest"] / c["decomposition"]["model"]["rest"] for c in hb]
         M("amRestMultMin", f"{min(vals):.1f}"); M("amRestMultMax", f"{max(vals):.1f}")
+        for h in out["hosts"]:
+            nm = {"095": "Three", "096a": "Four", "096b": "Five"}.get(h["job"])
+            hc = [c for c in h["cells"] if "decomposition" in c and c["host_bound"]]
+            if nm and hc:
+                v = [100 * c["decomposition"]["measured"]["rest"] for c in hc]
+                M(f"amRest{nm}Min", f"{min(v):.0f}"); M(f"amRest{nm}Max", f"{max(v):.0f}")
+                v = [100 * (c["decomposition"]["measured"]["bytes"] + c["decomposition"]["measured"]["overlap_given_foresight"]) for c in hc]
+                M(f"amRecov{nm}Min", f"{min(v):.0f}"); M(f"amRecov{nm}Max", f"{max(v):.0f}")
         hb_sr = [c for c in hb if c["decomposition"]["measured"].get("single_read") is not None]
         if hb_sr:
             for key, px in (("single_read", "amSingle"), ("foresight_given_single_read", "amFsGivenSingle")):

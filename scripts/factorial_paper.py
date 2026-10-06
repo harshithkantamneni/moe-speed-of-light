@@ -89,7 +89,31 @@ def main():
     rng("fxPacedAllGain", al, "{:.0f}")
     by = [reads(h[c]["runs"]["bypass"]) / h[c]["opt_reads_per_token"] for h in new for c in ALL]
     rng("fxBypassReadsOverOpt", by, "{:.1f}")
-    rng("fxUsualReadsOverOpt", by + no, "{:.1f}")
+    ho = [reads(h[c]["runs"][k]) / h[c]["opt_reads_per_token"] for h in allh for c in ALL for k in ("hitopt", "hitoptp") if k in h[c]["runs"]]
+    rng("fxUsualReadsOverOpt", by + no + ho, "{:.1f}")
+    # MIN's paced single-read prefetch against the best of the usual ways, host-bound cells, O3-O5
+    mu = [h[c]["runs"]["both3p"]["mean"] / max(h[c]["runs"][k]["mean"] for k in ("bypass", "nb2", "hitopt", "hitoptp") if k in h[c]["runs"]) for h in allh for c in HB]
+    rng("fxMinOverUsual", mu)
+    # the usual ways at the two 25% cells on O4 (their best) and at the two lowest budgets on O4/O5 (their best)
+    u25 = [max(h[c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for h in [H["Four"]["cells"]] for c in ("gpt-oss 25%", "Qwen3 25%")]
+    rng("fxUsualQuarterFour", u25)
+    ulow = [max(h[c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for h in new for c in ("gpt-oss 11%", "Qwen3 12.5%")]
+    rng("fxUsualLow", ulow)
+    rng("fxFetchLow", [h[c]["runs"]["fetch"]["ratio_to_base"][0] for h in new for c in ("gpt-oss 11%", "Qwen3 12.5%")])
+    u5 = [max(H["Five"]["cells"][c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for c in HB]
+    rng("fxUsualFive", u5)
+    # between-host spread of any state's ratio
+    put("fxSpreadAnyMax", f"{max(abs(H['Four']['cells'][c]['runs'][k]['ratio_to_base'][0] - H['Five']['cells'][c]['runs'][k]['ratio_to_base'][0]) for c in ALL for k in H['Four']['cells'][c]['runs'] if k != 'base'):.2f}")
+    # foa reads removed at the host-bound cells
+    rng("fxFoaFewerReadsHost", [100 * (1 - reads(h[c]["runs"]["foa"]) / reads(h[c]["runs"]["base"])) for h in new for c in HB], "{:.0f}")
+    # fetch reads against the corrected simulation, O3-O5
+    SIMF = dict(zip(ALL, [39.3, 16.0, 7.5, 100.4, 44.9, 14.5]))
+    put("fxFetchSimDiffMax", f"{100 * max(abs(reads(h[c]['runs']['fetch']) / SIMF[c] - 1) for h in allh for c in ALL):.0f}")
+    # the law (no overlap) on the paced prefetching state, host-bound cells, O3-O5: time over-prediction
+    le = [100 * (h[c]["runs"]["both3p"]["law_ms"] / h[c]["runs"]["both3p"]["ms"] - 1) for h in allh for c in HB]
+    rng("fxPacedLawTime", le, "{:+.0f}")
+    # the deployed cache's reads over R* in the engine (online state), O3-O5, host-bound
+    rng("fxOnlineReadsOverOpt", [reads(h[c]["runs"]["base"]) / h[c]["opt_reads_per_token"] for h in allh for c in HB])
     # the running example on O4
     c = H["Four"]["cells"]["gpt-oss 25%"]["runs"]
     for k, nm in (("foa", "Foa"), ("fetch", "Fetch"), ("both3p", "Paced"), ("nb2", "Nbtwo"), ("hitopt", "Hitopt"), ("bypass", "Bypass")):

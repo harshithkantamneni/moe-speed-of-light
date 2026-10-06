@@ -3,6 +3,33 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (afternoon, unattended): review round 7 (5/10 and 5/10), number check 7, jobs 100f and 101
+
+**Status for Harshith (read this first).** Round 7: MLSys PC **5/10**, professor **5/10** (would take the student;
+"reject as it stands, likely accept after a focused rewrite plus the crossover experiment"). Every artifact check
+passed in both reviews (15 and 16 claims, scripts regenerate macros byte for byte). Both still rank clarity first
+(2/5), then: the bound's tightness is unknown; the price of foresight is measured against a weak baseline; the
+"model predicts which way pays" claim rests on one machine (both losses on Pf). Number check 7: 18 defects, the
+largest that job 100's new machines were left out of the accounting ranges (fixed: both-together range is now 14-60%).
+Reviewer flag for you: the PDF names the author on the title page and uses the plain article class (template and
+anonymisation are your call).
+
+- **Fixed after round 7:** abstract cut to ~7 numbers and plain words; finding (3) states its baseline; a Terms
+  paragraph in Section 2; the model paragraph defines its symbols, says G is leave-one-host-out, says the sign test is
+  weak (2 losses of 39, both on one machine; "always copy" and the one-path model get 37), and that the model cannot
+  resolve the single read (predicted within 2%, measured 0.90-1.03); window policy as a 3-step list; worked example
+  to one decimal (4.5 + 3.9 + 43.2 ~ 51.5) with its own admission ratio (5.9x); "the rest" no longer claims path-
+  splitting slack (the per-path caps never bind; it is the probe's combined vs highest rate, 1-7% of the gap);
+  deployed-path paragraph corrected (the fetch table still sends some misses over the link; 4-token and half-right
+  windows lose up to 6%; replay excess 7-33% with the deployed state within 2.4%, cause not isolated); launch-to-launch
+  shifts up to 0.03 exceed within-launch intervals, said so; MIN prefetched vs usual ways restricted to O4/O5
+  (1.18-1.43x); Fig. 1 simplified (learned order and prefetched Belady moved out); accounting table gains the new
+  machines and range notation.
+- **Job 100f** (9950X behind an x8 link, ratio 0.54): in-step copy 1.07x (Pe/Pj 1.35/1.27, prediction 9 held);
+  probe-only model over-predicts admit-every-miss and windows by up to 20% (probe read the link at 22, the engine's
+  copies ran near 27). Outcome: `prereg/window_outcome_100.md` (41 held, 122 point, 27 failed, 26 untested).
+- **Job 101** (predictions in gpu commit 8b6c67a before launch): Pf relaunched and a 9800X3D behind a slower link.
+
 ## 6 October (morning, unattended): review round 6 (5/10 and 6/10), number check 6, job 100
 
 **Status for Harshith (read this first).** Round 6 reviews: MLSys PC **5/10**, professor **6/10 weak accept** ("Would I

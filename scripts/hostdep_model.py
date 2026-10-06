@@ -129,8 +129,10 @@ def main():
     fe = [abs(r["err_frozen"]) for r in rows if r["state"] in ("foa", "aa", "fetch", "w1", "w4", "w16", "w8r5", "allr5")]
     fb = {(r["host"], r["cell"]): abs(r["err_frozen_base"]) for r in rows}
     if fe:
-        M["hmFrozenStepMed"] = f"{100 * np.median(fe):.1f}"
-        M["hmFrozenStepPninety"] = f"{100 * np.percentile(fe, 90):.0f}"
+        fe_all = fe + list(fb.values())   # the deployed state's own error once per host-budget, with the in-step states
+        M["hmFrozenStepMed"] = f"{100 * np.median(fe_all):.1f}"
+        M["hmFrozenStepPninety"] = f"{100 * np.percentile(fe_all, 90):.0f}"
+        M["hmFrozenStepN"] = str(len(fe_all))
         M["hmFrozenBaseMed"] = f"{100 * np.median(list(fb.values())):.1f}"
         M["hmFrozenBaseMax"] = f"{100 * max(fb.values()):.0f}"
         gs = sorted({(r["host"], r["cell"]): r["G_ms"] for r in rows}.values())

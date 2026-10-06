@@ -32,6 +32,10 @@ destroyed without results. 100f = a second Ryzen 9 9950X behind a half-width lin
 
 (w = window on the in-step path, extending admit-every-miss; b = the same window on the deployed path.)
 
+The frozen constant G (4.56 and 4.53 ms) is the median of the 15 earlier host-cell fits, which count O4's machine twice
+(jobs 096a and 097a); over the 14 distinct machines the median is 4.64 and 4.55 ms. The header called it the median of
+14 hosts.
+
 ## Predictions
 
 1. **Counters of aa, w4, w16, fetch equal job 099's within 0.5%.** Held (point) at all 32 (deterministic counts).
@@ -65,7 +69,10 @@ Launches of one machine agree to within 0.03 in every ratio and 2% in time, so t
 unit of variation (job 099's machine-as-unit design stands). The time model, with its constant frozen from earlier
 hosts and the counts of a different host, predicts new hosts from their probe alone to a median of 3.8%; its large
 errors trace to the probe's link line (one host) and to copies in the step on a slow link (known since job 096). On
-the deployed path, foresight changes only what is cached; it is safe (0.94-1.12x, losing at most 6% with half-wrong
-forecasts) but small, at most what MIN with two reads gains, and its late-landing copies cost a third of the read
-saving at 16 tokens. Which path pays follows the link/CPU ratio as for MIN: the deployed path wins below about 0.55,
-the in-step path above about 0.9.
+the deployed path, foresight changes only what is cached; it is small (0.94-1.12x the deployed cache: 16 tokens never
+below 0.9995, 4 exact tokens down to 0.96, 8 half-right tokens down to 0.94), about what MIN with two reads gains (the
+16-token window exceeds it at all four 11% cells, by up to 0.026). Its engine misses exceed the instant-admission
+replay by 7-33% (10.5-33% at the 18 failed clauses) while the deployed state matches its replay within 2.4%; late
+copies are the likely cause, not isolated here. Which path pays follows the link/CPU ratio: at 16 tokens the deployed
+path wins on the two hosts at or below 0.54, the in-step path on the two at or above 0.92. The crossover is not the
+same as MIN's: MIN with one read still beats MIN with two reads at three of the four low-ratio cells.

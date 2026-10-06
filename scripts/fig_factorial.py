@@ -26,8 +26,9 @@ P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b", "O5", "#1baf7a", "^"),
          ("097a", "O4, job 097", "#eb6834", "D"), ("097b", "O6, job 097", "#4a3aa7", "v")]
 ONLY_LEARNED = {"097a", "097b"}   # job 097's hosts are drawn on the learned row only (their other states repeat job 096's)
-ROWS = [("foa", "single read"), ("aa", "admit every miss"), ("learned", "learned order"), ("bypass", "MIN, 2 reads"),
-        ("hitopt", "Belady, 2 reads"), ("hitoptp", "Belady, 2 reads, prefetched"), ("nb2", "Belady, 1 read"), ("fetch", "MIN, 1 read"),
+# the learned order and the prefetched Belady are left to the appendices, to keep the figure readable
+ROWS = [("foa", "single read"), ("aa", "admit every miss"), ("bypass", "MIN, 2 reads"),
+        ("hitopt", "Belady, 2 reads"), ("nb2", "Belady, 1 read"), ("fetch", "MIN, 1 read"),
         ("both3p", "MIN, prefetched")]
 PANEL_KEYS = {"foa": "foa/base", "aa": "aa/base", "bypass": "bypass/base", "fetch": "fetch/base", "both3p": "both3p/base"}
 CELLS = ["gpt-oss 11%", "gpt-oss 25%", "gpt-oss 40%", "Qwen3 12.5%", "Qwen3 25%", "Qwen3 43.75%"]
@@ -81,7 +82,7 @@ def main():
     axes[0].set_ylim(-0.6, len(rows) - 0.4)
     fig.text(0.6, 0.015, "speed relative to the deployed cache on the same host (95% interval; grey ticks: panel hosts)", ha="center", fontsize=7)
     handles = [Line2D([0], [0], marker=mk, color=col, lw=0, ms=5, mec="#fcfcfb", label=name)
-               for job, name, col, mk in HOSTS if job in data]
+               for job, name, col, mk in HOSTS if job in data and not (job in ONLY_LEARNED and "learned" not in [r[0] for r in rows])]
     if panel:
         handles.append(Line2D([0], [0], marker="|", color="#7a7974", lw=0, ms=6, mew=1.0, label=f"panel ({len(panel)} hosts)"))
     fig.legend(handles=handles, loc="upper right", ncol=len(handles), fontsize=6.5, frameon=False, bbox_to_anchor=(0.995, 1.02))

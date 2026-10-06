@@ -64,6 +64,8 @@ def main():
     # how often MIN with bypass admits (the fetch oracle's forced fetches) against the online policy's admissions
     ad = [h[c]["runs"]["fetch"]["oracle_forced_per_token"] / h[c]["runs"]["base"]["admits_per_token"] for h in new for c in HB]
     rng("fxMinAdmitsOverOnline", ad, "{:.0f}")
+    ex = H["Four"]["cells"]["gpt-oss 11%"]["runs"]
+    put("fxExAdmitsOverOnline", f"{ex['fetch']['oracle_forced_per_token'] / ex['base']['admits_per_token']:.1f}")   # the worked example (O4, 11%)
     oa = [h[c]["runs"]["base"]["admits_per_token"] for h in new for c in ALL]
     rng("fxOnlineAdmits", oa, "{:.1f}")
     # nb2 against hitopt (the second read alone), by model
@@ -92,7 +94,8 @@ def main():
     ho = [reads(h[c]["runs"][k]) / h[c]["opt_reads_per_token"] for h in allh for c in ALL for k in ("hitopt", "hitoptp") if k in h[c]["runs"]]
     rng("fxUsualReadsOverOpt", by + no + ho, "{:.1f}")
     # MIN's paced single-read prefetch against the best of the usual ways, host-bound cells, O3-O5
-    mu = [h[c]["runs"]["both3p"]["mean"] / max(h[c]["runs"][k]["mean"] for k in ("bypass", "nb2", "hitopt", "hitoptp") if k in h[c]["runs"]) for h in allh for c in HB]
+    # O4 and O5 only: on O3 (job 095) only one of the usual ways ran
+    mu = [h[c]["runs"]["both3p"]["mean"] / max(h[c]["runs"][k]["mean"] for k in ("bypass", "nb2", "hitopt", "hitoptp") if k in h[c]["runs"]) for h in new for c in HB]
     rng("fxMinOverUsual", mu)
     # the usual ways at the two 25% cells on O4 (their best) and at the two lowest budgets on O4/O5 (their best)
     u25 = [max(h[c]["runs"][k]["ratio_to_base"][0] for k in ("bypass", "nb2", "hitopt", "hitoptp")) for h in [H["Four"]["cells"]] for c in ("gpt-oss 25%", "Qwen3 25%")]

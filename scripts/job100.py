@@ -227,6 +227,18 @@ def main():
             v = [h["cells"][C]["speed"][k][0] for h in hosts if C in h["cells"] and k in h["cells"][C]["speed"]]
             if v:
                 M[f"ja{kn}{nm}Min"] = f"{min(v):.2f}"; M[f"ja{kn}{nm}Max"] = f"{max(v):.2f}"
+                M[f"ja{kn}{nm}GainMax"] = f"{100 * (max(v) - 1):.0f}"
+    bl = [h["cells"][C]["speed"][k][0] for h in hosts for C in h["cells"] for k in ("b4", "b16", "b8r5") if k in h["cells"][C]["speed"]]
+    if bl:
+        M["jaWorstBLossPct"] = f"{100 * (1 - min(bl)):.0f}"
+    bd = []
+    for h in hosts:
+        for C, c in h["cells"].items():
+            rp = h["replay"].get(C, {})
+            if "online_k1" in rp and "base" in c["counters"]:
+                bd.append(abs(c["counters"]["base"]["misses"] / rp["online_k1"] - 1))
+    if bd:
+        M["jaBaseReplayDevMax"] = f"{100 * max(bd):.1f}"
     rd = [v for h in hosts for c in h["cells"].values() for v in c.get("replay_dev", {}).values()]
     if rd:
         M["jaReplayDevMin"] = f"{100 * min(rd):.0f}"; M["jaReplayDevMax"] = f"{100 * max(rd):.0f}"
@@ -246,6 +258,12 @@ def main():
            if "b16" in h["cells"][C]["speed"] and "bypass" in h["cells"][C]["speed"]]
     if gap:
         M["jaBSixteenOverBypassMax"] = f"{max(gap):.2f}"
+    fo = [h["cells"][C]["speed"]["foa"][0] for h in hosts for C in h["cells"] if "foa" in h["cells"][C]["speed"]]
+    if fo:
+        M["jaFoaMin"] = f"{min(fo):.2f}"; M["jaFoaMax"] = f"{max(fo):.2f}"
+        pf = [h["cells"][C]["pred_frozen_ms"] for h in hosts for C in h["cells"] if "foa" in h["cells"][C].get("pred_frozen_ms", {})]
+        pr = [p["base"] / p["foa"] for p in pf]
+        M["jaFoaPredDevMax"] = f"{100 * max(abs(x - 1) for x in pr):.0f}"
     rr = [h["link_over_cpu"] for h in hosts]
     if rr:
         M["jaRatioMin"] = f"{min(rr):.2f}"; M["jaRatioMax"] = f"{max(rr):.2f}"

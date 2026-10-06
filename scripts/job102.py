@@ -147,6 +147,10 @@ def main():
         M["jdWaitCostMax"] = f"{100 * max(c['frac']['token'] - c['frac']['layer'] for _, _, c in cells):.0f}"
         wa = [100 * (c['frac']['token'] - c['frac']['layer']) for job, _, c in cells if job != "102a"]
         M["jdWaitCostAmdMax"] = f"{max(wa):.0f}"
+        ov = max(((c["frac_analytic"] - c["frac"]["layer"]), c) for _, _, c in cells)
+        M["jdModelOverMax"] = f"{100 * ov[0]:.0f}"; M["jdModelOverAn"] = f"{100 * ov[1]['frac_analytic']:.0f}"
+        M["jdModelOverMeas"] = f"{100 * ov[1]['frac']['layer']:.0f}"
+        M["jdLayerMoreTimeMax"] = f"{100 * max(1 / c['frac']['layer'] - 1 for _, _, c in cells):.0f}"
         M["jdLinkSlow"] = f"{100 * min(c['frac']['layer_link'] for _, _, c in cells):.0f}"
         best = [max(c["frac"].values()) for _, _, c in cells]
         M["jdBestMin"] = f"{100 * min(best):.0f}"; M["jdBestMax"] = f"{100 * max(best):.0f}"

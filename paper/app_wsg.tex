@@ -480,10 +480,10 @@ read their share of host memory from an ordinary buffer, as the engine's helpers
 rest, 13.25\,MB at a time, from pinned memory into GPU slots; both buffers rotate through 4\,GiB so that no cache holds
 them. \emph{Per layer} splits each layer's experts, whole, between the two paths at the probe's rates and waits for
 both before the next layer; \emph{per token} sums the same split over the token and waits once; \emph{link only} sends
-every read over PCIe, as MIN with one read does; \emph{CPU only} reads everything on the CPU. \Cref{tab:readsched}
+every read over PCIe, as admitting every miss does (MIN with one read sends only its admissions); \emph{CPU only} reads everything on the CPU. \Cref{tab:readsched}
 gives each host. Waiting per layer instead of per token costs at most \jdWaitCostAmdMax{} point of the host term on the
 two AMD hosts and \jdWaitCostMax{} on the Intel host, whose link is the slowest; there, reading everything on the CPU
-beats the split.
+beats the per-layer split.
 The split ignores which reads are admissions; \cref{sec:limit} gives the cap that the link puts on MIN's one-read
 schedule (\texttt{prereg/readsched.json} per host).
 

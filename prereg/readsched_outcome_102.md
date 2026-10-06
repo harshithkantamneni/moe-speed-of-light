@@ -23,8 +23,8 @@ Share of the bound's host term (R* S / B_host) reached by each mode:
 - Waiting per layer reaches 0.86-0.96 of the host term; one wait per token 0.93-0.97. The bound's read time is
   nearly reachable in host reads alone.
 - The analytic model of the same schedules (probe rates, no latency) predicts each mode's time within 0.93-1.14x
-  (24 mode-cells); it is optimistic on the Intel host (per-layer mode 10-14% slower than modelled) and pessimistic
-  for the link (copies run faster than the probe's link rate).
+  (24 mode-cells); it is optimistic on the Intel host (per-layer mode 10-14% slower than modelled, link-only 11% slower) and,
+  on the two AMD hosts, pessimistic for the link (copies run faster than the probe's link rate).
 - On the Intel host (fast CPU, slow link) reading everything on the CPU (0.92) beats the probe-rate split (0.86-0.89):
   the per-layer wait on the slow link costs 4-7 points there.
 
@@ -73,7 +73,9 @@ failed on the Intel host (the per-layer fraction is higher at C = 32). Every oth
 
 The split ignores one constraint: read once, every expert MIN admits must cross the link to reach its slot.
 `scripts/readsched.py` computes, per probed host, the cap this puts on MIN's one-read schedule,
-min(B_cp, (R*/A*) B_p) / B_host, with A* MIN's admissions per token (57% of its reads at C = 14, 69% at C = 32):
-0.50-0.71 of the host term at 11% on hosts whose link reads at less than half their CPU rate, 0.74-0.99 on the
-others. On the slow-link hosts of the accounting this cap alone is 25-63% of the gap between the deployed cache and the
-bound (`prereg/readsched_gap.json`).
+min(1, (R*/A*) B_link / B_host), with A* MIN's admissions per token (57% of its reads at C = 14, 69% at C = 32) and
+B_link the probe's highest link rate (number check 9: the first version used the probe's zero-copy line and B_cp,
+which counted the combined-rate slack twice): 0.53-0.71 of the host term at 11% and 0.43-0.58 at 25% on hosts whose
+link reads at less than half their CPU rate, at least 0.86 and 0.70 on the others. On the slow-link hosts of the
+accounting this cap alone is 25-54% of the gap between the deployed cache and the bound; on the fast-link hosts it
+binds at 9 of 26 host-budgets, at most 22% (`prereg/readsched_gap.json`).

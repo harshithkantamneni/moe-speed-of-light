@@ -46,7 +46,7 @@ token at a time then waits on host-memory reads. We bound the time per token of 
 exact routing with $C$ GPU slots per layer: the fewest host reads any policy can make (Belady's MIN with bypass) over
 the machine's measured read rate. Our llama.cpp expert cache, faster than FreeToken at \bothLeadCells{} of
 \bothCells{} configurations, reaches \bothLimitPctMin--\bothLimitPctMax\% of this bound, while a microbenchmark that
-replays MIN's reads layer by layer, split between the CPU and the PCIe link, comes within \jdLayerCostMax\% of the
+replays MIN's reads layer by layer, each free to take the CPU or the PCIe link, reaches at least \jdLayerMin\% of the
 bound's read time. To see where the rest of the
 time goes, we build oracles of the future routing into the engine and run them on rented RTX 5090 hosts, each host a
 sample. Knowing the future helps most when the cache spends it as MIN does: it caches only the experts MIN would
@@ -79,8 +79,9 @@ on rented RTX 5090 hosts, with three findings.
 divided by the machine's measured host read rate, bounds the time per token (\cref{sec:limit}). Our cache reaches
 \bothLimitPctMin--\bothLimitPctMax\% of this bound; by one common procedure, published systems in the same class reach
 a median of \audInclassMed\% and ours \audOursMed\%. The bound's read time is nearly reachable: MIN's reads, replayed
-layer by layer without the model, reach \jdLayerMin--\jdLayerMax\% of it on three hosts. Where the link is much slower
-than the CPU, though, MIN's own schedule cannot read each expert once and stay near it.
+layer by layer without the model and each free to take either path, reach \jdLayerMin--\jdLayerMax\% of it on three
+hosts. Where the link is slower than the CPU, though, MIN's own schedule cannot read each expert once and stay near
+it, because its admissions must all cross the link.
 
 \textbf{(2) Foresight pays most when spent as the optimum spends it, on a read path with room} (\cref{sec:gap}). With
 the future routing known, caching only what MIN caches and copying each cached expert once, in the step, is
@@ -210,17 +211,22 @@ FreeToken's single cache could exploit; we score it against the pooled bound (\f
 \paragraph{Can the read time be reached?} The bound treats a token's host reads as one stream at the host's best rate.
 An engine reads whole experts, layer by layer, and each layer waits for its own. A microbenchmark (job 102) replays
 MIN's per-layer reads of gpt-oss at 11\% and 25\% on three hosts without the model: CPU threads read part of each
-layer's experts from host memory while the copy engine copies the rest into GPU slots, split at the probe's rates.
-Waiting for every layer, it reaches \jdLayerMin--\jdLayerMax\% of the bound's host term; waiting once per token,
-\jdTokenMin--\jdTokenMax\%. A model of the same schedule from the probe's rates predicts each mode's time to within
-\jdMeasOverAnMin--\jdMeasOverAnMax$\times$, so we use it on the other \rsHosts{} probed hosts: \rsFracLowMin--\rsFracLowMax\%
-at 11\%. The microbenchmark's CPU threads only read; the engine's helpers also compute, at
-\helperRateMin--\helperRateMax$\times$ the probe's time per expert (\cref{app:law}). And the split ignores one
-constraint. Read once, an expert that MIN admits must cross the link to reach its slot, and admissions are
-\rsAdmShareLow\% of MIN's reads at 11\% (\rsAdmShareMid\% at 25\%). The link must carry them at its own rate, which
-caps MIN's one-read schedule at \rsCapSlowLowMin--\rsCapSlowLowMax\% of the host term at 11\% on hosts whose link reads
-less than half as fast as their CPU, against \rsCapFastLowMin--\rsCapFastLowMax\% on the others. On a slow link the
-bound is therefore loose for MIN's own schedule; a tighter bound would choose admissions with the link's rate in view.
+layer's experts from host memory while the copy engine copies the rest into GPU slots, split at the probe's rates
+(\cref{tab:readsched}). Waiting for every layer, it reaches \jdLayerMin--\jdLayerMax\% of the bound's host term;
+waiting once per token, \jdTokenMin--\jdTokenMax\%. A model of the same schedules from the probe's rates predicts each
+mode's time within \jdMeasOverAnMin--\jdMeasOverAnMax$\times$; on the \rsHosts{} probes of earlier jobs it gives the
+per-layer schedule \rsFracLowMin--\rsFracLowMax\% at 11\%, though on the slow-link Intel host it was
+\jdModelOverMax{} points optimistic (\jdModelOverAn\% against \jdModelOverMeas\% measured). The microbenchmark's CPU
+threads only read; the engine's helpers also compute, at \helperRateMin--\helperRateMax$\times$ the probe's time per
+expert (\cref{app:law}).
+
+The free split ignores one constraint. Read once, an expert that MIN admits must cross the link to reach its slot, and
+admissions are \rsAdmShareLow\% of MIN's reads at 11\% (\rsAdmShareMid\% at 25\%). At the probe's highest link rate,
+carrying them caps MIN's one-read schedule at \rsCapSlowLowMin--\rsCapSlowLowMax\% of the host term at 11\% and
+\rsCapSlowMidMin--\rsCapSlowMidMax\% at 25\% on hosts whose link reads less than half as fast as their CPU, and at no less
+than \rsCapFastLowMin\% and \rsCapFastMidMin\% on the others; the cap binds on hosts with a link-to-CPU ratio up to
+\rsCapBindRatioLow{} at 11\% and \rsCapBindRatioMid{} at 25\%. Where the link is slower than the CPU, the bound is
+therefore loose for MIN's own schedule; a tighter bound would choose admissions with the link's rate in view.
 
 \paragraph{Published systems.} We scored \audAllN{} published batch-1 measurements from \audSources{} sources with one
 procedure: the same bound at each paper's datasheet ceilings, MIN's reads from our traces of its model, every
@@ -244,21 +250,21 @@ every budget (O4 and O5 in a randomised order); the \pnHosts{} panel hosts (grey
 budgets, and \pnHostsQlow{} of them at Qwen3 12.5\%. The prefetched Belady variant and the learned admission order are
 in \cref{app:foresight,app:traces}. Within-host 95\% intervals are mostly narrower than the markers. On these hosts admitting what MIN
 admits and reading it once (\emph{MIN, 1 read}) gains at every budget; the usual ways of spending foresight
-(\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others. The one panel machine whose link is much
-slower than its CPU is the exception (\cref{fig:hostdep}).}
+(\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others. The panel machine whose link reads at \hdRatioMin{}
+of its CPU rate is the exception (\cref{fig:hostdep}).}
 \label{fig:factorial}
 \end{figure*}
 
 \paragraph{Spent as the optimum spends it, foresight pays.} MIN with each admission copied once, in the step, is faster
 than the deployed cache at every budget on hosts O3--O5, by \fxFetchAllGainMin--\fxFetchAllGainMax\%. Making the same
 copies a few steps ahead lets them overlap the steps before, for \fxPacedAllGainMin--\fxPacedAllGainMax\% in all. Even
-this best oracle reaches only \fxBestFracMin--\fxBestFracMax\% of the bound at the host-bound budgets; the rest of this
+this best oracle reaches only \fxBestFracMin--\fxBestFracMax\% of the bound at the host-bound budgets on O4 and O5; the rest of this
 section asks why.
 
 \paragraph{Spent the usual ways, it pays less.} Two common ways of using foresight waste host reads: a Belady prefetch
 also admits experts MIN would bypass, and serving a miss on the CPU and then copying it reads every admission twice.
 They read \fxUsualReadsOverOptMin--\fxUsualReadsOverOptMax$\times$ MIN's bytes and, at the smallest budget of each
-model, gain at most \fxUsualLowGainMax\% over the deployed cache, where MIN with one read gains
+model on O4 and O5, gain at most \fxUsualLowGainMax\% over the deployed cache or lose, where MIN with one read gains
 \fxFetchLowMin--\fxFetchLowMax$\times$. The trade-off between prefetching what an optimum would bypass and admitting
 conservatively is classical for disks~\cite{cao1995prefetching} and CPU caches~\cite{jain2018prefetch}.
 
@@ -280,7 +286,7 @@ the step within a median \hmFrozenStepMed\% (90th percentile \hmFrozenStepPninet
 \item \emph{From the probe alone}, written on the host before any timed run, it predicted the four in-step states whose
 byte counts do not depend on the host within a median \jaProbeMed\% on later launches. Its two large errors have causes:
 copies in the step share host memory less evenly than the probe's combined rate says, which costs up to
-\jaProbeFetchMinAbs\% on the slow-link machine (\cref{app:law}), and on one new host the probe read the link more slowly
+\jaProbeFetchMinAbs\% on Pd, whose link reads at \jaRatioMin{} of its CPU rate (\cref{app:law}), and on one new host the probe read the link more slowly
 than the engine's copies ran (up to \jaProbeMax\%).
 \item \emph{Whether the copy in the step pays} it gets right on every host, but that test is weak: the copy loses on
 only one machine, so the rule ``always copy'' and a model with one read path get every other host right too. What the
@@ -315,8 +321,8 @@ construction, so it is nested under MIN's set (\fsExPacing\% here); what no orac
 
 Across the \fsBalHosts{} hosts whose link reads at least half as fast as their CPU, either change alone closes at most
 \fsBalAloneMax\% of the gap, both together \fsBalBothMin--\fsBalBothMax\%, and the rest is
-\fsBalRestMin--\fsBalRestMax\%. On the \fsSlowHosts{} hosts below that line, loading in the step costs time and the
-rest is \fsSlowRestMin--\fsSlowRestMax\%. We drew the line after the panel ran; the model above, not the line, carries
+\fsBalRestMin--\fsBalRestMax\%. On the \fsSlowHosts{} hosts below that line, loading in the step costs time at
+\fsSlowReadsLoseN{} of \fsSlowCells{} host-budgets and the rest is \fsSlowRestMin--\fsSlowRestMax\%. We drew the line after the panel ran; the model above, not the line, carries
 the prediction.
 
 \paragraph{The rest.} What no oracle touches has three visible parts. The prefetch is imprecise: over all six
@@ -328,7 +334,8 @@ GPU-bound budgets (\cref{app:foresight}). The rest grows as the link slows relat
 state either puts reads on the slow link or leaves them to the CPU helpers, which take \helperRateMin--\helperRateMax$\times$
 the probe's time per expert (\cref{app:law}). On those hosts much of the rest is the link itself: by the cap of
 \cref{sec:limit}, no schedule that admits what MIN admits and reads each expert once can close
-\rsCapGapSlowMin--\rsCapGapSlowMax\% of the gap there, against a median of \rsCapGapFastMed\% on the fast-link hosts. Little of the rest is slack in how the bound shares host memory
+\rsCapGapSlowMin--\rsCapGapSlowMax\% of the gap there. On the fast-link hosts the cap closes nothing at most
+host-budgets and at most \rsCapGapFastMax\% at the \rsCapGapFastBind{} of \rsCapGapFastN{} where it binds. Little of the rest is slack in how the bound shares host memory
 between the two paths: splitting MIN's reads between them at their probed rates tightens the bound by only
 \fsSlackBalMin--\fsSlackBalMax\% of the gap on the fast-link hosts and \fsSlackSlowMin--\fsSlackSlowMax\% on the
 slow-link ones.
@@ -336,16 +343,17 @@ slow-link ones.
 \paragraph{Machines differ more than problems.} On the panel, the within-host 95\% interval of MIN-with-one-read's
 gain has a median half-width of \pnFetchLowHw{} at gpt-oss 11\%, while its standard deviation across hosts is
 \pnFetchLowSd; the two-stage interval over hosts is [\pnFetchLowLo, \pnFetchLowHi]. Part of that spread follows the
-link-to-CPU ratio (\cref{fig:hostdep}) and part does not, while a relaunch of a machine reproduces its ratios (\cref{sec:setting}). The machine, not the launch or the
+link-to-CPU ratio (\cref{fig:hostdep}) and part does not, while a relaunch of a machine reproduces its ratios within \jcRelaunchRatioMax{} (\cref{sec:setting}). The machine, not the launch or the
 problem, is the unit of variation, so the statements of this section are about orderings that hold on every host of a
 stated class, and about a model that predicts each host.
 
 \section{How Much Foresight Is Needed}\label{sec:horizon}
 The oracles know the whole future; a forecaster would know part of it, imperfectly. We give the cache a \emph{window}:
-the routing of the next $W$ tokens, exact or with errors. Against the deployed cache, a window pays only where the link
-has room: copied in the step, a 16-token window runs \pnVsBaseSixteenLowMin--\pnVsBaseSixteenLowMax$\times$ the
-deployed cache at gpt-oss 11\% on the panel; given to the deployed policy, it gains at most \jaBSixteenMidGainMax\%,
-and shorter or half-right windows lose. In host reads, half of MIN's saving at the host-bound budgets needs exact
+the routing of the next $W$ tokens, exact or with errors. Against the deployed cache, a window copied in the step pays only
+where the link has room: at 16 tokens it runs \pnVsBaseSixteenLowMin--\pnVsBaseSixteenLowMax$\times$ the deployed
+cache at gpt-oss 11\% on the panel. Given to the deployed policy instead, a 16-token window gains on every host, slow
+link included, but at most \jaBSixteenMidGainMax\%; shorter or half-right windows run
+\jaBEightHalfLowMin--\jaBFourMidMax$\times$. In host reads, half of MIN's saving at the host-bound budgets needs exact
 routing of the next \vmHalfMin{} to \vmHalfMax{} tokens, a horizon no source of foresight we tested reaches.
 
 \paragraph{Window policies.} A window can be given to either way of loading of \cref{sec:gap} (\cref{tab:configs}).
@@ -514,7 +522,7 @@ above one bypass the cache.
 freely, so it is optimistic, and a faster reader than our probe could exceed it. The best oracle comes to
 \fxBestFracMin--\fxBestFracMax\% of it. Its read time is nearly reachable in a microbenchmark that runs no model and
 whose CPU threads only read, on three hosts; whether the GPU's work overlaps the reads as the bound assumes we have not
-measured, and on a slow link MIN's one-read schedule is capped well below it.
+measured, and where the link is slower than the CPU MIN's one-read schedule is capped below it.
 \item \textbf{The time model.} Its one constant per budget is fitted on other hosts; with the constants of the original
 blind test frozen, it over-predicts Qwen3's speed on later hosts by \lawFrozenQwenMin{} to \lawFrozenQwenMax\%
 (\cref{app:law}). It takes background copies as free, which they are not, and it fails on a 12-channel server host,
@@ -529,13 +537,14 @@ on the deployed path the same windows gain little anywhere (job 100, four hosts)
 \end{itemize}
 
 \section{Conclusion}
-With experts in host memory, batch-1 MoE decode is bound by host bytes. MIN's reads, replayed alone, come within
-\jdLayerCostMax\% of the bound's read time, yet our cache reaches \bothLimitPctMin--\bothLimitPctMax\% of the bound,
+With experts in host memory, batch-1 MoE decode is bound by host bytes. MIN's reads, replayed alone with each free to take
+either path, reach at least \jdLayerMin\% of the bound's read time (less for MIN's own schedule where the link is
+slow), yet our cache reaches \bothLimitPctMin--\bothLimitPctMax\% of the bound,
 and by one common procedure published systems reach a median of \audInclassMed\% and ours \audOursMed\%. Knowing the
 future recovers part of the gap when it is spent as MIN spends it, caching only what MIN caches and loading each expert
 once on a path with room: on hosts whose link is not much slower than their CPU, \fsBalBothMin--\fsBalBothMax\% of the
 gap. Which path has room is a property of the machine that its two read rates predict; where the link is slow, MIN's
-own admissions overload it. The rest of the gap on the other hosts, \fsBalRestMin--\fsBalRestMax\%, is an imprecise
+own admissions overload it. The rest of the gap on the other hosts, \fsBalRestMin--\fsBalRestMax\%, includes an imprecise
 prefetch, partial overlap and a GPU at half its datasheet rate. And foresight
 has a measurable price: about \dcMed$\,C$ distinct experts of each layer's coming routing, a few
 to tens of tokens ahead, at accuracies no forecaster we know of or trained reaches. That is the target for the next MoE

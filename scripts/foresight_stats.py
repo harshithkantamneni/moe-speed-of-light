@@ -80,7 +80,7 @@ def read_cell(tag, C):
         n = max(1, st.get("steps", 1))
         out[short] = dict(label=lab, tok_s=v, mean=float(np.mean(list(v.values()))), n_seq=len(v),
                           hit_rate=st.get("hit_rate"), misses_per_token=st.get("misses", 0) / n, admits_per_token=st.get("admits", 0) / n,
-                          fetches_per_token=st.get("fetches", 0) / n, oracle_refused=st.get("oracle_refused"), steps=st.get("steps"),
+                          fetches_per_token=st.get("fetches", 0) / n, prefetches_per_token=st.get("prefetches", 0) / n, oracle_forced_per_token=st.get("oracle_forced", 0) / n, oracle_refused=st.get("oracle_refused"), steps=st.get("steps"),
                           host_us=st.get("host_us_per_step"), fetch_table=st.get("fetch_table"), paced=st.get("paced"), overlap=st.get("overlap"))
     return out
 

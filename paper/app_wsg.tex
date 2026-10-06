@@ -427,9 +427,22 @@ machine, above the 77--83\,tok/s its paper reports on an RTX 5090, so our setup 
 fetch cap and thread count were left at their defaults, while our FETCH table was swept. Our lead is therefore
 model-dependent: largest with few large experts (gpt-oss, top-4 of 128), smallest with many small ones.
 
+\paragraph{FreeToken tuned.} On an RTX 5090 with a Ryzen 9 9950X (job 098, one launch, configurations in a shuffled
+order per cell) FreeToken ran in five settings per cell: hybrid with its calibrated fetch split (its default), hybrid
+with the fetch cap fixed at one and at two, hybrid with 8 CPU threads instead of one per physical core, and offload.
+Its best setting was the calibrated hybrid with 8 threads at four cells and offload at gpt-oss 25 and 40\% and Qwen3
+43.75\%, at most \fttBestOverDefaultMax$\times$ its \cref{tab:headline} setting; the fixed caps were never better than
+its own split. Ours over FreeToken's best: \fttGLow, \fttGMid{} and \fttGHigh{} on gpt-oss, \fttQLow, \fttQMid{} and
+\fttQHigh{} on Qwen3, within \fttHostSDiffMax{} of host S's ratios at every cell. With every expert on the CPU, stock llama.cpp
+decodes gpt-oss \fttCpuGpt$\times$ and Qwen3 \fttCpuQwen$\times$ as fast as FreeToken's CPU backend.
+
 \paragraph{Other systems and outputs.} Two newer llama.cpp-based systems, Pipelined Sharding~\cite{pipelinedsharding2026} and
 leloch's expert cache~\cite{leloch2026}, run gpt-oss-120b at 1.28--1.45$\times$ stock llama.cpp; ours ran 1.42--2.34$\times$
-the better of them (job 077). Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
+the better of them (job 077). KTransformers~\cite{ktransformers} (kt-kernel 0.7.0, exact BF16 CPU experts, the same
+number of experts statically on the GPU) ran Qwen3 in BF16 at \ktOverLlamaMin--\ktOverLlamaMax$\times$ stock
+llama.cpp on an RTX 5090 with a Ryzen 9 9950X, and ours at \ktOursOverMin--\ktOursOverMax$\times$ it (job 078); both
+static placements read the same CPU expert bytes from the same DRAM. Its published speeds rely on AMX Xeons and
+INT4/INT8 CPU weights, which that host lacks and which change the model, so this is not its best setting. Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
 VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
 \klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
 maximum \klMaxGpt{} and \klMaxQwen), picks the same next token on \klTopGpt\% and \klTopQwen\% of steps, and changes

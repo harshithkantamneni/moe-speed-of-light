@@ -19,8 +19,10 @@
 #   w4 w16                             aa + exact foresight of 4 / 16 steps, fetched in the step (as job 099)
 #   b4 b16                             the deployed policy + exact foresight of 4 / 16 steps, background copies (new)
 #   b8r5                               the same with 8 steps, each future expert kept with probability 0.5 (new)
-# Hosts: Pd of job 099 again (Vast offer 51748728, i9-13900KF, link 28 / CPU 71: a relaunch of the same machine), and
-# new RTX 5090 desktop hosts chosen to span the link/CPU ratio (a Ryzen 7 5700X3D, a Ryzen 9 9950X, a Core i5-12400F).
+# Hosts: two machines of job 099 again, Pd (Vast offer 51748728, i9-13900KF, link 28 / CPU 71) and Ph (offer 51088733,
+# Ryzen 9 7950X, link 49 / CPU 51), relaunched to measure launch-to-launch variation at both ends of the link/CPU
+# ratio; and two new desktop hosts, a Ryzen 7 5700X3D (offer 53424353, DDR4, PCIe 4.0) and a Core i5-12400F (offer
+# 52703630, 6 cores), whose CPU classes the model has not seen. 100a = Pd, 100b = 5700X3D, 100c = Ph, 100d = 12400F.
 #
 # Predictions, committed before launch (per host unless stated):
 #   1. engine counters (misses, in-step fetches per step) of aa, w4, w16 and fetch equal the job 099 panel means to
@@ -35,8 +37,8 @@
 #      monotone: b4 <= b16 (time per token b4 >= b16) at every host-cell;
 #   5. the path decides which window pays: at gpt-oss 11%, b16/base > w16/base on hosts with link/CPU < 0.5, and
 #      w16/base > b16/base on hosts with link/CPU >= 0.9;
-#   6. the relaunch of Pd: base time per token within 3% of job 099d's at both cells, and foa/base, aa/base, fetch/base,
-#      both3p/base, w4/base, w16/base each within 0.03 of job 099d's;
+#   6. the relaunches of Pd and Ph: base time per token within 3% of job 099's at both cells, and foa/base, aa/base,
+#      fetch/base, both3p/base, w4/base, w16/base each within 0.03 of job 099's on the same machine;
 #   7. host plan at most 150 us per step for every window and for fetch;
 #   8. the engine's misses per step of b4, b16 and b8r5 are within 10% of the replay's (value_map.replay, hybrid with
 #      kappa 1, which admits at once and has no fetch table; job 099's deployed state was within 2% of its replay).

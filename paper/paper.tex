@@ -15,464 +15,347 @@
 \input{wsg_factorial}
 \input{wsg_ft}
 \input{wsg_learned_engine}
+\input{wsg_shapley}
+\input{wsg_rebase}
+\input{wsg_auditours}
+\input{wsg_valuemap}
+\input{wsg_panel}
+\input{wsg_forecaster}
+\input{wsg_pending}
 
-\title{Where the Seconds Go:\\[2pt]\large A Speed Limit and a Measured Accounting for Mixture-of-Experts Decode\\ on One Consumer GPU}
+\title{Where the Seconds Go:\\[2pt]\large Bounding Mixture-of-Experts Decode from Host Memory,\\ and Measuring What Foresight Is Worth}
 \author{Harshith Kantamneni\\Independent Researcher}
 \date{}
 
 \begin{document}
 \maketitle
 
-
 \begin{abstract}
-A Mixture-of-Experts model too large for one consumer GPU keeps most experts in host memory. How fast could it decode,
-and where does the rest of the time go? We bound the time per token by the fewest expert reads any exact-routing policy
-can make, Belady's optimum with bypass on the model's own routing, over the machine's host and GPU rates. On RTX 5090
-hosts our llama.cpp expert cache reaches \bothLimitPctMin--\bothLimitPctMax\% of this limit, and published systems in
-its class a median of \audInclassMed\% of theirs. Oracles of future routing inside the engine then measure where the
-gap goes. On three hosts, foresight spent as the optimum spends it, admitting only what it admits and reading each
-admitted expert once, is worth \fxFetchAllGainMin--\fxFetchAllGainMax\% at every budget, and
-\fxPacedAllGainMin--\fxPacedAllGainMax\% with the overlap it allows; spent as caches usually spend it, by Belady
-prefetch or by copying what the CPU has just served, it reads \fxUsualReadsOverOptMin--\fxUsualReadsOverOptMax$\times$ the
-optimum's bytes, loses at the lowest budgets, and trails the optimum's way at every host-bound budget. Without foresight, a learned admission order fitted on
-other text reads \lreFewerMin--\lreFewerMax\% fewer experts but runs \lreOverBaseMin--\lreOverBaseMax$\times$ the
-deployed cache at the host-bound budgets; nine models' routing traces give the horizon a forecaster must reach.
+A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
+token at a time then waits on host-memory reads. We ask how fast such decode could be and what the missing time is
+made of. First, we bound the time per token of any system that runs the exact routing with $C$ GPU slots per layer:
+the fewest host reads (Belady's MIN with bypass, applied to the model's own routing) over the machine's measured read
+rate. Our llama.cpp expert cache, faster than FreeToken at \bothLeadCells{} of \bothCells{} configurations, reaches
+\bothLimitPctMin--\bothLimitPctMax\% of this bound. Second, we build oracles of future routing into the engine and
+cross them on rented RTX 5090 hosts, treating each host as one sample. Foresight pays only when two choices go
+together: admit only what MIN admits, and read each admitted expert from host memory once. Reading the deployed
+policy's admissions once recovers at most \fsReadsOnlineMax\% of the gap to the bound, and MIN's admissions read twice
+at most \fsSetTwoMax\%; together they recover \fsBothMin--\fsBothMax\%. Third, we degrade the oracle to
+measure how much foresight a forecaster must supply. Half of the oracle's gain in host reads needs exact routing of the
+next \vmHalfMin{} to \vmHalfMax{} tokens at the budgets where host memory binds; across nine models, the horizon needed is where the
+look-ahead window holds about \dcMed$\,C$ distinct experts per layer. No online policy, learned admission order or
+speculative batch we tested comes close.
 \end{abstract}
 
 \section{Introduction}
-Open-weight Mixture-of-Experts models now carry 30--120\,B parameters and activate a few billion per token; a desktop
-GPU has 24--32\,GB. Running such a model at batch 1 therefore means keeping most experts in host DRAM, and each
-decoded token reads its routed experts from one of three places: GPU memory, host memory by the CPU that runs the
-expert, or host memory across PCIe into a GPU slot~\cite{ivanov2021datamovement,hoefler2021sparsity}. A line of systems
-builds on this: GPU expert caches with demand fetch~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe}, CPU
-execution of misses~\cite{kamahori2024fiddler,ktransformers,zhong2025hybrimoe,huang2025cpugpu,daop2025,dali2026},
-per-miss choices between the two~\cite{freetoken}, and expert prediction~\cite{hwang2024pregated,zhu2025preattention,wang2026seqmoe}.
-Each reports a speed-up over a baseline of its choosing. None states how fast its machine \emph{could} decode the
+Open-weight Mixture-of-Experts (MoE) models now carry 30--120\,B parameters and activate a few billion per token; a
+desktop GPU has 24--32\,GB. Running such a model for one user therefore means keeping most experts in host DRAM. Each
+decoded token reads its routed experts from GPU memory if they are resident, and otherwise from host memory: either the
+CPU runs the expert, or the expert is copied over PCIe into a GPU slot~\cite{ivanov2021datamovement,hoefler2021sparsity}.
+Many systems build on this: GPU expert caches with demand fetch~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe},
+CPU execution of misses~\cite{kamahori2024fiddler,ktransformers,zhong2025hybrimoe,huang2025cpugpu,daop2025,wang2026cloudgrade},
+a per-miss choice between the two~\cite{freetoken,dali2026}, and expert prediction~\cite{hwang2024pregated,zhu2025preattention,wang2026seqmoe}.
+Each reports a speed-up over a baseline of its choosing. None states how fast the same machine \emph{could} decode the
 model within the same GPU memory, or what the rest of the time is made of.
 
-\paragraph{Thesis.} Where host memory binds, the time of offloaded decode is its host bytes per token over the host's
-read rate. Belady's optimum with bypass (MIN) sets the fewest such bytes; the best online policy reads
-\polBestOnlineMin--\polBestOnlineMax\% more on the routing traces, and our deployed cache, which reads its admissions
-twice, \fxOnlineReadsOverOptMin--\fxOnlineReadsOverOptMax$\times$ as many in the engine. Knowing future routing
-recovers that excess at every budget and on every host when it is spent as MIN spends it: admit what MIN admits, and
-read each admitted expert from host memory once. Spent the usual ways, it pays at some budgets and loses at others. We establish this in three steps. A \emph{speed limit} in seconds
-(\cref{sec:limit}) bounds every exact-routing system with $C$ expert slots per layer on a given machine.
-\emph{Oracles} of future routing built into a real engine (\cref{sec:gap}) measure, on three hosts, two of them in
-randomised order, what foresight is worth under each way of spending it, separating the bytes it saves, the overlap
-it allows, the experts it admits that MIN would bypass, and the second read that copying a CPU-served miss costs.
-\emph{Routing traces} of nine models (\cref{sec:traces}) say what would supply that foresight: no online policy does,
-batched speculative verification does not, and a forecaster must see $W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens
-ahead to recover half of it.
+We answer both questions for batch-1 decode of gpt-oss-120b~\cite{openai2025gptoss} and Qwen3-30B-A3B~\cite{yang2025qwen3}
+on rented RTX 5090 hosts, with three findings.
 
-The method is Hoefler and Belli's~\cite{hoefler2015benchmarking}: bounds beside measurements, paired statistics, and
-every prediction committed to a public repository before the machine it concerns was started (\cref{app:prereg}
-scores all \scClauses{} clauses). We work on rented RTX 5090, 4090 and 3090 hosts with desktop CPUs, with
-gpt-oss-120b~\cite{openai2025gptoss} and Qwen3-30B-A3B~\cite{yang2025qwen3}. One example runs through the paper:
-gpt-oss-120b with 32 of each layer's 128 experts resident on an RTX 5090, a quarter of its expert bytes.
-\Cref{tab:glossary} defines the terms.
+\textbf{(1) Where host memory binds, time is host bytes.} The fewest host reads any exact-routing policy can make,
+divided by the machine's measured host read rate, bounds the time per token (\cref{sec:limit}). Our cache reaches
+\bothLimitPctMin--\bothLimitPctMax\% of this bound; scored by one common procedure, published systems in the same class
+reach a median of \audInclassMed\% and ours \audOursMin--\audOursMax\%.
+
+\textbf{(2) Foresight pays only when spent as the optimum spends it} (\cref{sec:gap}). With the future routing known,
+admitting only what MIN admits and reading each admitted expert once is \fxFetchAllGainMin--\fxFetchAllGainMax\%
+faster than our deployed cache, and \fxPacedAllGainMin--\fxPacedAllGainMax\% faster with the admissions copied a few
+steps ahead. The two choices interact: in an order-free accounting their interaction alone is
+\fsInterMin--\fsInterMax\% of the gap to the bound. The usual ways of spending foresight, Belady prefetch and copying what the CPU has just served, read \fxUsualReadsOverOptMin--\fxUsualReadsOverOptMax$\times$
+MIN's bytes and lose at the smallest budgets.
+
+\textbf{(3) Foresight has a measurable price} (\cref{sec:horizon}). In the engine, exact routing of the next $W$ tokens
+recovers \pnShareFourLowMin--\pnShareFourLowMax{} of the oracle's gain at $W{=}4$ and the smallest gpt-oss budget, on
+every host of a \pnHosts-host panel; random errors at 50\% recall roughly halve it. On nine models' traces the horizon that
+closes half of the read gap is where the window holds \dcMed$\,C$ distinct experts per layer, a rule that predicts a
+held-out model's horizon better than a power law in $C/k$. Online policies (including admitting every miss), a learned
+admission order and speculative batching stay far from that horizon.
 
 \paragraph{Contributions.}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{A speed limit in seconds} (\cref{sec:limit}) for exact-routing systems with $C$ slots per layer, from the
-exact MIN on the model's routing and the machine's measured ceilings, varied four ways, stated for pooled caches, and
-placed beside our cache, FreeToken, llama.cpp and \audAllN{} published measurements.
-\item \textbf{A measured accounting of the gap} (\cref{sec:gap}): a factorial of oracle policies in the engine on
-\amHostsN{} hosts, which measures the terms a model of the gap prices and finds the model wrong about their sizes:
-at the host-bound cells the bytes foresight saves and the overlap it allows are together
-\amRecovHostMin--\amRecovHostMax\% of the gap (\amBytesHostMin--\amBytesHostMax\% and \amOverlapHostMin--\amOverlapHostMax\%
-taken bytes first), and the rest, which no oracle touches, \amRestHostMin--\amRestHostMax\%.
-\item \textbf{What would recover it} (\cref{sec:traces}): across nine models' traces, which online policy earns its
-reads, how fast the hot set drifts, how far ahead foresight must see, and why speculative batching cannot supply it
-once rejected drafts are paid for; and a learned admission order, fitted on other text with features the engine has
-when it plans a step, which removes \lrnFetchHostMin--\lrnFetchHostMax\% of a single-read policy's excess reads
-offline, and in the engine reads fewer experts but runs \lreOverBaseMin--\lreOverBaseMax$\times$ the deployed policy,
-gaining only where host memory is weakest.
+\item A \textbf{bound on time per token} for exact-routing systems with $C$ slots per layer, from MIN's host reads and
+the machine's probed rates, with its sensitivity, beside our cache, FreeToken, llama.cpp and \audAllN{} published
+measurements (\cref{sec:limit}).
+\item An \textbf{in-engine oracle factorial} that crosses what to admit with how often to read it, on three hosts at
+six budgets and a \pnHosts-host panel at two, with an order-free accounting of the gap (\cref{sec:gap}).
+\item A \textbf{price on foresight}: its value by horizon and accuracy, measured in the engine and on nine models'
+traces, and a one-constant rule for the horizon in distinct experts (\cref{sec:horizon}).
+\item An artifact in which every prediction was committed before the machine it concerns started, and every number in
+this paper is generated by a script (\cref{app:prereg,app:artifact}).
 \end{itemize}
-The instrument is our llama.cpp expert cache (\cref{sec:setting}); it runs \bothLlamaXMin--\bothLlamaXMax$\times$
-stock llama.cpp and leads FreeToken~\cite{freetoken} at \bothLeadCells{} of \bothCells{} cells on two RTX 5090 hosts.
-Running missed experts on the CPU~\cite{kamahori2024fiddler,ktransformers}, caching hot experts with CPU-executed
-misses~\cite{zhong2025hybrimoe,huang2025cpugpu,llamacppdisc24528}, splitting a layer's misses between CPU and PCIe from a
-bandwidth model~\cite{freetoken,dali2026}, bytes over bandwidth as a bound~\cite{budgetingbytes2026,wisp2026}, and
-Belady with bypass as a cache-level oracle~\cite{zhang2026reproducible} are published; our cache uses the first three.
 
-\input{tab_glossary}
-\input{tab_headline}
+\section{Setting and Method}\label{sec:setting}
+\paragraph{Models and workload.} gpt-oss-120b (36 MoE layers of 128 experts, top-4, MXFP4, 13.25\,MB per expert) and
+Qwen3-30B-A3B in BF16 (48 layers of 128 experts, top-8, 9.44\,MB per expert). Prompts are the 30 AIME-25 problems;
+each run decodes 256 tokens per problem, teacher-forced on the model's own greedy output, with the cache carried
+over between problems as in one user's session. A \emph{budget} is the share of each layer's experts that fit in GPU
+slots ($C$ of $E$); we use 11\%, 25\% and 40\% for gpt-oss and 12.5\%, 25\% and 43.75\% for Qwen3.
 
-\section{Setting and Instrument}\label{sec:setting}
-\paragraph{Workload.} Single-request decode. gpt-oss-120b (MXFP4 experts; 36 MoE layers of 128 experts, top-4,
-13.25\,MB per expert) and Qwen3-30B-A3B in BF16 (48 layers of 128 experts, top-8, 9.44\,MB per expert). Prompts are
-the 30 AIME-25 problems in FreeToken's own benchmark format; each system decodes 256 tokens per problem greedily,
-after one warm-up request, in one session in which the cache carries over between problems. One client times every
-system with FreeToken's own metric, (tokens$-$1) over the time between the first and last token's arrival.
+\paragraph{The engine.} Our cache is a 3{,}500-line patch to llama.cpp~\cite{llamacpp}. Each MoE layer has $C$ GPU
+slots. Routing is decided on the GPU; resident experts run there. A non-resident expert, a \emph{miss}, is read from
+host memory in one of two ways: CPU helper threads run it (the GPU signals them through mapped memory), or it is
+\emph{fetched}, copied into a slot and run on the GPU in the same step. The deployed policy admits a miss into a slot
+when its decayed request count (half-life 16 tokens) beats the lowest resident's by a margin $\kappa{=}1$. An admitted
+miss is first served by the CPU and then copied into its slot in the background, so it is read from host memory
+twice. How many of a layer's misses to fetch rather than run on the CPU is a per-machine table, computed from the
+machine's bandwidth probe by a calibrated time model (\cref{app:law}).
 
-\paragraph{Machines.} RTX 5090 (32\,GB, 1.79\,TB/s datasheet) hosts with desktop CPUs, rented by the hour and named
-by a letter. \Cref{tab:headline} is measured on \emph{host B} (Ryzen 9 9950X3D; its card's memory clock is
-\memClkRatio$\times$ the common one, and its probe read device memory 3\% above the datasheet rate) and \emph{host S}
-(Ryzen 9 9950X at the common clock; its CPU reads host memory \scCpuBwDrop\% slower, its card has a lower power limit
-and SM clock). The oracle measurements of \cref{sec:gap} use further rentals, O1--O5. Every job first runs a probe
-that reads host memory from $t$ CPU threads, over PCIe, and from both at once: $B_c$ is the CPU rate at the helper
-thread count, $B_p$ the PCIe rate, $B_{cp}$ the combined rate, and $B_{\mathrm{host}}$ the highest rate the probe
-reached by any method. GPU clocks cannot be locked on these rentals (power limits 350--600\,W).
+\paragraph{Configurations.} \Cref{tab:configs} names the policies we compare. The oracles read the routing of the rest
+of the problem from a trace recorded on the same machine over the same teacher-forced text; they decide, they do not
+predict. \emph{MIN} is Belady's optimum with bypass~\cite{belady1966study,bypassopt}: a miss is admitted only if some
+resident's next use comes later than the miss's own, and that resident is evicted. With bypass allowed, maximising hits
+under $C$ slots is an interval-colouring problem that this greedy rule solves exactly~\cite{carlisle1995kcoloring,jain2016hawkeye}.
 
-\paragraph{The instrument.} Our cache is a 3{,}500-line patch to llama.cpp. Each MoE layer has $C$ GPU slots. Routing
-is decided on the GPU; resident experts run there, and each miss either runs on CPU helper threads, which the GPU
-signals through a mailbox in mapped memory, or is fetched: copied into a slot and run on the GPU in the same step.
-Admission follows a decayed-frequency score (half-life 16 tokens, margin $\kappa{=}1$; a llama.cpp pull request admits
-by a decayed heat in the same spirit~\cite{llamacpppr26563}); an admitted miss is served by the CPU and then copied
-into its slot in the background, so it is read from host memory twice. The one per-machine decision is how many of a
-layer's $n$ misses to fetch. A model of time per token gives it. With $X_c$ the bytes the CPU reads per token and
-$X_p$ the bytes the link reads,
+\input{tab_configs}
+
+\paragraph{Hosts and statistics.} RTX 5090 cards (32\,GB, 1.79\,TB/s datasheet) in desktop hosts, rented by the hour.
+Every job first probes how fast the host reads host memory: from CPU threads ($B_c$), over PCIe ($B_p$), from both at
+once ($B_{cp}$), and the highest rate by any method ($B_{\mathrm{host}}$). Time per token is averaged over problems, and
+ratios are ratios of those means, paired by problem; intervals are 95\% percentiles of 10{,}000 bootstrap resamples of
+problems. Problem resampling does not cover the variation between machines, which is larger: two rentals of one CPU
+model differed by 19--22\% in speed. The panel of \cref{sec:gap,sec:horizon} therefore treats the host as the unit:
+one launch per host, configurations in a seeded random order with a cold cache each, and pooled intervals from a
+two-stage bootstrap over hosts and then problems~\cite{kalibera2013rigorous}. Each job's predictions are in its script's
+header, committed before the machine started; \cref{app:prereg} scores all \scClauses{} of them.
+
+\section{A Bound on Time per Token}\label{sec:limit}
+Consider any system that executes the model's exact routing with at most $C$ experts of each layer resident on the
+GPU. Per token each of the $Lk$ routed experts is either served by a resident copy, which the GPU reads from its own
+memory, or read from host memory: by the CPU that runs it, or by the copy that brings it into a slot. Let $R^\star$ be
+MIN's host reads per token, per layer, on the routing trace; no policy, even one that knows the future, reads fewer. If
+$c$ experts per token run on the CPU, host memory supplies at least $\max(R^\star,c)\,S$ bytes of experts of $S$
+bytes each, and the GPU reads the dense weights $D$ plus $(Lk-c)\,S$. With everything overlapped,
 \begin{equation}
-T \;=\; G \;+\; \max\!\Big(\frac{X_c}{B_c},\ \frac{X_p}{B_p},\ \frac{X_c+X_p}{B_{cp}}\Big),
-\label{eq:law}
-\end{equation}
-with one constant $G$ per engine and model, fitted once on one host and frozen; its per-layer form picks, for each
-$n$, the number $f(n)$ of misses to fetch (\cref{app:law}). In the running example on host B the table copies one
-of two misses and runs a single miss on the CPU, hidden behind the GPU's resident experts. Written down on each
-machine from its probe before any model ran, \cref{eq:law} predicted our cache on gpt-oss within a median
-\lawRowsMedian\% per measurement on \lawHosts{} RTX 5090 hosts (90th percentile \lawRowsPninety\%; \cref{tab:law}). A one-path
-bytes-over-bandwidth model with the same $G$ has the same median but a 90th percentile of \lawNaivePninety\%: the
-maximum over paths matters where both paths carry many bytes. With its constants frozen it scores \lawFrozenN{} later
-measurements on \lawFrozenHosts{} more hosts at a median \lawFrozenMed\%, within \lawFrozenGptMin{} to
-\lawFrozenGptMax\% on gpt-oss and over-predicting Qwen3's speed by \lawFrozenQwenMin{} to \lawFrozenQwenMax\%, whose
-$G$ was borrowed from llama.cpp; on those later measurements the one-path model does as well (median
-\lawFrozenNaiveMed\%, 90th percentile \lawFrozenNaivePninety{} against \lawFrozenPninety\%). It is a calibrated model of engines that read host memory in sequence with their GPU
-work, and \cref{sec:gap} shows where it stops: it prices no overlap and no per-layer fetch latency.
-
-\paragraph{Protocol.} We match the number of experts on the GPU across systems (within 2.5\%; llama.cpp keeps whole
-layers, \texttt{--n-cpu-moe}~$n$, and FreeToken takes a cache rate and preallocates most of the card). Ratios are of
-mean speeds, paired by problem, with 95\% percentile intervals from 10{,}000 bootstrap resamples; except in
-\cref{sec:gap}, they cover problem sampling within one launch on one machine, not rentals (two rentals of one CPU
-model differed by 19--22\% in speed). A first launch picks each system's faster variant per budget and a second
-launch, which the comparison uses, runs only those. Every job's predictions are in its script's header, committed
-before the machine starts. A model's error is its prediction over the measurement, minus one, of the quantity named,
-speed or time per token; a model that over-predicts time under-predicts speed.
-
-\paragraph{The instrument against its peers.} \Cref{tab:headline} compares three systems at six cells on two RTX 5090
-hosts. On host B ours leads FreeToken at every budget, by \ftLeadGptMin--\ftLeadGptMax\% on gpt-oss and
-\ftLeadQwenMin--\ftLeadQwenMax\% on Qwen3; on host S, with a slower CPU, it leads at \scOursLeadCells{} of six cells
-and FreeToken leads at Qwen3 43.75\%. Tuned per cell on a third host (a Ryzen 9 9950X) over five settings (its fetch cap, its
-thread count and its backend), FreeToken's best runs at most \fttBestOverDefaultMax$\times$ its \cref{tab:headline}
-setting, and ours runs \fttMin--\fttMax$\times$ it, ahead at \fttLeadCells{} of six cells (job 098; \cref{app:system}).
-FreeToken reserves \fttVramFtMin--\fttVramFtMax\,GiB of VRAM at every budget, ours uses \fttVramOursMin--\fttVramOursMax\,GiB.
-With every expert on the CPU, stock llama.cpp, whose kernels our helpers use, runs \fttCpuGpt$\times$ (gpt-oss) and
-\fttCpuQwen$\times$ (Qwen3) FreeToken's CPU backend, so CPU kernels explain none of the Qwen3 lead and at most part of
-the gpt-oss one. Most of the lead is admission rationing: with LRU in place of decayed frequency
-the cache runs \scLruSlowMin--\scLruSlowMax\% slower and trails FreeToken at \scLruTrailCells{} cells (\cref{app:system}).
-Ours runs \grThreekLlamaMin--\grFourkLlamaMax$\times$ llama.cpp on an RTX 4090 and an RTX 3090, ties FreeToken on its
-own headline model within 3\%, and ties llama.cpp on Mixtral-8x7B, where 2 of 8 experts resident leave little locality
-to earn (\cref{app:grid}). Its outputs diverge from an all-VRAM reference as much as stock llama.cpp's own CPU
-placement does (mean KL \klMeanGpt{} and \klMeanQwen{} nats; \cref{app:system}).
-
-\section{The Speed Limit}\label{sec:limit}
-\paragraph{Bound.} Consider any system that executes the model's exact routing with at most $C$ experts of each layer
-resident on the GPU. Per token, each of the $Lk$ routed experts is either served by a resident copy, which the GPU
-reads from VRAM, or not, in which case its $S$ bytes are read from host memory: by the CPU that runs it, or by the
-copy that brings it into a slot. Let $R^\star$ be the reads per token of MIN, Belady's optimum with
-bypass~\cite{belady1966study,hasslinger2018,bypassopt}, applied per layer to the routing trace: the fewest reads of any
-policy, even one that knows the future. If $c$ experts per token run on the CPU, host memory supplies at least
-$\max(R^\star,c)\,S$ bytes and the GPU reads the dense bytes $D$ plus $(Lk-c)\,S$. With everything overlapped,
-\begin{equation}
-\bar T \;\ge\; \min_{0\le c\le Lk}\ \max\!\Big(\frac{D+(Lk-c)S}{B_{\mathrm{gpu}}},\ \frac{\max(R^\star\!,c)\,S}{B_{\mathrm{host}}}\Big),
+\bar T \;\ge\; \min_{0\le c\le Lk}\ \max\!\Big(\frac{D+(Lk-c)S}{B_{\mathrm{gpu}}},\ \frac{\max(R^\star\!,c)\,S}{B_{\mathrm{host}}}\Big).
 \label{eq:limit}
 \end{equation}
-with $B_{\mathrm{gpu}}$ the GPU's datasheet rate. A cell is \emph{host-bound} when the minimum is at $c^\star{=}0$,
-and \emph{GPU-bound} otherwise: the GPU binds with every expert it can take. On host B gpt-oss at 11 and 25\% and
-Qwen3 at 12.5 and 25\% are host-bound. The bound's class is exact routing, whole experts of unmodified bytes, at most
-$C$ of each layer resident, and one token per forward pass. A system free to pool its $LC$ slots across layers has a
-bound \poolOverLayerMin--\poolOverLayerMax\% higher; FreeToken keeps one LRU over all layers and llama.cpp pins whole
-layers, so we score both against the pooled bound. The bound assumes an expert run on the CPU is read from DRAM (the
-optimum's shortest re-read distance is \lthreeReuseMin\,GB of host traffic), that computation runs at memory speed,
-and that the two read paths share $B_{\mathrm{host}}$ freely; it drops all latencies. $B_{\mathrm{host}}$ is the
-highest rate our probe reached, not a hardware peak, so a faster reader could exceed it. The traces are each model's
-own greedy text on the 30 prompts, with routing recorded teacher-forced; replayed through a simulator of our deployed
-policy they reproduce the engine's hit rates within \simHitQwenMax{} points.
+A budget is \emph{host-bound} when the minimum is at $c{=}0$: the GPU could take every expert, and host reads bind.
+That holds at the two smallest budgets of each model. The bound covers exact routing, whole experts of unmodified
+bytes, at most $C$ residents per layer and one token per forward pass; it drops all latencies and lets the two read
+paths share $B_{\mathrm{host}}$ freely.
 
-\input{tab_limit}
+\Cref{tab:headline} places three systems against it on two hosts. Our cache leads FreeToken~\cite{freetoken} at
+\bothLeadCells{} of \bothCells{} configurations and runs \bothLlamaXMin--\bothLlamaXMax$\times$ stock llama.cpp at equal
+GPU expert memory. Tuned over five settings on a third host, FreeToken gains at most \fttBestOverDefaultMax$\times$ and
+still trails at \fttLeadCells{} of six cells (\cref{app:system}). Against the bound, our cache stands at
+\bothLimitPctMin--\bothLimitPctMax\%.
 
-\paragraph{Varying it.} \Cref{tab:limit} changes one assumption at a time. Pooled slots need
-\globalReadsMin--\globalReadsMax\% fewer reads and raise the host-bound limits by 5--10\%. Starting the optimum warm
-changes it by at most 1.4\%; the median probe sample instead of the highest lowers the host-bound limits by 8\%. The
-GPU term moves most: at batch 1 the all-in-VRAM runs reach only \gpuEffPctGpt\% (gpt-oss) and \gpuEffPctQwen\%
-(Qwen3) of the datasheet rate, and with the measured rate the limits at 25\% and above fall to \limMeasGpuGpt{} and
-\limMeasGpuQwen\,tok/s, 8--9\% above the all-in-VRAM speed: the CPU's share. In the running example the limit on
-host B is \limExMidG\,tok/s (\limMeasGpuGpt{} with the measured GPU rate) and the cache runs 109\,tok/s.
+\input{tab_headline}
 
-\paragraph{Applying it.} Against the limit our cache stands at \bothLimitPctMin--\bothLimitPctMax\% on the two hosts
-of \cref{tab:headline}, and at \limAllPctMin--\limAllPctMax\% with every variation of \cref{tab:limit} at once;
-FreeToken and llama.cpp stand at \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\% of the pooled bound
-their designs allow. With every expert in its slots the cache matches stock llama.cpp (\cOneTwoEight$\times$ and
-\cOneTwoEightQ$\times$): it costs nothing when the model fits. We also scored \audAllN{} published batch-1 measurements
-from \audSources{} sources against a bound with the same ingredients at each paper's datasheet rates, in a per-layer
-form that charges dense work in sequence (\texttt{scripts/audit.py}; every row in \cref{app:audit}). The
-\audInclassN{} that are inside the bound's class and have a routing trace of their model reach a median
-\audInclassMed\% of it (quartiles \audInclassQone--\audInclassQthree\%). The ceilings are datasheet ones and
-\audImputedN{} rows' capacities are imputed upper bounds, so these are lower than a probed limit would give; even so,
-three quarters of the in-class published systems stand below a quarter of a latency-free ceiling, and the next section asks what the
-missing part is made of.
+\paragraph{How tight is it?} \Cref{tab:limit} (\cref{app:system}) varies one assumption at a time. The GPU term moves
+most: at batch size 1 the all-in-VRAM runs reach only \gpuEffPctGpt\% (gpt-oss) and \gpuEffPctQwen\% (Qwen3) of the
+datasheet rate. With the measured GPU rate, pooled slots, the median probe sample and the exact optimum together, our
+cache stands at \limAllPctMin--\limAllPctMax\% of the bound; the host-bound budgets barely move, because there the
+host term binds. Pooling the $LC$ slots across layers lowers the reads by \globalReadsMin--\globalReadsMax\%, which
+FreeToken's single cache could exploit; we score it against the pooled bound (\ftPoolPctMin--\ftPoolPctMax\%).
+
+\paragraph{Published systems.} We scored \audAllN{} published batch-1 measurements from \audSources{} sources with one
+procedure: the same bound at each paper's datasheet ceilings, MIN's reads from our traces of its model, every
+efficiency 1 (\texttt{scripts/audit.py}; every row in \cref{app:audit}). The \audInclassN{} rows inside the bound's
+class reach a median \audInclassMed\% of it (quartiles \audInclassQone--\audInclassQthree\%). Scored by the same
+procedure, our cache reaches \audOursMin--\audOursMax\% (median \audOursMed\%) on the two hosts of
+\cref{tab:headline}. Either way, most of the time a consumer machine could save is not being saved; the next section
+asks what it is made of.
 
 \section{Where the Seconds Go}\label{sec:gap}
-Between a cell's measured time and its limit, \cref{eq:law,eq:limit} price five fixes; their Shapley values
-(\cref{app:accounting}) name missing foresight across tokens the largest cost at host B's four host-bound cells,
-\shFsHostMin--\shFsHostMax\% of the gap, and host reads serialised with GPU work the largest at its two GPU-bound
-cells. That is a model, and the states it values in between are not realised by any online policy. This section
-realises them: oracles of future routing built into the engine, on three hosts, measure what foresight is worth under
-each way of spending it, and find the model right about which terms matter and wrong about their sizes.
+The deployed cache does not know which experts the coming tokens will need. We measure what knowing them is worth by
+running oracles inside the engine at all six budgets: on host O3 (job 095), on O4 and O5 in a randomised order with
+a cold cache per configuration (job 096; a relaunch on O4's machine reproduced the key ratios within
+\fxReplicateMax), and at two gpt-oss budgets on the \pnHosts-host panel (job 099). \Cref{fig:factorial} shows the
+speed of each state against the deployed cache on the same host.
 
 \begin{figure*}[t]\centering
 \includegraphics[width=\textwidth]{figs/factorial.pdf}
-\caption{Foresight in the engine: the speed of each state relative to the online policy on the same host, with 95\%
-paired intervals (mostly narrower than the markers), at the six cells of \cref{tab:headline}, on hosts O3 (job 095,
-fixed order), O4 and O5 (job 096, shuffled order, cold cache for each configuration). Rows, bottom to top: the online
-policy with each of its admissions read once (no foresight); the same with the learned admission order of
-\cref{sec:traces} (job 097, on O4's machine and host O6, a Ryzen 9 9950X3D); MIN with bypass with its admissions served by the CPU and
-then copied (two reads); Belady prefetch of the coming steps, which admits what MIN bypasses, through that same path
-(two reads), the same on the paced copy path, and with each admission read once; MIN with bypass with each admission fetched into its slot in the step
-that needs it (one read); the same with a paced single-read prefetch three steps ahead. O5's link reads
-\fxLinkFive\,GB/s against \fxLinkThree{} and \fxLinkFour{} on O3 and O4. $^\dagger$host-bound. Milliseconds and reads
-per state: \cref{tab:accounting_measured,tab:single_read}.}
+\caption{What foresight is worth in the engine, by how it is spent: speed of each configuration of \cref{tab:configs}
+relative to the deployed cache on the same host, at the six budgets ($^\dagger$host-bound). Hosts O3 (job 095), O4,
+O5 (job 096, randomised order) and O6 (job 097) at every budget; the \pnHosts{} panel hosts (job 099) at the two gpt-oss
+host-bound budgets. Within-host 95\% intervals are mostly narrower than the markers. Admitting what MIN admits and
+reading it once (\emph{MIN, 1 read}) gains on every host at every budget; the usual ways of spending foresight
+(\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others.}
 \label{fig:factorial}
 \end{figure*}
 
-\paragraph{The experiment.} Each oracle reads the routing of the rest of the sequence from a trace recorded on the same
-machine over the same teacher-forced text, and the engine runs it beside the online policy at every cell
-(\cref{fig:factorial}). On O4 (Ryzen 9 9950X) and O5 (Ryzen 9 9950X3D) the ten configurations of a cell ran in an
-order shuffled per cell, each in a fresh context, with the predictions for both hosts committed before either started
-(\cref{app:prereg}); a second launch on O4's machine (job 097), in another random order, reproduced the online,
-single-read, fetch and paced-prefetch ratios within \fxReplicateMax. The configurations cross two choices a cache with foresight makes. What to admit: what MIN with
-bypass admits, or every expert the coming steps will request, which is what a Belady prefetch does, admitting experts
-MIN would bypass. How to read an admitted expert: once, by fetching it into its slot in the step that needs it or by
-copying it ahead of its first use; or twice, by serving it on the CPU and then copying it, the way caches that execute
-misses on the CPU admit, ours included. One more configuration reads the online policy's own admissions once, with no
-foresight.
+\paragraph{Spent as the optimum spends it, foresight pays.} MIN with each admission fetched once runs
+\fxFetchAllGainMin--\fxFetchAllGainMax\% faster than the deployed cache at every budget on O3--O5, and its reads are
+within \fxFetchSimDiffMax\% of what the trace simulator predicts. Copying its admissions three steps ahead adds the
+overlap foresight allows: \fxPacedAllGainMin--\fxPacedAllGainMax\% over the deployed cache, which brings the engine to
+\fxBestFracMin--\fxBestFracMax\% of the bound at the host-bound budgets. On the panel, MIN with one read gains
+\pnFetchLowMin--\pnFetchLowMax$\times$ at gpt-oss 11\% and \pnFetchMidMin--\pnFetchMidMax$\times$ at 25\% across hosts.
+The ordering of the states is the same on every host; their sizes are not.
 
-\paragraph{Spent as the optimum spends it, foresight pays.} MIN with bypass with each admission fetched once runs
-\fxFetchFourMin--\fxFetchFourMax$\times$ the online policy at the four host-bound cells on O4 and
-\fxFetchFiveMin--\fxFetchFiveMax$\times$ on O5, and gains \fxFetchAllGainMin--\fxFetchAllGainMax\% at every cell on
-the three hosts. It reads \fxFetchReadsOverOptMin--\fxFetchReadsOverOptMax$\times$ $R^\star$, within \fxFetchSimDiffMax\% of what the
-simulator predicts for it. With a paced single-read prefetch three steps ahead the gain is
-\fxPacedAllGainMin--\fxPacedAllGainMax\% (\fxPacedFourMin--\fxPacedFourMax$\times$ on O4 and
-\fxPacedFiveMin--\fxPacedFiveMax$\times$ on O5 at the host-bound cells), bringing the engine to
-\fxBestFracMin--\fxBestFracMax\% of the limit there against the online policy's \fxBaseFracMin--\fxBaseFracMax\%.
-Every interval is within $\pm$\fxHalfWidthMax. On both hosts the paced prefetching state beats fetch and fetch beats
-the online policy with single reads at every host-bound cell; the sizes depend on the host. Fetch's ratio differs between
-O4 and O5 by \fxFetchSpreadMin--\fxFetchSpreadMax{} (we had predicted at most 0.15), consistent with the in-step fetch
-waiting on O5's slower link, though the two hosts also differ in their CPU.
+\paragraph{Spent the usual ways, it pays less and sometimes loses.} Two habits waste foresight. A Belady prefetch
+admits every expert the coming steps request, including those MIN would bypass, and reads
+\fxNbReadsOverOptMin--\fxNbReadsOverOptMax$\times$ MIN's bytes even when each admission is read once. Serving a miss on
+the CPU and then copying it reads every admission twice. At the two smallest budgets the best of these runs
+\fxUsualLowMin--\fxUsualLowMax$\times$ the deployed cache on O4 and O5, against \fxFetchLowMin--\fxFetchLowMax$\times$ for
+MIN with one read; at every host-bound budget MIN's way beats the best usual way by
+\fxMinOverUsualMin--\fxMinOverUsualMax$\times$. The same trade-off between prefetching what an optimum would bypass and
+admitting conservatively is classical for disks~\cite{cao1995prefetching} and CPU caches, where a Belady-style prefetch
+also costs 75\% more traffic than MIN~\cite{jain2018prefetch}.
 
-\paragraph{Spent the usual ways, it pays less, and at the lowest budgets nothing.} Two habits waste it. The first is
-over-admission: Belady prefetch admits what MIN bypasses and reads \fxNbReadsOverOptMin--\fxNbReadsOverOptMax$\times$
-$R^\star$ even with each admission read once. The second is serve-then-copy: MIN with bypass whose admissions the CPU
-serves and then copies reads \fxBypassReadsOverOptMin--\fxBypassReadsOverOptMax$\times$ $R^\star$. Their value depends on
-the budget and the host. At the two lowest budgets the best of the usual ways (Belady prefetch read once or twice, paced
-or not, and serve-then-copy MIN) runs \fxUsualLowMin--\fxUsualLowMax$\times$ the online policy on O4 and O5, against
-\fxFetchLowMin--\fxFetchLowMax$\times$ for MIN fetched once; on O5 the best of them runs \fxUsualFiveMin--\fxUsualFiveMax$\times$
-at the four host-bound cells. At the two 25\% cells on O4 they gain more (\fxUsualQuarterFourMin--\fxUsualQuarterFourMax$\times$,
-the paced Belady prefetch once beating MIN fetched in the step), as the paced Belady prefetch did on O1 and O2
-(\cref{app:foresight}). At every host-bound cell on O3--O5, MIN with its paced single-read prefetch beats the best of the
-usual ways by \fxMinOverUsualMin--\fxMinOverUsualMax$\times$. Reading Belady's admissions a second time costs little at
-gpt-oss (the two forms are within \fxNbOverHitGptMin--\fxNbOverHitGptMax$\times$ of each other) and a factor of
-\fxNbOverHitQlowMin--\fxNbOverHitQlowMax{} at Qwen3 12.5\%, where admissions are most frequent. The online policy's own
-second read, by contrast, costs it little: at the host-bound cells MIN admits \fxMinAdmitsOverOnlineMin--\fxMinAdmitsOverOnlineMax{}
-times as many experts per token as the online policy, whose \fxOnlineAdmitsMin--\fxOnlineAdmitsMax{} admissions per token
-the engine rations, and reading those once removes \fxFoaFewerReadsHostMin--\fxFoaFewerReadsHostMax\% of its host reads but
-moves its speed by only \fxFoaHostMin--\fxFoaHostMax$\times$, consistent with their background copies overlapping later
-steps. The online policy's time goes to not knowing the future, and knowing it pays at every budget only when spent on
-what MIN admits, each admission read once.
+\paragraph{An order-free accounting.} Two choices separate the deployed cache from MIN with one read: the
+\emph{admission set} (the deployed policy's or MIN's) and the \emph{number of reads} per admission (two or one). The
+engine ran all four combinations on O4, O5 and the panel, so each choice's effect can be measured at both levels of the
+other, and its Shapley value, the mean of the two, does not depend on the order in which the choices are
+taken~\cite{fawcett2016ablation,jain1991art}. \Cref{tab:shapley} gives the effects as shares of the gap between the
+deployed cache and the bound. Reading the deployed policy's admissions once is worth \fsReadsOnlineMin{} to
+\fsReadsOnlineMax\% of the gap: the policy rations admissions to a few per token, and their background copies overlap
+later steps. MIN's admission set read twice is worth \fsSetTwoMin{} to \fsSetTwoMax\%; read once, it is worth
+\fsSetOneMin--\fsSetOneMax\%. The difference, the interaction, is \fsInterMin--\fsInterMax\% of the gap: MIN admits
+\fxMinAdmitsOverOnlineMin--\fxMinAdmitsOverOnlineMax{} times as many experts per token as the deployed policy, and with
+two reads each of those admissions is read again on the critical path. Averaged over the two orders, the Shapley values
+are \fsSetMin--\fsSetMax\% for the admission set and \fsReadsMin--\fsReadsMax\% for the single read. Prefetching MIN's
+admissions ahead needs foresight by construction, so we nest it under MIN's set rather than cross it: it adds
+\fsPacingMin--\fsPacingMax\%. What no oracle touches, the rest, is \fsRestMin--\fsRestMax\%.
 
-\paragraph{The accounting, measured.} With the limit, the states online, fetch and the faster prefetching state divide
-the gap at the host-bound cells of O3--O5 into the bytes foresight saves, \amBytesHostMin--\amBytesHostMax\% of it; the
-overlap foresight allows, \amOverlapHostMin--\amOverlapHostMax\%; and the rest, which no oracle touches,
-\amRestHostMin--\amRestHostMax\% (\cref{tab:accounting_measured}). On O4 and O5, where the online policy also ran with
-single reads, reading its admissions once accounts for \amSingleHostMin{} to \amSingleHostMax\% of the gap and foresight
-for \amFsGivenSingleHostMin--\amFsGivenSingleHostMax\%. What the oracles recover, bytes and overlap together, is most of
-the gap on O3 and O4 (\amRecovThreeMin--\amRecovThreeMax\% and \amRecovFourMin--\amRecovFourMax\%); on O5, with its
-slow link, the rest is the larger share (\amRestFiveMin--\amRestFiveMax\%). The split between bytes and overlap depends on the order in which they are taken: taken overlap first, with the
-Belady prefetch standing for overlap at about the online policy's bytes, the overlap share ranges from
-\amOvlFirstHostMin{} to \amOvlFirstHostMax\% (it is negative where that prefetch loses) and the bytes share from
-\amBytesGivenOvlHostMin{} to \amBytesGivenOvlHostMax\%; only their sum, \amRecovHostMin--\amRecovHostMax\%, and the rest are
-free of the order. Against the first order, the model over-prices the
-bytes \amBytesMultMin--\amBytesMultMax$\times$ and the overlap \amOverlapMultMin--\amOverlapMultMax$\times$ and
-under-prices the rest \amRestMultMin--\amRestMultMax$\times$. We did not separate the rest, but three candidates are
-visible. The prefetch is imprecise: on O3 its reads are \fsbpReadsOptMin--\fsbpReadsOptMax$\times$ $R^\star$ across the
-six cells, the cost of choosing victims steps early and of the misses that fall inside the lead. The overlap is
-partial: the law, which charges every host read in sequence with the GPU's work, over-predicts the prefetching state's
-time by \fxPacedLawTimeMin{} to \fxPacedLawTimeMax\% at the host-bound cells, so some reads overlap and some do not.
-And the GPU runs at \gpuEffPctGpt--\gpuEffPctQwen\% of the datasheet rate the limit counts, a large part of what remains
-at the GPU-bound cells: on Qwen3 at 43.75\% Nsight Systems splits a token of our cache (FreeToken) into 4.93 (5.20)\,ms
-of expert copies over PCIe, 2.29 (2.21) of resident-expert products, 1.65 (1.34) of attention projections, 0.49 (0.37)
-of attention, 0.38 of output head and 0.97 (0.40) of norms, small kernels and cache control, with neither system
-overlapping its copies with GPU compute. Two things the model prices as overlap are worth nothing here: turning off
-the within-layer overlap of a layer's CPU misses with its GPU hits changes speed by under 1\% at every cell, and
-predicting the next layer's experts~\cite{hwang2024pregated,zhu2025preattention} never lowers host bytes. Foresight
-across tokens is the lever; on O1, half of the Belady prefetch's gain at gpt-oss 25\% arrived between windows of 4 and
-16 tokens (\fsmWfiftyGMid{} by log interpolation), the horizon \cref{sec:traces} finds on the traces.
+\input{tab_shapley}
 
-\section{What the Traces Say}\label{sec:traces}
-The accounting names foresight across tokens as the cost the oracles can remove where the host binds.
-What would recover it, and what would not? We replay the models' own sampled text for \fsModels{} MoE
-models~\cite{muennighoff2024olmoe,yang2025qwen3,openai2025gptoss} (\polModels{} traces of 33{,}000--152{,}000 tokens,
-the cache carried across conversations) through an event-atomic simulator: each token requests its $k$ experts per
-layer as one set, and no expert of the current token is evicted to serve it, the accounting that cache-level studies
-of this problem call for~\cite{zhang2026reproducible}.
+\paragraph{The rest.} Three things are visible in it. The prefetch is imprecise: it reads
+\fsbpReadsOptMin--\fsbpReadsOptMax$\times$ MIN's bytes, from victims chosen steps early and from misses inside the lead.
+The overlap is partial: a model that charges every host read in sequence with the GPU's work over-predicts the
+prefetching state's time by \fxPacedLawTimeMin{} to \fxPacedLawTimeMax\%, so some reads overlap and some do not. And
+the GPU runs at about half of its datasheet rate at batch size 1, which is most of what remains at the GPU-bound budgets
+(an Nsight breakdown is in \cref{app:foresight}). The rest is larger on hosts with a slow PCIe link (O5:
+\amRestFiveMin--\amRestFiveMax\%), where every fetch in the step waits longer.
 
-\input{tab_policy}
+\paragraph{Machines differ more than problems.} On the panel, the within-host 95\% interval of MIN-with-one-read's
+gain has a median half-width of \pnFetchLowHw{} at gpt-oss 11\%, while its spread across hosts has a standard
+deviation of \pnFetchLowSd; the two-stage interval over hosts is [\pnFetchLowLo, \pnFetchLowHi]. Statements in this
+section are therefore about orderings and shares that hold on every host, not about one host's ratios.
 
-\paragraph{Policies.} \Cref{tab:policy} scores LRU, LFU, decayed frequency, ARC, S3-FIFO and a profiled static cache
-against the exact optimum and against Belady within a window of $W$ future tokens, at three budgets per model. Three
-things hold across models. First, the online policies are close to one another and far from the optimum: the best of
-them reads \polBestOnlineMin--\polBestOnlineMax\% more than it, while decayed frequency is the best online policy
-in \polDfBest{} of \polCells{} cells and S3-FIFO in \polSsfBest{} (within 1\% of the best in \polDfNear{} and
-\polSsfNear{}). Where the cache turns over every token ($C/k\le1.5$, \polLruLowCells{} cells) the six online policies
-are within \polLowSpreadMax\% of one another; from $C/k{=}2$ LRU reads \polLruMoreMin--\polLruMoreMax\% more than
-decayed frequency on eight of nine models, Qwen2-57B being the exception, and classic LFU fails at large budgets
-(\polLfuMax$\times$ the optimum). The literature's disagreement on recency against
-frequency~\cite{si2026expertcache,flashmoe2026,mira2026,specmd} is consistent with this regime dependence. Second, a
-static cache profiled on other text reads \polStaticMin--\polStaticMax$\times$ the optimum, because the hot set
-moves: the $C$ most requested experts of a layer change by \driftHundredMin--\driftHundredMax\% between consecutive
-windows of 100 tokens and \driftThousandMin--\driftThousandMax\% between windows of 1{,}000 (median
-\driftThousandMed\%), so popularity follows the conversation; the skew is mild, the top quarter of experts taking
-\skewQuarterMin--\skewQuarterMax\% of requests. Third, four tokens of foresight beat every online policy in every cell
-(median \polWfourEquarter$\times$ the optimum at $E/4$), so foresight is worth several times the choice of policy.
-Hysteresis as the trace study sets it ($\kappa{=}k/4$: 1 for gpt-oss, 2 for Qwen3; the engine runs $\kappa{=}1$) costs
-\polKappaMin--\polKappaMax\% reads over plain decayed frequency on eight models and up to \polKappaQwenMax\% on Qwen3;
-it is tuned for time, where it rations copies, not for reads.
+\section{How Much Foresight Is Needed}\label{sec:horizon}
+The oracles know the whole future. A forecaster would know part of it, imperfectly. We measure the value of partial
+foresight in two ways: in the engine on the panel, and on routing traces of nine models.
 
-\paragraph{How far ahead.} The optimum reads \fsSaveMin--\fsSaveMax\% fewer experts from host memory than decayed
-frequency with each admitted miss fetched once, the single-read form of our policy (median \fsSaveMed\%; against
-the serve-then-copy form, which reads its admissions twice, the saving is larger). The lookahead needed scales with the cache's turnover time $C/k$, slots per layer over
-experts per token: half of the gap closes at $W_{50}\approx\fsPre\,(C/k)^{\fsExp}$ tokens ($r{=}\fsR$ in log--log over
-\fsFitN{} points; the exponent's 95\% interval over a bootstrap of models is \fsExpLo--\fsExpHi, its leave-one-model-out
-range \fsExpLomoMin--\fsExpLomoMax, and without the \fsInterp{} points whose $W_{50}$ lies below one token it is
-\fsExpNoInterp), and 90\% needs a median of \fsNinety$\,C/k$. Small caches ($C/k\le2$) recover half of the gap with
-one or two tokens of foresight; gpt-oss-120b at 25\% ($C/k{=}8$), the running example, needs about \fsGptQuarter{}
-tokens, and at 50\% about \fsGptHalf{} (both measured on its trace; the fit gives 9 and 23). A prefetching system
-needs that horizon plus the lead of its copy path, two to five steps in ours. The law adds the condition: fewer
-reads are worth most where host memory is the binding term, and a system that streams every expert through a
-saturated bus each token, as on the devices of~\cite{wisp2026,budgetingbytes2026}, has no slots to fill and nothing
-to foresee.
+\paragraph{In the engine.} The panel ran a family of policies between \emph{admit every miss} and MIN (\cref{tab:configs}):
+a miss is admitted unless the next $W$ tokens' routing says the victim is needed sooner, and the victim is the resident
+seen furthest ahead, or the lowest-scored one if none is seen. With $W{=}0$ this is admitting every miss, the best online
+policy in reads at these budgets (below); with $W$ the rest of the problem it is MIN. We also degraded the window:
+each future expert is kept with probability $r$ and otherwise replaced by a random one, so precision and recall are
+both $r$, with errors drawn independently for every step at which the window is consulted. The engine plans each step
+on the host before the step, exactly as a replay script does (equal on a CPU build at three budgets, \pnReplayMaxLow\%
+apart on the panel's GPUs). \Cref{fig:value} gives the share of MIN's gain over admitting every miss that each window
+recovers, in time on the panel and in reads on the trace.
 
-\paragraph{Foresight from history.} No forecaster here sees $W_{50}$ tokens ahead, but part of the saving needs none.
-We trained a logistic model of whether an expert is requested within the next $C/k$ tokens on features the engine has
-when it plans a step: decayed request counts at five half-lives, the time since the last request, whether the expert is
-requested now, and transition scores from the previous token's experts at the same layer and, through an 8-bit table,
-at every layer. It is fitted on each model's mixed-domain trace and replayed on the AIME routing the engine runs, so
-no test text is seen in training. Ordering admissions and victims by it, with each admitted expert read once, reads
-\lrnFewerFetchHostMin--\lrnFewerFetchHostMax\% fewer experts than decayed frequency with the same single-read
-admission at the four host-bound cells, closing \lrnFetchHostMin--\lrnFetchHostMax\% of that policy's excess over
-MIN (\cref{tab:learned}; \lrnNoCrossFetchHostMin--\lrnNoCrossFetchHostMax\% without the cross-layer scores), and at
-the \lrnBeatsWOne{} cells with $C/k\ge7$ it reads less than Belady with one token of perfect foresight. It still
-reads \lrnOverOptMin--\lrnOverOptMax$\times$ MIN at the host-bound cells. The replay, the model's weights and a gate for
-measuring it in the engine were committed before any engine run of it (\texttt{prereg/learned\_gate\_097.md}). In the
-engine (job 097, predictions committed before launch) it reads \lreFewerMin--\lreFewerMax\% fewer experts than the
-online policy with single reads at the host-bound cells, on both hosts, but its speed depends on the host. On O4's
-machine (host memory \lreBestFour\,GB/s at best) it runs \lreOverFoaFourMin--\lreOverFoaFourMax$\times$ the single-read
-online policy and \lreOverBaseFourMin--\lreOverBaseFourMax$\times$ the deployed one; on host O6, a Ryzen 9 9950X3D whose
-host memory reads \lreBestSix\,GB/s, it runs \lreOverFoaSixMin--\lreOverFoaSixMax$\times$ and
-\lreOverBaseSixMin--\lreOverBaseSixMax$\times$, slower. The reads it saves are CPU reads; it buys them with
-\lreFetchMoreFourMin--\lreFetchMoreSixMax$\times$ as many fetches in the step, each a copy its layer waits on, and with
-\lreUsMin--\lreUsMax\,$\mu$s of host time per token for its logits, a trade that paid on the host with the weaker
-host memory and lost on the stronger one. A
-realisable order from routing history is worth at most a few percent here, and nothing on a stronger host; the value
-\cref{sec:gap} measures needs foresight.
+\begin{figure*}[t]\centering
+\includegraphics[width=\textwidth]{figs/value.pdf}
+\caption{The value of partial foresight at the four host-bound budgets: the share of MIN's gain over \emph{admit every
+miss} recovered by exact routing of the next $W$ tokens (solid), by a window whose experts are each right with
+probability 0.5 (dashed), and by a linear forecaster fitted on other text (dotted), in host reads on the AIME routing
+the engine runs; markers: the same share in time per token on the panel hosts (mean, and range over hosts; gpt-oss
+only). The grey line marks half of the gain.}
+\label{fig:value}
+\end{figure*}
 
-\input{tab_learned}
+At gpt-oss 11\%, exact foresight of 1, 4 and 16 tokens recovers \pnShareOneLowMin--\pnShareOneLowMax,
+\pnShareFourLowMin--\pnShareFourLowMax{} and \pnShareSixteenLowMin--\pnShareSixteenLowMax{} of the gain in time across
+hosts; at 25\%, where the cache turns over more slowly, \pnShareFourMidMin--\pnShareFourMidMax{} at 4 tokens and
+\pnShareSixteenMidMin--\pnShareSixteenMidMax{} at 16. Time tracks reads: the share of the time gain and the share of
+the read gain agree to within the spread between hosts. Accuracy matters as much as horizon: a window of 8 tokens at
+50\% recall recovers \pnShareEightHalfLowMin--\pnShareEightHalfLowMax{} at 11\%, about what 2 exact tokens buy, and
+the whole future at 50\% recall \pnShareAllHalfLowMin--\pnShareAllHalfLowMax. On the traces, dropping experts without
+replacing them (recall $r$, precision 1) costs about the same as replacing them (\cref{app:value}).
 
-\paragraph{Speculation is not foresight.} Speculative decoding verifies $K$ draft tokens in one forward pass, so a
-layer's experts for $K$ positions are requested together and a missed expert is read once for all of them, which
-several systems propose as the source of foresight for a cache~\cite{spmoe,moespac2026,cascade2025}. On the same
-traces, with $K$ positions per step and drafts accepted at rate $\alpha$ until the first rejection, batched
-verification saves an online cache a median \bkFreeMin--\bkFreeMax\% of its reads across models at $K{=}8$ when
-rejected drafts cost nothing (\bkFreeModelMax\% on the model that gains most), the equivalent of a window of two to
-four tokens; once the rejected drafts' experts are counted, the saving
-is \bkSameNineMin--\bkSameNineMax\% at $\alpha{=}0.9$ and becomes a loss of \bkSameEightLossMin--\bkSameEightLossMax\% at
-$\alpha{=}0.8$, because the union of $K$ positions' expert sets is \bkUnionMin--\bkUnionMax\% of $Kk$ across models, budgets and
-variants (\cref{app:prereg} lists the variants). The optimum gains little from batching (\bkBeladyMin{} to
-\bkBeladyMax\%). Foresight must come from knowing future routing, as a router decoupled from the
-backbone~\cite{readme2024} or a forecaster~\cite{wang2026seqmoe} would provide, and $W_{50}$ says how far ahead.
+\paragraph{On the traces of nine models.} The trace study replays each model's own sampled text (33{,}000--152{,}000
+tokens per model) through an event-level simulator in which a token requests its $k$ experts per layer as one set and
+no expert of the current token is evicted to serve it~\cite{zhang2026reproducible}. Adding \emph{admit every miss} to
+the online policies changes their ranking: it reads least of LRU, LFU, two decayed-frequency variants, ARC, S3-FIFO and
+itself in \rbPolAaWins{} of \rbPolCells{} budget points (\rbPolAaTies{} ties), and at most \rbPolAaLossMax\% more where
+it loses. Even so, the best online policy reads \rbPolBestMin--\rbPolBestMax\% more than MIN (\cref{tab:policy},
+\cref{app:foresight}). Against this stronger baseline, the window that closes half of the read gap grows with the
+cache's turnover time $C/k$ as $W_{50}\approx\rbPre\,(C/k)^{\rbExp}$ tokens ($r{=}\rbR$ over 26 points; the exponent's
+95\% interval over a bootstrap of models is \rbExpLo--\rbExpHi, and \rbExpNoInterp{} without the points below one
+token).
+
+\paragraph{The horizon in distinct experts.} A power law in tokens hides why the horizon differs between models. Paging
+theory measures lookahead in distinct future pages, not requests~\cite{albers1997lookahead,breslauer1995lookahead}. Let
+$D(W)$ be the mean number of distinct experts a layer requests in a window of $W$ tokens. At every point of the fit,
+$D(W_{50})$ is close to a fixed fraction of the cache: median \dcMed$\,C$ (quartiles \dcLo--\dcHi, coefficient of
+variation \dcCv), while $W_{50}$ itself ranges from \dcWMin{} to \dcWMax{} tokens. The models differ in how fast
+$D(W)$ grows ($D\propto W^\beta$ with $\beta$ from \dcBetaMin{} to \dcBetaMax), which is why the exponent in tokens
+wanders. Fitted on eight models and tested on the ninth, the rule ``$D(W_{50}) = c\,C$'' predicts the held-out model's
+horizon better than the power law and than $W_{50}\propto C/k$ (\cref{tab:lomo}). A forecaster's target is thus
+stated in units it controls: the next $\approx$\dcMed$\,C$ distinct experts of each layer.
+
+\input{tab_lomo}
+
+\paragraph{What could supply it.} We know of no realisable source of routing foresight that reaches this horizon.
+\emph{Online policies} cannot (above). \emph{A learned admission order} fitted on other text, with features the engine
+has when it plans a step, reads \lreFewerMin--\lreFewerMax\% fewer experts in the engine than the deployed policy with
+single reads, but runs \lreOverBaseMin--\lreOverBaseMax$\times$ the deployed cache at the host-bound budgets; on the
+trace, admitting every miss alone gets most of its read saving on Qwen3 (\cref{app:foresight}). \emph{Speculative
+batches} request a layer's experts for $K$ draft positions at once; once the rejected drafts' experts are counted, they
+save an online cache \bkSameNineMin--\bkSameNineMax\% of its reads at 90\% acceptance and cost
+\bkSameEightLossMin--\bkSameEightLossMax\% at 80\%~\cite{spmoe,moespac2026,cascade2025}. \emph{Layer-ahead predictors}
+apply the next layer's router to the current hidden state~\cite{hwang2024pregated,zhu2025preattention}; they reach
+84--97\% recall in our engine but see less than one token ahead. \emph{Sequence forecasters} trained on routing
+histories report recall above 90\% one token ahead for both of our models~\cite{wang2026seqmoe}, with $k{+}3$
+candidates, which caps precision near 0.6; a linear forecaster we fitted on our traces reached a precision of 0.29--0.40
+for gpt-oss over 1--4 tokens. At these accuracies \cref{fig:value} predicts a small fraction of the oracle's gain.
 
 \section{Related Work}\label{sec:related}
 \paragraph{Offloading systems.} Demand-paging systems cache experts per layer and copy misses over
-PCIe~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit,pagingexperts2026}. CPU-execution systems run
-non-resident experts on the host~\cite{kamahori2024fiddler,ktransformers,zhong2025hybrimoe,daop2025,wang2026cloudgrade};
+PCIe~\cite{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit,pagingexperts2026}; an upstream
+llama.cpp pull request adds such a cache, admitting every miss into an LRU~\cite{llamacpppr29887}. CPU-execution
+systems run non-resident experts on the host~\cite{kamahori2024fiddler,ktransformers,zhong2025hybrimoe,daop2025,wang2026cloudgrade,atsinfer2026};
 a set-associative GPU cache with CPU-executed misses~\cite{huang2025cpugpu}, a llama.cpp fork~\cite{leloch2026,llamacppdisc24528}
-and two llama.cpp pull requests~\cite{llamacpppr26563,llamacpppr27861} are the closest designs to ours, and
-FreeToken~\cite{freetoken} and DALI~\cite{dali2026} split each layer's misses between CPU and PCIe, FreeToken from a
-closed-form bandwidth model. Pipelined Sharding~\cite{pipelinedsharding2026} plans sub-layer placement under a VRAM
-budget. Predictors guess upcoming experts from the previous layer's state~\cite{hwang2024pregated,zhu2025preattention},
-several steps ahead with a learned forecaster~\cite{wang2026seqmoe,mira2026}, or a batch's routes across
-layers~\cite{expertflow}; Read-ME~\cite{readme2024} makes routing known in advance by decoupling the router and then
-caches in Belady's manner. Speculative decoding has been combined with expert offloading as a source of
-batching~\cite{spmoe,moespac2026,cascade2025}. Batched-throughput systems~\cite{flexgen2023,cao2024moelightning,yuan2025moelens}
-and SSD tiers~\cite{ssdllama,edgezero} are outside our single-request, host-DRAM scope.
+and two llama.cpp pull requests~\cite{llamacpppr26563,llamacpppr27861} are the closest designs to ours.
+FreeToken~\cite{freetoken} and DALI~\cite{dali2026} split each layer's misses between CPU and PCIe. Predictors guess
+upcoming experts from the previous layer's state~\cite{hwang2024pregated,zhu2025preattention}, several tokens ahead
+with a learned forecaster~\cite{wang2026seqmoe,mira2026}, or from draft tokens~\cite{spmoe,moespac2026,cascade2025};
+Read-ME decouples the router so routing is known in advance~\cite{readme2024}. Batched-throughput
+systems~\cite{flexgen2023,cao2024moelightning,yuan2025moelens} and SSD tiers~\cite{ssdllama,edgezero} are outside our
+scope.
 
-\paragraph{Models, bounds and audits.} FreeToken's split and our \cref{eq:split} are bandwidth models of one layer;
-\cref{eq:law} is a whole-token model tested blind across machines and against alternatives. Max-of-paths cost models
-go back to FlexGen~\cite{flexgen2023} and MoE-Lightning~\cite{cao2024moelightning}; WiSP~\cite{wisp2026} bounds decode by
-PCIe turnover, Budgeting Bytes~\cite{budgetingbytes2026} by bytes over bandwidth, and MoE-CAP~\cite{moecap} measures
-bandwidth utilisation against a single peak. Qiu et al.~\cite{qiu2026gguf} predict llama.cpp throughput from GGUF
-metadata for models held entirely in GPU or unified memory; Suram~\cite{cacheable} matches one offloaded configuration
-to bytes per token over bandwidth; Si et al.~\cite{si2026expertcache} derive when a copy pays off and find recency
-competitive with frequency at large budgets. The roofline~\cite{williams2009roofline} is the single-memory ancestor of
-our bound. Zhang~\cite{zhang2026reproducible} proposes a trace-level evaluation contract for expert caching, decomposes
-the online-to-optimal gap in cache blocks in one fixed order, and audits the reporting of ten papers; SeqMoE~\cite{wang2026seqmoe}
-reports four systems against the all-in-VRAM speed. Trace studies of policies cover two or three models
-each~\cite{zhang2026reproducible,si2026expertcache,flashmoe2026,specmd}. Shapley attribution of a performance gap has a
-precedent in ShapleyIQ~\cite{shapleyiq2024}. The choice between prefetching what the optimum would bypass and
-admitting conservatively is the integrated prefetching-and-caching trade-off of Cao et al.~\cite{cao1995prefetching},
-whose offline schedules are near-optimal for one and several disks~\cite{kimbrel2000prefetching,albers2000stall}; our
-oracles re-derive it in this setting. Learned replacement imitates Belady from past accesses in CPU
-caches~\cite{jain2016hawkeye} and content-delivery caches~\cite{song2020lrb}, and FlashMoE~\cite{flashmoe2026} learns a
-recency--frequency blend for an expert cache on SSD; \cref{sec:traces} measures what such an order recovers of the
-optimum's saving once each admitted expert is read once. Limited lookahead in paging goes back to Albers~\cite{albers1997lookahead};
-Hasslinger et al.~\cite{hasslinger2018} combine Belady within a window with LRU or LFU beyond it for web caches, the
-policy family we use to measure the horizon.
+\paragraph{Bounds, oracles and caching theory.} WiSP~\cite{wisp2026} bounds decode by PCIe turnover, Budgeting
+Bytes~\cite{budgetingbytes2026} by bytes over bandwidth for a given fetch set, and MoE-CAP~\cite{moecap} measures
+bandwidth utilisation against a single peak; the roofline~\cite{williams2009roofline} is the single-memory ancestor of
+our bound. Zhang~\cite{zhang2026reproducible} proposes a trace-level evaluation contract and reports a 44--46\% gap
+between causal policies and MIN with bypass; Liang et al.~\cite{liang2026lrc} measure, across 20 models, the hit rate
+of an oracle cache that sees $m$ tokens ahead against the cache ratio $C/k$. We add the time domain: an oracle inside a
+real engine, the cost of how foresight is spent, and a horizon rule that predicts held-out models. SAEM~\cite{saem2026}
+runs a clairvoyant oracle in its engine and finds it worth at most about 14\% on an A100; Angelopoulos et
+al.~\cite{angelopoulos2025cache} give competitive bounds for layered expert paging. With bypass, MIN maximises hits
+exactly~\cite{carlisle1995kcoloring,jain2016hawkeye}; when bypass and admission cost differ, the time-optimal placement
+is a different problem~\cite{chopt2020}, which is why we use MIN's reads as an input to a bound rather than as a
+time-optimal policy. Lookahead in paging is valuable when measured in distinct pages~\cite{albers1997lookahead,breslauer1995lookahead},
+and learning-augmented paging is most robust with predictions of whether a page will be evicted before its next
+use~\cite{antoniadis2023succinct}; learned replacement imitates Belady in CPU and content-delivery
+caches~\cite{jain2016hawkeye,song2020lrb} and in an SSD-backed expert cache~\cite{flashmoe2026}.
 
 \section{Limitations}\label{sec:limits}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{Hardware.} Consumer cards (RTX 5090 for the headline comparisons, a 4090 and a 3090 at the cells that
-fit 24\,GB; an RTX PRO 6000 for all-in-VRAM runs) and desktop Ryzen and Intel hosts, rented; GPU clocks could not be
-locked, power limits differed (350--600\,W), and host B's card reads device memory 3\% above the datasheet rate,
-where the common-clock cards read below it; \cref{tab:headline} therefore reports host S beside it, where our lead is \scRatioDropMin--\scRatioDropMax{}
-smaller and FreeToken leads at one cell. A 12-channel server CPU breaks the law's bandwidth assumption
-(\cref{app:law}). Intervals cover problem sampling on one machine, not machine-to-machine variance, which
-\cref{fig:ratio} shows across \ratioHostsN{} hosts; the oracle factorial ran on three hosts, one launch each; fetch's
-gain differs between O4 and O5 by up to \fxFetchSpreadMax{} and other states' by up to \fxSpreadAnyMax.
-\item \textbf{Workload.} Single-request decode; AIME prompts, which were also used while developing the system;
-greedy decoding; prompts of 52--879 tokens (median 130 for Qwen3, 186 for gpt-oss). Long outputs are measured on held-out problems. Prompts and batches above
-one bypass the cache and run \bbPrefillMin--\bbPrefillMax\% and \bbBatchMin--\bbBatchMax\% of stock llama.cpp's
-speed; speculative verification bypasses it and is not measured.
-\item \textbf{Competitor settings.} \Cref{tab:headline} runs FreeToken's faster backend per budget with its own
-bandwidth calibration, default thread count and fetch cap; tuned over five settings on another host (job 098) it gains
-at most \fttBestOverDefaultMax$\times$. Its CPU backend failed on a hybrid-core host at its default thread count and
-was rerun on the performance cores. Each comparison uses one confirmation launch,
-except Qwen3 at 25\%, which is from the selection launch for both systems.
-\item \textbf{The bound, the accounting and the audit.} Exact routing only: expert skipping, substitution or
-deferral change the model and fall outside it; a per-layer budget, which a pooled cache can beat by 5--10\%. Two of
-the model's five terms are definitions (\cref{app:accounting}). The oracles read a recorded trace, not a predictor;
-they measure what this engine does with foresight, and their prefetch still reads \fsbpReadsOptMin--\fsbpReadsOptMax$\times$
-the optimum's bytes. The published rows use datasheet ceilings and, for eleven of them, i.i.d. routing.
-\item \textbf{Constants and outputs.} $G$, $g$ and $L_c$ are fitted once and frozen; the per-layer model overstates
-differences between FETCH tables about 1.8$\times$. Output parity is measured by teacher-forced KL divergence,
-agreement and loss against an all-VRAM reference, not by task accuracy.
+\item \textbf{Hardware.} Rented consumer cards (RTX 5090 for the headline, a 4090 and a 3090 in \cref{app:grid}) in
+desktop hosts; GPU clocks could not be locked and power limits differed. The panel covers \pnHosts{} hosts of several
+CPU classes, one launch each, at two gpt-oss budgets; the full factorial ran on three hosts.
+\item \textbf{Workload.} Batch-1 decode of two models on AIME prompts, which were also used while developing the
+system; teacher-forced on each model's own greedy text. Prompts and batches above one bypass the cache.
+\item \textbf{The bound.} Exact routing and per-layer slots only; a pooled cache can beat it by 5--10\%. It drops
+latencies, so it is optimistic, and its host rate is the highest our probe reached, so a faster reader could exceed it.
+\item \textbf{The oracles and the degraded windows.} Oracles read a recorded trace. Degraded windows draw errors
+uniformly and independently; a real forecaster's errors are correlated with what the cache already knows, so the
+value of a forecaster at a given precision and recall is likely lower than \cref{fig:value} shows.
+\item \textbf{Outputs.} Parity is measured by teacher-forced KL divergence and agreement against an all-VRAM reference
+(mean KL \klMeanGpt{} and \klMeanQwen{} nats), not by task accuracy.
 \end{itemize}
 
 \section{Conclusion}
-On a consumer machine, the optimum's host bytes over the probed host rate and the datasheet GPU rate give a speed
-limit in seconds; our cache reaches \bothLimitPctMin--\bothLimitPctMax\% of it, and published systems in its class a
-median of \audInclassMed\% of a datasheet version. A calibrated host-memory model, predicted blind, places an engine in
-the limit's coordinates and picks the path for a miss on a given machine. Where the host binds, the piece of the gap
-that knowing future routing removes is recovered at every budget, on every host we measured, only when that knowledge
-is spent as the optimum spends it, admitting what MIN with bypass admits and reading each admitted expert once: so
-spent, it runs our cache \fxFetchAllGainMin--\fxFetchAllGainMax\% faster on the bytes alone and
-\fxPacedAllGainMin--\fxPacedAllGainMax\% faster with the overlap it allows. Spent as a Belady prefetch or through
-serve-then-copy admission, it reads \fxUsualReadsOverOptMin--\fxUsualReadsOverOptMax$\times$ the optimum's bytes, gains
-at some budgets and loses at the lowest, and trails the optimum's way at every host-bound cell. The online policy's own
-second read is not where its time goes. What remains after foresight is spent well is \amRestHostMin--\amRestHostMax\% of the
-gap, which we did not separate: the prefetch's excess reads, reads that do not overlap, and GPU kernels at half the
-datasheet rate. Nine models' traces say that neither a hand-built online policy nor speculative batching buys that
-foresight, that a learned order fitted on other text removes \lrnFetchHostMin--\lrnFetchHostMax\% of a single-read
-policy's excess reads, and that in the engine such an order is worth \lreOverBaseMin--\lreOverBaseMax$\times$, so the rest must come from knowing the routing a few to tens of tokens ahead; $W_{50}$ says
-how many.
+With experts in host memory, batch-1 MoE decode is bound by host bytes, and the bound is far from reached: our cache
+reaches \bothLimitPctMin--\bothLimitPctMax\% of it and published systems less. The missing time is mostly the price of not
+knowing the future. Knowing it pays only when spent as MIN spends it, admitting only what MIN admits and reading each
+admitted expert once; spent the usual ways it pays less and sometimes loses. And it has a measurable price: about
+\dcMed$\,C$ distinct experts of each layer's coming routing, a few to tens of tokens ahead, at accuracies no available
+forecaster reaches. That is the target for the next MoE cache, and for router designs that would make routing
+predictable in advance.
 
 {\small\bibliographystyle{plain}\bibliography{refs,refs_wsg}}
 

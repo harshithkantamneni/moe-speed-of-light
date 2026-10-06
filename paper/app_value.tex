@@ -1,0 +1,33 @@
+\section{Partial foresight in detail}\label{app:value}
+\input{tab_value}
+
+\paragraph{The window policies.} At step $g$ the engine plans the step's misses before it runs, from the trace's record
+of step $g$ (the routers give it layer by layer in a deployable system) and from a view of records $g{+}1..g{+}W$ of the
+same problem. A miss is processed in request order: it takes a free slot; otherwise the victim is a resident not
+requested now that is not seen in the window (lowest decayed score), or, if every resident is seen, the one seen
+furthest; a miss seen in the window is admitted unless the victim is seen sooner, and a miss not seen is admitted if
+the victim is not seen either (admit every miss beyond the window; with the deployed margin $\kappa{=}1$, only if its
+score beats the victim's by one). Admissions are fetched in the step; every miss is read once. In a degraded view each
+expert of a future record is kept with probability $r$, decided by a hash of (seed, $g$, record, layer, position), so
+step $g$ sees one view throughout and step $g{+}1$ an independent one; a dropped expert is replaced by a uniformly drawn
+one (fill: precision and recall $r$) or left out (drop: recall $r$, precision 1). \texttt{scripts/value\_map.py}
+replays the plan bit for bit: on a CPU build the engine's reads equal the replay's in 30 configurations at three budgets
+(\texttt{cputest099}), and on the panel's GPUs, where the routing in the run can differ from the recorded trace by
+numerics, within \pnReplayMaxLow\% at gpt-oss 11\%.
+
+\paragraph{What the table says.} Horizon and accuracy trade: at gpt-oss 11\% an 8-token window at recall 0.5 closes
+\vmEightHalfLow{} of the gap, about what two exact tokens close (\vmShareTwoLow), and the whole future at recall 0.5
+closes \vmAllHalfLow. Fill and drop cost about the same (the largest difference in any cell is \vmFillDropMax). A larger
+cache needs a longer window: at 25\% the same exact 4-token window closes \vmShareFourMid{} of the gap, against
+\vmShareFourLow{} at 11\%.
+
+\paragraph{A realisable forecaster.} Ridge regression from the all-layer routing of step $t$ to that of step $t{+}h$
+($h{=}1..8$), fitted on each model's mixed-domain own text and applied to the AIME routing, forecasts the top $k$ experts
+of each layer with a precision of \lfPrecOneGpt{} one token ahead and \lfPrecFourGpt{} four ahead on gpt-oss
+(\lfPrecOneQwen{} and \lfPrecFourQwen{} on Qwen3); a decayed request count, the online policy's own signal, scores
+\lfPrecDecOneGpt{} and \lfPrecDecFourGpt. Driving the window policy, the ridge forecasts close
+\lfShareMinGpt--\lfShareMaxGpt\% of the gap on gpt-oss and \lfShareMinQwen--\lfShareMaxQwen\% on Qwen3 over windows
+of 1--8 tokens (\texttt{prereg/forecaster\_linear.json}): far less than a random-error window of similar precision,
+because its correct forecasts are mostly the experts the cache already holds. A sequence model reports recall above
+90\% one token ahead with $k{+}3$ candidates~\cite{wang2026seqmoe}; its precision is then at most $k/(k{+}3)$, 0.57 for
+gpt-oss and 0.73 for Qwen3, and it has not been reproduced.

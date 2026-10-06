@@ -26,9 +26,10 @@ P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b", "O5", "#1baf7a", "^"),
          ("097a", "O4, job 097", "#eb6834", "D"), ("097b", "O6, job 097", "#4a3aa7", "v")]
 ONLY_LEARNED = {"097a", "097b"}   # job 097's hosts are drawn on the learned row only (their other states repeat job 096's)
-ROWS = [("foa", "single read, online"), ("learned", "learned order"), ("bypass", "MIN, serve-then-copy"),
-        ("hitopt", "Belady, two reads"), ("hitoptp", "Belady, two reads, paced"), ("nb2", "Belady, one read"), ("fetch", "MIN, fetch (one read)"),
-        ("both3p", "MIN, fetch + prefetch")]
+ROWS = [("foa", "single read"), ("aa", "admit every miss"), ("learned", "learned order"), ("bypass", "MIN, 2 reads"),
+        ("hitopt", "Belady, 2 reads"), ("hitoptp", "Belady, 2 reads, prefetched"), ("nb2", "Belady, 1 read"), ("fetch", "MIN, 1 read"),
+        ("both3p", "MIN, prefetched")]
+PANEL_KEYS = {"foa": "foa/base", "aa": "aa/base", "bypass": "bypass/base", "fetch": "fetch/base", "both3p": "both3p/base"}
 CELLS = ["gpt-oss 11%", "gpt-oss 25%", "gpt-oss 40%", "Qwen3 12.5%", "Qwen3 25%", "Qwen3 43.75%"]
 HOSTBOUND = {"gpt-oss 11%", "gpt-oss 25%", "Qwen3 12.5%", "Qwen3 25%"}
 
@@ -39,7 +40,8 @@ def main():
         p = P("prereg", f"foresight_{job}.json")
         if os.path.exists(p):
             data[job] = {c["label"]: c for c in json.load(open(p))["cells"]}
-    rows = [r for r in ROWS if any(r[0] in c["runs"] for d in data.values() for c in d.values())]
+    panel = json.load(open(P("prereg", "panel_099.json")))["hosts"] if os.path.exists(P("prereg", "panel_099.json")) else []
+    rows = [r for r in ROWS if any(r[0] in c["runs"] for d in data.values() for c in d.values()) or (panel and r[0] in PANEL_KEYS)]
     fig, axes = plt.subplots(1, 6, figsize=(7.1, 2.75), sharey=True)
     plt.rcParams.update({"font.size": 7})
     for ax, lab in zip(axes, CELLS):
@@ -59,6 +61,14 @@ def main():
                     off = (k - (len(present) - 1) / 2) * 0.15
                     ax.plot([r[1], r[2]], [y + off, y + off], color=col, lw=1.0, zorder=2)
                     ax.plot(r[0], y + off, mk, ms=4.2, mfc=col, mec="#fcfcfb", mew=0.6, zorder=3)
+        for h in panel:   # the panel's hosts: small grey markers, one per host
+            c = h["cells"].get(lab)
+            if not c:
+                continue
+            for y, (key, _) in enumerate(rows):
+                pk = PANEL_KEYS.get(key)
+                if pk and pk in c["speed"]:
+                    ax.plot(c["speed"][pk][0], y + 0.33, "|", ms=5, color="#7a7974", mew=0.9, zorder=2)
         ax.set_title(lab + ("$^\\dagger$" if lab in HOSTBOUND else ""), fontsize=7)
         ax.set_xlim(0.45, 1.9)
         ax.set_xticks([0.5, 1.0, 1.5])
@@ -69,11 +79,13 @@ def main():
     axes[0].set_yticks(range(len(rows)))
     axes[0].set_yticklabels([r[1] for r in rows], fontsize=6.5)
     axes[0].set_ylim(-0.6, len(rows) - 0.4)
-    fig.text(0.6, 0.015, "speed relative to the online policy on the same host (95% interval)", ha="center", fontsize=7)
+    fig.text(0.6, 0.015, "speed relative to the deployed cache on the same host (95% interval; grey ticks: panel hosts)", ha="center", fontsize=7)
     handles = [Line2D([0], [0], marker=mk, color=col, lw=0, ms=5, mec="#fcfcfb", label=name)
                for job, name, col, mk in HOSTS if job in data]
+    if panel:
+        handles.append(Line2D([0], [0], marker="|", color="#7a7974", lw=0, ms=6, mew=1.0, label=f"panel ({len(panel)} hosts)"))
     fig.legend(handles=handles, loc="upper right", ncol=len(handles), fontsize=6.5, frameon=False, bbox_to_anchor=(0.995, 1.02))
-    fig.subplots_adjust(left=0.2, right=0.995, top=0.84, bottom=0.15, wspace=0.12)
+    fig.subplots_adjust(left=0.215, right=0.995, top=0.84, bottom=0.15, wspace=0.12)
     os.makedirs(P("paper", "figs"), exist_ok=True)
     fig.savefig(P("paper", "figs", "factorial.pdf"))
     fig.savefig(P("paper", "figs", "factorial.png"), dpi=200)

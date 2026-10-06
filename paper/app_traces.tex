@@ -1,0 +1,53 @@
+\section{The trace study in detail}\label{app:traces}
+\input{tab_policy}
+
+\paragraph{Policies.} \Cref{tab:policy} scores LRU, LFU, decayed frequency, ARC, S3-FIFO and a profiled static cache
+against MIN and against Belady within a window of $W$ future tokens, at three budgets per model, on each model's own
+sampled text (\polModels{} traces, the cache carried across conversations). Without admitting every miss, the online
+policies are close to one another and far from MIN: the best reads \polBestOnlineMin--\polBestOnlineMax\% more, decayed
+frequency is best at \polDfBest{} of \polCells{} budget points and S3-FIFO at \polSsfBest. Where the cache turns over
+every token ($C/k\le1.5$) the six are within \polLowSpreadMax\% of one another; from $C/k{=}2$ LRU reads
+\polLruMoreMin--\polLruMoreMax\% more than decayed frequency on eight of nine models, and classic LFU fails at large
+budgets. Adding \emph{admit every miss} (every miss copied into the slot of the lowest-scored resident not requested
+now) changes the ranking: it is best at \rbPolAaWins{} of \rbPolCells{} points, ties at \rbPolAaTies, and loses by at
+most \rbPolAaLossMax\%; it saves up to \rbPolAaGainMax\% over the previous best, and the best online policy still reads
+\rbPolBestMin--\rbPolBestMax\% more than MIN (\texttt{prereg/policy\_aa.json}). At the small budgets almost every
+resident turns over within a few tokens, and the expert just requested is a good bet. In our engine admitting every
+miss reads all of its misses over the link, so its value in time depends on the link (\cref{sec:horizon}). A static
+cache profiled on other text reads \polStaticMin--\polStaticMax$\times$ MIN because the hot set moves: the $C$ most
+requested experts of a layer change by \driftHundredMin--\driftHundredMax\% between windows of 100 tokens and
+\driftThousandMin--\driftThousandMax\% between windows of 1{,}000.
+
+\paragraph{The horizon, before and after the stronger baseline.} Against decayed frequency with each admission fetched
+once (the study's original baseline), MIN reads \fsSaveMin--\fsSaveMax\% fewer experts (median \fsSaveMed\%), and the
+window that closes half of the gap fitted $W_{50}\approx\fsPre\,(C/k)^{\fsExp}$; admitting every miss lowers the
+baseline at \rbAaBeats{} of \rbAaCells{} points by up to \rbAaSaveMax\%, raises $W_{50}$ by a median \rbWRiseMed\% (at
+most \rbWRiseMax\%), and refits it to $\rbPre\,(C/k)^{\rbExp}$, with a leave-one-model-out exponent range of
+\rbExpLomoMin--\rbExpLomoMax{} and, without the points below one token, \rbExpNoInterp{} (it was \rbExpNoInterpOrig{} against
+the original baseline). Ninety percent of the gap needs a median of \fsNinety$\,C/k$ tokens.
+
+\paragraph{A learned admission order.} We trained a logistic model of whether an expert is requested within the next
+$C/k$ tokens on features the engine has when it plans a step (decayed request counts at five half-lives, the time
+since the last request, whether the expert is requested now, and transition scores from the previous token's experts
+at the same layer and, through an 8-bit table, at every layer), fitted on each model's mixed-domain trace and replayed
+on the AIME routing, so no test text is seen in training (\cref{tab:learned}). With each admission read once it reads
+\lrnFewerFetchHostMin--\lrnFewerFetchHostMax\% fewer experts than decayed frequency with the same single-read admission
+at the four host-bound budgets, closing \lrnFetchHostMin--\lrnFetchHostMax\% of that policy's excess over MIN; admitting
+every miss alone closes most of that at Qwen3 12.5\% and little at gpt-oss (\texttt{prereg/learned\_offline.json} and
+the research checks). In the engine (job 097, predictions committed before launch) it reads
+\lreFewerMin--\lreFewerMax\% fewer experts than the single-read online policy at the host-bound budgets on both
+hosts, but runs \lreOverFoaFourMin--\lreOverFoaFourMax$\times$ it on O4's machine and
+\lreOverFoaSixMin--\lreOverFoaSixMax$\times$ on host O6: the reads it saves are CPU reads, bought with more fetches in
+the step, each a copy its layer waits on, and with \lreUsMin--\lreUsMax\,$\mu$s of host time per token.
+
+\input{tab_learned}
+
+\paragraph{Speculation is not foresight.} Speculative decoding verifies $K$ draft tokens in one forward pass, so a
+layer's experts for $K$ positions are requested together and a missed expert is read once for all of them. On the same
+traces, with drafts accepted at rate $\alpha$ until the first rejection, batched verification saves an online cache a
+median \bkFreeMin--\bkFreeMax\% of its reads at $K{=}8$ when rejected drafts cost nothing, the equivalent of a window of
+two to four tokens; once the rejected drafts' experts are counted, the saving is \bkSameNineMin--\bkSameNineMax\% at
+$\alpha{=}0.9$ and becomes a loss of \bkSameEightLossMin--\bkSameEightLossMax\% at $\alpha{=}0.8$, because the union of
+$K$ positions' expert sets is \bkUnionMin--\bkUnionMax\% of $Kk$. MIN itself gains little from batching
+(\bkBeladyMin{} to \bkBeladyMax\%). Systems that use drafts as a look-ahead sensor~\cite{moespac2026} compare against
+a baseline that already pays for verification; ours charges the rejected drafts to a cache that does not speculate.

@@ -80,26 +80,22 @@ for the expert size. The data fit **T = G + R·S/B_host** with one constant G.
   - admit every miss: 16 ms, ρ = −0.91;
   - copies made ahead: G falls to 2.7 ms, because they overlap the GPU's work.
 
-## Finding 2: two kinds of foresight, and the cheap one is available today
+## Finding 2: two kinds of foresight; the one-layer kind was already built and tested (correction)
 
 - **Long horizon to read less.** Already in the paper: about 0.65·C distinct experts, which nothing realisable reaches.
-- **One layer of horizon to overlap reads with GPU compute.** The paper dismissed layer-ahead predictors because they
-  "see less than one token ahead", but one layer is exactly what overlap needs.
-  - Layer l's output predicts layer l+1's experts with recall **0.89 at top-4 and 0.99 at top-8** (job 063 records).
-  - During the GPU's non-expert compute (about 3.3 ms per token, about 92 µs per layer) both host paths are idle.
-  - Simulated on the job 063 trace: CPU helpers prefetch the predicted, non-resident experts of layer l+1 while the
-    GPU computes, limited to the bytes the window allows. The prefetch hides:
-
-    | Budget | Hidden per token | Share of T (B_host 30 → 90 GB/s) |
-    |---|---|---|
-    | 11% | 2.6 ms | 8% → 19% |
-    | 25% | 1.7 ms | 9% → 18% |
-
-    The share is largest on fast-memory hosts, where the cache is now furthest from the bound.
-- **Why this is a candidate deployable result.**
-  - No oracle, no long horizon, and the gain has a predicted ceiling from finding 1.
-  - It also reframes the paper's foresight story: long-horizon foresight reduces reads, one-layer foresight removes
-    serialisation.
+- **One layer of horizon to overlap reads with GPU compute.** Layer l's output predicts layer l+1's experts with recall
+  0.89 at top-4 and 0.99 at top-8 (job 063 records). A simulation that ignores the cache's own background copies says a
+  prefetch in the GPU-compute window could hide 1.7–2.6 ms per token (8–19%).
+- **Correction: this is not new.** The engine already has it. `LLAMA_EC_PREFETCH` copies the top predicted layer-l+1
+  expert into a slot on a side stream, and `LLAMA_EC_LLC` has idle helpers warm predicted experts into L3. It was tested
+  in jobs 065, 066 and 071 (progress log, 28–29 September):
+  - **PREFETCH q=1:** +14 to +16% on a 9950X (own text), +4 to +6% on the chat benchmark, +11 to +14% on a 9950X3D2,
+    and −16% on a PCIe 4.0 host.
+  - **L3 warming:** lost 2–5%. The window is not idle: the cache's background admissions read 100–145 MB per token in
+    it, and early PREFETCH already uses it.
+  - So the simulated 8–19% is an upper bound that the existing mechanism partly realises on some machines.
+- **What is still open, and cheap: PREFETCH has never been run across machines with the current engine.** Revised
+  step 3 below does that instead of rebuilding it.
 
 ## Finding 3: what the machine's probe predicts (21 machines, rank correlations)
 
@@ -162,10 +158,10 @@ for the expert size. The data fit **T = G + R·S/B_host** with one constant G.
 |---|---|---|---|---|
 | 1 | Rewrite Sections 1, 3 and 4 around the sum law and the demand bound; Shapley to the appendix | 1 day | $0 | — |
 | 2 | Pre-registered test of the sum law: Nsight profile of G on 2 hosts with the current engine, then on 3 new machines predict T for the deployed and prefetched states from probe + replayed reads + profiled G before any timed run | ½ day + 3 h rental | ~$2 | Hold if the median error is ≤ 5% |
-| 3 | **Idle-bus prefetch:** compute layer l+1's router on layer l's output (one small GEMV), send the top predicted non-resident experts to the CPU helpers, and have them read those experts into LLC while the GPU computes. Commit the simulated gain per host (8–19%) as the prediction, then run on 4 hosts spanning B_host 30–90 GB/s at gpt-oss 11% and 25% | 2–3 days engineering + CPU tests on the tiny model | ~$4–5 | Stop if the first host recovers < 30% of its simulated gain. Success: a deployable speed-up with a predicted ceiling |
+| 3 | **(Revised.)** Run the engine's existing layer-ahead PREFETCH on the deployed cache across machines, together with step 2's profile and the fewest-admission 2×2, in one job per host (job 105, five hosts). Pre-registered: PREFETCH gains ≥ 3% at 11% on hosts with ratio ≥ 0.8, and loses below 0.4 | 0 engineering | ~$4.5 for all of steps 2–4 | A deployable addition chosen by the probe, if the ratio predicts its sign |
 | 4 | Fewest-admission set on 3–4 more machines (2 slow-link), plus the fewest-admission set with copies made ahead (the best oracle with the fewest admissions) | 1 day | ~$4 | Widens finding 2 from 3 machines to 6–7 |
 | 5 | Number check, two blind reviews, grade | ½ day | $0 | — |
 
-- **Order:** 1 → 2 → 3 → 4 → 5. Step 3 is the one that can lift significance from 2–3 to 3–4. Steps 1–2 are what make
-  the paper clearer and the model non-circular.
+- **Order:** steps 2–4 run as one job (105) while step 1 is written. Steps 1–2 make the paper clearer and the model
+  non-circular; step 3 tests the one deployable mechanism we have on many machines.
 - **Reserve:** about $5 for one failed host or a re-run, as jobs 103 and 103c needed.

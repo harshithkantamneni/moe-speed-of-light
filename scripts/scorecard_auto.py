@@ -72,7 +72,10 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                  "100": "Hosts a (Pd again), b (5700X3D), c (Ph again), f (9950X, x8 link), e (13900KF, never ran); cells gpt-oss 11\\% (g11) and 25\\% (g25).",
                  "101": "Hosts a (Pf again), b (9800X3D, slower link); cells gpt-oss 11\\% (g11) and 25\\% (g25).",
                  "102": "Hosts a (Pd again), b (9950X), c (9800X3D, link 0.55 of its CPU rate); cells gpt-oss $C{=}14$ (11\\%) and $C{=}32$ (25\\%). "
-                        "Clause P2below's measured value is the analytic per-layer fraction minus the measured one."}[job]
+                        "Clause P2below's measured value is the analytic per-layer fraction minus the measured one.",
+                 "103": "Hosts a (Pf again), b (285K, 40 GB/s link), d (5950X), e (3970X); c never started. The plan could not be "
+                        "computed (scipy did not install), so the engine ran greedy MIN in the plan configurations: every plan clause is untested.",
+                 "104": "Hosts a (Pf again), b (the 285K of 103b), c (the 5950X of 103d); cells gpt-oss 11\\% (g11) and 25\\% (g25)."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -126,6 +129,11 @@ def main():
     if os.path.exists(p101):
         write_099(json.load(open(p101))["clauses"], P("paper", "tab_scorecard_101.tex"), job="101",
                   title="the crossover machine relaunched, and a second 9800X3D", script="job101.py", label="scorecard101")
+    for jb, title in (("103", "the fewest-admission MIN set, first attempt"), ("104", "the fewest-admission MIN set")):
+        pj = P("prereg", f"scorecard_{jb}.json")
+        if os.path.exists(pj):
+            write_099(json.load(open(pj))["clauses"], P("paper", f"tab_scorecard_{jb}.tex"), job=jb, title=title, script="job103.py",
+                      label=f"scorecard{jb}")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

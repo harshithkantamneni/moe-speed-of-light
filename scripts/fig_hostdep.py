@@ -12,7 +12,7 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-SERIES = [("fetch", "MIN, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
+SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
           ("bypass", "MIN, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "single read", "#7a7974", "v"),
           ("aa", "admit every miss", "#4a3aa7", "D")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
@@ -45,18 +45,24 @@ def points():
                     if key in c["speed"]:
                         pts.append((h["host"], r, lab, k, c["speed"][key][0]))
     # job 100's new machines (its relaunches of Pd and Ph are left out: the same machines are already here)
-    for pj in (P("prereg", "job100.json"), P("prereg", "job101.json")):
+    for pj in (P("prereg", "job100.json"), P("prereg", "job101.json"), P("prereg", "job103.json"), P("prereg", "job104.json")):
         if not os.path.exists(pj):
             continue
         for h in json.load(open(pj))["hosts"]:
-            if h["job"] in ("100a", "100c", "101a"):   # relaunches of panel machines
+            if h["job"] in ("100a", "100c", "101a", "103a"):   # relaunches of panel machines
                 continue
+            # job 104 relaunches job 103's machines and Pf: only its plan states are new
+            only = ("fetchplan",) if h["job"].startswith("104") else None
             r = h["B_p"] / h["B_c"]
             for C, lab in (("14", "gpt-oss 11%"), ("32", "gpt-oss 25%")):
                 c = h["cells"].get(C)
                 if not c:
                     continue
                 for k, _, _, _ in SERIES:
+                    if only and k not in only:
+                        continue
+                    if k == "fetchplan" and not h.get("planned", {}).get(C, h.get("planned", {}).get(int(C), False)):
+                        continue
                     if k in c["speed"]:
                         pts.append((h["job"], r, lab, k, c["speed"][k][0]))
     return pts
@@ -74,7 +80,8 @@ def main():
             xs = [p[1] for p in pts if p[2] == lab and p[3] == k]
             ys = [p[4] for p in pts if p[2] == lab and p[3] == k]
             if xs:
-                ax.plot(xs, ys, mk, color=col, ms=5.5, mec="white", mew=0.5, label=name, ls="none")
+                ax.plot(xs, ys, mk, color=col, ms=11 if mk == "*" else 5.5, mec="black" if mk == "*" else "white", mew=0.5,
+                        label=name, ls="none", zorder=5 if mk == "*" else 3)
                 if len(xs) >= 4:
                     b, a = np.polyfit(np.log(xs), ys, 1)
                     xx = np.linspace(min(xs), max(xs), 50)
@@ -97,7 +104,7 @@ def main():
     r = sorted({p[1] for p in pts})
     M["hdHosts"] = str(len({p[0] for p in pts}))
     M["hdRatioMin"] = f"{min(r):.2f}"; M["hdRatioMax"] = f"{max(r):.2f}"
-    for k, nm in (("fetch", "Fetch"), ("both3p", "Paced"), ("bypass", "Bypass"), ("aa", "Aa"), ("foa", "Foa")):
+    for k, nm in (("fetch", "Fetch"), ("both3p", "Paced"), ("bypass", "Bypass"), ("aa", "Aa"), ("foa", "Foa"), ("fetchplan", "FetchPlan")):
         v = [p[4] for p in pts if p[3] == k]
         if v:
             M[f"hd{nm}Min"] = f"{min(v):.2f}"; M[f"hd{nm}Max"] = f"{max(v):.2f}"

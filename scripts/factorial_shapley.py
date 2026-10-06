@@ -253,8 +253,13 @@ def main():
             M[f"fsSlack{sub}Min"] = f"{100 * min(sl):.0f}"; M[f"fsSlack{sub}Max"] = f"{100 * max(sl):.0f}"
             M[f"fsRestTwo{sub}Min"] = f"{100 * min(rb):.0f}"; M[f"fsRestTwo{sub}Max"] = f"{100 * max(rb):.0f}"
     # the worked example of the text: O4 at gpt-oss 11%
-    ex = next(h for h in res["hosts"] if h["host"] == "O4")["cells"]["gpt-oss 11%"]["effects"]
+    exc = next(h for h in res["hosts"] if h["host"] == "O4")["cells"]["gpt-oss 11%"]
+    ex = exc["effects"]
     M["fsExGap"] = f"{ex['gap']:.1f}"
+    M["fsExBoundMs"] = f"{exc['limit_ms']:.1f}"
+    for nm, k in (("Base", "base"), ("Fetch", "fetch"), ("Paced", "both3p"), ("Foa", "foa"), ("Bypass", "bypass")):
+        if k in exc["ms"]:
+            M[f"fsEx{nm}Ms"] = f"{exc['ms'][k]:.1f}"
     for nm, key in (("ReadsOnline", "reads_online_share"), ("SetTwo", "set_two_share"), ("Both", "both_share"),
                     ("Inter", "interaction_share"), ("Set", "phi_set_share"), ("Reads", "phi_reads_share"),
                     ("Pacing", "pacing_share"), ("Rest", "rest_share"), ("SetOne", "set_one_share")):

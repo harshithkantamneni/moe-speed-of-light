@@ -24,7 +24,18 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.optimize import linprog, milp, LinearConstraint, Bounds
 
-from value_map import load_la
+
+
+def load_la(path):
+    """the routing records of ec-bench --lookahead (as value_map.load_la; kept here so that this script needs only numpy
+    and scipy): act [T, L, k], the sequence id of each record, the JSON beside the file"""
+    meta = json.load(open(path + ".json"))
+    L, k = int(meta["n_layer"]), int(meta["k"])
+    raw = np.fromfile(path, np.int16)
+    stride = 2 + L * (2 * k + 24)
+    rec = raw[: len(raw) // stride * stride].reshape(-1, stride)
+    act = np.stack([rec[:, 2 + l * (2 * k + 24): 2 + l * (2 * k + 24) + k] for l in range(L)], axis=1).astype(np.int64)
+    return act, rec[:, 0].astype(np.int64), meta
 
 
 def intervals(act_l, seqs):

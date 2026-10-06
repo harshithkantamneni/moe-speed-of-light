@@ -23,6 +23,11 @@
 # Ryzen 9 7950X, link 49 / CPU 51), relaunched to measure launch-to-launch variation at both ends of the link/CPU
 # ratio; and two new desktop hosts, a Ryzen 7 5700X3D (offer 53424353, DDR4, PCIe 4.0) and a Core i5-12400F (offer
 # 52703630, 6 cores), whose CPU classes the model has not seen. 100a = Pd, 100b = 5700X3D, 100c = Ph, 100d = 12400F.
+# Amended before their launch (100d's download did not finish in 95 minutes; it ran no timed step and was destroyed):
+# 100e = a second i9-13900KF (offer 51325952, PCIe probe of the listing 41 GB/s, against Pd's 25) and 100f = a second
+# Ryzen 9 9950X (offer 54130769, listing 27.5 GB/s, against 46 on Pe and Pj): the same CPU models as earlier hosts
+# behind a different link. Added prediction:
+#   9. fetch / base at gpt-oss 11% is higher on 100e than on Pd (099d and 100a), and lower on 100f than on Pe and Pj.
 #
 # Predictions, committed before launch (per host unless stated):
 #   1. engine counters (misses, in-step fetches per step) of aa, w4, w16 and fetch equal the job 099 panel means to

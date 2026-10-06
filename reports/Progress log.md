@@ -3,6 +3,43 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (morning, unattended): review round 6 (5/10 and 6/10), number check 6, job 100
+
+**Status for Harshith (read this first).** Round 6 reviews: MLSys PC **5/10**, professor **6/10 weak accept** ("Would I
+take this student? Yes"); both rank clarity first (2/5). Number check 6 found 1 error and 5 overclaims (all fixed).
+Job 100 (four launches so far, two more running) answers the reviews' two main technical asks. Main is committed as
+you, not pushed; `gpu` is pushed. Reports: `reports/Review 6a MLSys PC (6 October, night).md`, `Review 6b professor
+(6 October, night).md`, `Number check 6 (6 October, night).md`.
+
+- **Clarity rewrite:** abstract and finding (2) in plain words (what to cache, how to load it); the order-free
+  accounting now walks one worked example (O4, gpt-oss 11%: 4% + 4% alone, 52% together, interaction 43) before the
+  ranges; the time-versus-reads passage rewritten; "law" and "speed limit" renamed (calibrated model, bound) in tables
+  and appendix; the Shapley table relabelled (load alone, cache alone).
+- **Fixes from number check 6:** the measured-GPU bound moves at gpt-oss 25% (was "host-bound unchanged"); "usual ways
+  lose" -> "gain at most 15% or lose"; forecaster vs random window restated; "published systems less" -> the common
+  procedure's medians; fill vs drop scoped; the two 285K hosts described correctly; 20 problems on the panel stated;
+  standard audit quartiles (8.1-20.6); MIN prefetched (not MIN 1 read) beats the usual ways; same-CPU spread from the
+  panel (16-29%); scoring-rule exception for deterministic counts stated; hard-coded numbers made macros.
+- **Model checks (professor W2):** `hostdep_model.py` now counts O4 once (39 host-budgets, 14 hosts), freezes G at the
+  median of the other hosts (median error 2.1%, sign of fetch/base right 39/39), and compares a one-path model (37/39:
+  misses both losses). Background-copy states predicted faster than measured at all 64 (median 16%).
+- **Statistics:** crossed two-stage bootstrap (same problem draw for every host); per-budget correlations (0.93, 0.88;
+  0.71 and 0.56 without the two slow-link hosts); the line at half drawn after the data, said so.
+- **Horizon rule:** bootstrap over models gives the power law's / rule's median-error ratio 0.95-1.09, so not
+  distinguished; D(W50)/C falls with budget in 9/9 models. Paper now says this and argues the rule's value is the unit.
+- **Engine:** new mode (patch oracle3) - the window on the deployed path (decayed frequency, kappa 1, background copies).
+  CPU test: equals the deployed policy counter for counter with no window (one admission differs at the trace's last
+  step at C=8).
+- **Job 100** (gpu commits 4fda930, 752e1c3, 718bf41, predictions before each launch): 100a = Pd relaunched, 100b =
+  5700X3D, 100c = Ph relaunched (100d, a 12400F, never finished its 65 GB download in 95 min and was destroyed without
+  timed runs; its first attempt 100a died at setup on a broken package index, fixed by a retry in setup.sh). Results:
+  relaunches reproduce every job 099 ratio within 0.030 and the deployed time within 1.9%; the probe-only model (G
+  frozen, written on the host before any timed run) has median error 2.8% over 24 predictions (worst -19%, MIN 1 read
+  on Pd); deployed-path windows are safe but small (b16 1.00-1.03x at 11%, 1.07-1.12x at 25%); the in-step windows
+  win where the link matches the CPU and lose on Pd, as predicted; engine misses of the deployed-path windows exceed
+  the instant-admission replay by 7-33% (prediction 8 failed: late-landing copies). 100e (13900KF behind a faster
+  link) and 100f (9950X behind a slower link) running, prediction 9 added for them before launch.
+
 ## 6 October (night, unattended): research regroup, the clarity rewrite, job 099 (host panel)
 
 **Status for Harshith (read this first).** Deep research is in `reports/MoE paper path to a 9.md`. The main text is

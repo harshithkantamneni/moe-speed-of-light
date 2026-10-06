@@ -54,6 +54,16 @@ def host_rates(txt):
     return max(v) * 1e9
 
 
+def limit_two_path(R, Lk, S, D, b_c, b_p, b_cp, b_gpu=B_GPU):
+    """the bound with the host reads split feasibly between the two paths: the CPU reads the c experts it runs (at most
+    b_c), the link carries the rest of MIN's reads (at most b_p), both together at most b_cp; seconds per token"""
+    c = np.linspace(0, Lk, 20001)
+    host = np.maximum.reduce([c * S / b_c, np.maximum(R - c, 0) * S / b_p, np.maximum(R, c) * S / b_cp])
+    t = np.maximum((D + (Lk - c) * S) / b_gpu, host)
+    i = int(np.argmin(t))
+    return float(t[i]), float(c[i])
+
+
 def limit(R, Lk, S, D, b_host, b_gpu=B_GPU):
     """min over c of max(GPU time, host time), seconds per token"""
     c = np.linspace(0, Lk, 20001)

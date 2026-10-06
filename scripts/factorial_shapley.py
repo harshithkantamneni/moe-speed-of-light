@@ -78,6 +78,31 @@ def hosts():
     return out
 
 
+def limit2_of(d):
+    """the two-path bound (scripts/speed_limit.py, limit_two_path) at each host-bound cell, from the host's own probe"""
+    import sys
+    sys.path.insert(0, ROOT)
+    sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch"), "jobs", "ec2"))
+    from fetch_table import bandwidths
+    from scripts.speed_limit import MODELS, limit_two_path
+    txt = open(f"{d}/concur.txt").read()
+    cores = int(re.search(r"usable physical cores (\d+)", open(f"{d}/cores.txt").read()).group(1))
+    bc, bp, bb = bandwidths(txt, cores - 2 if cores > 4 else 2)
+    v2 = json.load(open(P("prereg", "speed_limit_v2.json")))
+    out = {}
+    for (tag, C), cell in HB.items():
+        key = "gpt-oss-120b" if tag == "g" else "qwen3-30b-a3b-bf16"
+        m = v2["models"][key]
+        row = m["rows"].get(str(C))
+        if not row:
+            continue
+        mm = MODELS[key]
+        t, _ = limit_two_path(row["reads_per_token"]["exact"], m["L"] * m["k"], mm["S"], mm["D"], bc * 1e9, bp * 1e9, bb * 1e9,
+                              v2["B_gpu_datasheet"])
+        out[cell] = 1e3 * t
+    return out
+
+
 def limits_of(x):
     if isinstance(x, dict):
         return x
@@ -92,6 +117,7 @@ def main():
         if limp is None:
             continue
         lim = limits_of(limp)
+        lim2 = limit2_of(d)
         h = {"host": hname, "dir": os.path.basename(d), "cells": {}}
         for (tag, C), cell in HB.items():
             p = f"{d}/ec_{tag}_C{C}.jsonl"
@@ -109,6 +135,9 @@ def main():
             ci = {k: [float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))] for k, v in boot.items()}
             h["cells"][cell] = {"n": len(seqs), "limit_ms": lim[cell], "ms": {s: float(arr[s].mean()) for s in STATES},
                                 "effects": {k: float(v) for k, v in point.items()}, "ci": ci}
+            if cell in lim2:   # how much of the gap the two-path bound explains as slack in the one-path bound
+                h["cells"][cell]["limit2_ms"] = lim2[cell]
+                h["cells"][cell]["effects"]["slack_share"] = (lim2[cell] - lim[cell]) / point["gap"]
             draws.setdefault(cell, []).append(arr)
         res["hosts"].append(h)
     # pooled over hosts: two-stage bootstrap (hosts, then problems within the drawn host); the gap uses each host's limit
@@ -178,6 +207,13 @@ def main():
                         ("Both", "both_share")):
             rng(sub + nm, key)
     allc = allc_all
+    # the two-path bound's share of the gap, and the rest beyond it, by link class
+    for sub, test in (("Bal", lambda r: r is not None and r >= 0.5), ("Slow", lambda r: r is not None and r < 0.5)):
+        sl = [v["effects"]["slack_share"] for hn, c, v in allc_all if test(ratio.get(hn)) and "slack_share" in v["effects"]]
+        rb = [v["effects"]["rest_share"] - v["effects"]["slack_share"] for hn, c, v in allc_all if test(ratio.get(hn)) and "slack_share" in v["effects"]]
+        if sl:
+            M[f"fsSlack{sub}Min"] = f"{100 * min(sl):.0f}"; M[f"fsSlack{sub}Max"] = f"{100 * max(sl):.0f}"
+            M[f"fsRestTwo{sub}Min"] = f"{100 * min(rb):.0f}"; M[f"fsRestTwo{sub}Max"] = f"{100 * max(rb):.0f}"
     # the worked example of the text: O4 at gpt-oss 11%
     ex = next(h for h in res["hosts"] if h["host"] == "O4")["cells"]["gpt-oss 11%"]["effects"]
     M["fsExGap"] = f"{ex['gap']:.1f}"

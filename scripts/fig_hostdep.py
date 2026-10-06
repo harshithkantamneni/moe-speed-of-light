@@ -44,6 +44,20 @@ def points():
                     key = f"{k}/base"
                     if key in c["speed"]:
                         pts.append((h["host"], r, lab, k, c["speed"][key][0]))
+    # job 100's new machines (its relaunches of Pd and Ph are left out: the same machines are already here)
+    pj = P("prereg", "job100.json")
+    if os.path.exists(pj):
+        for h in json.load(open(pj))["hosts"]:
+            if h["job"] in ("100a", "100c"):
+                continue
+            r = h["B_p"] / h["B_c"]
+            for C, lab in (("14", "gpt-oss 11%"), ("32", "gpt-oss 25%")):
+                c = h["cells"].get(C)
+                if not c:
+                    continue
+                for k, _, _, _ in SERIES:
+                    if k in c["speed"]:
+                        pts.append((h["job"], r, lab, k, c["speed"][k][0]))
     return pts
 
 

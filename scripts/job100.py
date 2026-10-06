@@ -181,13 +181,12 @@ def main():
     byjob = {h["job"]: h for h in hosts}
     for job, refs, sign, nm in (("100e", ("099d_panel@vast", "100a_window@vast"), 1, "13900KF, faster link"),
                                 ("100f", ("099e_panel@vast", "099j_panel@vast"), -1, "9950X, slower link")):
-        if job in byjob and 14 in byjob[job]["cells"]:
-            v = byjob[job]["cells"][14]["speed"]["fetch"][0]
-            for r in refs:
-                rv = fb(r)
-                if rv is not None:
-                    add(f"{job}-P9-{r[:4]}", f"fetch/base at 11%: {nm} {'above' if sign > 0 else 'below'} {r[:4]}", "sign",
-                        sign * (v - rv), None, lambda x: x > 0, "> 0", nm)
+        have = job in byjob and 14 in byjob[job]["cells"]
+        v = byjob[job]["cells"][14]["speed"]["fetch"][0] if have else None
+        for r in refs:
+            rv = fb(r)
+            add(f"{job}-P9-{r[:4]}", f"fetch/base at 11%: {nm} {'above' if sign > 0 else 'below'} {r[:4]}", "sign",
+                None if v is None or rv is None else sign * (v - rv), None, lambda x: x > 0, "> 0", nm)
     # 2. pooled: the median probe-only error
     if probe_err:
         med = float(np.median([abs(e["err"]) for e in probe_err]))
@@ -216,6 +215,7 @@ def main():
         M["jaProbeAaMax"] = f"{100 * max(ea):.0f}"
         ef = [x["err"] for x in probe_err if x["state"] in ("fetch", "w16")]
         M["jaProbeFetchMin"] = f"{100 * min(ef):.0f}".replace("-", "$-$"); M["jaProbeFetchMax"] = f"{100 * max(ef):.0f}".replace("-", "$-$")
+        M["jaProbeFetchMinAbs"] = f"{100 * abs(min(ef)):.0f}"
     sg = [c for c in clauses if "-P3-" in c["id"]]
     M["jaSignRight"] = str(sum(c["status"] != "failed" for c in sg)); M["jaSignN"] = str(len(sg))
     rl = [abs(c["relaunch"][k]) for h in hosts for c in h["cells"].values() if "relaunch" in c for k in c["relaunch"] if k != "base_ms_ratio"]
@@ -234,8 +234,14 @@ def main():
     pc = [(h["link_over_cpu"], h["cells"][14]["speed"]["b16"][0] - h["cells"][14]["speed"]["w16"][0]) for h in hosts
           if 14 in h["cells"] and "b16" in h["cells"][14]["speed"] and "w16" in h["cells"][14]["speed"]]
     if pc:
-        M["jaPathSlowWins"] = str(sum(d > 0 for r, d in pc if r < 0.5)); M["jaPathSlowN"] = str(sum(r < 0.5 for r, _ in pc))
-        M["jaPathFastWins"] = str(sum(d < 0 for r, d in pc if r >= 0.5)); M["jaPathFastN"] = str(sum(r >= 0.5 for r, _ in pc))
+        lo = [(r, d) for r, d in pc if r < 0.9]
+        hi = [(r, d) for r, d in pc if r >= 0.9]
+        M["jaPathLowWins"] = str(sum(d > 0 for _, d in lo)); M["jaPathLowN"] = str(len(lo))
+        M["jaPathHighWins"] = str(sum(d < 0 for _, d in hi)); M["jaPathHighN"] = str(len(hi))
+        if lo:
+            M["jaPathLowRatioMax"] = f"{max(r for r, _ in lo):.2f}"
+        if hi:
+            M["jaPathHighRatioMin"] = f"{min(r for r, _ in hi):.2f}"
     gap = [h["cells"][C]["speed"]["b16"][0] - h["cells"][C]["speed"]["bypass"][0] for h in hosts for C in h["cells"]
            if "b16" in h["cells"][C]["speed"] and "bypass" in h["cells"][C]["speed"]]
     if gap:

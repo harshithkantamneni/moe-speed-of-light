@@ -236,8 +236,8 @@ on the critical path. The panel adds hosts whose link reads much more slowly tha
 them MIN with one read in the step gains less, and on the host with the lowest link-to-CPU ratio, a Core Ultra 9 285K
 whose link reads at \hdRatioMin{} of its CPU rate, it loses (\hdFetchMin$\times$ at gpt-oss 11\%); another host with
 the same CPU model, a faster link and a slower CPU path, gains. Across \hdHosts{} hosts the gain tracks the logarithm
-of the link-to-CPU ratio (correlation \hdFetchCorrLow{} at 11\% and \hdFetchCorrMid{} at 25\%), mostly through the two
-slow-link hosts: among the others it is \hdFetchCorrFastLow{} and \hdFetchCorrFastMid. Copied ahead of use instead,
+of the link-to-CPU ratio (correlation \hdFetchCorrLow{} at 11\% and \hdFetchCorrMid{} at 25\%; \hdFetchCorrFastLow{}
+and \hdFetchCorrFastMid{} without the two slow-link hosts of the panel). Copied ahead of use instead,
 the same admissions never lose (\hdPacedMin--\hdPacedMax$\times$; the lowest-ratio host breaks even at 11\%).
 Admitting every miss, which sends every read over the link, runs \hdAaMin--\hdAaMax$\times$ the deployed cache: near
 parity only where the link alone reads nearly as fast as CPU and link together.
@@ -250,9 +250,13 @@ that reads in the step, the deployed state's included, within a median \hmFrozen
 \hmFrozenStepPninety\%) on \hmHostCells{} host-budgets of \hmHostsN{} hosts, and whether MIN with one read in the step
 beats the deployed cache at all \hmFetchN{} of them. We then tested it on \jaHosts{} further launches from the probe
 alone (job 100): before any timed run, each host wrote the predicted time of the four states that read in the step and
-whose counts do not depend on the host. Over \jaProbeN{} predictions the median error is \jaProbeMed\%; the largest,
-\jaProbeMax\%, under-predicts MIN with one read on the slow-link host, where copies in the step share host memory less
-evenly than the probe's combined rate says (\cref{app:law}). A model with one read path (all host bytes at the best probed
+whose counts do not depend on the host. Over \jaProbeN{} predictions the median error is \jaProbeMed\%; given each run's own
+counts, it gets right the sign of every ratio to the deployed cache that it puts at least 5\% from 1 (\jaSignRight{}
+of \jaSignN). The two large errors have causes we can name: on the slow-link
+host it under-predicts MIN with one read by up to \jaProbeFetchMinAbs\%, because copies in the step share host memory
+less evenly than the probe's combined rate says (\cref{app:law}); and on a host whose link runs at half width it
+over-predicts every in-step state by up to \jaProbeMax\%, because the probe read that link more slowly than the
+engine's copies then ran. A model with one read path (all host bytes at the best probed
 rate) gets \hmFetchSignOnePath{} right: it misses both losses. The model predicts every state whose copies run in the
 background faster than it runs (median \hmFrozenBgMed\%, \hmFrozenBgN{} host-budget-states): those copies are not free.
 So the probe's two read rates say how a cache should spend foresight on a given machine; \cref{sec:limits} says where
@@ -262,7 +266,7 @@ this was tested.
 \includegraphics[width=\textwidth]{figs/hostdep.pdf}
 \caption{Which way of spending foresight pays depends on the machine: speed relative to the deployed cache on the same
 host against the host's link-to-CPU read-rate ratio from its own probe, at the two gpt-oss host-bound budgets, on hosts
-O3--O6 and the panel. Lines: least-squares fits in the log of the ratio, for the trend only.}
+O3--O6, the panel and the new machines of job 100. Lines: least-squares fits in the log of the ratio, for the trend only.}
 \label{fig:hostdep}
 \end{figure*}
 
@@ -297,8 +301,12 @@ panel ran; the model above, not the line, carries the prediction.
 The overlap is partial: a model that charges every host read in sequence with the GPU's work over-predicts the
 prefetching state's time by \fxPacedLawTimeMin{} to \fxPacedLawTimeMax\%, so some reads overlap and some do not. And
 the GPU runs at about half of its datasheet rate at batch size 1, which is most of what remains at the GPU-bound budgets
-(\cref{app:foresight}). The rest grows as the link slows relative to the CPU, because the bound lets the two paths
-share the host's read rate freely while any cache that fetches must put some reads on the link.
+(\cref{app:foresight}). The rest grows as the link slows relative to the CPU. It is not slack from letting the two read
+paths share the host's rate freely: a bound that splits MIN's reads between the CPU and the link at their probed rates
+is tighter by only \fsSlackBalMin--\fsSlackBalMax\% of the gap on the fast-link hosts and
+\fsSlackSlowMin--\fsSlackSlowMax\% on the slow-link ones. On a slow-link host every state the engine has either puts
+reads on the slow link or leaves them to the CPU helpers, which take \helperRateMin--\helperRateMax$\times$ the probe's
+time per expert (\cref{app:law}).
 
 \paragraph{Machines differ more than problems.} On the panel, the within-host 95\% interval of MIN-with-one-read's
 gain has a median half-width of \pnFetchLowHw{} at gpt-oss 11\%, while its standard deviation across hosts is
@@ -359,7 +367,8 @@ link-to-CPU ratios \jaRatioMin--\jaRatioMax) this spend is safe but small: a 16-
 \jaBSixteenMidMin--\jaBSixteenMidMax$\times$ at 25\%, never more than \jaBSixteenOverBypassMax{} above MIN with two
 reads. Its admissions land steps after they are issued, so the engine misses \jaReplayDevMin--\jaReplayDevMax\% more
 than a replay that admits at once. Which path pays depends on the host, as for MIN: at 16 tokens the deployed path
-wins on the slow-link host and the in-step path on the hosts whose link matches the CPU. Only MIN with its copies made
+wins on the \jaPathLowN{} hosts whose link reads at most \jaPathLowRatioMax{} of their CPU rate, and the in-step path
+on the \jaPathHighN{} whose link reads at least \jaPathHighRatioMin{} of it. Only MIN with its copies made
 ahead never loses.
 
 Accuracy matters as much as horizon. With each foreseen expert right only half the time, a window of 8 tokens recovers
@@ -464,8 +473,9 @@ above one bypass the cache.
 \item \textbf{The bound.} Exact routing and per-layer slots only; pooling slots across layers lowers MIN's reads by
 \globalReadsMin--\globalReadsMax\%. It drops latencies and lets the two read paths share the host's best probed rate
 freely, so it is optimistic, and a faster reader than our probe could exceed it. We have not shown it can be reached:
-the best oracle comes to \fxBestFracMin--\fxBestFracMax\% of it, and part of what we call the rest may be slack in the
-bound rather than time a cache could save.
+the best oracle comes to \fxBestFracMin--\fxBestFracMax\% of it. Splitting the reads between the two paths barely
+tightens it (\cref{sec:gap}), but its dropped latencies and perfect overlap may still make part of what we call the
+rest unreachable.
 \item \textbf{The time model.} Its one constant per budget is fitted on other hosts; with the constants of the original
 blind test frozen, it over-predicts Qwen3's speed on later hosts by \lawFrozenQwenMin{} to \lawFrozenQwenMax\%
 (\cref{app:law}). It takes background copies as free, which they are not, and it fails on a 12-channel server host,

@@ -22,7 +22,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch"), "jobs", "ec2"))
 from fetch_table import bandwidths  # noqa: E402
-from scripts.speed_limit import MODELS, host_rates, limit  # noqa: E402
+from scripts.speed_limit import MODELS, host_rates, limit, limit_two_path  # noqa: E402
 
 RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
@@ -117,6 +117,8 @@ def main():
             lim, c_at = limit(Rs, L * k, S, Dd, hi["b_host"] * 1e9, v2["B_gpu_datasheet"])
             lim_meas, _ = limit(Rs, L * k, S, Dd, hi["b_host"] * 1e9, m["B_gpu_effective"])
             limits[name][lab] = 1e3 * lim
+            lim2, _ = limit_two_path(Rs, L * k, S, Dd, hi["B_c"] * 1e9, hi["B_p"] * 1e9, hi["B_cp"] * 1e9, v2["B_gpu_datasheet"])
+            limits.setdefault("two_path", {}).setdefault(name, {})[lab] = 1e3 * lim2
             t = {k_: float(v.mean()) for k_, v in cd["arr"].items()}
             c = dict(n=len(cd["seqs"]), ms=t, reads=cd["reads"], plan_us=cd["plan"], limit_ms=1e3 * lim, limit_meas_ms=1e3 * lim_meas,
                      host_bound=bool(c_at <= 0))

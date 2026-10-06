@@ -3,6 +3,41 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October: the plan to a 9, executed: jobs 096 and 098 in, the learned order gated and in the engine (job 097 running)
+
+- **Gate first** (`prereg/learned_gate_097.md`, commit d23d090, written before the decisive replay and before job 096's
+  results): a realisable admission order is measured in the engine only if (1) offline it closes >= 30% of the deployed
+  policy's read gap to MIN at the four host-bound cells, (2) it adds >= 15% of the single-read policy's gap at three of
+  them, (3) job 096 shows fetch-on-admit not losing (lower bound >= 0.98 at three of four host-bound cells per host).
+- **The learned order, offline** (`scripts/learned_policy2-6.py`): history-only features plateau at 18-25% of the
+  single-read gap on gpt-oss (about one token of perfect foresight); MIN-imitation labels are worse (15-19%); cross-layer
+  transition scores from the previous token add 2-3 points. The realisable form (features the engine has at plan time),
+  fitted on each model's mixed-domain trace and replayed on the AIME routing (no test text seen): 6-12% fewer reads than
+  single-read decayed frequency at the host-bound cells, 17-30% of its gap to MIN, 47-57% of the deployed policy's
+  (`prereg/learned_offline.json`; Table in Section 5). Conditions 1 and 2 passed (2 only with the cross-layer scores,
+  8-bit table).
+- **Engine** (`LLAMA_EC_LEARNED`, patch on gpu 73bf256): host-computed logits per expert at the end of each step,
+  victims and fetch ranks from them; on a CPU build its reads and fetches equal a Python replay of the same policy
+  exactly in three variants; the model files are recomputed on the rented host from the committed traces and weights
+  and must hash to the replay's.
+- **Job 096** (two hosts, ten configurations per cell, shuffled, cold cache; $5.40): O4 (9950X, link 45 GB/s) and O5
+  (9950X3D, link 27 GB/s). MIN with each admission fetched once 1.36-1.51x (O4) and 1.16-1.26x (O5) at the host-bound
+  cells; with the paced prefetch 1.25-1.81x; Belady prefetch reads 1.6-2.3x R* even read once and is within 1-3% of its
+  two-read form at gpt-oss; MIN served-then-copied 0.94-1.18x; the online policy with its admissions read once
+  0.97-1.03x (its second read is not where its time goes; MIN admits 2-11x as often). Predictions: O4 61 of 66 held
+  (13 strictly), O5 64 of 66 (16 strictly); between hosts 1 of 6 (fetch's gain differs by 0.13-0.26: the link).
+  Condition 3 passed on both hosts. Outcome: `prereg/foresight_outcome_096.md`.
+- **Job 098** (FreeToken tuned per cell, five settings, 9950X host; attempt 1 died on the CUDA 12.8 image, $0.40;
+  attempt 2 $2.70): FreeToken's best is at most 1.04x its Table 1 setting; ours over its best 1.17, 1.17, 1.09, 1.02,
+  1.04, 0.98 (within 0.04 of host S); VRAM FreeToken 28.4-30.1 GB, ours 9.5-27.3; CPU-only the engines are within 1.13x
+  (prediction of >= 2x failed: FreeToken's CPU path is fine on this host). 37 of 44 clauses held.
+- **Job 097** launched on the O4 machine and the O5 machine (the first 9950X3D rental died with a full disk after
+  10 minutes and was replaced): base, foa, learned, fetch, both3p per cell, shuffled.
+- **Paper:** front half rewritten (abstract, thesis, glossary, law folded into Section 2 with its details in the
+  appendix, model accounting moved to an appendix), Section 4 rewritten around the three-host factorial with a new
+  figure, Section 5 gains the learned order, related work on learned replacement and integrated prefetching,
+  KTransformers and tuned FreeToken in the appendix, one stated error convention. Main text 8 pages.
+
 ## 5 October: number check 4 and review round 4 (both 4/10); the corrections; what the reviews ask for next
 
 - **Number check 4** (`reports/Number check 4 (2 October).md`, an independent re-derivation of about 285 statements):

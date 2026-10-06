@@ -24,7 +24,8 @@ P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 
 # validated categorical slots 1-3 (dataviz palette, light surface), with marker shape as secondary encoding
 HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b", "O5", "#1baf7a", "^"),
-         ("097a", "O4 (097)", "#eb6834", "D"), ("097b", "O5' (097)", "#1baf7a", "v")]
+         ("097a", "O4, job 097", "#eb6834", "D"), ("097b", "O6, job 097", "#4a3aa7", "v")]
+ONLY_LEARNED = {"097a", "097b"}   # job 097's hosts are drawn on the learned row only (their other states repeat job 096's)
 ROWS = [("foa", "single read, online"), ("learned", "learned order"), ("bypass", "MIN, serve-then-copy"),
         ("hitopt", "Belady, two reads"), ("hitoptp", "Belady, two reads, paced"), ("nb2", "Belady, one read"), ("fetch", "MIN, fetch (one read)"),
         ("both3p", "MIN, fetch + prefetch")]
@@ -51,6 +52,8 @@ def main():
             if not c:
                 continue
             for y, (key, _) in enumerate(rows):
+                if job in ONLY_LEARNED and key != "learned":
+                    continue
                 if key in c["runs"]:
                     r = c["runs"][key]["ratio_to_base"]
                     off = (k - (len(present) - 1) / 2) * 0.15

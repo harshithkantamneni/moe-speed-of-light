@@ -73,7 +73,7 @@ def main():
     handles = [Line2D([0], [0], marker=mk, color=col, lw=0, ms=5, mec="#fcfcfb", label=name)
                for job, name, col, mk in HOSTS if job in data]
     fig.legend(handles=handles, loc="upper right", ncol=len(handles), fontsize=6.5, frameon=False, bbox_to_anchor=(0.995, 1.02))
-    fig.subplots_adjust(left=0.165, right=0.995, top=0.84, bottom=0.15, wspace=0.12)
+    fig.subplots_adjust(left=0.2, right=0.995, top=0.84, bottom=0.15, wspace=0.12)
     os.makedirs(P("paper", "figs"), exist_ok=True)
     fig.savefig(P("paper", "figs", "factorial.pdf"))
     fig.savefig(P("paper", "figs", "factorial.png"), dpi=200)

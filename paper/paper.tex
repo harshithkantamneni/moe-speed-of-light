@@ -36,7 +36,7 @@ admitted expert once, is worth \fxFetchAllGainMin--\fxFetchAllGainMax\% at every
 prefetch or by copying what the CPU has just served, it reads \fxUsualReadsOverOptMin--\fxUsualReadsOverOptMax$\times$ the
 optimum's bytes, loses at the lowest budgets, and trails the optimum's way at every host-bound budget. Without foresight, a learned admission order fitted on
 other text reads \lreFewerMin--\lreFewerMax\% fewer experts but runs \lreOverBaseMin--\lreOverBaseMax$\times$ the
-deployed cache; nine models' routing traces give the horizon a forecaster must reach.
+deployed cache at the host-bound budgets; nine models' routing traces give the horizon a forecaster must reach.
 \end{abstract}
 
 \section{Introduction}
@@ -129,12 +129,13 @@ with one constant $G$ per engine and model, fitted once on one host and frozen; 
 $n$, the number $f(n)$ of misses to fetch (\cref{app:law}). In the running example on host B the table copies one
 of two misses and runs a single miss on the CPU, hidden behind the GPU's resident experts. Written down on each
 machine from its probe before any model ran, \cref{eq:law} predicted our cache on gpt-oss within a median
-\lawMedian\% on \lawHosts{} RTX 5090 hosts (90th percentile \lawRowsPninety\%; \cref{tab:law}). A one-path
+\lawRowsMedian\% per measurement on \lawHosts{} RTX 5090 hosts (90th percentile \lawRowsPninety\%; \cref{tab:law}). A one-path
 bytes-over-bandwidth model with the same $G$ has the same median but a 90th percentile of \lawNaivePninety\%: the
 maximum over paths matters where both paths carry many bytes. With its constants frozen it scores \lawFrozenN{} later
 measurements on \lawFrozenHosts{} more hosts at a median \lawFrozenMed\%, within \lawFrozenGptMin{} to
 \lawFrozenGptMax\% on gpt-oss and over-predicting Qwen3's speed by \lawFrozenQwenMin{} to \lawFrozenQwenMax\%, whose
-$G$ was borrowed from llama.cpp. It is a calibrated model of engines that read host memory in sequence with their GPU
+$G$ was borrowed from llama.cpp; on those later measurements the one-path model does as well (median
+\lawFrozenNaiveMed\%, 90th percentile \lawFrozenNaivePninety{} against \lawFrozenPninety\%). It is a calibrated model of engines that read host memory in sequence with their GPU
 work, and \cref{sec:gap} shows where it stops: it prices no overlap and no per-layer fetch latency.
 
 \paragraph{Protocol.} We match the number of experts on the GPU across systems (within 2.5\%; llama.cpp keeps whole
@@ -158,7 +159,7 @@ With every expert on the CPU, stock llama.cpp, whose kernels our helpers use, ru
 the gpt-oss one. Most of the lead is admission rationing: with LRU in place of decayed frequency
 the cache runs \scLruSlowMin--\scLruSlowMax\% slower and trails FreeToken at \scLruTrailCells{} cells (\cref{app:system}).
 Ours runs \grThreekLlamaMin--\grFourkLlamaMax$\times$ llama.cpp on an RTX 4090 and an RTX 3090, ties FreeToken on its
-own headline model within 3\%, and ties it on Mixtral-8x7B, where 2 of 8 experts resident leave little locality
+own headline model within 3\%, and ties llama.cpp on Mixtral-8x7B, where 2 of 8 experts resident leave little locality
 to earn (\cref{app:grid}). Its outputs diverge from an all-VRAM reference as much as stock llama.cpp's own CPU
 placement does (mean KL \klMeanGpt{} and \klMeanQwen{} nats; \cref{app:system}).
 
@@ -206,7 +207,7 @@ form that charges dense work in sequence (\texttt{scripts/audit.py}; every row i
 \audInclassN{} that are inside the bound's class and have a routing trace of their model reach a median
 \audInclassMed\% of it (quartiles \audInclassQone--\audInclassQthree\%). The ceilings are datasheet ones and
 \audImputedN{} rows' capacities are imputed upper bounds, so these are lower than a probed limit would give; even so,
-three quarters of the published systems stand below a quarter of a latency-free ceiling, and the next section asks what the
+three quarters of the in-class published systems stand below a quarter of a latency-free ceiling, and the next section asks what the
 missing part is made of.
 
 \section{Where the Seconds Go}\label{sec:gap}
@@ -284,7 +285,11 @@ overlap foresight allows, \amOverlapHostMin--\amOverlapHostMax\%; and the rest, 
 single reads, reading its admissions once accounts for \amSingleHostMin{} to \amSingleHostMax\% of the gap and foresight
 for \amFsGivenSingleHostMin--\amFsGivenSingleHostMax\%. What the oracles recover, bytes and overlap together, is most of
 the gap on O3 and O4 (\amRecovThreeMin--\amRecovThreeMax\% and \amRecovFourMin--\amRecovFourMax\%); on O5, with its
-slow link, the rest is the larger share (\amRestFiveMin--\amRestFiveMax\%). Against these, the model over-prices the
+slow link, the rest is the larger share (\amRestFiveMin--\amRestFiveMax\%). The split between bytes and overlap depends on the order in which they are taken: taken overlap first, with the
+Belady prefetch standing for overlap at about the online policy's bytes, the overlap share ranges from
+\amOvlFirstHostMin{} to \amOvlFirstHostMax\% (it is negative where that prefetch loses) and the bytes share from
+\amBytesGivenOvlHostMin{} to \amBytesGivenOvlHostMax\%; only their sum, \amRecovHostMin--\amRecovHostMax\%, and the rest are
+free of the order. Against the first order, the model over-prices the
 bytes \amBytesMultMin--\amBytesMultMax$\times$ and the overlap \amOverlapMultMin--\amOverlapMultMax$\times$ and
 under-prices the rest \amRestMultMin--\amRestMultMax$\times$. We did not separate the rest, but three candidates are
 visible. The prefetch is imprecise: on O3 its reads are \fsbpReadsOptMin--\fsbpReadsOptMax$\times$ $R^\star$ across the

@@ -77,7 +77,7 @@ def main():
     # fraction of the limit: online and the best state, host-bound, new hosts
     fb = [100 * h[c]["runs"]["base"]["frac_of_limit"] for h in new for c in HB]
     rng("fxBaseFrac", fb, "{:.0f}")
-    bf = [100 * max(h[c]["runs"][k]["frac_of_limit"] for k in ("both2", "both3p")) for h in new for c in HB]
+    bf = [100 * h[c]["runs"]["both3p"]["frac_of_limit"] for h in new for c in HB]
     rng("fxBestFrac", bf, "{:.0f}")
     # largest interval half-width of any ratio on the new hosts
     hw = [0.5 * (r["ratio_to_base"][2] - r["ratio_to_base"][1]) for h in new for c in ALL for k, r in h[c]["runs"].items() if k != "base"]

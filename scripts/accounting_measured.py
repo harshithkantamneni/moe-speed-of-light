@@ -103,6 +103,12 @@ def main():
                 M(f"amRest{nm}Min", f"{min(v):.0f}"); M(f"amRest{nm}Max", f"{max(v):.0f}")
                 v = [100 * (c["decomposition"]["measured"]["bytes"] + c["decomposition"]["measured"]["overlap_given_foresight"]) for c in hc]
                 M(f"amRecov{nm}Min", f"{min(v):.0f}"); M(f"amRecov{nm}Max", f"{max(v):.0f}")
+        of = [c["decomposition"]["measured_overlap_first"] for c in hb if c["decomposition"].get("measured_overlap_first")]
+        if of:
+            M("amOvlFirstHostMin", f"{100 * min(o['overlap'] for o in of):.0f}"); M("amOvlFirstHostMax", f"{100 * max(o['overlap'] for o in of):.0f}")
+            M("amBytesGivenOvlHostMin", f"{100 * min(o['bytes_given_overlap'] for o in of):.0f}"); M("amBytesGivenOvlHostMax", f"{100 * max(o['bytes_given_overlap'] for o in of):.0f}")
+            M("amRecovHostMin", f"{100 * min(c['decomposition']['measured']['bytes'] + c['decomposition']['measured']['overlap_given_foresight'] for c in hb):.0f}")
+            M("amRecovHostMax", f"{100 * max(c['decomposition']['measured']['bytes'] + c['decomposition']['measured']['overlap_given_foresight'] for c in hb):.0f}")
         hb_sr = [c for c in hb if c["decomposition"]["measured"].get("single_read") is not None]
         if hb_sr:
             for key, px in (("single_read", "amSingle"), ("foresight_given_single_read", "amFsGivenSingle")):

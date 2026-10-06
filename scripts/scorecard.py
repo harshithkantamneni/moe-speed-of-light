@@ -163,7 +163,7 @@ def write_tex(d, jobs, path, era_tallies, total):
         r"\begin{footnotesize}",
         r"\begin{longtable}{@{}p{0.08\textwidth}p{0.355\textwidth}p{0.07\textwidth}p{0.29\textwidth}p{0.10\textwidth}@{}}",
         r"\caption{Prediction scorecard, jobs %s--%s: every committed prediction split into its separable clauses and "
-        % (jobs[0]["job"][:3], jobs[-1]["job"][:3])
+        % (min(j["job"][:3] for j in jobs), max(j["job"][:3] for j in jobs))
         + r"scored under one rule. \emph{Held}: the point estimate is on the predicted side and the 95\% paired-bootstrap "
         r"interval excludes the threshold (for a band, lies inside it). \emph{Held (point)}: the point estimate is on the "
         r"predicted side but the interval includes the threshold, or no interval exists. \emph{Untested}: the clause could "

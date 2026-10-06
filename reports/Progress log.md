@@ -3,6 +3,29 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (later): job 097, number check 5, review round 5 (5/10 and 5/10)
+
+- **Job 097** (learned order in the engine; $3.10 including two 9950X3D rentals that were given 57 GB of disk and died
+  at setup): on the O4 machine the learned order runs 1.01-1.03x the single-read online policy and 1.03-1.05x the
+  deployed one at the host-bound cells (7-13% of the fetch oracle's gain); on O6 (9950X3D, 69 GB/s host memory) it
+  runs 0.90-0.94x and 0.90-0.94x. It reads 6-18% fewer experts on both hosts but buys them with 1.1-1.6x as many in-step
+  fetches and 0.24-0.59 ms of host time per token. The realisable mechanism does not reach the reviews' bar (a third of
+  the oracle's gain). A second launch on O4's machine reproduced job 096's ratios within 0.024. Outcome:
+  `prereg/learned_outcome_097.md`.
+- **Gate addendum:** condition 1's simulated deployed baseline admitted about twice as often as the engine (kappa 2 for
+  Qwen3); against the engine's measured online reads it held at seven of eight host-cells, not all four cells on O4.
+- **Number check 5** (29 defects, all fixed): the thesis was overclaimed (the usual ways also gain 25-63% at the 25%
+  cells on fast hosts; MIN's paced prefetch beats every usual way by 1.18-2.03x at every host-bound cell); the
+  learned-replay "deployed" column was a simulator that admits twice as often as the engine; O5's rest exceeds what
+  the oracles recover; scope slips.
+- **Review round 5** (`reports/Review 5a`, `5b`): **5/10 and 5/10, weak reject** (round 4: 4 and 4). Both verified
+  13 claims each against the artifact with no data errors. Both rank clarity first (2/5), then uncertainty only within a
+  launch, the order dependence of the accounting (now stated), and the absence of a realisable mechanism. The professor
+  would take the student. Their factual errors are fixed (commit 62a451f); the scorecard table moved to
+  `paper/supplement.pdf` (paper 26 pages, main text 8).
+- **Spend this round:** $14.56 (096 $5.40, 097 $3.60, 098 $3.10 with attempt 1, 54xxxxx failed starts $0.50, rest
+  idle/setup); credit left $25.68.
+
 ## 6 October: the plan to a 9, executed: jobs 096 and 098 in, the learned order gated and in the engine (job 097 running)
 
 - **Gate first** (`prereg/learned_gate_097.md`, commit d23d090, written before the decisive replay and before job 096's

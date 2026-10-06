@@ -114,6 +114,12 @@ def main():
     rng("fxPacedLawTime", le, "{:+.0f}")
     # the deployed cache's reads over R* in the engine (online state), O3-O5, host-bound
     rng("fxOnlineReadsOverOpt", [reads(h[c]["runs"]["base"]) / h[c]["opt_reads_per_token"] for h in allh for c in HB])
+    # a second launch on O4's machine (job 097): its online, foa, fetch and paced-prefetch states against job 096's
+    f97 = P("prereg", "foresight_097a.json")
+    if os.path.exists(f97):
+        c97 = {c["label"]: c for c in json.load(open(f97))["cells"]}
+        dd = [abs(c97[c]["runs"][k]["ratio_to_base"][0] - H["Four"]["cells"][c]["runs"][k]["ratio_to_base"][0]) for c in ALL for k in ("foa", "fetch", "both3p")]
+        put("fxReplicateMax", f"{max(dd):.3f}")
     # the running example on O4
     c = H["Four"]["cells"]["gpt-oss 25%"]["runs"]
     for k, nm in (("foa", "Foa"), ("fetch", "Fetch"), ("both3p", "Paced"), ("nb2", "Nbtwo"), ("hitopt", "Hitopt"), ("bypass", "Bypass")):

@@ -4,10 +4,12 @@
 J=${J:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 export J M=$WORK/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:$PATH
 BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
-if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null || ! command -v python3 >/dev/null || ! command -v numactl >/dev/null; then
-  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq cmake ninja-build build-essential git curl \
-    python3 python3-numpy numactl pciutils > $OUT/apt.txt 2>&1
-fi
+for i in 1 2 3 4; do   # a host's package index can come back incomplete: retry until the tools are there
+  command -v cmake >/dev/null && command -v ninja >/dev/null && command -v python3 >/dev/null && command -v numactl >/dev/null && break
+  [ $i -gt 1 ] && { echo "apt attempt $i" >> $OUT/apt.txt; rm -rf /var/lib/apt/lists/*; sleep 15; }
+  apt-get update -qq >> $OUT/apt.txt 2>&1; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq cmake ninja-build build-essential git curl \
+    python3 python3-numpy numactl pciutils >> $OUT/apt.txt 2>&1
+done
 SM=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1 | tr -d .)
 export SM NPROC=$(nproc)
 usable_cores() {  # physical cores this container may run on: distinct (package, core) in its affinity set, capped by

@@ -30,4 +30,10 @@ of each layer with a precision of \lfPrecOneGpt{} one token ahead and \lfPrecFou
 of 1--8 tokens (\texttt{prereg/forecaster\_linear.json}): far less than a random-error window of similar precision,
 because its correct forecasts are mostly the experts the cache already holds. A sequence model reports recall above
 90\% one token ahead with $k{+}3$ candidates~\cite{wang2026seqmoe}; its precision is then at most $k/(k{+}3)$, 0.57 for
-gpt-oss and 0.73 for Qwen3, and it has not been reproduced.
+gpt-oss and 0.73 for Qwen3. A recurrent forecaster in that spirit (a GRU of 512 units over the same all-layer vectors,
+one output head per horizon, trained on the same text; \texttt{scripts/forecaster\_gru.py}) reaches a precision of
+\grPrecOneGpt{} and \grPrecFourGpt{} one and four tokens ahead on gpt-oss (\grPrecOneQwen{} and \grPrecFourQwen{} on
+Qwen3), a recall at $k{+}3$ of \grRecThreeGpt{} and \grRecThreeQwen, and closes \grShareMinGpt--\grShareMaxGpt\% and
+\grShareMinQwen--\grShareMaxQwen\% of the gap: no better than the linear model. Our training text is smaller than
+SeqMoE's and differs from the test text, so this bounds what such a model does across text, not what it can do in
+domain.

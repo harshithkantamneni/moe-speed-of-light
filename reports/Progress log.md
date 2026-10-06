@@ -3,27 +3,28 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
-## 6 October (night, unattended): research regroup, the clarity rewrite, job 099 (host panel) running
+## 6 October (night, unattended): research regroup, the clarity rewrite, job 099 (host panel)
 
 **Status for Harshith (read this first).** Deep research is in `reports/MoE paper path to a 9.md`. The main text is
-rewritten around one question per section and plain names (bound; where the seconds go; how much foresight is needed),
-the order-free accounting and the price of foresight are new results, and job 099 (a panel of rented RTX 5090 hosts,
-machine as the unit) is running. Main is committed as you, not pushed; `gpu` is pushed.
+rewritten around one question per section and plain names (bound; where the seconds go; how much foresight is needed).
+Job 099, a panel of ten rented RTX 5090 hosts with the machine as the statistical unit, is done, fetched and pushed on
+`gpu`; every host was destroyed after its fetch. Remaining Vast credit: $13.46. Main is committed as you, not pushed.
 
 - **Research** (5 threads + report): the bound in seconds and the in-engine oracle factorial are still unclaimed; the
   trace study and learned order are precedented (2505.16056 ICLR'26 lookahead-window oracle over 20 models; 2608.07911;
   FlashMoE; SeqMoE; MoE-SpAc). New concurrent work: llama.cpp PR #29887 (3 Oct, LRU expert cache admitting every miss).
-  A 9 needs a realisable forecaster at ~0.7 precision/recall 4-8 tokens ahead; none exists (P ~ 10%). Realistic: a strong 7.
+  A 9 needs a realisable forecaster at ~0.7 precision/recall 4-8 tokens ahead; none exists. The paper's identity moved
+  to: the bound, an order-free accounting, host dependence predicted by the time model, and the price of foresight.
 - **Always-admit check** (found by the research): admitting every miss reads less than our online baseline at 23 of 26
   trace points (up to 6.7%) and is the best online policy at 18 of 27 policy-study points; the best online policy is still
   35-110% above MIN. W50 refit against it: 0.67 (C/k)^1.31 (exponent 1.35 without sub-token points, was 1.51).
 - **Distinct-expert rule:** half the gap closes when the window holds 0.65 C distinct experts per layer (IQR 0.61-0.72,
   CV 0.16); leave-one-model-out it predicts a held-out model's W50 within 1.16x median (power law 1.19x, proportional
   1.22x). `scripts/w50_rebaseline.py`, `prereg/foresight/w50_distinct.json`.
-- **Order-free accounting** from job 096 (`scripts/factorial_shapley.py`): the engine ran both admission sets with both
-  read counts, so effects are measured at both levels of the other. Reading the deployed policy's admissions once: -4 to
-  4% of the gap; MIN's set read twice: -13 to 22%; read once: 26-57%; interaction 10-58%; Shapley set 9-33%, reads
-  1-32%; prefetch (nested) 4-22%; rest 30-62%.
+- **Order-free accounting** (`scripts/factorial_shapley.py`, jobs 096 + 099): on the 10 hosts whose link reads at least
+  half as fast as the CPU, reading the deployed policy's admissions once is worth -4 to 4% of the gap; MIN's set read
+  twice -13 to 26%, read once 26-57%; interaction 10-58%; Shapley set 9-35%, reads 1-32%; pacing (nested) -4 to 23%;
+  rest 30-62%. On the two link-starved hosts the single read in the step costs time (-21 to 2%) and the rest is 68-99%.
 - **Like-for-like audit:** our cache scored by the audit's own procedure reaches 18-42% (median 27%) of its bound,
   against the published in-class median of 13.6% (`scripts/audit_ours.py`).
 - **Engine: degraded foresight.** New oracle modes (patch oracle2): `oracle_hybrid` (a W-token window over decayed
@@ -31,12 +32,22 @@ machine as the unit) is running. Main is committed as you, not pushed; `gpu` is 
   Engine equals `scripts/value_map.py`'s replay exactly on a CPU build (30 configurations, 3 budgets); admit-every-miss
   (kappa -1e9) equals the replay's W = -1.
 - **Value map (reads, AIME routing):** half of MIN's gain over admit-every-miss needs 2-10 exact tokens at the four
-  host-bound budgets; recall 0.5 over 8 tokens closes 0.14-0.42; a ridge forecaster fitted on other text (precision 0.48
-  one token ahead, 0.26 four ahead on gpt-oss) closes about 3-6%.
-- **Job 099** (gpu commit 7b8327a, predictions in the header, pushed before launch): 10 slots (099a-j), 7 launched on
-  RTX 5090 hosts with 285K x2, 9800X3D, 7900, 13900KF, 9950X, 5950X; three hosts replaced at setup (one stopped, one stuck
-  on GitHub, one with a 106 Mb/s download). Per host: the 2x2 (base, foa, bypass, fetch), both3p, admit-every-miss, and
-  windows W = 1, 4, 16 exact and W = 8 / all at recall 0.5, at gpt-oss 11% and 25%; Qwen3 12.5% on three hosts.
+  host-bound budgets; recall 0.5 over 8 tokens closes 0.14-0.42. Realisable forecasters fitted on other text: ridge
+  (precision 0.48 one token ahead, 0.26 four ahead on gpt-oss) closes 3-15% (gpt-oss) and 6-19% (Qwen3); a GRU over the
+  all-layer routing vector (SeqMoE-style; recall at k+3 0.53-0.54) closes 2-11% and 6-17%.
+- **Job 099** (gpu commit 7b8327a, predictions in the header, pushed before launch; outcome
+  `prereg/panel_outcome_099.md`): ten hosts (285K x2, 9800X3D, 7900, 13900KF, 9950X x2, 5950X, 7950X, 14700K), link
+  19-49 GB/s, CPU 25-93 GB/s. Machine scoring: 190 held, 42 held (point), 39 failed, 2 untested (Pd's replay step
+  failed: numba did not install). MIN with one read 1.22x the deployed cache pooled at gpt-oss 11% [1.12, 1.30], 0.87x
+  on the 285K whose link reads at 0.29 of its CPU; the paced prefetch 1.01-1.71x. Exact windows of 4 and 16 tokens
+  recover 0.32-0.47 and 0.78-0.93 of MIN's time gain over admit-every-miss at 11% (reads: 0.52, 0.98); the time share
+  falls below the read share by 0.05-0.20 as the link slows relative to the CPU (correlation -0.91), because a short
+  window still reads 97% of its misses over the link where MIN reads 50%. The calibrated time model predicts in-step
+  states within 2.2% median over 14 hosts, the sign of fetch/base at 43/43 host-cells, and window time shares within
+  0.03. Failures: P3 (3, Pd/Pf), P5-P6 (Pd/Pf, plus the ordering on Pi), P7 fast-link half (4: admit-every-miss costs
+  10-15% on Pa, Ph, Pj), P9 (allr5 plans in 193-277 us per step, all 20).
+- **Paper:** Section 5's engine paragraph now states the measured time-versus-read relation and the model check; the
+  "gain on every host" claim for the paced prefetch is now "never lose (the 285K breaks even at 11%)".
 
 ## 6 October (later): job 097, number check 5, review round 5 (5/10 and 5/10)
 

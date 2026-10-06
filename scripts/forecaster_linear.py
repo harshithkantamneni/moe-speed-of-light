@@ -27,7 +27,7 @@ AIME = {"gpt-oss-120b": ("084c_gptoss_trace@vast/route_aime25_gptoss.npz", (14, 
         "qwen3-30b-a3b": ("084b_vram_rerun@vast/route_aime25_qwen3.npz", (16, 32))}
 H = 8
 LAM = 100.0
-MAXTRAIN = 40000
+MAXTRAIN = {"gpt-oss-120b": 40000, "qwen3-30b-a3b": 24000}   # all of gpt-oss's S text; Qwen3's first 24,000 tokens (memory)
 
 
 def onehot(R, E):
@@ -40,23 +40,27 @@ def onehot(R, E):
 
 
 def main():
-    out = {}
+    pj = P("prereg", "forecaster_linear.json")
+    out = json.load(open(pj)) if os.path.exists(pj) else {}
     M = {}
+    only = sys.argv[1].split(",") if len(sys.argv) > 1 else list(AIME)
     for key, (rel, Cs) in AIME.items():
+        if key not in only:
+            continue
         t0 = time.time()
         ck = MODELS[key][0]
         pk = load_pack(find(RES, f"{ck}_S.npz"))
         E = int(pk["E"])
         resp = np.concatenate([np.arange(s + a, s + n) for s, a, n in zip(pk["starts"], pk["prompt_lens"], pk["seq_lens"])])
         conv = np.concatenate([[i] * (int(n) - int(a)) for i, (a, n) in enumerate(zip(pk["prompt_lens"], pk["seq_lens"]))])
-        if len(resp) > MAXTRAIN:
-            resp, conv = resp[:MAXTRAIN], conv[:MAXTRAIN]
+        if len(resp) > MAXTRAIN[key]:
+            resp, conv = resp[:MAXTRAIN[key]], conv[:MAXTRAIN[key]]
         Rtr = pk["routes"][:, resp].astype(np.int64)
         L, Ttr, k = Rtr.shape
         Xtr = onehot(Rtr, E)
         mu = Xtr.mean(0)
-        Xc = Xtr - mu
-        G = (Xc.T @ Xc).astype(np.float64)
+        # centred Gram without a centred copy: X'X - n mu mu'
+        G = (Xtr.T @ Xtr).astype(np.float64) - Ttr * np.outer(mu, mu)
         G[np.diag_indices_from(G)] += LAM
         Lc = np.linalg.cholesky(G)
         del G
@@ -69,7 +73,11 @@ def main():
         for h in range(1, H + 1):
             ok = np.arange(Ttr - h)
             ok = ok[conv[ok + h] == conv[ok]]
-            B = (Xc[ok].T @ (Xtr[ok + h] - mu)).astype(np.float64)
+            Y = Xtr[ok + h]
+            Xo = Xtr[ok]
+            # (Xo - mu)'(Y - mu) = Xo'Y - mu (sum Y)' - (sum Xo) mu' + n mu mu'
+            B = (Xo.T @ Y).astype(np.float64) - np.outer(mu, Y.sum(0)) - np.outer(Xo.sum(0), mu) + len(ok) * np.outer(mu, mu)
+            del Y, Xo
             Wt = np.linalg.solve(Lc.T, np.linalg.solve(Lc, B)).astype(np.float32)
             del B
             idx = np.arange(T - h)
@@ -117,7 +125,9 @@ def main():
             print(key, C, {kk: round(vv, 3) for kk, vv in cell.items() if kk.endswith("share")}, flush=True)
         print(key, "precision@k", {kk: [round(x, 3) for x in vv] for kk, vv in res["precision_at_k"].items()}, flush=True)
         out[key] = res
-    json.dump(out, open(P("prereg", "forecaster_linear.json"), "w"), indent=1)
+        json.dump(out, open(pj, "w"), indent=1)
+    if not all(k_ in out for k_ in AIME):
+        return
     for key, nm in (("gpt-oss-120b", "Gpt"), ("qwen3-30b-a3b", "Qwen")):
         r = out[key]
         M[f"lfPrecOne{nm}"] = f"{r['precision_at_k']['ridge'][0]:.2f}"

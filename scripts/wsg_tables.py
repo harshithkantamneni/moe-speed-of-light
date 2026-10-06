@@ -67,12 +67,21 @@ def headline():
         lim = sl and sl.get(key, {}).get("rows", {}).get(str(c), {}).get("opt", {}).get("tok_s")
         if sl2:
             lim = sl2["models"][key]["rows"][str(c)]["limits"]["exact"]["tok_s"]
+            x["limit_meas"] = sl2["models"][key]["rows"][str(c)]["limits"]["measured_gpu"]["tok_s"]
         x["limit"] = lim
     # the second host: the same six cells, FreeToken's backend carried over, the limit from that host's own probe
     rows2 = []
+    import sys as _sy
+    _sy.path.insert(0, ROOT)
+    from scripts.speed_limit import MODELS as SLM, limit as sl_limit
     for r in sc["rows"]:
+        key = "gpt-oss-120b" if r["model"].startswith("gpt") else "qwen3-30b-a3b-bf16"
+        m2 = sl2["models"][key]
+        c = C[(r["model"], r["budget"])]
+        rs = m2["rows"][str(c)]["reads_per_token"]["exact"]
+        tm, _ = sl_limit(rs, m2["L"] * m2["k"], SLM[key]["S"], SLM[key]["D"], r["limit"]["b_host_gbs"] * 1e9, m2["B_gpu_effective"])
         rows2.append(dict(model=r["model"], budget=r["budget"], llama=r["llama"], ft=r["ft"], ftb=r["ft_variant"], ours=r["ours"],
-                          ratio=r["ours_over_ft_L2"], xl=r["ours_over_llama"][0], limit=r["limit"]["tok_s"], note=""))
+                          ratio=r["ours_over_ft_L2"], xl=r["ours_over_llama"][0], limit=r["limit"]["tok_s"], limit_meas=1 / tm, note=""))
 
     def line(x):
         key = "gpt-oss-120b" if x["model"].startswith("gpt") else "Qwen3-30B-A3B"
@@ -82,30 +91,28 @@ def headline():
         ours_s = f"\\textbf{{{x['ours']:.1f}}}" if lead else f"{x['ours']:.1f}"
         return (f"{key} & {x['budget'].replace('%', chr(92) + '%')} & {x['llama']:.1f} & {ft_s} & "
                 f"{ours_s} & {ci(x['ratio'], 3)}{x['note']} & {x['xl']:.2f}$\\times$ & "
-                + (f"{lim:.0f} & {100 * x['ours'] / lim:.0f}\\%" if lim else "\\pend & \\pend") + " \\\\")
+                + (f"{lim:.0f} & {100 * x['ours'] / lim:.0f}\\% & {x['limit_meas']:.0f} & {100 * x['ours'] / x['limit_meas']:.0f}\\%" if lim else "\\pend & \\pend & \\pend & \\pend") + " \\\\")
     hb = sc["hosts"]["listing B (081)"]; ha = sc["hosts"]["089 (9950X, stock clock)"]
-    head1 = (r"\multicolumn{9}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f} \\" %
+    head1 = (r"\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f} \\" %
              (hb["mem_clock_mhz"], hb["B_c"], hb["B_p"], hb["B_both"]))
-    head2 = (r"\multicolumn{9}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f; FreeToken's backend carried over from host B} \\" %
+    head2 = (r"\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f; FreeToken's backend carried over from host B} \\" %
              (ha["mem_clock_mhz"], ha["B_c"], ha["B_p"], ha["B_both"]))
     body = head1 + "\n" + "\n".join(line(x) for x in rows[:3]) + "\n" + "\n".join(line(x) for x in rows[3:]) + "\n\\midrule\n" + head2 + "\n" + "\n".join(line(x) for x in rows2)
     vram = vr["vram"]
     tex = r"""\begin{table*}[t]\centering\small
-\caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts. 30 AIME-25 problems, first 256 decode tokens,
-greedy, session; our cache uses the FETCH split computed from each machine's bandwidth probe; FreeToken uses its faster
-backend per budget, picked on host B on a separate launch and carried over to the second host. Ratios are of mean
-speeds, paired by problem, with 95\% bootstrap intervals. \emph{Speed limit}: the ceiling of \cref{sec:limit} for an
-exact-routing system with the same slots per layer on that machine (exact optimum, that host's highest probed rate,
-datasheet GPU rate, which host B's card exceeds by 3\%; \cref{tab:limit} tightens it). FreeToken keeps one pooled
-cache and llama.cpp pins whole layers: against the pooled bound their designs allow they stand at
-\ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every weight in the VRAM of an RTX PRO 6000 (the RTX 5090's
-datasheet bandwidth, 96\,GB), stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.
-$^\dagger$Launch 1 for both systems: FreeToken's backend was picked on the launch it is scored on, which favours it,
-and the row has no confirmation launch.}\label{tab:headline}
+\caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts (30 AIME-25 problems, the first 256 greedy
+tokens, one session). Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals. Our cache uses each
+machine's fetch table; FreeToken uses its faster backend per budget, picked on host B on a separate launch.
+\emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
+rate, and at the rate all-in-VRAM decode measures at batch size 1 (52\% of datasheet for gpt-oss, 61\% for Qwen3;
+\cref{tab:limit} varies the other assumptions). Against the pooled bound their designs allow, FreeToken (one cache for all layers) and
+llama.cpp (whole layers pinned) stand at \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every
+weight in GPU memory (an RTX PRO 6000) stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.
+$^\dagger$Selection launch only, which favours FreeToken.}\label{tab:headline}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrcrrr}\toprule
-Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Speed & Ours, \% \\
- & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & limit & of limit \\\midrule
+\begin{tabular}{llrrrcrrrrr}\toprule
+Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & \multicolumn{2}{c}{Bound, datasheet GPU} & \multicolumn{2}{c}{Bound, measured GPU} \\
+ & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & tok/s & ours & tok/s & ours \\\midrule
 """.replace("VRAMG", f"{vram['gpt-oss-120b']:.0f}").replace("VRAMQ", f"{vram['qwen3-30b-a3b-bf16']:.0f}") + body + r"""
 \bottomrule\end{tabular}}\end{table*}
 """
@@ -134,6 +141,8 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
         M("limitPctMin", pct(min(lims)))
         M("limitPctMax", pct(max(lims)))
     lims2 = [x["ours"] / x["limit"] for x in both if x.get("limit")]
+    lm2 = [x["ours"] / x["limit_meas"] for x in both if x.get("limit_meas")]
+    M("bothLimitMeasPctMin", pct(min(lm2))); M("bothLimitMeasPctMax", pct(max(lm2)))
     M("bothLimitPctMin", pct(min(lims2))); M("bothLimitPctMax", pct(max(lims2)))
     M("llLimBothMin", pct(min(x["llama"] / x["limit"] for x in both))); M("llLimBothMax", pct(max(x["llama"] / x["limit"] for x in both)))
     M("ftLimBothMin", pct(min(x["ft"] / x["limit"] for x in both))); M("ftLimBothMax", pct(max(x["ft"] / x["limit"] for x in both)))

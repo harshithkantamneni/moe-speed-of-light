@@ -127,14 +127,20 @@ def main():
                 c["engine_over_replay"] = {k_: cd["reads"][k_] / r[k_] - 1 for k_ in HYB + ("aa",) if k_ in cd["reads"] and k_ in r}
                 if "fetch" in cd["reads"]:
                     c["engine_over_replay"]["fetch_vs_min"] = cd["reads"]["fetch"] / r["min"] - 1
-            # shares of the aa -> fetch gap
-            if "aa" in t and "fetch" in t:
-                c["time_share"] = {x: share(t, "aa", "fetch", x) for x in HYB if x in t}
-                c["read_share"] = {x: share(cd["reads"], "aa", "fetch", x) for x in HYB if x in cd["reads"]}
-            # speed ratios with within-host bootstrap
+            # speed ratios and shares with within-host bootstrap (paired by problem)
             A = cd["arr"]
             n = len(cd["seqs"])
             idx = RNG.integers(0, n, (10000, n))
+            if "aa" in t and "fetch" in t:
+                c["time_share"] = {x: share(t, "aa", "fetch", x) for x in HYB if x in t}
+                c["read_share"] = {x: share(cd["reads"], "aa", "fetch", x) for x in HYB if x in cd["reads"]}
+                bm = {k_: A[k_][idx].mean(1) for k_ in A}
+                c["time_share_ci"] = {x: [float(np.percentile((bm["aa"] - bm[x]) / (bm["aa"] - bm["fetch"]), q)) for q in (2.5, 97.5)]
+                                      for x in HYB if x in bm}
+                if all(k_ in bm for k_ in ("base", "foa", "bypass", "fetch")):
+                    inter = (bm["foa"] - bm["fetch"]) - (bm["base"] - bm["bypass"])
+                    c["interaction_ms"] = [float(((t["foa"] - t["fetch"]) - (t["base"] - t["bypass"]))),
+                                           float(np.percentile(inter, 2.5)), float(np.percentile(inter, 97.5))]
 
             def ratio(ref, x):
                 if ref not in A or x not in A:
@@ -186,12 +192,13 @@ def main():
     for h in hosts:
         h.pop("_arr", None)
     json.dump(dict(hosts=hosts, pooled=pooled), open(P("prereg", "panel_099.json"), "w"), indent=1)
+    score_clauses(hosts, pooled)
     json.dump(limits, open(P("prereg", "panel_limits.json"), "w"), indent=1)
     # macros
     MC = {}
 
     def rng(name, vals, fmt="{:.2f}"):
-        vals = [v for v in vals if v is not None]
+        vals = [v for v in vals if v is not None and np.isfinite(v)]
         if vals:
             MC[name + "Min"] = fmt.format(min(vals)); MC[name + "Max"] = fmt.format(max(vals))
     MC["pnHosts"] = str(len(hosts))
@@ -221,6 +228,27 @@ def main():
         pl = [v for h in hs for k_, v in h["cells"][lab].get("plan_us", {}).items() if v]
         if pl:
             MC[f"pnPlanMax{nm}"] = f"{max(pl):.0f}"
+    # time share against read share for the exact windows at gpt-oss 11%: the gap (read - time) and how it tracks the
+    # host's link/CPU ratio; and the share of each state's host reads that go over the link in the step
+    lab = "gpt-oss 11%"
+    hs = [h for h in hosts if lab in h["cells"] and "w4" in h["cells"][lab].get("time_share", {})]
+    if len(hs) >= 4:
+        g4 = [h["cells"][lab]["read_share"]["w4"] - h["cells"][lab]["time_share"]["w4"] for h in hs]
+        gx = [h["cells"][lab]["read_share"][x] - h["cells"][lab]["time_share"][x] for h in hs for x in ("w1", "w4", "w16")]
+        rr = [np.log(h["B_p"] / h["B_c"]) for h in hs]
+        MC["pnGapFourLowMin"] = f"{min(g4):.2f}"; MC["pnGapFourLowMax"] = f"{max(g4):.2f}"
+        MC["pnGapExactLowMax"] = f"{max(gx):.2f}"
+        MC["pnGapFourCorr"] = f"{np.corrcoef(rr, g4)[0, 1]:.2f}".replace("-", "$-$")
+        MC["pnGapRatioAtMax"] = f"{hs[int(np.argmax(g4))]['B_p'] / hs[int(np.argmax(g4))]['B_c']:.2f}"
+        for x, xn in (("w4", "Four"), ("w16", "Sixteen"), ("allr5", "AllHalf"), ("fetch", "Min"), ("aa", "Aa")):
+            fr = []
+            for h in hs:
+                f_ = f"{RES}/{h['dir']}/st_g_C14_{x}.json"
+                if os.path.exists(f_):
+                    s_ = json.load(open(f_))
+                    fr.append(s_["fetches"] / max(1, s_["misses"]))
+            if fr:
+                MC[f"pnLinkPct{xn}"] = f"{100 * np.mean(fr):.0f}"
     rng("pnLink", [h["B_p"] for h in hosts], "{:.0f}")
     rng("pnCpu", [h["B_c"] for h in hosts], "{:.0f}")
     rng("pnHostRate", [h["b_host"] for h in hosts], "{:.0f}")
@@ -235,6 +263,98 @@ def main():
             print("     time share", {k_: round(v, 2) for k_, v in c.get("time_share", {}).items()}, "read share", {k_: round(v, 2) for k_, v in c.get("read_share", {}).items()})
             print("     engine/replay-1", {k_: round(100 * v, 1) for k_, v in c.get("engine_over_replay", {}).items()}, "plan us", c["plan_us"])
     print(json.dumps(pooled, indent=1)[:3000])
+
+
+
+def _status(point, ci, ok):
+    """machine scoring under the interval rule: held if the whole interval satisfies the clause, held (point) if only
+    the point does (or no interval exists: 'no interval'), failed otherwise"""
+    if point is None:
+        return "untested", ""
+    if not ok(point):
+        return "failed", ""
+    if ci is None:
+        return "held (point)", "no interval"
+    if ok(ci[0]) and ok(ci[1]):
+        return "held", ""
+    return "held (point)", "interval crosses"
+
+
+def score_clauses(hosts, pooled):
+    """job 099's predictions (header of jobs/099_panel@vast.sh, gpu commit 7b8327a), scored by machine"""
+    out = []
+
+    def add(cid, short, ptype, point, ci, ok, threshold, host="pooled"):
+        st, why = _status(point, ci, ok)
+        out.append(dict(id=cid, short=short, type=ptype, measured=None if point is None else round(float(point), 4),
+                        ci=None if ci is None else [round(float(ci[0]), 4), round(float(ci[1]), 4)], threshold=threshold,
+                        status=st, why=why, host=host))
+    band = lambda lo, hi: (lambda v: lo <= v <= hi)  # noqa: E731
+    for h in hosts:
+        H = h["host"]
+        for lab, cn in (("gpt-oss 11%", "g11"), ("gpt-oss 25%", "g25")):
+            c = h["cells"].get(lab)
+            if not c:
+                continue
+            eo = c.get("engine_over_replay", {})
+            mx = max((abs(v) for k_, v in eo.items() if k_ != "fetch_vs_min"), default=None)
+            add(f"099{H}-P1-{cn}", f"engine reads within 4% of the replay ({lab}, {H})", "band", mx, None, lambda v: v <= 0.04, "<= 0.04", H)
+            ts, tc = c.get("time_share", {}), c.get("time_share_ci", {})
+            lo11 = lab == "gpt-oss 11%"
+            for x, rule, thr in (("w16", (lambda v: v >= 0.80) if lo11 else band(0.45, 0.85), ">= 0.80" if lo11 else "0.45-0.85"),
+                                 ("w4", band(0.35, 0.70) if lo11 else band(0.12, 0.40), "0.35-0.70" if lo11 else "0.12-0.40"),
+                                 ("w1", lambda v: v <= 0.30, "<= 0.30"),
+                                 ("w8r5", band(0.15, 0.45) if lo11 else (lambda v: v <= 0.30), "0.15-0.45" if lo11 else "<= 0.30"),
+                                 ("allr5", band(0.30, 0.60), "0.30-0.60")):
+                add(f"099{H}-P{3 if x in ('w16', 'w4', 'w1') else 4}-{x}-{cn}", f"{x} time share ({lab}, {H})", "band" if "-" in thr else "threshold",
+                    ts.get(x), tc.get(x), rule, thr, H)
+            it = c.get("interaction_ms")
+            add(f"099{H}-P5a-{cn}", f"MIN's set worth more with one read than two ({lab}, {H})", "sign", it[0] if it else None,
+                it[1:] if it else None, lambda v: v > 0, "> 0 ms", H)
+            sp = c["speed"]
+            fb = sp.get("foa/base")
+            add(f"099{H}-P5b-{cn}", f"single read within 5% of deployed ({lab}, {H})", "band", fb[0] if fb else None, fb[1:] if fb else None,
+                band(0.95, 1.05), "0.95-1.05", H)
+            for k_, lo, hi in (("fetch/base", 1.10, 1.55), ("both3p/base", 1.25, 1.90)):
+                v = sp.get(k_)
+                add(f"099{H}-P6-{k_.split('/')[0]}-{cn}", f"{k_} ({lab}, {H})", "band", v[0] if v else None, v[1:] if v else None, band(lo, hi), f"{lo}-{hi}", H)
+            ms = c["ms"]
+            okord = all(k_ in ms for k_ in ("both3p", "fetch", "foa")) and ms["both3p"] < ms["fetch"] < ms["foa"]
+            add(f"099{H}-P6-order-{cn}", f"both3p > fetch > foa ({lab}, {H})", "sign", 1.0 if okord else 0.0, None, lambda v: v > 0.5, "ordering", H)
+            pl = [v for k_, v in c.get("plan_us", {}).items() if v]
+            add(f"099{H}-P9-{cn}", f"host plan at most 150 us per step ({lab}, {H})", "threshold", max(pl) if pl else None, None,
+                lambda v: v <= 150, "<= 150 us", H)
+            af = sp.get("aa/foa")
+            if af and h["B_p"] >= 40:
+                add(f"099{H}-P7-{cn}", f"aa / foa in [0.92, 1.04] on a >= 40 GB/s link ({lab}, {H})", "band", af[0], af[1:], band(0.92, 1.04), "0.92-1.04", H)
+            elif af and h["B_p"] < 32:
+                add(f"099{H}-P7-{cn}", f"aa / foa below 0.95 on a < 32 GB/s link ({lab}, {H})", "threshold", af[0], af[1:], lambda v: v < 0.95, "< 0.95", H)
+        c = h["cells"].get("Qwen3 12.5%")
+        if c:
+            ts, tc = c.get("time_share", {}), c.get("time_share_ci", {})
+            add(f"099{H}-P10-w2", f"Qwen3 w2 time share ({H})", "band", ts.get("w2"), tc.get("w2"), band(0.30, 0.70), "0.30-0.70", H)
+            add(f"099{H}-P10-w8r5", f"Qwen3 w8r5 time share ({H})", "band", ts.get("w8r5"), tc.get("w8r5"), band(0.25, 0.60), "0.25-0.60", H)
+            v = c["speed"].get("fetch/base")
+            add(f"099{H}-P10-fetch", f"Qwen3 fetch/base ({H})", "band", v[0] if v else None, v[1:] if v else None, band(1.15, 1.55), "1.15-1.55", H)
+    # pooled clauses
+    pairs = [(h["cells"][lab]["time_share"][x], h["cells"][lab]["read_share"][x]) for h in hosts for lab in ("gpt-oss 11%", "gpt-oss 25%")
+             if lab in h["cells"] for x in HYB if x in h["cells"][lab].get("time_share", {}) and x in h["cells"][lab].get("read_share", {})]
+    if pairs:
+        frac = float(np.mean([abs(a - b) <= 0.15 for a, b in pairs]))
+        add("099-P2a", "time share within 0.15 of read share at >= 80% of hybrid host-cells", "threshold", frac, None, lambda v: v >= 0.8, ">= 0.80")
+    mono = [h["cells"][lab]["time_share"]["w1"] < h["cells"][lab]["time_share"]["w4"] < h["cells"][lab]["time_share"]["w16"]
+            for h in hosts for lab in ("gpt-oss 11%", "gpt-oss 25%") if lab in h["cells"] and all(x in h["cells"][lab].get("time_share", {}) for x in ("w1", "w4", "w16"))]
+    if mono:
+        add("099-P2b", "w1 < w4 < w16 at >= 80% of host-cells", "threshold", float(np.mean(mono)), None, lambda v: v >= 0.8, ">= 0.80")
+    for lab, cn in (("gpt-oss 11%", "g11"), ("gpt-oss 25%", "g25")):
+        st = pooled.get(lab, {}).get("fetch/base")
+        if st:
+            add(f"099-P8-{cn}", f"spread of fetch/base across hosts > 3x the median within-host half-width ({lab})", "threshold",
+                (st["max"] - st["min"]) / max(st["within_halfwidth_median"], 1e-9), None, lambda v: v > 3, "> 3")
+    json.dump(dict(job="099", script="jobs/099_panel@vast.sh", commit="7b8327a", scored_by="scripts/panel_099.py (machine)", clauses=out),
+              open(P("prereg", "scorecard_099.json"), "w"), indent=1)
+    from collections import Counter
+    print("job 099 clauses:", Counter(c["status"] for c in out), Counter(c["why"] for c in out if c["why"]))
 
 
 if __name__ == "__main__":

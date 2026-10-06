@@ -221,7 +221,7 @@ def distinct_rule(fit):
 Rule & Constants & Median & 90th pct. & Max \\\midrule
 """)
         for k, nm, npar in (("proportional", r"$W_{50}\propto C/k$", "1"), ("power", r"$W_{50}=a\,(C/k)^b$", "2"),
-                            ("distinct", r"$D(W_{50})=c\,C$", "1 + the model's $D(W)$")):
+                            ("distinct", r"$D(W_{50})=c\,C$", "1, and $D(W)$")):
             v = summ[k]
             f.write(f"{nm} & {npar} & {v['median']:.2f} & {v['p90']:.2f} & {v['max']:.2f} \\\\\n")
         f.write(r"\bottomrule\end{tabular}\end{table}" + "\n")

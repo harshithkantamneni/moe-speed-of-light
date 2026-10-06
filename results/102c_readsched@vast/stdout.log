@@ -1,0 +1,143 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/102_readsched@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=16
+++ NPROC=16
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ date +%s
++ T0=1791299717
++ BUDGET=2700
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket'
++ tee /w/results/102c_readsched@vast/cpu.txt
+CPU(s):                                  16
+Model name:                              AMD Ryzen 7 9800X3D 8-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      41%
+++ usable_cores
+++ python3 -
++ CORES=8
++ tee /w/results/102c_readsched@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 8 (nproc 16)'
+usable physical cores 8 (nproc 16)
++ H=6
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ timeout 15m /work/concur
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/readsched.cu -o /work/readsched
++ sha256sum /w/jobs/ec2/readsched.cu /w/jobs/ec2/minreads_g14.bin /w/jobs/ec2/minreads_g32.bin
++ tee /w/results/102c_readsched@vast/inputs_sha.txt
+484e4b46238370701536544e48c46f6219db00de86e8302e73c6bebfb1f4278f  /w/jobs/ec2/readsched.cu
+b7a4de68808426e7525ac5de963eefa08bada66970467de534deefe1554ea665  /w/jobs/ec2/minreads_g14.bin
+dcf89fc5f2be9ca55131a2973d39afe5a4ef30e01dfd08d76c1f8e8525b71b02  /w/jobs/ec2/minreads_g32.bin
+++ cd /w/jobs/ec2
+++ python3 -c '
+import sys; from fetch_table import bandwidths
+bc, bp, bb = bandwidths(open('\''/w/results/102c_readsched@vast/concur.txt'\'').read(), 6); print(f'\''{bc:.3f} {bp:.3f} {bb:.3f}'\'')'
++ RATES='48.375 26.600 52.000'
++ echo 'rates B_c B_p B_cp: 48.375 26.600 52.000 (helpers 6)'
++ tee /w/results/102c_readsched@vast/rates.txt
+rates B_c B_p B_cp: 48.375 26.600 52.000 (helpers 6)
++ for C in 14 32
+++ left
++++ date +%s
+++ echo 2635
++ '[' 2635 -lt 300 ']'
+++ left
++++ date +%s
+++ echo 2635
++ timeout 2635 /work/readsched /w/jobs/ec2/minreads_g14.bin 36 6 48.375 26.600 52.000 4000
++ echo 'C14 rc=0'
+C14 rc=0
++ cat /w/results/102c_readsched@vast/readsched_C14.txt
+split table: 0 1 1 2 2 3 3
+readsched mode=layer rep=0 steps=4000 ms_per_token 10.0574 reads_per_token 38.505 gbs 50.74
+readsched mode=token rep=0 steps=4000 ms_per_token 10.0073 reads_per_token 38.505 gbs 51.00
+readsched mode=layer_link rep=0 steps=4000 ms_per_token 17.9953 reads_per_token 38.505 gbs 28.36
+readsched mode=layer_cpu rep=0 steps=4000 ms_per_token 10.5542 reads_per_token 38.505 gbs 48.35
+readsched mode=layer rep=1 steps=4000 ms_per_token 10.0659 reads_per_token 38.505 gbs 50.70
+readsched mode=token rep=1 steps=4000 ms_per_token 10.0134 reads_per_token 38.505 gbs 50.97
+readsched mode=layer_link rep=1 steps=4000 ms_per_token 17.9950 reads_per_token 38.505 gbs 28.36
+readsched mode=layer_cpu rep=1 steps=4000 ms_per_token 10.5538 reads_per_token 38.505 gbs 48.36
++ for C in 14 32
+++ left
++++ date +%s
+++ echo 2236
++ '[' 2236 -lt 300 ']'
+++ left
++++ date +%s
+++ echo 2236
++ timeout 2236 /work/readsched /w/jobs/ec2/minreads_g32.bin 36 6 48.375 26.600 52.000 4000
++ echo 'C32 rc=0'
+C32 rc=0
++ cat /w/results/102c_readsched@vast/readsched_C32.txt
+split table: 0 1 1 2 2 3 3
+readsched mode=layer rep=0 steps=4000 ms_per_token 4.1289 reads_per_token 15.520 gbs 49.82
+readsched mode=token rep=0 steps=4000 ms_per_token 4.1041 reads_per_token 15.520 gbs 50.12
+readsched mode=layer_link rep=0 steps=4000 ms_per_token 7.2799 reads_per_token 15.520 gbs 28.26
+readsched mode=layer_cpu rep=0 steps=4000 ms_per_token 4.2543 reads_per_token 15.520 gbs 48.35
+readsched mode=layer rep=1 steps=4000 ms_per_token 4.1301 reads_per_token 15.520 gbs 49.80
+readsched mode=token rep=1 steps=4000 ms_per_token 4.1042 reads_per_token 15.520 gbs 50.12
+readsched mode=layer_link rep=1 steps=4000 ms_per_token 7.2799 reads_per_token 15.520 gbs 28.26
+readsched mode=layer_cpu rep=1 steps=4000 ms_per_token 4.2525 reads_per_token 15.520 gbs 48.37
+++ awk '{print $6}'
+++ grep -h 'mode=layer rep=0' /w/results/102c_readsched@vast/readsched_C14.txt /w/results/102c_readsched@vast/readsched_C32.txt
+++ tr '\n' ' '
++ python3 /w/jobs/ec2/manifest.py /w/results/102c_readsched@vast 102_readsched@vast 1791299717 '102 10.0574 4.1289 ' helpers=6
+manifest: 22 files, 630 s; 102 10.0574 4.1289 
++ echo 'SUMMARY: done'
+SUMMARY: done

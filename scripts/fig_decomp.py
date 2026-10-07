@@ -2,7 +2,8 @@
 (eq. sum, with its overlap term) into the GPU's own compute (the median profile at that budget), MIN's host reads at the machine's best rate
 (the bound of eq. limit at a host-bound budget) and the reads it makes beyond MIN's; the dot is the measured time.
 One launch per machine (the first, by GPU UUID), from jobs 093-104 (prereg/reanalysis_hosts.json) and the new machines
-of jobs 105-106. Writes paper/figs/decomp.pdf and paper/wsg_decomp.tex.
+of jobs 105-107 (servers, more than one NUMA node or more than 32 usable cores, are drawn but left out of the shares).
+Writes paper/figs/decomp.pdf and paper/wsg_decomp.tex.
 
     python scripts/fig_decomp.py
 """
@@ -22,7 +23,7 @@ RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 S = 13253760
 CELL = {14: "gpt-oss 11%", 32: "gpt-oss 25%"}
-UNSTABLE = ("106c", "106d")
+UNSTABLE = ("106c", "106d", "107c", "107e")   # wrong outputs, or rounds further apart than 2%
 
 
 def uuid_of(d):
@@ -47,6 +48,8 @@ def short(cpu):
     s = re.sub(r"\s+\d+-Cores?(\s+Processor)?", "", cpu)
     s = re.sub(r"\s+Processor|\s+CPU.*$|\(R\)|\(TM\)|™|®", "", s)
     s = s.replace("AMD ", "").replace("Ryzen Threadripper PRO", "TR PRO").replace("Ryzen Threadripper", "TR").replace("Ryzen ", "R")
+    if "Eng Sample" in s:
+        return "AMD ES, 2 sockets"
     s = s.replace("Intel ", "").replace("13th Gen ", "").replace("Core Ultra 9", "U9").replace("Core ", "").replace("Xeon Platinum", "Xeon")
     return re.sub(r"\s+", " ", s).strip()[:20]
 
@@ -71,7 +74,7 @@ def machines(C):
     G = ra["sum_law"][str(C)]["G"]
     seen, rows = set(), []
     hosts = json.load(open(P("prereg", "reanalysis_hosts.json")))["launches"]
-    dirs = [f"{RES}/{h['dir']}" for h in hosts] + sorted(glob.glob(f"{RES}/105?_sumlaw@vast")) + sorted(glob.glob(f"{RES}/106?_onlineadmit@vast"))
+    dirs = [f"{RES}/{h['dir']}" for h in hosts] + sorted(glob.glob(f"{RES}/105?_sumlaw@vast")) + sorted(glob.glob(f"{RES}/106?_onlineadmit@vast")) + sorted(glob.glob(f"{RES}/107?_newhosts@vast"))
     for d in dirs:
         if not os.path.exists(f"{d}/concur.txt") or not os.path.exists(f"{d}/nvidia-smi-q.txt"):
             continue
@@ -90,7 +93,12 @@ def machines(C):
         tl = G + tm(Mi + A)
         for _ in range(100):   # the law with its overlap term (eq. sum)
             tl = G + tm(Mi + A * (1 - G / tl))
-        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=G, min_ms=lim, law=tl, excess_ms=tl - G - lim))
+        import re
+        cores = int(re.search(r"usable physical cores (\d+)", open(f"{d}/cores.txt").read()).group(1))
+        m = re.search(r"available: (\d+) nodes", open(f"{d}/numa.txt").read()) if os.path.exists(f"{d}/numa.txt") else None
+        server = (int(m.group(1)) if m else 1) > 1 or cores > 32
+        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=G, min_ms=lim, law=tl, excess_ms=tl - G - lim,
+                         server=server))
     return rows
 
 
@@ -99,7 +107,7 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     M = {}
-    fig, axs = plt.subplots(1, 2, figsize=(7.0, 3.9), sharey=False)
+    fig, axs = plt.subplots(1, 2, figsize=(7.0, 4.1), sharey=False)
     cols = ("#3a6ea5", "#7a7974", "#d9822b")
     for ax, C, nm in zip(axs, (14, 32), ("Low", "Mid")):
         rows = sorted(machines(C), key=lambda r: -r["T"])
@@ -108,6 +116,9 @@ def main():
         ax.barh(y, g, color=cols[0], height=0.72, label="GPU compute (profiled)", edgecolor="white", linewidth=0.4)
         ax.barh(y, mn, left=g, color=cols[1], height=0.72, label="MIN's host reads (the bound)", edgecolor="white", linewidth=0.4)
         ax.barh(y, ex, left=g + mn, color=cols[2], height=0.72, label="reads beyond MIN's", edgecolor="white", linewidth=0.4)
+        short_ = np.array([max(0.0, r["T"] - r["law"]) for r in rows])
+        ax.barh(y, short_, left=g + mn + ex, color="white", height=0.72, hatch="////", edgecolor="#b5651d", linewidth=0.4,
+                label="reading below the machine's rate")
         ax.plot([r["T"] for r in rows], y, "o", color="black", ms=3.2, label="measured", zorder=5)
         ax.set_yticks(y); ax.set_yticklabels([r["cpu"] for r in rows], fontsize=6)
         ax.invert_yaxis()
@@ -116,6 +127,12 @@ def main():
         ax.grid(axis="x", color="#e4e4e2", lw=0.6); ax.set_axisbelow(True)
         for s in ("top", "right"):
             ax.spines[s].set_visible(False)
+        dk = np.array([not r["server"] for r in rows])
+        sv = [r for r in rows if r["server"]]
+        if sv:
+            M[f"dcServ{nm}N"] = str(len(sv))
+            M[f"dcServShort{nm}"] = ", ".join(f"{100 * (r['T'] - r['law']) / r['T']:.0f}" for r in sv)
+        g, mn, ex, rows = g[dk], mn[dk], ex[dk], [r for r, k in zip(rows, dk) if k]
         tot = g + mn + ex
         T = np.array([r["T"] for r in rows])
         M[f"dcMachines{nm}"] = str(len(rows))
@@ -126,8 +143,8 @@ def main():
         M[f"dcGapG{nm}Min"] = f"{100 * gap.min():.0f}"; M[f"dcGapG{nm}Max"] = f"{100 * gap.max():.0f}"
         M[f"dcLawErr{nm}Med"] = f"{100 * np.median(tot / T - 1):.0f}".replace("-", "$-$")
     h, l = axs[0].get_legend_handles_labels()
-    fig.legend(h, l, fontsize=7, frameon=False, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.0))
-    fig.tight_layout(pad=0.4, rect=(0, 0, 1, 0.94))
+    fig.legend(h, l, fontsize=7, frameon=False, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout(pad=0.4, rect=(0, 0, 1, 0.90))
     os.makedirs(P("paper", "figs"), exist_ok=True)
     fig.savefig(P("paper", "figs", "decomp.pdf")); fig.savefig(P("paper", "figs", "decomp.png"), dpi=170)
     with open(P("paper", "wsg_decomp.tex"), "w") as f:

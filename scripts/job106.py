@@ -202,6 +202,8 @@ def main():
         M["jiUnstableName"] = ", ".join(NAMES.get(j, j) for j in unstable)
     if unstable:
         M["jiUnstableVarMin"] = f"{100 * min(unstable.values()):.0f}"; M["jiUnstableVarMax"] = f"{100 * max(unstable.values()):.0f}"
+        sp = [max(hosts[j]["cells"]["g14"]["base_rounds"]) / min(hosts[j]["cells"]["g14"]["base_rounds"]) - 1 for j in unstable]
+        M["jiUnstableSpreadMax"] = f"{100 * max(sp):.0f}"; M["jiUnstableSpreadMin"] = f"{100 * min(sp):.0f}"   # max/min - 1, as job 107's check
         ue = [100 * abs(c["err"]["base"]["olap"]) for j in unstable for c in hosts[j]["cells"].values() if "err" in c and "base" in c["err"]]
         if ue:
             M["jiUnstErrMin"] = f"{min(ue):.0f}"; M["jiUnstErrMax"] = f"{max(ue):.0f}"
@@ -369,7 +371,7 @@ def main():
                     "problems). Hosts sorted by the probe's link-to-CPU ratio.}\\label{" + label + "}\n")
             f.write("\\setlength\\tabcolsep{2.2pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrlrrrlll@{}}\\toprule\n")
             f.write(" & Link/ & & $G$ & \\multicolumn{2}{c}{Deployed (ms)} & & & MIN, fewest \\\\\n")
-            f.write("Host & CPU & Budget & (ms) & law & meas. & dk & lrn & in the step \\\\\\midrule\n")
+            f.write("Host & CPU & Budget & (ms) & Eq.~3 & meas. & dk & lrn & in the step \\\\\\midrule\n")
             fmt = lambda v: "--" if not v else f"{v[0]:.2f} [{v[1]:.2f}, {v[2]:.2f}]"  # noqa: E731
             for j, h in sorted(which.items(), key=lambda x: x[1]["ratio"]):
                 for key in ("g14", "g32", "q16", "q32"):

@@ -23,7 +23,8 @@ RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 S = 13253760
 CELL = {14: "gpt-oss 11%", 32: "gpt-oss 25%"}
-UNSTABLE = ("106c", "106d", "107c", "107e", "108b")   # wrong outputs, or rounds further apart than 2%
+UNSTABLE = ("106c", "106d", "107c", "107e", "108b")
+NEW_IN_TEST = ("105a", "105b", "107b", "107d", "108a", "108d", "108f")   # machines first rented for a registered test of eq. sum   # wrong outputs, or rounds further apart than 2%
 
 
 def uuid_of(d):
@@ -89,16 +90,22 @@ def machines(C):
         seen.add(u)
         B = host_rates(open(f"{d}/concur.txt").read()) / 1e9
         lim = limit1_of(d).get(CELL[C])
+        Gh, prof = G, False   # the host's own profile where one was taken and captured the decode kernels
+        if os.path.exists(f"{d}/g_prof.json"):
+            gp = json.load(open(f"{d}/g_prof.json")); v = (gp.get(f"G{C}") or gp.get(f"C{C}") or {}).get("G_prof_ms")
+            if v and v > 1.0:
+                Gh, prof = v, True
         tm = lambda r: r * S / (B * 1e9) * 1e3  # noqa: E731
-        tl = G + tm(Mi + A)
-        for _ in range(100):   # the law with its overlap term (eq. sum)
-            tl = G + tm(Mi + A * (1 - G / tl))
+        tl = Gh + tm(Mi + A)
+        for _ in range(100):   # the relation with its overlap term (eq. sum)
+            tl = Gh + tm(Mi + A * (1 - Gh / tl))
         import re
         cores = int(re.search(r"usable physical cores (\d+)", open(f"{d}/cores.txt").read()).group(1))
         m = re.search(r"available: (\d+) nodes", open(f"{d}/numa.txt").read()) if os.path.exists(f"{d}/numa.txt") else None
         server = bool(re.search(r"EPYC|Xeon|Eng Sample", cpu_of(d)))   # server processors (after jobs 107-108)
-        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=G, min_ms=lim, law=tl, excess_ms=tl - G - lim,
-                         server=server))
+        new = os.path.basename(d)[:4] in NEW_IN_TEST
+        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=Gh, prof=prof, min_ms=lim, law=tl,
+                         excess_ms=tl - Gh - lim, server=server, new=new))
     return rows
 
 
@@ -110,7 +117,17 @@ def main():
     fig, axs = plt.subplots(1, 2, figsize=(7.0, 4.1), sharey=False)
     cols = ("#3a6ea5", "#7a7974", "#d9822b")
     for ax, C, nm in zip(axs, (14, 32), ("Low", "Mid")):
-        rows = sorted(machines(C), key=lambda r: -r["T"])
+        rows = machines(C)
+        rows = sorted([r for r in rows if not r["server"]], key=lambda r: -r["T"]) + sorted([r for r in rows if r["server"]], key=lambda r: -r["T"])
+        # unique labels: repeated CPU models numbered in order; machines first rented for a registered test marked
+        cnt, seenl = {}, {}
+        for r in rows:
+            cnt[r["cpu"]] = cnt.get(r["cpu"], 0) + 1
+        for r in sorted(rows, key=lambda r: r["dir"]):   # numbered by launch order, the same in both panels
+            lab = r["cpu"]
+            if cnt[lab] > 1:
+                seenl[lab] = seenl.get(lab, 0) + 1; lab = f"{lab} ({seenl[lab]})"
+            r["label"] = lab + (" *" if r["new"] else "")
         y = np.arange(len(rows))
         g = np.array([r["G"] for r in rows]); mn = np.array([r["min_ms"] for r in rows]); ex = np.array([r["excess_ms"] for r in rows])
         ax.barh(y, g, color=cols[0], height=0.72, label="GPU compute (profiled)", edgecolor="white", linewidth=0.4)
@@ -120,7 +137,9 @@ def main():
         ax.barh(y, short_, left=g + mn + ex, color="white", height=0.72, hatch="////", edgecolor="#b5651d", linewidth=0.4,
                 label="reading below the machine's rate")
         ax.plot([r["T"] for r in rows], y, "o", color="black", ms=3.2, label="measured", zorder=5)
-        ax.set_yticks(y); ax.set_yticklabels([r["cpu"] for r in rows], fontsize=6)
+        ax.set_yticks(y); ax.set_yticklabels([r["label"] for r in rows], fontsize=6)
+        ns = sum(not r["server"] for r in rows)
+        ax.axhline(ns - 0.5, color="#52514e", lw=0.6, ls="--")
         ax.invert_yaxis()
         ax.set_xlabel("ms per token", fontsize=8); ax.tick_params(axis="x", labelsize=7)
         ax.set_title(CELL[C].replace("%", "\\%") if False else CELL[C], fontsize=9)

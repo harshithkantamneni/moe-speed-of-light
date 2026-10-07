@@ -12,8 +12,8 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
-          ("bypass", "MIN, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "single read", "#7a7974", "v"),
+SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN greedy, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
+          ("bypass", "MIN greedy, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "single read", "#7a7974", "v"),
           ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "deployed + layer-ahead copy", "#a4243b", "P")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
 
@@ -82,7 +82,17 @@ def points():
             for k in ("fetchplan",):
                 if c and c["speed"].get(k):
                     pts.append((h["job"], h["ratio"], "gpt-oss 11%", k, c["speed"][k][0]))
+    # job 107: the two machines new to it that passed every validity check (the fewest-admission set copied in the step)
+    pj = P("prereg", "job107.json")
+    if os.path.exists(pj):
+        for h in json.load(open(pj))["hosts"]:
+            c = h["cells"].get("g14")
+            if h.get("valid") and c and c["speed"].get("fetchplan"):
+                pts.append((h["job"], h["ratio"], "gpt-oss 11%", "fetchplan", c["speed"]["fetchplan"][0]))
     return pts
+
+
+PLOTTED = ("fetchplan", "fetch", "bypass", "pf")   # the series the text discusses; the macros use every series
 
 
 def main():
@@ -94,6 +104,8 @@ def main():
     for ax, lab in zip(axs, CELLS):
         ax.axhline(1.0, color="#52514e", lw=0.8)
         for k, name, col, mk in SERIES:
+            if k not in PLOTTED:
+                continue
             xs = [p[1] for p in pts if p[2] == lab and p[3] == k]
             ys = [p[4] for p in pts if p[2] == lab and p[3] == k]
             if xs:

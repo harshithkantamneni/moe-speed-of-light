@@ -26,6 +26,10 @@ taken. The registration does not cover this case.
   done for 30 of the 34 launches the relation was found on.
 - Any G in the range of those profiles leaves 108a off by 26.7–35.1%.
 
+**A false statement in the registration.** The header said none of the listed offers was in the rental ledger.
+Offer 54156078 (108d) had been rented for 4 minutes in job 099a, which produced no data. Its GPU UUID matched no earlier
+launch, so gate V0 let it through.
+
 ## Score
 
 21 clauses: 13 held on the point estimate, 6 failed, 2 untested.

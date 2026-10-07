@@ -47,7 +47,28 @@ stopped a Ryzen 7 5700X3D whose GPU job 100 had rented, and an EPYC 9354 host wi
 Machines were rented from the registered list in order until \jmRequiredWord{} were valid. On both EPYC hosts the Nsight
 trace held almost no kernels (driver 570; the Ryzen hosts ran drivers 580 and later), so their $G$ is the median of
 \jmFallbackHosts{} earlier profiles (\jmFallbackGLow{} and \jmFallbackGMid\,ms). Without the EPYC 7543 the median error
-over the \jmProfOnlyCells{} cells is \jmProfOnlyMed\% and all are within 8\%.
+over the \jmProfOnlyCells{} cells is \jmProfOnlyMed\% and all are within 8\%. The registered offer list said none of its offers was in the rental ledger; one, the 9950X3D's, had been rented for a few minutes in job 099 without producing data, and its GPU matched no earlier launch's.
+
+\paragraph{Admitting less, in detail.} The margin $\kappa$ was chosen as the value that minimises the deployed path's
+reads on each model's mixed-domain text, not the AIME text (\texttt{scripts/online\_admit.py}): 3 at the smallest budget
+and 2 at 25\%. It cuts the deployed cache's host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at gpt-oss 11\% and
+\jiDkReadsGMidMin--\jiDkReadsGMidMax\% at 25\%. On the three machines of job 106 that ran stably it ran
+\jiDkGLowMin--\jiDkGLowMax$\times$ and \jiDkGMidMin--\jiDkGMidMax$\times$ the deployed cache (Qwen3:
+\jiDkQLowMin--\jiDkQMidMax$\times$; \cref{tab:job106all}). We had registered at least 1.01 at gpt-oss on every host: it
+fell short on two of the three stable ones, and the registered pooled median of at least 1.02 held only through the
+two unstable machines (\jiDkPooled{} on the stable ones). On the \jlValidWord{} valid machines of job 107 it ran
+\jlDkMin--\jlDkMax$\times$ (median \jlDkMed), below the registered 0.995 at \jlDkFailWord{} cell, the server at gpt-oss
+25\%. Predicted from each configuration's own counters, \cref{eq:sum} gives these ratios within a median
+\jiRatioPredMed{} on job 106's stable machines, but predicting no change does almost as well (\jiNoChangeMed), and on
+job 107's server it missed the registered 0.03 at \jlDkPredFailN{} cells. A learned reuse predictor with the same kind
+of margin (job 097's, fitted on other text) reads less still (\jiLrnReadsGLowMin--\jiLrnReadsGMidMax\% fewer) but costs
+\jiLrnUsGMin--\jiLrnUsGMax\,$\mu$s of host time per token on gpt-oss and runs \jiLrnGLowMin--\jiLrnGMidMax$\times$: it pays
+where host memory is slow and loses where it is fast, against the registered prediction that it would not lose.
+
+\paragraph{The slowest link.} On the EPYC 7302 host of job 106, whose link moves \jiVsLink\,GB/s, the fewest-admission
+set copied in the step lost in each round (\jiVsPlanMin--\jiVsPlanMax$\times$); that host computed wrong outputs
+throughout, so we draw nothing from it, but below some link rate even the fewest-admission set should not be copied in
+the step.
 
 \paragraph{The machine decides how much.} Across machines, the gain of every state that moves reads from the CPU to
 the link follows the link-to-CPU ratio (Spearman over the machines that ran it through job 104, 95\% bootstrap

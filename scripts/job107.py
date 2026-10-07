@@ -360,7 +360,7 @@ def main():
                 "intervals are over problems). Hosts sorted by the probe's link-to-CPU ratio.}\\label{tab:job107}\n")
         f.write("\\setlength\\tabcolsep{2.2pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrlrrrlll@{}}\\toprule\n")
         f.write(" & Link/ & & $G$ & \\multicolumn{2}{c}{Deployed (ms)} & & \\multicolumn{2}{c}{MIN, fewest admissions} \\\\\n")
-        f.write("Host & CPU & Budget & (ms) & law & meas. & dk & in the step & by the CPU \\\\\\midrule\n")
+        f.write("Host & CPU & Budget & (ms) & Eq.~3 & meas. & dk & in the step & by the CPU \\\\\\midrule\n")
         fmt = lambda v: "--" if not v else f"{v[0]:.2f} [{v[1]:.2f}, {v[2]:.2f}]"  # noqa: E731
         for j, h in sorted(hosts.items(), key=lambda x: x[1]["ratio"]):
             for key in ("g14", "g32", "q16", "q32"):

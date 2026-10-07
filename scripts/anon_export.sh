@@ -24,6 +24,7 @@ rm -rf "$DST" && mkdir -p "$DST/gpu-branch"
 git -C "$ROOT" archive --format=tar HEAD \
   -- . ':(exclude)apply' ':(exclude)reports' ':(exclude)research_notes' ':(exclude)paper/archive' \
        ':(exclude)paper/paper_v1_prereview.tex' ':(exclude)paper/paper_v2_prerewrite.tex' ':(exclude)paper/audit_paper.tex' \
+       ':(exclude)scripts/anon_export.sh' \
   | tar -x -C "$DST"
 
 # 2. the gpu branch at its tip: job scripts (with the registered predictions) and results

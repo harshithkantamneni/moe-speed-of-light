@@ -1,0 +1,402 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/108_smallhosts@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-f8ad0eb7-a0c9-ad0d-9f1b-5bc318f31fa1
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/108d_smallhosts@vast/free.txt
++ USEDGB=3
++ echo 'GPU UUID GPU-f8ad0eb7-a0c9-ad0d-9f1b-5bc318f31fa1; host memory in use 3 GB'
++ tee /w/results/108d_smallhosts@vast/v0.txt
+GPU UUID GPU-f8ad0eb7-a0c9-ad0d-9f1b-5bc318f31fa1; host memory in use 3 GB
++ grep -qx GPU-f8ad0eb7-a0c9-ad0d-9f1b-5bc318f31fa1 /w/jobs/ec2/known_gpu_uuids.txt
++ '[' 3 -le 48 ']'
++ echo 'V0 identity and memory ok'
++ tee -a /w/results/108d_smallhosts@vast/v0.txt
+V0 identity and memory ok
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32'
++ PROF_KEEP_TAIL='G14 G32'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791359206
++ BUDGET=4500
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=59206
++ echo 'order seed base 59206'
++ tee /w/results/108d_smallhosts@vast/order_seed.txt
+order seed base 59206
++ NSEQ=20
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/108d_smallhosts@vast/cpu.txt
+CPU(s):                                  32
+Model name:                              AMD Ryzen 9 9950X3D 16-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      42%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/108d_smallhosts@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32); NUMA nodes 1'
+usable physical cores 16 (nproc 32); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 16 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/108d_smallhosts@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/108d_smallhosts@vast/bw_gate.txt
++ DR=1691
++ echo 'device read 1691 GB/s'
++ tee -a /w/results/108d_smallhosts@vast/gate.txt
+device read 1691 GB/s
++ '[' 1691 -ge 1500 ']'
+++ awk '/Mem:/{print $2}' /w/results/108d_smallhosts@vast/free.txt
++ RAMGB=91
++ echo 'host RAM 91 GB, in use 3 GB'
++ tee -a /w/results/108d_smallhosts@vast/gate.txt
+host RAM 91 GB, in use 3 GB
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=120
++ echo 'disk free 120 GB'
++ tee -a /w/results/108d_smallhosts@vast/gate.txt
+disk free 120 GB
++ '[' 120 -ge 100 ']'
++ echo 'V0c class, card and disk ok'
++ tee -a /w/results/108d_smallhosts@vast/v0.txt
+V0c class, card and disk ok
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet numpy
++ mkdir -p /work/models
++ DLG=6313
++ NSP=6314
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ install_nsys
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/108d_smallhosts@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
+++ basename /work/lc-ec
++ head -20
++ grep -E error /w/results/108d_smallhosts@vast/build_lc-ec.txt
++ wait 6314
++ install_nsys
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/108d_smallhosts@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct  7 07:48 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/known_gpu_uuids.txt
++ tee /w/results/108d_smallhosts@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+21b9c77fbf94b7d65334b733da57da9a48b3b30fb0ed43a5e4361292f7cb7092  /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/108d_smallhosts@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/108d_smallhosts@vast/concur.txt 14 13253760 4 /w/results/108d_smallhosts@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,2,3
++ tee /w/results/108d_smallhosts@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-07T07:49:21Z): gpt-oss 0,0,1,2,3'
+law table (2026-10-07T07:49:21Z): gpt-oss 0,0,1,2,3
++ '[' -n 0,0,1,2,3 ']'
+++ date +%s
++ echo 'build and probe done, waiting for the gpt-oss download (155 s since launch)'
+build and probe done, waiting for the gpt-oss download (155 s since launch)
++ wait 6313
++ cat /w/results/108d_smallhosts@vast/dl_gguf.txt
+++ date +%s
++ t0=1791359215
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+++ date +%s
++ echo 'gguf hf download rc=0 in 612 s'
+gguf hf download rc=0 in 612 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  7 07:57 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ MB=mailbox=1:tdec=1:helpers=14
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ for C in 14 32
++ prof_run G14 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G14
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G14 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G14 rc=0'
+prof G14 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G14 /work/prof_G14.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G14 --out /w/results/108d_smallhosts@vast --keep-tail
++ '[' -f /work/prof_G14_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G14_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G14_cuda_api_trace.csv /work/prof_G14_cuda_gpu_kern_sum.csv /work/prof_G14_cuda_gpu_trace.csv /work/prof_G14.sqlite
++ ls -la /w/results/108d_smallhosts@vast/prof_G14.err /w/results/108d_smallhosts@vast/prof_G14.json /w/results/108d_smallhosts@vast/prof_G14.stdout /w/results/108d_smallhosts@vast/prof_G14_kern_sum.csv.gz /w/results/108d_smallhosts@vast/prof_G14_tail.csv.gz
+-rw-r--r-- 1 root root 396720 Oct  7 07:57 /w/results/108d_smallhosts@vast/prof_G14.err
+-rw-r--r-- 1 root root   4146 Oct  7 07:57 /w/results/108d_smallhosts@vast/prof_G14.json
+-rw-r--r-- 1 root root   1966 Oct  7 07:57 /w/results/108d_smallhosts@vast/prof_G14.stdout
+-rw-r--r-- 1 root root   2397 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G14_kern_sum.csv.gz
+-rw-r--r-- 1 root root 201598 Oct  7 07:57 /w/results/108d_smallhosts@vast/prof_G14_tail.csv.gz
++ for C in 14 32
++ prof_run G32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G32 rc=0'
+prof G32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G32 /work/prof_G32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G32 --out /w/results/108d_smallhosts@vast --keep-tail
++ '[' -f /work/prof_G32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G32_cuda_api_trace.csv /work/prof_G32_cuda_gpu_kern_sum.csv /work/prof_G32_cuda_gpu_trace.csv /work/prof_G32.sqlite
++ ls -la /w/results/108d_smallhosts@vast/prof_G32.err /w/results/108d_smallhosts@vast/prof_G32.json /w/results/108d_smallhosts@vast/prof_G32.stdout /w/results/108d_smallhosts@vast/prof_G32_kern_sum.csv.gz /w/results/108d_smallhosts@vast/prof_G32_tail.csv.gz
+-rw-r--r-- 1 root root 396721 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G32.err
+-rw-r--r-- 1 root root   4060 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G32.json
+-rw-r--r-- 1 root root   1966 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G32.stdout
+-rw-r--r-- 1 root root   2368 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 201117 Oct  7 07:58 /w/results/108d_smallhosts@vast/prof_G32_tail.csv.gz
++ python3 - /w/results/108d_smallhosts@vast G14 G32
+++ date -u +%FT%TZ
++ echo 'G_prof written 2026-10-07T07:58:51Z, before any timed run:'
+G_prof written 2026-10-07T07:58:51Z, before any timed run:
++ cat /w/results/108d_smallhosts@vast/g_prof.json
+{"G14": {"G_prof_ms": 4.1859530000000005, "wall_ms": 22.046632, "wait_ms": 2.201597, "copy_ms": 15.9326785}, "G32": {"G_prof_ms": 4.2413785, "wall_ms": 15.3056, "wait_ms": 3.5764085, "copy_ms": 8.352753}}
++ FAILED=
++ run_round 14 1
++ local C=14 rd=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r1_base.json
++ echo 'cell g C14 round 1 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r1_base.json'
+++ date +%s
++ local t0=1791359931
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 59320 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r1_base.json
++ local rc=0
+++ date +%s
++ echo 'cell g C14 round 1 rc=0 in 157 s'
+cell g C14 round 1 rc=0 in 157 s
+++ date +%s
++ echo 'ec_g_C14_r1 0 157'
++ tail -n 30 /w/results/108d_smallhosts@vast/ec_g_C14_r1.err
++ rm -f /w/results/108d_smallhosts@vast/ec_g_C14_r1.err
++ vcheck V1
++ python3 - /w/results/108d_smallhosts@vast V1
++ tee -a /w/results/108d_smallhosts@vast/validity.txt
+V1 ec_g_C14_r1.jsonl loss 0.1904 vs 0.190: ok
++ '[' 0 -eq 0 ']'
++ '[' -z '' ']'
++ run_round 14 2
++ local C=14 rd=2
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r2_base.json
++ echo 'cell g C14 round 2 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r2_base.json'
+++ date +%s
++ local t0=1791360088
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 59420 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C14_r2_base.json
++ local rc=0
+++ date +%s
++ echo 'cell g C14 round 2 rc=0 in 156 s'
+cell g C14 round 2 rc=0 in 156 s
+++ date +%s
++ echo 'ec_g_C14_r2 0 156'
++ tail -n 30 /w/results/108d_smallhosts@vast/ec_g_C14_r2.err
++ rm -f /w/results/108d_smallhosts@vast/ec_g_C14_r2.err
++ vcheck V2
++ python3 - /w/results/108d_smallhosts@vast V2
++ tee -a /w/results/108d_smallhosts@vast/validity.txt
+V2 base ms/token 18.086 18.105: spread 0.10%: ok
++ '[' 0 -eq 0 ']'
++ '[' -z '' ']'
++ run_round 32 1
++ local C=32 rd=1
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r1_base.json
++ echo 'cell g C32 round 1 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r1_base.json'
+++ date +%s
++ local t0=1791360245
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 59338 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r1_base.json
++ local rc=0
+++ date +%s
++ echo 'cell g C32 round 1 rc=0 in 121 s'
+cell g C32 round 1 rc=0 in 121 s
+++ date +%s
++ echo 'ec_g_C32_r1 0 121'
++ tail -n 30 /w/results/108d_smallhosts@vast/ec_g_C32_r1.err
++ rm -f /w/results/108d_smallhosts@vast/ec_g_C32_r1.err
++ run_round 32 2
++ local C=32 rd=2
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r2_base.json
++ echo 'cell g C32 round 2 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r2_base.json'
+++ date +%s
++ local t0=1791360366
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 59438 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/108d_smallhosts@vast/st_g_C32_r2_base.json
++ local rc=0
+++ date +%s
++ echo 'cell g C32 round 2 rc=0 in 122 s'
+cell g C32 round 2 rc=0 in 122 s
+++ date +%s
++ echo 'ec_g_C32_r2 0 122'
++ tail -n 30 /w/results/108d_smallhosts@vast/ec_g_C32_r2.err
++ rm -f /w/results/108d_smallhosts@vast/ec_g_C32_r2.err
++ vcheck V1
++ tee -a /w/results/108d_smallhosts@vast/validity.txt
++ python3 - /w/results/108d_smallhosts@vast V1
+V1 ec_g_C14_r1.jsonl loss 0.1904 vs 0.190: ok
+V1 ec_g_C14_r2.jsonl loss 0.1904 vs 0.190: ok
+V1 ec_g_C32_r1.jsonl loss 0.1903 vs 0.190: ok
+V1 ec_g_C32_r2.jsonl loss 0.1903 vs 0.190: ok
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf
++ python3 - /w/results/108d_smallhosts@vast
++ tee /w/results/108d_smallhosts@vast/summary.txt
+ec_g_C14_r1.jsonl        55.29 tok/s  18.09 ms misses 59.65 admits 3.46
+ec_g_C14_r2.jsonl        55.23 tok/s  18.10 ms misses 59.65 admits 3.46
+ec_g_C32_r1.jsonl        88.96 tok/s  11.24 ms misses 29.57 admits 4.25
+ec_g_C32_r2.jsonl        89.10 tok/s  11.22 ms misses 29.57 admits 4.25
+++ cat /w/results/108d_smallhosts@vast/oneline.txt
++ ONE='108 g_C14_r1 55.3 g_C14_r2 55.2 g_C32_r1 89.0 g_C32_r2 89.1'
++ python3 /w/jobs/ec2/manifest.py /w/results/108d_smallhosts@vast 108_smallhosts@vast 1791359206 '108 g_C14_r1 55.3 g_C14_r2 55.2 g_C32_r1 89.0 g_C32_r2 89.1' law_gptoss=0,0,1,2,3 device_read_gbs=1691 memory_clock_max_mhz=14001
+manifest: 58 files, 1282 s; 108 g_C14_r1 55.3 g_C14_r2 55.2 g_C32_r1 89.0 g_C32_r2 89.1
++ cat /w/results/108d_smallhosts@vast/validity.txt
+V1 ec_g_C14_r1.jsonl loss 0.1904 vs 0.190: ok
+V2 base ms/token 18.086 18.105: spread 0.10%: ok
+V1 ec_g_C14_r1.jsonl loss 0.1904 vs 0.190: ok
+V1 ec_g_C14_r2.jsonl loss 0.1904 vs 0.190: ok
+V1 ec_g_C32_r1.jsonl loss 0.1903 vs 0.190: ok
+V1 ec_g_C32_r2.jsonl loss 0.1903 vs 0.190: ok
++ echo 'SUMMARY: 108 g_C14_r1 55.3 g_C14_r2 55.2 g_C32_r1 89.0 g_C32_r2 89.1'
+SUMMARY: 108 g_C14_r1 55.3 g_C14_r2 55.2 g_C32_r1 89.0 g_C32_r2 89.1

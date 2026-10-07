@@ -6,7 +6,7 @@
 ## 8 October: restructure for clarity and significance, review rounds 17 to 19
 
 **Status for Harshith (read this first).** Scores by round, MLSys PC / professor (clarity in brackets):
-round 16 **5 / 6** (3, 3) → round 17 **6 / 6** (3, 3) → round 18 **6 / 7** (3, 3) → round 19 **6 / 6** (3, 3).
+round 16 **5 / 6** (3, 3) → round 17 **6 / 6** (3, 3) → round 18 **6 / 7** (3, 3) → round 19 **6 / 6** (3, 3) → round 20, after the last small fixes, **6 / 7** (3, 3).
 Every number the reviewers recomputed (35–47 claims a round) reproduced from the raw data.
 
 - **What changed (restructure):**
@@ -28,6 +28,13 @@ Every number the reviewers recomputed (35–47 claims a round) reproduced from t
   2. One more clarity pass: abstract down to about four numbers, one machine set for all headline claims, each number
      stated once.
 - **Anonymity:** author block in an untracked `paper/authors.tex`; `scripts/anon_export.sh` builds the review copy.
+- **Round 20's remaining points (not yet fixed):**
+  - Table 3 mixes measured rows with assumed ones (T_GPU, extra reads) under one heading; "MIN, prefetched" also reads
+    1.22–1.44× R*, so "reading ahead" mixes timing with extra reads.
+  - B_c and B_p mean the highest readings in Eq. 3 but helper-count rates in the link-to-CPU ratio; one machine moves
+    from 0.49 to 0.60 between the two.
+  - "The bound" is ambiguous (Eq. 1 vs the larger of Eq. 1 and Eq. 3); Table 4's intervals are within one launch.
+  - Appendix D misses two job 097 rentals and a first 099d rental that produced no results.
 
 ## 7 October (late night, cont.): round-15 small problems, review round 16 (5, 6)
 

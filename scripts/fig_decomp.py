@@ -133,6 +133,7 @@ def main():
             M[f"dcServ{nm}N"] = str(len(sv))
             M[f"dcServShort{nm}"] = ", ".join(f"{100 * (r['T'] - r['law']) / r['T']:.0f}" for r in sv)
         g, mn, ex, rows = g[dk], mn[dk], ex[dk], [r for r, k in zip(rows, dk) if k]
+        M[f"dcDeskShort{nm}Max"] = f"{100 * max(max(0.0, r['T'] - r['law']) / r['T'] for r in rows):.0f}"
         tot = g + mn + ex
         T = np.array([r["T"] for r in rows])
         M[f"dcMachines{nm}"] = str(len(rows))

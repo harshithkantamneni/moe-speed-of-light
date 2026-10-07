@@ -28,6 +28,7 @@ CELLS = (("g", 14, 2), ("g", 32, 2), ("q", 16, 1), ("q", 32, 1))
 LAB = {("g", 14): "gpt-oss 11%", ("g", 32): "gpt-oss 25%", ("q", 16): "Qwen3 12.5%", ("q", 32): "Qwen3 25%"}
 SHORT = {("g", 14): "g11", ("g", 32): "g25", ("q", 16): "q12", ("q", 32): "q25"}
 REF = {"g": 0.190, "q": 0.0855}
+REQUIRED, MEM_GATE, CLASS_CORES = 3, 48, 32   # registered: valid hosts needed, GB in use at the gate; after the fact: the class rule
 j106.RNG = np.random.default_rng(107)
 
 
@@ -98,7 +99,8 @@ def machine_classes():
                            if r["config"].rsplit("stats=", 1)[-1].endswith("_base.json")]))
         G = G0
         if os.path.exists(f"{d}/g_prof.json"):
-            G = json.load(open(f"{d}/g_prof.json")).get("G14", {}).get("G_prof_ms", G0)
+            gp = json.load(open(f"{d}/g_prof.json"))
+            G = (gp.get("G14") or gp.get("C14") or {}).get("G_prof_ms", G0)
         B = hi["b_host"]
         t = law(G, Mi, A, B, S["g"])
         eff = (Mi + A * (1 - G / T)) * S["g"] / ((T - G) * 1e-3) / 1e9 / B
@@ -110,7 +112,7 @@ def machine_classes():
             if os.path.exists(f"{d}/nvidia-smi-q.txt") else j
         out.append(dict(dir=j, cpu=hi["cpu"], cores=hi["cores"], numa=numa, B_host=B, eff=eff, err=t / T - 1, uuid=uuid,
                         cls_why=f"{numa} NUMA nodes, {hi['cores']} cores", valid=j[:4] not in INVALID,
-                        **{"class": "server" if numa > 1 or hi["cores"] > 32 else "desktop"}))
+                        **{"class": "server" if numa > 1 or hi["cores"] > CLASS_CORES else "desktop"}))
     return out
 
 
@@ -247,6 +249,61 @@ def main():
     rng("jlUsedGate", [g["used_gb"] for g in gated.values()], "{:.0f}")
     rng("jlInvalidSpread", [100 * h["V2_spread"] for h in inv.values()], "{:.1f}")
     rng("jlInvErr", [100 * abs(h["cells"]["g14"]["err"]["base"]["olap"]) for h in inv.values() if "err" in h["cells"].get("g14", {})], "{:.0f}")
+    word = lambda n: num[n] if n < len(num) else str(n)  # noqa: E731
+    M["jlRequiredWord"] = word(REQUIRED); M["jlGatedWord"] = word(len(gated)); M["jlRanWord"] = word(len(hosts))
+    M["jlMemGate"] = str(MEM_GATE); M["jlClassCores"] = str(CLASS_CORES)
+    for j, h in hosts.items():   # per host, by job letter: round spread, the relation's error at gpt-oss 11%, cores
+        L = j[-1]
+        M[f"jlSpread{L}"] = f"{100 * h['V2_spread']:.1f}" if h["V2_spread"] is not None else "--"
+        if "err" in h["cells"].get("g14", {}):
+            M[f"jlErrG{L}"] = f"{100 * abs(h['cells']['g14']['err']['base']['olap']):.0f}"
+        M[f"jlCores{L}"] = str(h["cores"])
+    if errs_olap:
+        # no third host could have brought the pooled median under 4%: the median of the known errors with four more
+        # cells of zero error (a third host's four cells)
+        z = sorted(list(np.abs(errs_olap)) + [0.0] * 4)
+        M["jlMedFloor"] = f"{100 * (z[len(z) // 2 - 1] + z[len(z) // 2]) / 2:.1f}"
+    # per valid host, each form's median |error| and cells within 6%
+    for j, h in valid.items():
+        nm = "Serv" if h["cores"] > CLASS_CORES or h.get("numa", 1) > 1 or "engineering" in h["name"] else "Desk"
+        f_err = {"Ol": [], "Pl": [], "Half": [], "Miss": []}
+        for c in h["cells"].values():
+            if "err" not in c or "base" not in c["err"]:
+                continue
+            ct = c["counters"]["base"]; tm = lambda r, c=c: r * S[c["tag"]] / (h["b_host"] * 1e9) * 1e3  # noqa: E731
+            f_err["Ol"].append(c["err"]["base"]["olap"]); f_err["Pl"].append(c["err"]["base"]["plain"])
+            f_err["Half"].append((c["G"] + tm(ct["misses"] + 0.5 * ct["admits"])) / c["ms"]["base"] - 1)
+            f_err["Miss"].append((c["G"] + tm(ct["misses"])) / c["ms"]["base"] - 1)
+        for k, v in f_err.items():
+            a = np.abs(v)
+            M[f"jlNew{nm}{k}Med"] = f"{100 * np.median(a):.1f}"; M[f"jlNew{nm}{k}Within"] = str(int(np.sum(a <= 0.06)))
+        M[f"jlNew{nm}Cells"] = str(len(f_err["Ol"]))
+        M[f"jlFail{nm}Word"] = word(int(np.sum(np.abs(f_err["Ol"]) > 0.06)))
+        M[f"jlNew{nm}Cores"] = str(h["cores"])
+        if nm == "Serv":
+            meds = [np.median(np.abs(v)) for v in f_err.values()]
+            M["jlNewServFormMin"] = f"{100 * min(meds):.0f}"; M["jlNewServFormMax"] = f"{100 * max(meds):.0f}"
+            # the server's best rate rests on one concurrent reading; against its best CPU-only reading instead
+            txt = open(f"{RES}/{h['dir']}/concur.txt").read()
+            cpu = [float(x) for x in re.findall(r"^cpu_read_gbs t=\d+ ([\d.]+)", txt, re.M)]
+            cpuH = re.findall(rf"^cpu_read_gbs t=(\d+) ([\d.]+)", txt, re.M)
+            Bb = max(cpu)
+            c = h["cells"]["g14"]; ct = c["counters"]["base"]; T = c["ms"]["base"]; G = c["G"]
+            t = law(G, ct["misses"], ct["admits"], Bb, S["g"])
+            M["jlServBhost"] = f"{h['b_host']:.0f}"; M["jlServCpuBest"] = f"{Bb:.0f}"
+            M["jlServCpuBestThreads"] = next(n for n, v in cpuH if float(v) == Bb)
+            big = min(cpuH, key=lambda x: abs(int(x[0]) - h["helpers"]))   # the probe at about the engine's thread count
+            M["jlServCpuManyThreads"] = big[0]; M["jlServCpuMany"] = f"{float(big[1]):.0f}"; M["jlServHelpers"] = str(h["helpers"])
+            M["jlServAltErr"] = f"{100 * abs(t / T - 1):.0f}"
+            M["jlServAltEff"] = f"{(ct['misses'] + ct['admits'] * (1 - G / T)) * S['g'] / ((T - G) * 1e-3) / 1e9 / Bb:.2f}"
+            M["jlServEffValid"] = f"{(ct['misses'] + ct['admits'] * (1 - G / T)) * S['g'] / ((T - G) * 1e-3) / 1e9 / h['b_host']:.2f}"
+    # the relation's prediction of dk/base where it missed the registered 0.03
+    pf = [c["measured"] for c in clauses if "-P4-" in c["id"] and c["status"] == "failed"]
+    M["jlDkPredFailN"] = word(len(pf))
+    if pf:
+        M["jlDkPredFailMin"] = f"{min(pf):.3f}"; M["jlDkPredFailMax"] = f"{max(pf):.3f}"
+    dkf = [c for c in clauses if "-P3-speed-" in c["id"] and c["status"] == "failed"]
+    M["jlDkFailWord"] = word(len(dkf))
     # the admission margin at gpt-oss over the machines of jobs 106 (the three that ran stably) and 107 (the valid ones)
     dkg = [c["speed"]["dk"][0] for h in valid.values() for c in h["cells"].values() if c["tag"] == "g" and c["speed"].get("dk")]
     n106 = 0
@@ -269,6 +326,12 @@ def main():
         M[f"jl{nm}EffMed"] = f"{np.median([e['eff'] for e in sel]):.2f}"
         M[f"jl{nm}Within"] = str(sum(abs(e["err"]) <= 0.06 for e in sel))
         M[f"jl{nm}Valid"] = str(sum(e["valid"] for e in sel))
+    fd = [e for e in E if e["class"] == "desktop" and not e["dir"].startswith("107")]
+    M["jlFoundN"] = str(len(fd)); M["jlFoundMachines"] = str(len({e["uuid"] for e in fd}))
+    M["jlFoundWithin"] = str(sum(abs(e["err"]) <= 0.06 for e in fd)); rng("jlFoundEff", [e["eff"] for e in fd])
+    M["jlFoundMissN"] = str(sum(abs(e["err"]) > 0.06 for e in fd))
+    M["jlServValidWord"] = word(sum(e["valid"] for e in E if e["class"] == "server"))
+    M["jlServInvalidWord"] = word(sum(not e["valid"] for e in E if e["class"] == "server"))
     de = sorted(e["eff"] for e in E if e["class"] == "desktop")
     M["jlDeskEffSecond"] = f"{de[-2]:.2f}"; M["jlDeskEffLowSecond"] = f"{de[1]:.2f}"
     M["jlServCoresMin"] = str(min(e["cores"] for e in E if e["class"] == "server"))

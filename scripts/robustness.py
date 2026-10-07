@@ -21,7 +21,7 @@ from scipy import stats
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
-from scripts.job106 import law  # noqa: E402
+from scripts.job106 import law, host_info  # noqa: E402
 
 RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
@@ -97,12 +97,17 @@ def main():
             r[f"err_{nm}"] = law(r["G"], r["M"], r["A"], B, S) / r["T"] - 1
             r[f"eff_{nm}"] = (r["M"] + r["A"] * (1 - r["G"] / r["T"])) * S / ((r["T"] - r["G"]) * 1e-3) / 1e9 / B
     cons = [r for r in good if r["fam"] == "consumer"]
-    gap = [r["Bmax"] / r["B2"] - 1 for r in {r["dir"]: r for r in good}.values()]
+    gap = [1 - r["B2"] / r["Bmax"] for r in {r["dir"]: r for r in good}.values()]
     M["rbLaunchBudgets"] = str(len(good))
     M["rbSecondGapMed"] = f"{100 * np.median(gap):.1f}"; M["rbSecondGapMax"] = f"{100 * max(gap):.0f}"
     M["rbSecondGapOverFive"] = str(sum(g > 0.05 for g in gap)); M["rbLaunches"] = str(len(gap))
     byl = {r["dir"]: r for r in good}
     M["rbSecondGapLaunch"] = max(byl, key=lambda d: byl[d]["Bmax"] / byl[d]["B2"])[:4]
+    # the server machine new to job 107: its error with the probe's second-highest reading
+    sv = [abs(r["err_Second"]) for r in good if r["fam"] == "server" and r["dir"][:3] == "107"]
+    sm = [abs(r["err_Max"]) for r in good if r["fam"] == "server" and r["dir"][:3] == "107"]
+    M["rbServSecondMin"] = f"{100 * min(sv):.0f}"; M["rbServSecondMax"] = f"{100 * max(sv):.0f}"
+    M["rbServMaxMax"] = f"{100 * max(sm):.0f}"
     M["rbLaunchMachines"] = str(len({r["uuid"] for r in good}))
     for nm in ("Max", "Second", "Cpu"):
         M[f"rbAbove{nm}"] = str(sum(r[f"eff_{nm}"] > 1.05 for r in good))
@@ -126,14 +131,14 @@ def main():
         for h in json.load(open(P("prereg", pj)))["hosts"]:
             c = h["cells"].get("14")
             if c and h.get("planned", {}).get("14") and c["speed"].get("fetchplan"):
-                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"][:4], c["speed"]["fetchplan"][0]))
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["speed"]["fetchplan"][0]))
     for pj, keep in (("job106.json", ("106a", "106b", "106e")), ("job107.json", None)):
         for h in json.load(open(P("prereg", pj)))["hosts"]:
             if (keep and h["dir"][:4] not in keep) or (keep is None and not h.get("valid")):
                 continue
             c = h["cells"].get("g14")
             if c and c["speed"].get("fetchplan"):
-                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"][:4], c["speed"]["fetchplan"][0]))
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["speed"]["fetchplan"][0]))
     per = [float(np.mean([x for _, x in v])) for v in fp.values()]
     pt, lo, hi = boot_machines(per)
     M["rbPlanMachines"] = str(len(per)); M["rbPlanMean"] = f"{pt:.2f}"; M["rbPlanLo"] = f"{lo:.2f}"; M["rbPlanHi"] = f"{hi:.2f}"
@@ -141,7 +146,11 @@ def main():
     tl, th = t_interval(per); M["rbPlanTLo"] = f"{tl:.2f}"; M["rbPlanTHi"] = f"{th:.2f}"
     # "beats the deployed cache" was a registered clause on job 104's slow-link host (104a) and in jobs 105-107; on
     # 104b and 104c job 104 registered only the comparison with the greedy set
-    direct = sum(any(j == "104a" or j[:3] in ("105", "106", "107") for j, _ in v) for v in fp.values())
+    direct = sum(any(j[:4] == "104a" or j[:3] in ("105", "106", "107") for j, _ in v) for v in fp.values())
+    # the link-to-CPU ratio of each machine (its probe's best link rate over its best CPU rate)
+    ratio = lambda d: (lambda hi: hi["B_p"] / hi["B_c"])(host_info(f"{RES}/{d}"))  # noqa: E731
+    rat = [min(ratio(j) for j, _ in v) for v in fp.values()]
+    M["rbPlanRatioMin"] = f"{min(rat):.2f}"
     M["rbPlanRegMachines"] = str(direct); M["rbPlanImplied"] = ["no", "one", "two", "three", "four"][len(per) - direct]
     # the machines that ran unsteadily (or computed wrong outputs) and ran the same schedule
     un = []
@@ -151,9 +160,12 @@ def main():
                 continue
             c = h["cells"].get("g14")
             if c and c["speed"].get("fetchplan"):
-                un.append(c["speed"]["fetchplan"][0])
+                un.append((c["speed"]["fetchplan"][0], h["ratio"]))
     num = ["no", "one", "two", "three", "four", "five", "six"]
-    M["rbPlanUnstN"] = num[len(un)]; M["rbPlanUnstLost"] = num[sum(v < 1 for v in un)]
+    M["rbPlanUnstN"] = num[len(un)]; M["rbPlanUnstLost"] = num[sum(v < 1 for v, _ in un)]
+    lost = sorted(r for v, r in un if v < 1)
+    M["rbPlanLostRatios"] = " and ".join(f"{r:.2f}" for r in lost)
+    M["rbPlanGainedSlow"] = f"{min(r for v, r in un if v >= 1):.2f}"
     # the admission margin at gpt-oss, per machine (mean over its gpt-oss cells)
     dk = {}
     for h in json.load(open(P("prereg", "job106.json")))["hosts"]:

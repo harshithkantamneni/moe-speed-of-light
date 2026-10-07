@@ -3,6 +3,37 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 7 October (late night): round-14 complaints, number check 15, review round 15 (5, 6)
+
+**Status for Harshith (read this first).** Round 15, after covering the round-14 complaints: MLSys PC **5/10**
+(soundness 3, significance 3, novelty 3, clarity **3**); professor **6/10** (soundness **4**, methodology **4**,
+significance 3, clarity **3**). The professor's soundness rose from 3 to 4; the PC's overall fell from 6 to 5.
+
+- **What changed for round 15:**
+  - A new appendix table on the probe's rate (highest vs second-highest vs CPU-only reading) and intervals over machines
+    for three claims, with t-intervals beside the bootstrap.
+  - The prediction log is now a table (Table 8); a name map for configuration codes and a glossary of host codes.
+  - Eq. 3's error is reported by budget: −2.2% at gpt-oss 11%, +1.6% at 25% (it changes sign).
+  - One fallback G everywhere (the median of the profiles of jobs 069c and 105).
+  - Registration timing generated from the GitHub push log (`scripts/reg_timing.py`, `prereg/gpu_pushes.json`).
+- **Number check 15** found no arithmetic errors. It found 12 wording and scope defects, all fixed.
+- **Round 15 asked for, now fixed in the text (not yet re-reviewed):**
+  - Fewest-admission claim scoped by link speed: every stable machine has a link at ≥ 0.28 of its CPU rate; the two
+    losses were the two slowest links (0.14 and 0.21).
+  - The abstract's 59% server miss is 51% with the probe's second-highest reading; both are given.
+  - §3 compares like with like: our cache at datasheet rates is a median 27% of the bound, published systems 13.6%.
+  - Eq. 2 is called our engine's bound; Table 1's evidence labels say what was registered (host B) and what was observed
+    (host S; two fewest-admission machines).
+  - §4.2 split into shorter paragraphs; stale cross-references, the 107d "35%" direction and "74 machines" (offers) fixed.
+  - Limitations add the convenience sample and the cache carried between problems.
+- **What both reviewers say would raise the score (not done; needs your call):**
+  1. Reframe Eq. 3 as an accounting with a measured residual (or a realised-rate factor B_eff/B_host per machine), not
+     as a relation that explains the time; possibly retitle.
+  2. Use a robust B_host (second-highest or median of repeated probes) for every headline number.
+  3. Cut the appendix to what the main text cites; move the per-job log to the supplement.
+  4. One out-of-family replication of the oracle factorial (another GPU class or workload).
+- **Credit:** $0.75 left; no instances running.
+
 ## 7 October (night): job 108, clarity rewrite, number check 14, review rounds 13 (5, 6) and 14 (6, 6)
 
 **Status for Harshith (read this first).** Round 14, after the clarity rewrite: MLSys PC **6/10** (soundness 3,

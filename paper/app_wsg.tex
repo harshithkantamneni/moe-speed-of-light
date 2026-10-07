@@ -12,7 +12,7 @@ Rule & Where and how \\\midrule\endhead
 7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means within a host; across the panel's hosts, a two-stage bootstrap (hosts, then problems) \citep{kalibera2013rigorous}; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
 8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
 9. Document all factors and the setup. & Machines, probes, power limits, memory clocks (\cref{sec:setting}), software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
-10. Report measurement, synchronisation and summarisation. & One client times every system of \cref{tab:headline} from streamed token arrivals; the oracle comparisons of \cref{sec:gap} are timed in process by \texttt{llama-ec-bench} over teacher-forced text, every policy by the same timer (\cref{sec:setting}). \\
+10. Report measurement, synchronisation and summarisation. & One client times every system of \cref{tab:headline} from streamed token arrivals; the oracle comparisons of \cref{sec:foresight} are timed in process by \texttt{llama-ec-bench} over teacher-forced text, every policy by the same timer (\cref{sec:setting}). \\
 11. Show upper performance bounds. & The bound (\cref{sec:limit}) is a column of \cref{tab:headline}; \cref{tab:limit} tightens it four ways; \cref{sec:limit} applies it to the published literature and to our cache with the same procedure. \\
 12. Plot enough to interpret; connect points only for trends. & \Cref{fig:factorial} plots every host's ratio with its interval; \cref{fig:value} connects measured windows for the trend only and marks engine measurements separately; \cref{fig:shapley,fig:ablation} are bar charts and \cref{fig:ratio,fig:audit,fig:grid} scatter plots. \\
 \bottomrule
@@ -57,7 +57,7 @@ cells against a predicted $\pm$0.06, host-bound speeds \scOursHybDropMin--\scOur
 predicted $\pm$12\%, and LRU \scLruFailMin--\scLruFailMax\% slower than decayed frequency at the two GPU-heavy
 cells against a predicted 10--30\%; on the 4090 and 3090 hosts (jobs 091, 092; \cref{app:grid}) our lead over
 FreeToken and its fraction of the limit overshot their bands, FreeToken's carried-over backend fell far below its
-band, and two launch-order checks exceeded 3\% (7\% and, at gpt-oss 11\% on the 3090 host, 11\%); in the first oracle job (093; \cref{sec:gap}) the oracle's gain fell
+band, and two launch-order checks exceeded 3\% (7\% and, at gpt-oss 11\% on the 3090 host, 11\%); in the first oracle job (093; \cref{sec:foresight}) the oracle's gain fell
 outside 20--80\% at the two lowest budgets (it lost), its speed fell just below the predicted 45--65\% of the limit
 at all four host-bound cells (43.7--44.8\%), its hit rate and admissions missed the optimum's by more than the
 predicted 3 points and 30\% at three and two of the four, no-overlap cost 0\% against a predicted 5--25\%, and all-CPU cost 15\% on Qwen3
@@ -187,7 +187,7 @@ T \;=\; G_{\mathrm{fit}} \;+\; \max\!\Big(\frac{X_c}{B_c},\ \frac{X_p}{B_p},\ \f
 \label{eq:law}
 \end{equation}
 with one constant $G_{\mathrm{fit}}$ per engine and model, fitted once on one host and frozen (it is neither the profiled
-$G_{\mathrm{fit}}$ of \cref{eq:sum} nor $T_{\text{GPU}}$ of \cref{eq:demand}). It is a calibrated model, not a law: $G_{\mathrm{fit}}$ is
+$G$ of \cref{eq:sum} nor $T_{\text{GPU}}$ of \cref{eq:demand}). It is a calibrated model, not a law: $G_{\mathrm{fit}}$ is
 fitted, and it exceeds the whole all-in-VRAM token (\lawGRefit{} against \vramMs\,ms) because it absorbs
 per-token host work and the CPU helpers' shortfall against the probe (below). As a predictor of time it ties a naive
 one-path model with the same $G_{\mathrm{fit}}$ (time $= G_{\mathrm{fit}} +$ all host bytes over the best probed rate):
@@ -238,7 +238,7 @@ on its Ryzen hosts, \secondUltra\% on the Core Ultra, \secondEpyc\% on the Zen~2
 i9-11900KF, where the two paths together read less than the CPU alone, is a second exception), and that is the whole
 gain available to fetching or splitting misses between the CPU and PCIe. Prefetching never reduces the bytes; what
 it can buy is overlap of the reads with the step, which the model does not price: charging every read in sequence, it
-over-predicts the time per token of MIN prefetched by \fxPacedLawTimeMin{} to \fxPacedLawTimeMax\% (\cref{sec:gap})
+over-predicts the time per token of MIN prefetched by \fxPacedLawTimeMin{} to \fxPacedLawTimeMax\% (\cref{sec:foresight})
 and of a Belady prefetch by up to \fspLawErrHighMax\% (\cref{app:foresight}). The model's job in the system is the split.
 Its
 per-layer form,
@@ -400,7 +400,7 @@ predicted at Qwen3 12.5\% on O4, with reads below the predicted 1.25--1.9$\times
 both hosts and at gpt-oss 11\% on O4 (down to \fxNbReadsOverLeadMin$\times$); the bytes share at Qwen3 12.5\% on O4
 (\amBytesHostMax\% of the gap against a predicted 25--55\%); and the reads fetch-on-admit saves at gpt-oss 40\% on O5,
 just above the predicted 22\%. Reading the online policy's admissions once came to \fxFoaHostMin--\fxFoaHostMax$\times$ at the host-bound cells, at the bottom of the predicted 0.97--1.12$\times$ although its reads fell as predicted, and to \fxFoaGpuFiveMin--\fxFoaGpuFourMax$\times$ at the GPU-bound cells.
-\Cref{tab:single_read} lists every cell of the single-read factorial of \cref{sec:gap} on host O3 (a Ryzen 9 9950X
+\Cref{tab:single_read} lists every cell of the single-read factorial of \cref{sec:foresight} on host O3 (a Ryzen 9 9950X
 whose probe reads \fsfHostCpu\,GB/s by the CPU at the helper count, \fsfHostLink{} over the link, \fsfHostBoth{} with
 both and \fsfHostMax{} at best; the model's FETCH tables \texttt{0,0,1,2,2} for gpt-oss and \texttt{0,0,1,1,2,3,4,4,5}
 for Qwen3), and \cref{tab:accounting_measured} the milliseconds per token of the engine states the three jobs
@@ -547,7 +547,7 @@ LRU admits every miss, and on Qwen3 its copies raise host reads from \rdStaticQw
 token, so it runs \ablLruQwen$\times$ the static cache (\ablLruGpt$\times$ on gpt-oss); the decayed-frequency policy
 reads \rdDfaGpt{} and \rdDfaQwen{} per token, runs \ablDfaStaticGpt$\times$ and \ablDfaStaticQwen$\times$ the
 profiled static cache, and the hindsight cache runs \ablHindGpt{} and \ablHindQwen{} times as fast as it. On traces
-LRU misses only \polLruMoreMin--\polLruMoreMax\% more than decayed frequency at these budgets (\cref{sec:horizon}); the
+LRU misses only \polLruMoreMin--\polLruMoreMax\% more than decayed frequency at these budgets (\cref{app:traces}); the
 rest of its cost here is the copies it admits. On host S, with everything else as in the full system, LRU runs
 \scLruSlowMin--\scLruSlowMax\% slower than decayed frequency across the six cells of \cref{tab:headline} and trails
 FreeToken at \scLruTrailCells{} of them: the admission policy is most of the lead over FreeToken
@@ -705,5 +705,5 @@ model comparison, the limit, the accounting, the trace studies, the audit figure
 \texttt{scripts/wsg\_tables.py} and \texttt{wsg\_numbers2.py} generate every table, figure and number in this paper from
 their outputs. The audit's \audAllN{} published rows and the physical speed-of-light model they are scored against are
 \texttt{data/published\_measurements.json}, \texttt{data/audit/} and \texttt{scripts/audit.py}.
-\item \textbf{Cost.} The \costRentals{} rentals (\costMachines{} distinct machines) of jobs 058--\costJobHi{} cost \costUsd{} US dollars at their hourly GPU prices, by the ledger in the repository; storage and download charges, which the ledger omits, add to this.
+\item \textbf{Cost.} The \costRentals{} rentals (\costMachines{} distinct offers) of jobs 058--\costJobHi{} cost \costUsd{} US dollars at their hourly GPU prices, by the ledger in the repository; storage and download charges, which the ledger omits, add to this.
 \end{itemize}

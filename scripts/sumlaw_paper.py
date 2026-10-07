@@ -130,6 +130,7 @@ def main():
     # the overlap form, T = G + (M + A (1 - G/T)) S / B_host, on every launch of jobs 093-105 (exploratory: the term was
     # derived after job 105, before job 106 registered it)
     j105 = {h["job"]: h for h in json.load(open(P("prereg", "job105.json")))["hosts"]} if os.path.exists(P("prereg", "job105.json")) else {}
+    OV = []
     for C, nm in (("14", "Low"), ("32", "Mid")):
         G = ra["sum_law"][C]["G"]
         rows = []
@@ -151,9 +152,17 @@ def main():
                 t = G + tm(Mi + A * (1 - G / t))
             e_ol.append(t / T - 1)
         e_pl, e_ol = np.array(e_pl), np.array(e_ol)
+        # the read rate the relation implies, (M + A (1 - G/T)) S / (T - G), against the probe's highest rate
+        ov = []
+        for f, B, T in rows:
+            st = json.load(open(f)); n = max(1, st["steps"]); Mi, A = st["misses"] / n, st["admits"] / n
+            ov.append((Mi + A * (1 - G / T)) * S / ((T - G) * 1e-3) / 1e9 / B)
+        OV.extend(ov)
         M["slOlN"] = str(len(e_ol))
         M[f"slOlWithin{nm}"] = str(int(np.sum(np.abs(e_ol) <= 0.06))); M[f"slPlWithin{nm}"] = str(int(np.sum(np.abs(e_pl) <= 0.06)))
         M[f"slOlMed{nm}"] = f"{100 * np.median(e_ol):.1f}".replace("-", "$-$"); M[f"slPlMed{nm}"] = f"{100 * np.median(e_pl):.1f}".replace("-", "$-$")
+    OV = np.array(OV)
+    M["slOverN"] = str(int(np.sum(OV > 1.05))); M["slOverCells"] = str(len(OV)); M["slOverMax"] = f"{OV.max():.2f}"
     uu = {h.get("gpu_uuid") or h["dir"] for h in hosts}
     n105 = 0
     for d in sorted(glob.glob(f"{RES}/105?_sumlaw@vast")):

@@ -243,6 +243,27 @@ def main():
             rd.append(100 * (hs[j]["cells"]["g14"]["ms"]["base"] / cd["arr"]["base"].mean() - 1))
     if rd:
         M["jiRelaunchMax"] = f"{max(abs(x) for x in rd):.1f}"
+    # alternative forms on the stable hosts' cells: admissions discounted by half, and misses only
+    alt = {"half": 0, "miss": 0, "n": 0}
+    for h in hs.values():
+        for c in h["cells"].values():
+            if c.get("G") is None or "base" not in c["counters"]:
+                continue
+            ct = c["counters"]["base"]; tm = lambda r: r * S[c["tag"]] / (h["b_host"] * 1e9) * 1e3  # noqa: E731
+            alt["n"] += 1
+            alt["half"] += abs((c["G"] + tm(ct["misses"] + 0.5 * ct["admits"])) / c["ms"]["base"] - 1) <= 0.06
+            alt["miss"] += abs((c["G"] + tm(ct["misses"])) / c["ms"]["base"] - 1) <= 0.06
+    M["jiAltHalf"] = str(alt["half"]); M["jiAltMiss"] = str(alt["miss"])
+    # the fewest-admission set loaded by the CPU (two reads) on the slow-link machines of jobs 104-105, gpt-oss 11% and 25%
+    bp = []
+    for pj in (P("prereg", "job104.json"), P("prereg", "job105.json")):
+        for hh in json.load(open(pj))["hosts"]:
+            if hh["link_over_cpu"] < 1 / 3:
+                for C in ("14", "32"):
+                    c = hh["cells"].get(C)
+                    if c and "bypassplan" in c["speed"]:
+                        bp.append(c["speed"]["bypassplan"][0])
+    rng("jkSlowBypassPlan", bp)
     fail = Counter("unst" if c["id"][:4] in unstable else ("pooled" if c["id"].startswith("106-") else "stable")
                    for c in clauses if c["status"] == "failed")
     M["jiFailedUnst"] = str(fail.get("unst", 0)); M["jiFailedStable"] = str(fail.get("stable", 0)); M["jiFailedPooled"] = str(fail.get("pooled", 0))

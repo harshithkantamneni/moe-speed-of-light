@@ -100,8 +100,8 @@ makes beyond MIN's.
 engine show that foresight pays when it is spent as MIN spends it, caching MIN's set and reading each expert once:
 \fxFetchAllGainMin--\fxFetchAllGainMax\% faster than our deployed cache on three hosts at six budgets. Which of MIN's
 many equally good schedules is followed matters: the greedy one admits so often that it loses where the link is slow,
-while the one with the fewest admissions gains on every machine that ran stably. Carried online, that lesson, admit
-less, gains \jiDkPctMin--\jiDkPctMax\% on gpt-oss. Foresight also has a price: half of MIN's saving needs the routing of about \dcMed$\,C$ distinct experts per layer
+while the one with the fewest admissions gains on every machine that ran stably; where the link is slow, its copies
+belong in the background. Carried online, that lesson, admit less, gains \jiDkPctMin--\jiDkPctMax\% on gpt-oss. Foresight also has a price: half of MIN's saving needs the routing of about \dcMed$\,C$ distinct experts per layer
 ahead, which no online policy, learned admission order, speculative batch or forecaster we tested approaches.
 
 \paragraph{Contributions.}
@@ -228,7 +228,8 @@ launches of jobs 093--105 it brings \slOlWithinMid{} instead of \slPlWithinMid{}
 two budgets each, with $G$ profiled on each host before its timed runs (\cref{tab:job106}). On new runs of three machines
 rented before (Pf, the Threadripper 9960X of job 105 and panel host Pe), it came within 6\% on all \jiCells{}
 model-budget cells (median error \jiErrMed\%, largest \jiErrMax\%), where the plain form missed by up to
-\jiErrPlainQMidMax\%. The two server machines new to the job did not run as the others did: one computed wrong outputs
+\jiErrPlainQMidMax\%. The test does not single out the overlap term: discounting every admission by half passes
+\jiAltHalf{} of the \jiCells{} cells, and counting misses alone \jiAltMiss. The two server machines new to the job did not run as the others did: one computed wrong outputs
 (its teacher-forced loss was \jiNllBadMin--\jiNllBadMax{} nats per token, against \jiNllGood{} on gpt-oss and
 \jiNllGoodQ{} on Qwen3 everywhere else), and the other's deployed cache varied by \jiUnstableVarMax\% between rounds.
 There the relation under-predicted by \jiUnstErrMin--\jiUnstErrMax\%, which takes its registered pooled median error to
@@ -295,7 +296,12 @@ speed ratio on the \jkBalMachines{} machines whose link reads at \jkBalRatioMin-
 the \jkSlowMachines{} machines whose link reads at \jkSlowRatioMin--\jkSlowRatioMax{} of it, the greedy schedule loses
 (\jkSlowFetchMin--\jkSlowFetchMax$\times$) and the fewest-admission one gains (\jkSlowPlanMin--\jkSlowPlanMax$\times$);
 rented again in job 106 and run in three rounds, separate processes, it gained in every round, with round-level 95\%
-intervals (resampling rounds, then problems) that start at \jiSlowPlanLoMin{} and \jiSlowPlanLoMax. Where the link is as fast as the CPU, copies in the step are cheap and the two schedules tie. Host by host, both loads
+intervals (resampling rounds, then problems) that start at \jiSlowPlanLoMin{} and \jiSlowPlanLoMax. On those machines,
+though, reading once in the step is not the best way to spend that set: loaded by the CPU, with the copy in the
+background, it gains more (\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ at the two budgets, jobs 104--105). On a
+server host with a \jiVsLink\,GB/s link the fewest-admission set copied in the step lost in each round
+(\jiVsPlanMin--\jiVsPlanMax$\times$), but that host computed wrong outputs throughout (\cref{app:more}), so we draw
+nothing from it. Where the link is as fast as the CPU, copies in the step are cheap and the two schedules tie. Host by host, both loads
 and both budgets are in \cref{app:more}.
 
 \paragraph{The machine decides how much.} Across machines, the gain of every state that moves reads from the CPU to
@@ -422,7 +428,9 @@ all rented before. Within-host intervals resample problems; round-level interval
 teacher-forced on each model's own greedy text. Prompts and batches above one bypass the cache.
 \item \textbf{The bounds.} Exact routing and per-layer slots (pooling slots across layers lowers MIN's reads by
 \globalReadsMin--\globalReadsMax\%). They drop latencies and let the read paths share the best probed rate, so a faster
-reader than our probe could exceed them. The GPU term of \cref{eq:demand} is our engine's kernel time, not a property of
+reader than our probe could exceed them: by \cref{eq:sum}'s own accounting the engine read more than 5\% faster than
+the probe's highest rate on \slOverN{} of \slOverCells{} launch-budgets (up to \slOverMax$\times$), and the GPU term uses a
+datasheet rate that a card can exceed. The GPU term of \cref{eq:demand} is our engine's kernel time, not a property of
 the machine alone. The read time is nearly reachable in a microbenchmark that runs no compute.
 \item \textbf{The relation.} \Cref{eq:sum} describes the deployed path; states that copy in the step add latency it
 does not model. It assumes the machine delivers its probed rate during the run. Its registered success is on new runs
@@ -441,7 +449,8 @@ With experts in host memory, batch-1 MoE decode is the GPU's compute plus host b
 them in series, apart from the background copies that fall under the GPU's compute, and our cache executes its reads at
 the machine's best rate: what separates it from the bound is that serialisation and the reads it makes beyond MIN's.
 Knowing the future reduces both when it is spent as MIN spends it, and which of MIN's schedules is followed matters: the
-fewest-admission one gains on every machine that ran stably, while the greedy one loses where the link is slow.
+fewest-admission one gains on every machine that ran stably, while the greedy one loses where the link is slow, and
+there the copies belong in the background.
 Admitting less carries that lesson online, for \jiDkPctMin--\jiDkPctMax\%. Foresight has a
 measurable price: about \dcMed$\,C$ distinct experts of each layer's coming routing to close half of the read gap between
 admitting every miss and MIN, at accuracies no forecaster we know of or trained reaches.

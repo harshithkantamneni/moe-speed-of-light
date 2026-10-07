@@ -3,6 +3,48 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 7 October: job 106, the readability rewrite, number check 12, review round 11 (5/10 and 5/10)
+
+**Status for Harshith (read this first).** Round 11: MLSys PC **5/10** (soundness 3, significance 3, novelty 2,
+clarity 2); professor **5/10** (soundness 3, methodology 4, significance 3, clarity 2). Each reviewer checked 29 claims
+from raw data, and nearly all reproduced. Both still put clarity at 2/5 after the rewrite. The professor's 6 from round
+10 fell back to 5 because job 106's registered test of the relation passed only on machines rented before, and failed
+on the two new ones.
+
+- **Job 106 (5 hosts, about $8.8):**
+  - **The relation, with an overlap term for background copies**, was registered on both models at two budgets.
+    - It held within 6% on all 12 cells of the three hosts that ran stably (Pf, the 9960X of 105b, panel host Pe;
+      median 2.3%).
+    - The two new server machines failed. The EPYC 7302 computed wrong outputs (loss 0.21–0.45 against 0.19); the Xeon
+      8347C varied 39% between rounds.
+    - The pooled median clause failed (4.7% against 4%). 48 of 181 clauses failed, 36 of them on those two hosts.
+  - **Online rules.** Admitting less (kappa 2–3, chosen on other text) gains 0–6% on gpt-oss (median 1.01 on stable
+    hosts). The learned order with a margin runs 0.98–1.05×: it helps on Pf and hurts on the fast-memory 9960X.
+  - **Slow links, round by round.** The fewest-admission set gained in every round on the 9960X (1.05–1.06) and on Pf
+    (1.02).
+- **Paper rewrite:**
+  - three questions; a terms paragraph; a new Figure 1 showing where the seconds go on 23 machines;
+  - the relation with its overlap term, and the online rules;
+  - secondary tables moved to an appendix.
+- **Number check 12 caught three things:**
+  - 106e is panel host Pe, not a new machine;
+  - 106c's outputs were wrong;
+  - the claim that "the relation predicts the gain" was no better than predicting no change.
+
+  All are fixed.
+- **Round 11 fixes ($0).** The main text now says:
+  - the registered test does not single out the overlap term (a half-discount passes 11 of 12);
+  - on slow links the fewest-admission set gains more loaded by the CPU (1.11–1.22) than copied in the step;
+  - the engine read faster than the probe on 13 of 68 launch-budgets;
+  - what the EPYC host showed, and why we draw nothing from it.
+- **Credit left: $4.58.** That is not enough for the next registered test.
+- **What would move the score, per the reviewers:**
+  1. A registered test of the relation on new machines that run stably.
+  2. Intervals over launches, not rounds, for the small effects.
+  3. Clarity.
+
+  Novelty stays modest by their reading.
+
 ## 6 October (late night): re-analysis, job 105, number check 11, review round 10 (5/10 and 6/10)
 
 **Status for Harshith (read this first).** Round 10: MLSys PC **5/10** (soundness 4, significance 3, novelty 3,

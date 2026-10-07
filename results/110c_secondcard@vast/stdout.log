@@ -1,0 +1,505 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ '[' 0 = 1 ']'
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ BMIN=150
++ KA=3
++ KB=2
++ echo 'SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256'
++ tee /w/results/110c_secondcard@vast/mode.txt
+SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256
++++ dirname /w/jobs/110_secondcard@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-517ccfae-b570-9f91-18b7-51f53589dc17
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/110c_secondcard@vast/free.txt
++ USEDGB=3
++ echo 'GPU UUID GPU-517ccfae-b570-9f91-18b7-51f53589dc17; host memory in use 3 GB'
++ tee /w/results/110c_secondcard@vast/v0.txt
+GPU UUID GPU-517ccfae-b570-9f91-18b7-51f53589dc17; host memory in use 3 GB
++ grep -qx GPU-517ccfae-b570-9f91-18b7-51f53589dc17 /w/jobs/ec2/known_gpu_uuids.txt
++ '[' 3 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/110c_secondcard@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=89
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32'
++ PROF_KEEP_TAIL='G14 G32'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791413176
++ BUDGET=9000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=13176
++ echo 'order seed base 13176'
++ tee /w/results/110c_secondcard@vast/order_seed.txt
+order seed base 13176
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/110c_secondcard@vast/cpu.txt
+CPU(s):                                  24
+Model name:                              Intel(R) Core(TM) Ultra 9 285K
+Thread(s) per core:                      1
+Socket(s):                               24
+CPU(s) scaling MHz:                      29%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=23
++ tee /w/results/110c_secondcard@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 23 (nproc 24); NUMA nodes 1'
+usable physical cores 23 (nproc 24); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 23 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ tr -d ' '
+++ head -1
++ MEMCLK=10501
++ echo 'memory clock max 10501 MHz'
++ tee /w/results/110c_secondcard@vast/gate.txt
+memory clock max 10501 MHz
++ nvcc -O3 -arch=sm_89 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/110c_secondcard@vast/bw_gate.txt
++ DR=956
++ echo 'device read 956 GB/s'
++ tee -a /w/results/110c_secondcard@vast/gate.txt
+device read 956 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 4090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=24564
++ echo 'card NVIDIA GeForce RTX 4090, 24564 MiB'
++ tee -a /w/results/110c_secondcard@vast/gate.txt
+card NVIDIA GeForce RTX 4090, 24564 MiB
++ case "$GNAME" in
++ '[' 24564 -ge 23000 ']'
++ '[' 24564 -le 25000 ']'
++ '[' 956 -ge 800 ']'
+++ awk '/Mem:/{print $2}' /w/results/110c_secondcard@vast/free.txt
++ RAMGB=188
++ echo 'host RAM 188 GB, in use 3 GB'
++ tee -a /w/results/110c_secondcard@vast/gate.txt
+host RAM 188 GB, in use 3 GB
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=120
++ echo 'disk free 120 GB'
++ tee -a /w/results/110c_secondcard@vast/gate.txt
+disk free 120 GB
++ '[' 120 -ge 100 ']'
++ echo 'V0c checked'
++ tee -a /w/results/110c_secondcard@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet numpy
++ mkdir -p /work/models
++ DLG=6309
++ NSP=6310
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ install_nsys
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=89 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench
+++ basename /work/lc-ec
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/110c_secondcard@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/110c_secondcard@vast/build_lc-ec.txt
++ wait 6310
++ install_nsys
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/110c_secondcard@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct  7 22:47 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/known_gpu_uuids.txt
++ tee /w/results/110c_secondcard@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+edc5173738f4da5af07b0f534964bfcc0cf7504f7eb400ebca7c72ca9902d70b  /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
+curl: (28) Failed to connect to raw.githubusercontent.com port 443 after 300549 ms: Timeout was reached
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
+cc1: fatal error: stream.c: No such file or directory
+compilation terminated.
++ nvcc -O3 -arch=sm_89 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=21
++ nvcc -O3 -arch=sm_89 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/110c_secondcard@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/110c_secondcard@vast/concur.txt 21 13253760 4 /w/results/110c_secondcard@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,0,0
++ tee /w/results/110c_secondcard@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-07T22:53:29Z): gpt-oss 0,0,0,0,0'
+law table (2026-10-07T22:53:29Z): gpt-oss 0,0,0,0,0
++ '[' -n 0,0,0,0,0 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/110c_secondcard@vast/fetch_table_law_gptoss.json
++ RATIO=0.3971
++ echo 'VR: B_p / B_c = 0.3971'
++ tee -a /w/results/110c_secondcard@vast/gate.txt
+VR: B_p / B_c = 0.3971
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= 0.25 else 1)' 0.3971
++ echo 'VR checked'
++ tee -a /w/results/110c_secondcard@vast/v0.txt
+VR checked
+++ date +%s
++ echo 'build and probe done, waiting for the download (433 s since launch)'
+build and probe done, waiting for the download (433 s since launch)
++ wait 6309
++ cat /w/results/110c_secondcard@vast/dl_gguf.txt
+++ date +%s
++ t0=1791413188
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d(sys.argv[2], sys.argv[3], local_dir=sys.argv[1])' /work/models ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'gguf hf download rc=0 in 1250 s'
+gguf hf download rc=0 in 1250 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  7 23:07 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ MB=mailbox=1:tdec=1:helpers=21
++ PACED=paced=1:chunk=16777216:max_pending=64
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+++ date +%s
++ t0=1791414438
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-seq 20 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/110c_secondcard@vast/la_g.bin
+++ date +%s
+++ ls -la /w/results/110c_secondcard@vast/la_g.bin
+++ awk '{print $5}'
++ echo 'lookahead rc=0 in 477 s: 11816960 bytes'
+lookahead rc=0 in 477 s: 11816960 bytes
++ cat /w/results/110c_secondcard@vast/la_g.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/110c_secondcard@vast/la_g.err
++ rm -f /w/results/110c_secondcard@vast/la_g.err
++ '[' -s /w/results/110c_secondcard@vast/la_g.bin ']'
++ for C in $CA $CB
++ prof_run G14 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G14
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G14 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G14 rc=0'
+prof G14 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G14 /work/prof_G14.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G14 --out /w/results/110c_secondcard@vast --keep-tail
++ '[' -f /work/prof_G14_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G14_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G14_cuda_api_trace.csv /work/prof_G14_cuda_gpu_kern_sum.csv /work/prof_G14_cuda_gpu_trace.csv /work/prof_G14.sqlite
++ ls -la /w/results/110c_secondcard@vast/prof_G14.err /w/results/110c_secondcard@vast/prof_G14.json /w/results/110c_secondcard@vast/prof_G14.stdout /w/results/110c_secondcard@vast/prof_G14_kern_sum.csv.gz /w/results/110c_secondcard@vast/prof_G14_tail.csv.gz
+-rw-r--r-- 1 root root 396719 Oct  7 23:15 /w/results/110c_secondcard@vast/prof_G14.err
+-rw-r--r-- 1 root root   4086 Oct  7 23:15 /w/results/110c_secondcard@vast/prof_G14.json
+-rw-r--r-- 1 root root   1966 Oct  7 23:15 /w/results/110c_secondcard@vast/prof_G14.stdout
+-rw-r--r-- 1 root root   2321 Oct  7 23:15 /w/results/110c_secondcard@vast/prof_G14_kern_sum.csv.gz
+-rw-r--r-- 1 root root 205066 Oct  7 23:15 /w/results/110c_secondcard@vast/prof_G14_tail.csv.gz
++ for C in $CA $CB
++ prof_run G32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G32 rc=0'
+prof G32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G32 /work/prof_G32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G32 --out /w/results/110c_secondcard@vast --keep-tail
++ '[' -f /work/prof_G32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G32_cuda_api_trace.csv /work/prof_G32_cuda_gpu_kern_sum.csv /work/prof_G32_cuda_gpu_trace.csv /work/prof_G32.sqlite
++ ls -la /w/results/110c_secondcard@vast/prof_G32.err /w/results/110c_secondcard@vast/prof_G32.json /w/results/110c_secondcard@vast/prof_G32.stdout /w/results/110c_secondcard@vast/prof_G32_kern_sum.csv.gz /w/results/110c_secondcard@vast/prof_G32_tail.csv.gz
+-rw-r--r-- 1 root root 396720 Oct  7 23:16 /w/results/110c_secondcard@vast/prof_G32.err
+-rw-r--r-- 1 root root   4078 Oct  7 23:16 /w/results/110c_secondcard@vast/prof_G32.json
+-rw-r--r-- 1 root root   2020 Oct  7 23:16 /w/results/110c_secondcard@vast/prof_G32.stdout
+-rw-r--r-- 1 root root   2305 Oct  7 23:16 /w/results/110c_secondcard@vast/prof_G32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 211283 Oct  7 23:16 /w/results/110c_secondcard@vast/prof_G32_tail.csv.gz
++ python3 - /w/results/110c_secondcard@vast G14 G32
+++ date -u +%FT%TZ
++ echo 'G_prof written 2026-10-07T23:16:11Z, before any timed run:'
+G_prof written 2026-10-07T23:16:11Z, before any timed run:
++ cat /w/results/110c_secondcard@vast/g_prof.json
+{"G14": {"G_prof_ms": 5.1385845, "wall_ms": 25.0448325, "wait_ms": 18.066926, "copy_ms": 8.968002}, "G32": {"G_prof_ms": 5.64673, "wall_ms": 18.529592, "wait_ms": 11.038901, "copy_ms": 10.0855415}}
++ NA='base foa bypass fetch both3p dk pf'
++ NB='base R1 R2'
++ FAILED=
++ run_round 14 3 1 A 'base foa bypass fetch both3p dk pf'
++ local C=14 kdk=3 rd=1 pr=A 'names=base foa bypass fetch both3p dk pf'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local tag=C14_r1A
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_both3p.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_both3p.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_dk.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:prefetch=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_both3p.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_pf.json'
++ local off=0
++ '[' A = B ']'
++ local seed=13290
++ echo 'cell C14_r1A order-seed 13290 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_both3p.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_pf.json'
+++ date +%s
++ local t0=1791414971
++ R 45m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 13290 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_foa.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_both3p.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1A_pf.json'
++ local rc=0
+++ date +%s
++ echo 'cell C14_r1A rc=0 in 1017 s'
+cell C14_r1A rc=0 in 1017 s
+++ date +%s
++ echo 'ec_g_C14_r1A 0 1017'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/110c_secondcard@vast/ec_g_C14_r1A.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|fetch-on-admit\|prefetch\|shuffled\|kappa' /w/results/110c_secondcard@vast/ec_g_C14_r1A.err
++ head -40
++ tail -n 30 /w/results/110c_secondcard@vast/ec_g_C14_r1A.err
++ rm -f /w/results/110c_secondcard@vast/ec_g_C14_r1A.err
++ run_round 14 3 1 B 'base R1 R2'
++ local C=14 kdk=3 rd=1 pr=B 'names=base R1 R2'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/110c_secondcard@vast/la_g.bin:mailbox=1:tdec=1:helpers=21:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local tag=C14_r1B
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:prefetch=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R1.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:fetch_on_admit=1:prefetch=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R1.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R2.json'
++ local off=0
++ '[' B = B ']'
++ off=7
++ local seed=13297
++ echo 'cell C14_r1B order-seed 13297 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R1.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R2.json'
+++ date +%s
++ local t0=1791415988
++ R 45m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 23 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 13297 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R1.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=21:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:fetch_on_admit=1:prefetch=1:stats=/w/results/110c_secondcard@vast/st_g_C14_r1B_R2.json'
++ local rc=0
+++ date +%s
++ echo 'cell C14_r1B rc=0 in 523 s'
+cell C14_r1B rc=0 in 523 s
+++ date +%s
++ echo 'ec_g_C14_r1B 0 523'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/110c_secondcard@vast/ec_g_C14_r1B.err
++ sed 's/:stats=.*st_/ -> st_/'
++ head -40
++ grep -i 'oracle\|fetch table\|fetch-on-admit\|prefetch\|shuffled\|kappa' /w/results/110c_secondcard@vast/ec_g_C14_r1B.err
++ tail -n 30 /w/results/110c_secondcard@vast/ec_g_C14_r1B.err
++ rm -f /w/results/110c_secondcard@vast/ec_g_C14_r1B.err
++ tee -a /w/results/110c_secondcard@vast/validity.txt
++ vcheck V1
++ python3 - /w/results/110c_secondcard@vast 0 14 V1
+V1 ec_g_C14_r1A.jsonl base loss 0.1963 vs 0.190: FAIL
+V1 ec_g_C14_r1B.jsonl base loss 0.1963 vs 0.190: FAIL
++ '[' 9 -eq 0 ']'
++ echo 'V1 failed: stopping'
++ tee -a /w/results/110c_secondcard@vast/validity.txt
+V1 failed: stopping
++ FAILED=V1
++ vcheck V3
++ python3 - /w/results/110c_secondcard@vast 0 14 V3
++ tee -a /w/results/110c_secondcard@vast/validity.txt
+V3 ec_g_C14_r1A.jsonl base: 20 problems, loss 0.1963 vs base 0.1963 (+0.00%): ok
+V3 ec_g_C14_r1A.jsonl both3p: 20 problems, loss 0.1961 vs base 0.1963 (-0.10%): ok
+V3 ec_g_C14_r1A.jsonl bypass: 20 problems, loss 0.1955 vs base 0.1963 (-0.43%): ok
+V3 ec_g_C14_r1A.jsonl dk: 20 problems, loss 0.1965 vs base 0.1963 (+0.09%): ok
+V3 ec_g_C14_r1A.jsonl fetch: 20 problems, loss 0.1964 vs base 0.1963 (+0.03%): ok
+V3 ec_g_C14_r1A.jsonl foa: 20 problems, loss 0.1966 vs base 0.1963 (+0.16%): ok
+V3 ec_g_C14_r1A.jsonl pf: 20 problems, loss 0.1969 vs base 0.1963 (+0.28%): ok
+V3 ec_g_C14_r1B.jsonl R1: 20 problems, loss 0.1960 vs base 0.1963 (-0.17%): ok
+V3 ec_g_C14_r1B.jsonl R2: 20 problems, loss 0.1966 vs base 0.1963 (+0.16%): ok
+V3 ec_g_C14_r1B.jsonl base: 20 problems, loss 0.1963 vs base 0.1963 (+0.00%): ok
++ '[' -z V1 ']'
++ '[' -z V1 ']'
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf /w/results/110c_secondcard@vast/la_g.bin
++ python3 - /w/results/110c_secondcard@vast
++ tee /w/results/110c_secondcard@vast/summary.txt
+st_g_C14_r1A_base          51.68 tok/s  19.35 ms n=20 vs base 1.000 loss +0.00% misses 62.02 admits 8.15 prefetches 0.00 useful 0.00 fetches 0.00 reads/tok 70.18 foa 0 pf 0 kappa 1
+st_g_C14_r1A_both3p        58.62 tok/s  17.06 ms n=20 vs base 1.134 loss -0.10% misses 29.09 admits 19.59 prefetches 0.00 useful 0.00 fetches 6.87 reads/tok 48.67 foa 0 pf 0 kappa 1
+st_g_C14_r1A_bypass        53.69 tok/s  18.62 ms n=20 vs base 1.039 loss -0.43% misses 43.48 admits 20.35 prefetches 0.00 useful 0.00 fetches 0.00 reads/tok 63.83 foa 0 pf 0 kappa 1
+st_g_C14_r1A_dk            53.35 tok/s  18.75 ms n=20 vs base 1.032 loss +0.09% misses 63.64 admits 2.68 prefetches 0.00 useful 0.00 fetches 0.00 reads/tok 66.32 foa 0 pf 0 kappa 3
+st_g_C14_r1A_fetch         49.28 tok/s  20.29 ms n=20 vs base 0.953 loss +0.03% misses 39.72 admits 0.00 prefetches 0.00 useful 0.00 fetches 19.78 reads/tok 39.72 foa 0 pf 0 kappa 1
+st_g_C14_r1A_foa           49.77 tok/s  20.09 ms n=20 vs base 0.963 loss +0.16% misses 60.65 admits 0.00 prefetches 0.00 useful 0.00 fetches 8.18 reads/tok 60.65 foa 1 pf 0 kappa 1
+st_g_C14_r1A_pf            36.39 tok/s  27.48 ms n=20 vs base 0.704 loss +0.28% misses 35.89 admits 4.01 prefetches 28.97 useful 24.29 fetches 0.00 reads/tok 68.86 foa 0 pf 1 kappa 1
+st_g_C14_r1B_R1            34.28 tok/s  29.17 ms n=20 vs base 0.664 loss -0.17% misses 35.24 admits 0.00 prefetches 28.89 useful 24.18 fetches 5.79 reads/tok 64.13 foa 1 pf 1 kappa 1
+st_g_C14_r1B_R2            37.09 tok/s  26.96 ms n=20 vs base 0.718 loss +0.16% misses 36.04 admits 0.00 prefetches 28.85 useful 24.14 fetches 0.44 reads/tok 64.89 foa 1 pf 1 kappa 3
+st_g_C14_r1B_base          51.63 tok/s  19.37 ms n=20 vs base 1.000 loss +0.00% misses 62.02 admits 8.15 prefetches 0.00 useful 0.00 fetches 0.00 reads/tok 70.18 foa 0 pf 0 kappa 1
+++ cat /w/results/110c_secondcard@vast/oneline.txt
++ ONE='110 C14_r1A_both3p 1.134 C14_r1A_bypass 1.039 C14_r1A_dk 1.032 C14_r1A_fetch 0.953 C14_r1A_foa 0.963 C14_r1A_pf 0.704 C14_r1B_R1 0.664 C14_r1B_R2 0.718'
++ python3 /w/jobs/ec2/manifest.py /w/results/110c_secondcard@vast 110_secondcard@vast 1791413176 '110 C14_r1A_both3p 1.134 C14_r1A_bypass 1.039 C14_r1A_dk 1.032 C14_r1A_fetch 0.953 C14_r1A_foa 0.963 C14_r1A_pf 0.704 C14_r1B_R1 0.664 C14_r1B_R2 0.718' law_gptoss=0,0,0,0,0 device_read_gbs=956 memory_clock_max_mhz=10501 ratio=0.3971 smoke=0
+manifest: 68 files, 3335 s; 110 C14_r1A_both3p 1.134 C14_r1A_bypass 1.039 C14_r1A_dk 1.032 C14_r1A_fetch 0.953 C14_r1A_foa 0.963 C14_r1A_pf 0.704 C14_r1B_R1 0.664 C14_r1B_R2 0.718
++ cat /w/results/110c_secondcard@vast/skipped.txt
++ cat /w/results/110c_secondcard@vast/validity.txt
+V1 ec_g_C14_r1A.jsonl base loss 0.1963 vs 0.190: FAIL
+V1 ec_g_C14_r1B.jsonl base loss 0.1963 vs 0.190: FAIL
+V1 failed: stopping
+V3 ec_g_C14_r1A.jsonl base: 20 problems, loss 0.1963 vs base 0.1963 (+0.00%): ok
+V3 ec_g_C14_r1A.jsonl both3p: 20 problems, loss 0.1961 vs base 0.1963 (-0.10%): ok
+V3 ec_g_C14_r1A.jsonl bypass: 20 problems, loss 0.1955 vs base 0.1963 (-0.43%): ok
+V3 ec_g_C14_r1A.jsonl dk: 20 problems, loss 0.1965 vs base 0.1963 (+0.09%): ok
+V3 ec_g_C14_r1A.jsonl fetch: 20 problems, loss 0.1964 vs base 0.1963 (+0.03%): ok
+V3 ec_g_C14_r1A.jsonl foa: 20 problems, loss 0.1966 vs base 0.1963 (+0.16%): ok
+V3 ec_g_C14_r1A.jsonl pf: 20 problems, loss 0.1969 vs base 0.1963 (+0.28%): ok
+V3 ec_g_C14_r1B.jsonl R1: 20 problems, loss 0.1960 vs base 0.1963 (-0.17%): ok
+V3 ec_g_C14_r1B.jsonl R2: 20 problems, loss 0.1966 vs base 0.1963 (+0.16%): ok
+V3 ec_g_C14_r1B.jsonl base: 20 problems, loss 0.1963 vs base 0.1963 (+0.00%): ok
++ echo 'SUMMARY: 110 C14_r1A_both3p 1.134 C14_r1A_bypass 1.039 C14_r1A_dk 1.032 C14_r1A_fetch 0.953 C14_r1A_foa 0.963 C14_r1A_pf 0.704 C14_r1B_R1 0.664 C14_r1B_R2 0.718'
+SUMMARY: 110 C14_r1A_both3p 1.134 C14_r1A_bypass 1.039 C14_r1A_dk 1.032 C14_r1A_fetch 0.953 C14_r1A_foa 0.963 C14_r1A_pf 0.704 C14_r1B_R1 0.664 C14_r1B_R2 0.718

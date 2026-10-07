@@ -1,0 +1,271 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ '[' 0 = 1 ']'
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ BMIN=150
++ KA=3
++ KB=2
++ echo 'SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256'
++ tee /w/results/110a_secondcard@vast/mode.txt
+SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256
++++ dirname /w/jobs/110_secondcard@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ tr -d ' '
+++ head -1
++ UUID=GPU-cc51ef7e-77db-bdda-676e-afb6e0ede131
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/110a_secondcard@vast/free.txt
++ USEDGB=2
++ echo 'GPU UUID GPU-cc51ef7e-77db-bdda-676e-afb6e0ede131; host memory in use 2 GB'
++ tee /w/results/110a_secondcard@vast/v0.txt
+GPU UUID GPU-cc51ef7e-77db-bdda-676e-afb6e0ede131; host memory in use 2 GB
++ grep -qx GPU-cc51ef7e-77db-bdda-676e-afb6e0ede131 /w/jobs/ec2/known_gpu_uuids.txt
++ '[' 2 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/110a_secondcard@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=89
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32'
++ PROF_KEEP_TAIL='G14 G32'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791412892
++ BUDGET=9000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=12892
++ echo 'order seed base 12892'
++ tee /w/results/110a_secondcard@vast/order_seed.txt
+order seed base 12892
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/110a_secondcard@vast/cpu.txt
+CPU(s):                                  32
+Model name:                              Intel(R) Core(TM) i9-14900K
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      16%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=24
++ tee /w/results/110a_secondcard@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 24 (nproc 32); NUMA nodes 1'
+usable physical cores 24 (nproc 32); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 24 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=10501
++ echo 'memory clock max 10501 MHz'
++ tee /w/results/110a_secondcard@vast/gate.txt
+memory clock max 10501 MHz
++ nvcc -O3 -arch=sm_89 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/110a_secondcard@vast/bw_gate.txt
++ DR=954
++ echo 'device read 954 GB/s'
++ tee -a /w/results/110a_secondcard@vast/gate.txt
+device read 954 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 4090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=24564
++ echo 'card NVIDIA GeForce RTX 4090, 24564 MiB'
++ tee -a /w/results/110a_secondcard@vast/gate.txt
+card NVIDIA GeForce RTX 4090, 24564 MiB
++ case "$GNAME" in
++ '[' 24564 -ge 23000 ']'
++ '[' 24564 -le 25000 ']'
++ '[' 954 -ge 800 ']'
+++ awk '/Mem:/{print $2}' /w/results/110a_secondcard@vast/free.txt
++ RAMGB=93
++ echo 'host RAM 93 GB, in use 2 GB'
++ tee -a /w/results/110a_secondcard@vast/gate.txt
+host RAM 93 GB, in use 2 GB
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=120
++ echo 'disk free 120 GB'
++ tee -a /w/results/110a_secondcard@vast/gate.txt
+disk free 120 GB
++ '[' 120 -ge 100 ']'
++ echo 'V0c checked'
++ tee -a /w/results/110a_secondcard@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet numpy
++ mkdir -p /work/models
++ DLG=6320
++ NSP=6321
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ install_nsys
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/110a_secondcard@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=89 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/110a_secondcard@vast/build_lc-ec.txt
++ wait 6321
++ install_nsys
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/110a_secondcard@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct  7 22:47 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/known_gpu_uuids.txt
++ tee /w/results/110a_secondcard@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+edc5173738f4da5af07b0f534964bfcc0cf7504f7eb400ebca7c72ca9902d70b  /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_89 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=22
++ nvcc -O3 -arch=sm_89 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/110a_secondcard@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/110a_secondcard@vast/concur.txt 22 13253760 4 /w/results/110a_secondcard@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,0,0
++ tee /w/results/110a_secondcard@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-07T22:48:51Z): gpt-oss 0,0,0,0,0'
+law table (2026-10-07T22:48:51Z): gpt-oss 0,0,0,0,0
++ '[' -n 0,0,0,0,0 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/110a_secondcard@vast/fetch_table_law_gptoss.json
++ RATIO=0.2499
++ echo 'VR: B_p / B_c = 0.2499'
++ tee -a /w/results/110a_secondcard@vast/gate.txt
+VR: B_p / B_c = 0.2499
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= 0.25 else 1)' 0.2499
++ '[' 0 '!=' 1 ']'
++ pkill -P 6320
++ kill 6320
++ gate_fail 10 'VR FAIL: link/CPU ratio 0.2499 below 0.25: outside the range of the RTX 5090 trend, stopping'
++ local code=10
++ shift
++ echo 'VR FAIL: link/CPU ratio 0.2499 below 0.25: outside the range of the RTX 5090 trend, stopping'
++ tee -a /w/results/110a_secondcard@vast/v0.txt
+VR FAIL: link/CPU ratio 0.2499 below 0.25: outside the range of the RTX 5090 trend, stopping
++ '[' 0 = 1 ']'
++ exit 10

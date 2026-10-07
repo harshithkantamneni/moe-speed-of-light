@@ -18,9 +18,18 @@ Rule & Where and how \\\midrule\endhead
 \bottomrule
 \end{longtable}
 
+\section{Names and terms}\label{app:names}
+\Cref{tab:names} maps the configuration codes used in the appendix tables, the supplement and the scripts to the names
+of the main text; \cref{tab:glossary} defines the other terms.
+
+\input{tab_names}
+\input{tab_glossary}
+
 \section{Prediction log}\label{app:prereg}
-Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed and pushed
-before the machine started; git history orders every prediction before its measurement. Outcome notes with the
+Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the
+machine started; each machine cloned the published branch at boot and ran the header as committed, so git history
+orders every prediction before its measurement (for a few rentals the push and the start fall in the same second).
+\Cref{tab:prereg} summarises every job's clauses; the notes below give the failures that matter. Outcome notes with the
 statistics are in \texttt{prereg/}. The scorecard, generated from \texttt{prereg/scorecard\_clauses.json},
 splits every prediction of jobs 073--\scLastJob{} into its separable clauses and scores each under one rule (jobs before
 073, which built and debugged the engine, also registered predictions in their headers; their outcome notes are in
@@ -34,7 +43,11 @@ job was voided. Of \scClauses{} clauses, \scHeld{} held, \scHeldPoint{} held on 
 \scUntested{} were untested and \scVoid{} void: \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075,
 when the system was being built, \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions
 made after a same-host pilot, \scLateHeld{} of \scLateScored{} in jobs 082--087, and \scRevHeld{} of \scRevScored{} in jobs 088 onward, where \scRevSignHeld{} of \scRevSignClauses{} sign clauses held (\scRevSignHeldAny{} on the point estimate) and \scRevFailBand{} of
-\scRevBandClauses{} bands failed. Most bands that failed are the sizes of effects whose direction held: our slow-link
+\scRevBandClauses{} bands failed.
+
+\input{tab_prereg}
+
+\paragraph{Failures, jobs 073--098.} Most bands that failed are the sizes of effects whose direction held: our slow-link
 lead landed at 1.51--1.58$\times$ against a predicted 1.10--1.50; the rerun of \cref{tab:headline} on a second host
 (job 089) gave ratios \scRatioFailMin--\scRatioFailMax{} below host B's at \scRatioFailCells{} of six
 cells against a predicted $\pm$0.06, host-bound speeds \scOursHybDropMin--\scOursHybDropMax\% lower against a
@@ -69,7 +82,8 @@ are two of the 4090 host's FETCH tables, which copy one more expert than predict
 gpt-oss 25\% in job 098 (offload, not hybrid); the \scRevFailSign{} sign failures are LRU behind FreeToken at gpt-oss 11\%, where we
 predicted it would still lead, and the hit-optimal oracle slower than the online policy at gpt-oss 11\% and Qwen3
 12.5\%.
-Against the running log kept during the study, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
+
+\paragraph{Changes against the running log.} Against the running log kept during the study, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
 held was never run; job 085b's own restatement of its fourth prediction, ``at least 2 of 3'', failed at 1 of 3,
 though the pooled 4 of 6 held), job 073's ``identical outputs'' is scored on fully identical outputs (0--3\%) rather
 than on agreement of the first 160 characters (27--47\%), and ten clauses the log counted as held, among them job
@@ -79,12 +93,14 @@ a throttled card and was rerun, with its predictions unchanged, as 084b/084c. Th
 \cref{sec:horizon} (rejected drafts free, routed like the true token, or routed at random) are in
 \texttt{prereg/batchk\_outcome.md}.
 
-The clauses were scored by hand from the outcome notes. A script (\texttt{scripts/scorecard\_auto.py}) re-scores every clause
+\paragraph{Scoring checks.} The clauses were scored by hand from the outcome notes. A script (\texttt{scripts/scorecard\_auto.py}) re-scores every clause
 whose measured value is a number and whose threshold parses, \scaAuto{} of \scaN: it agrees with the hand score on
 \scaAgree; of the \scaDisagree{} differences, \scaDet{} are the deterministic counts (reads, divergences, table
 entries) that the hand scoring holds outright and the script scores held (point), and \scaOther{} is a boundary value
 the hand scoring read unrounded (1.249 against a band starting at 1.25). Of the clauses the script scores held on the
-point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one that crosses the threshold. Job 099's clauses are scored by machine from the start
+point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one that crosses the threshold.
+
+\paragraph{Jobs 099--104.} Job 099's clauses are scored by machine from the start
 (\texttt{scripts/panel\_099.py}): of \scbN, \scbHeld{} held, \scbPoint{} held on the point estimate, \scbFailed{}
 failed and \scbUntested{} were untested (\texttt{prereg/scorecard\_099.json}); the two untested clauses are one host's
 replay check, whose step failed when a Python package did not install. The failures concentrate on the two hosts whose
@@ -116,9 +132,9 @@ behind the greedy set at 5 of 6 cells, and 0.047 behind on Pg at gpt-oss 25\%); 
 gpt-oss 25\% (copies 0.73 of greedy's against at most 0.70, misses 5\% more against at most 3\%), the engine's misses
 against the host's replay, the two-read reads, and the interaction, which we predicted would shrink with the plan's
 set and which grew (\texttt{prereg/minadm\_outcome\_104.md}).
-Job 105 (\texttt{scripts/job105.py}; the plain form of \cref{eq:sum} with $G$ profiled on each host before its timed runs, the engine's
+\paragraph{Jobs 105--108: the time relation.} Job 105 (\texttt{scripts/job105.py}; the plain form of \cref{eq:sum} with $G$ profiled on each host before its timed runs, the engine's
 layer-ahead copy, and the fewest-admission set, on an EPYC 7402P, a Threadripper 9960X, Pf and O4): of \jgClauses,
-\jgHeld{} held, \jgPoint{} held on the point estimate and \jgFailed{} failed. Every failure is the law at gpt-oss 25\%,
+\jgHeld{} held, \jgPoint{} held on the point estimate and \jgFailed{} failed. Every failure is the relation at gpt-oss 25\%,
 which over-predicts the deployed cache by \jgErrMidFailMin--\jgErrMidFailMax\% (against at most 6\%) on \jgErrMidFailN{} of
 the four hosts (\jgErrMidHeldMin\% on Pf) and so takes the pooled median error (\jgErrMed\%) past the 4\% registered; at 11\% it is within \jgErrLowMin{} to
 \jgErrLowMax\%. Every speed prediction held: the layer-ahead copy gains at least 3\% on the host with a ratio above 0.8
@@ -133,11 +149,11 @@ admission rules, and MIN's sets launch by launch, on five hosts): of \jiClauses,
 point estimate and \jiFailed{} failed. \jiFailedUnst{} of the failures are on the two server machines new to the job, one
 of which computed wrong outputs and the other of which varied by more than the registered 2\% between rounds
 (\cref{app:more}); the three stable hosts are Pf, the Threadripper 9960X of job 105 and panel host Pe, all rented
-before. On the \jiStable{} stable hosts the law held on every
+before. On the \jiStable{} stable hosts the relation held on every
 cell; the \jiFailedStable{} failures there are the margin rule's speed-up of at least 1.01 at gpt-oss on two hosts, the
 learned order's speed-up of at least 1.00 on the fast-memory host, its host-time caps on the fastest-link host, and the
-law's prediction of both rules' ratios on Pf at 25\% (off by 0.030 and 0.045 against at most 0.03). The pooled clauses:
-the law's median error over all hosts failed (\jiFailedPooled), and the margin rule's pooled median of at least 1.02 held
+relation's prediction of both rules' ratios on Pf at 25\% (off by 0.030 and 0.045 against at most 0.03). The pooled clauses:
+the relation's median error over all hosts failed (\jiFailedPooled), and the margin rule's pooled median of at least 1.02 held
 only because of the two unstable machines (on the stable ones it is \jiDkPooled) (\texttt{prereg/onlineadmit\_outcome\_106.md}).
 Job 107 (\texttt{scripts/job107.py}; the same relation, the admission margin and MIN's fewest-admission set loaded both
 ways, on machines never rented before, with validity gates registered before launch): \jlLaunched{} machines rented,
@@ -164,13 +180,14 @@ The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for jo
 Our cache's one per-machine decision, how many of a layer's misses to fetch rather than run on the CPU, comes from a
 calibrated model of time per token. With $X_c$ the bytes the CPU reads per token and $X_p$ the bytes the link reads,
 \begin{equation}
-T \;=\; G \;+\; \max\!\Big(\frac{X_c}{B_c},\ \frac{X_p}{B_p},\ \frac{X_c+X_p}{B_{cp}}\Big),
+T \;=\; G_{\mathrm{fit}} \;+\; \max\!\Big(\frac{X_c}{B_c},\ \frac{X_p}{B_p},\ \frac{X_c+X_p}{B_{cp}}\Big),
 \label{eq:law}
 \end{equation}
-with one constant $G$ per engine and model, fitted once on one host and frozen. It is a calibrated model, not a law:
-$G$ is fitted, and it exceeds the whole all-in-VRAM token (\lawGRefit{} against \vramMs\,ms) because it absorbs
+with one constant $G_{\mathrm{fit}}$ per engine and model, fitted once on one host and frozen (it is neither the profiled
+$G$ of \cref{eq:sum} nor $T_{\text{GPU}}$ of \cref{eq:demand}). It is a calibrated model, not a law: $G_{\mathrm{fit}}$ is
+fitted, and it exceeds the whole all-in-VRAM token (\lawGRefit{} against \vramMs\,ms) because it absorbs
 per-token host work and the CPU helpers' shortfall against the probe (below). As a predictor of time it ties a naive
-one-path model with the same $G$ (time $= G +$ all host bytes over the best probed rate):
+one-path model with the same $G_{\mathrm{fit}}$ (time $= G_{\mathrm{fit}} +$ all host bytes over the best probed rate):
 
 \begin{center}\small
 \begin{tabular}{lrrrr}\toprule
@@ -203,7 +220,7 @@ the sum is closer on the two rows that copy behind a slow link, and elsewhere th
 (\cref{app:law}). Each failure has a
 measured cause (\cref{app:law}): on-demand copies behind a slow link share DRAM less evenly than the probe's combined
 rate says; llama.cpp splits every matrix evenly across threads and runs at 46\% of the model on a hybrid-core host; and
-on a 12-channel EPYC host memory stops being the limit and a per-layer latency floor takes over. $G$
+on a 12-channel EPYC host memory stops being the limit and a per-layer latency floor takes over. $G_{\mathrm{fit}}$
 (\lawGRefit\,ms refit) exceeds the whole all-in-VRAM token (\vramMs\,ms) because it absorbs a shortfall the probe does
 not see: the helpers read at \helperRateMin--\helperRateMax$\times$ the probe's time per expert, and a fitted rate
 factor is collinear with $G$ at this sample size.

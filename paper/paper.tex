@@ -42,6 +42,7 @@
 \input{wsg_job108}
 \input{wsg_decomp}
 \input{wsg_regtests}
+\input{wsg_robust}
 \input{wsg_pending}
 
 \mlsystitlerunning{Where the Seconds Go}
@@ -61,8 +62,8 @@ A Mixture-of-Experts model too large for one consumer GPU keeps most of its expe
 token at a time then waits on host reads. We bound how fast such decoding can be on a given machine: no cache of $C$
 experts per layer reads fewer experts from host memory than Belady's MIN with bypass, and those reads at the machine's
 measured read rate bound every system that executes the exact routing. Our llama.cpp expert cache, which leads two
-other systems at most configurations, reaches \slMaxEffLowMin--\slMaxEffLowMax\% of that bound at the smallest gpt-oss
-budget on \slMachines{} machines. On machines with consumer processors its time is close to the GPU's profiled compute
+other systems at most configurations, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of that bound at the smallest gpt-oss
+budget on \dcMachinesLow{} machines with consumer processors. On machines with consumer processors its time is close to the GPU's profiled compute
 plus its host reads at the machine's best rate. This relation was found on past runs, and no registered test that
 included machines new to it passed: it missed by up to \jlNewDeskErrMax\% on new consumer machines and by up to
 \jlNewServErrMax\% on server machines that read well below their probed rate.
@@ -105,7 +106,8 @@ routing of about \dcMed$\,C$ distinct experts per layer ahead.
 \begin{table}[t]\centering\scriptsize
 \caption{Our claims and the evidence behind each. \emph{Registered}: predicted in a job script committed before the
 machine started (\cref{app:prereg}); \emph{exploratory}: found in the data it describes; \emph{after the fact}: drawn
-after the registered tests it explains; \emph{derivation}: follows from the definitions.}\label{tab:claims}
+after the registered tests it explains; \emph{derivation}: follows from the definitions. \emph{Held} is mostly on the
+point estimate; \cref{tab:prereg} counts how many clauses held with an interval.}\label{tab:claims}
 \setlength\tabcolsep{2.5pt}
 \begin{tabular}{@{}p{0.60\linewidth}p{0.32\linewidth}r@{}}\toprule
 Claim & Evidence & \S \\\midrule
@@ -115,7 +117,7 @@ Our cache leads FreeToken and llama.cpp at most configurations & registered; lea
 On consumer processors, time is GPU compute plus host reads at the best probed rate, and the gap to the bound splits into serialisation and excess reads & exploratory; \rtN{} registered tests, none passed & \ref{sec:gap} \\
 Two of three valid server machines read well below the probed rate & after the fact & \ref{sec:gap} \\
 Foresight pays when MIN's set is read once, on three hosts at all budgets & registered; held at most cells & \ref{sec:foresight} \\
-MIN's fewest-admission schedule gains on every valid machine & registered; held on valid machines & \ref{sec:foresight} \\
+MIN's fewest-admission schedule gains on every machine that ran stably & registered; held on \rbPlanMachines{} stable machines, lost on \rbPlanUnstLost{} of \rbPlanUnstN{} unsteady ones & \ref{sec:foresight} \\
 Admitting less gains a little online & registered; partly held & \ref{sec:foresight} \\
 Half of MIN's saving needs $\approx$\dcMed$\,C$ distinct experts ahead & exploratory (9 models) & \ref{sec:horizon} \\
 \bottomrule
@@ -166,7 +168,8 @@ miss only if some resident is needed later than the miss, which maximises hits u
 it may; the \emph{fewest-admission} one admits as rarely as any schedule with the most hits. An admitted expert is
 loaded \emph{in the step}, copied before the GPU runs it (one read, on the critical path), or \emph{by the CPU}, served
 there and copied in the background (two reads). \emph{Oracles} read the routing of the rest of the problem from a trace
-recorded on the same machine (\cref{tab:configs}).
+recorded on the same machine (\cref{tab:configs}; \cref{tab:names} maps the codes of the appendix tables to these
+names).
 
 \paragraph{Machines.} Every machine is a rented host with one RTX 5090. Each runs our bandwidth probe, which measures
 how fast it reads host memory from CPU threads ($B_c$), over PCIe ($B_p$), and by any method or both together
@@ -181,7 +184,10 @@ CPU model differ by up to \pnSameCpuDiffMax\% in the deployed cache's time, whil
 \jiRelaunchMax\% of their earlier launch. The machine is therefore the unit: claims are about orderings that hold on
 every machine of a stated class, and pooled intervals resample machines and then problems \citep{kalibera2013rigorous}.
 A \emph{launch} is one rental; in the later experiments each gpt-oss configuration also ran in two or three
-\emph{rounds}, separate processes within one launch, and round-level intervals resample rounds, then problems. Every
+\emph{rounds}, separate processes within one launch, and round-level intervals resample rounds, then problems. These
+intervals are within one machine; the main claims also carry intervals over machines (\cref{app:more}). A machine
+\emph{ran stably} (passed our checks) when its outputs matched the reference and its rounds ran within 2\% of each
+other; the checks were registered for the tests on new machines and applied after the fact to earlier ones. Every
 experiment's predictions were committed before its machine started; \cref{app:prereg} scores them, and the main text
 says of each result whether it was registered.
 
@@ -216,9 +222,9 @@ is foresight, can approach \cref{eq:limit}.
 \paragraph{Where systems stand.} \Cref{tab:headline} places three systems against the bounds on two hosts. Our cache
 leads FreeToken \citep{freetoken} at \bothLeadCells{} of \bothCells{} configurations and runs
 \bothLlamaXMin--\bothLlamaXMax$\times$ stock llama.cpp at equal GPU expert memory; tuned on a third host, FreeToken still
-trails at \fttLeadCells{} of six cells (registered; \cref{app:system}). Across the \slMachines{} machines of the
-exploratory set, at gpt-oss 11\%, our cache stands at
-\slMaxEffLowMin--\slMaxEffLowMax\% of \cref{eq:limit}. Published batch-1 systems in the bound's class, scored at their
+trails at \fttLeadCells{} of six cells (registered; \cref{app:system}). The two hosts' intervals do not overlap: the
+ratio is a property of the machine as much as of the systems. Across \dcMachinesLow{} machines with consumer processors,
+at gpt-oss 11\%, our cache stands at \dcShareMinLowMin--\dcShareMinLowMax\% of \cref{eq:limit}. Published batch-1 systems in the bound's class, scored at their
 papers' datasheet rates, reach a median \audInclassMed\% of it (\cref{app:audit}).
 
 \input{tab_headline}
@@ -237,9 +243,11 @@ For the deployed cache, we describe the time per token $T$ by
 T \;=\; G + \frac{\big(M + (1 - G/T)\,A\big)\,S}{B_{\mathrm{host}}},
 \label{eq:sum}
 \end{equation}
-solved for $T$. $M$ and $A$ are the misses and the background admissions per token (the engine's counters), $S$ the
+solved for $T$: it is the larger root of $T^2-(G+t_M+t_A)\,T+t_A G=0$, with $t_M=MS/B_{\mathrm{host}}$ and
+$t_A=AS/B_{\mathrm{host}}$. $M$ and $A$ are the misses and the background admissions per token (the engine's counters), $S$ the
 expert's bytes, $B_{\mathrm{host}}$ the machine's best probed rate, and $G$ the GPU's own kernel time per token in an
-Nsight profile of the same engine (\slGprofMin--\slGprofMax\,ms for gpt-oss). $G$ exceeds $T_{\text{GPU}}$ of
+Nsight profile of the same engine (\slGprofMin--\slGprofMax\,ms for gpt-oss; where a machine was not profiled, the
+median of the profiles). $G$ exceeds $T_{\text{GPU}}$ of
 \cref{eq:demand} because it also counts the expert kernels the GPU runs for resident and fetched experts. No constant is
 fitted to the times. Every
 host read costs host time, except the background copies that run while the GPU computes: they spread over the next step,
@@ -247,7 +255,7 @@ and a share $G/T$ of them falls under the GPU's compute. The \emph{plain} form d
 on \slLawN{} launches of gpt-oss (exploratory): it is within 6\% on \slLawWithinLow{} of them at 11\% but over-predicts at
 25\%, where admissions are a larger share of the reads. The overlap term came from where those copies run, after the
 plain form failed its first registered test; over \slOlN{} launches it brings \slOlWithinMid{} instead of
-\slPlWithinMid{} within 6\% at 25\%.
+\slPlWithinMid{} within 6\% at 25\%, at the cost of \slOlWithinLow{} instead of \slPlWithinLow{} at 11\%.
 
 \subsection{Registered tests}
 We then registered \cref{eq:sum} before \rtLaterN{} more experiments, each predicting it within a band at every cell, with
@@ -271,12 +279,15 @@ under-predicted by \jlNewServErrMin--\jlNewServErrMax\%, and on a Ryzen 9 5900XT
 clauses (median error \jmProfOnlyMed\%). The EPYC's profile captured no decode kernels under an older driver, so its $G$ is the median of
 earlier profiles, a deviation from the registration that does not change the outcome. On the \jmNewConsWord{} consumer
 machines new to the last two tests the relation under-predicted every gpt-oss cell, by \jmNewConsAbsMin--\jmNewConsAbsMax\%.
+The error leans the same way on the launches it was found on: over \rbErrMachines{} consumer machines its mean at gpt-oss
+11\% is \rbErrMean\% (95\% interval over machines \rbErrLo{} to \rbErrHi\%), so \cref{eq:sum} misses a small cost.
 
 \subsection{After the fact: the processor}
 The processor separates most of the machines the relation fits from those it misses, not all; we drew this split
 after the tests. On \jmConsN{} valid launches on \jmConsMachines{} machines with consumer processors, the read rate the deployed
 cache implies, $(M + (1-G/T)A)\,S/(T-G)$, is \jmConsEffMin--\jmConsEffMax{} of the probe's best rate at gpt-oss 11\%,
-and the relation is within 8\% on \jmConsWithinEight{} of them. On server processors, \jmServInvalid{} of \jmServAll{}
+and the relation is within 8\% on \jmConsWithinEight{} of them ($G$ was profiled on the machine for \rbConsProf{} of
+these launches). On server processors, \jmServInvalid{} of \jmServAll{}
 launches failed a validity check, and the \jmServWord{} valid ones read at \jmServList{} of it: the last fits the
 relation, the other two do not. We have not established why. On the dual-socket server the probe's own threads read slower with \jlServCpuManyThreads{} threads, about the
 engine's \jlServHelpers{} helpers, than with \jlServCpuBestThreads{} (\jlServCpuMany{} against \jlServCpuBest\,GB/s), and
@@ -333,8 +344,9 @@ classical for disks \citep{cao1995prefetching} and CPU caches \citep{jain2018pre
 \paragraph{Which of MIN's schedules is followed matters (registered).} The greedy schedule admits a miss whenever some
 resident is needed later, and may evict it again before its next use; the fewest-admission schedule makes
 \jfCopyRatioMin--\jfCopyRatioMax{} of the greedy one's copies. Copied in the step, the fewest-admission schedule beat
-the deployed cache on every machine that passed our checks: \jkMachines{} in earlier experiments, and both valid machines
-of the first test on new machines (\cref{fig:hostdep}). Where the link reads at \jkSlowRatioMin--\jkSlowRatioMax{} of the CPU rate, the greedy schedule lost at 11\%
+the deployed cache on every machine that ran stably, a mean \rbPlanMean$\times$ over \rbPlanMachines{} machines (95\%
+interval over machines \rbPlanLo--\rbPlanHi; \cref{fig:hostdep}). On \rbPlanUnstLost{} of the \rbPlanUnstN{} that ran
+unsteadily, both behind slow links, it lost. Where the link reads at \jkSlowRatioMin--\jkSlowRatioMax{} of the CPU rate, the greedy schedule lost at 11\%
 (\jkSlowFetchMin--\jkSlowFetchMax$\times$) while the fewest-admission one gained in every round. There, its copies
 belong in the background: loaded by the CPU, the same set gains \jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ at
 the two budgets.
@@ -360,7 +372,7 @@ with the engine's layer-ahead copy. Lines: least-squares fits in the log of the 
 an admission costs a read. The deployed cache's admissions are second reads, so the lesson applies to it without
 foresight. Raising its admission margin from $\kappa{=}1$ to the value that minimises its reads on other text cuts its
 host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at gpt-oss 11\%. On the \jlDkAllMachines{} machines that ran
-stably it runs a median \jlDkAllMed$\times$ the deployed cache at gpt-oss, gaining up to \jlDkAllGainMax\% and losing
+stably it runs a mean \rbDkMean$\times$ the deployed cache at gpt-oss (95\% interval over machines \rbDkLo--\rbDkHi), gaining up to \jlDkAllGainMax\% and losing
 \jlDkAllLossPct\% at \jlDkFailWord{} of \jlDkAllN{} cells. The gain is small because admissions are a small share of the
 deployed cache's reads. Our registered thresholds for it were met in part, and a learned admission order gained no more
 (\cref{app:more}).
@@ -454,7 +466,7 @@ teacher-forced on each model's own greedy text. Prompts and batches above one by
 \item \textbf{The bounds.} Exact routing and per-layer slots (pooling slots across layers lowers MIN's reads by
 \globalReadsMin--\globalReadsMax\%). They drop latencies, let the read paths share the best probed rate, and are relative
 to one run of our probe, so a faster reader could exceed them: by \cref{eq:sum}'s own accounting the engine read more than 5\% faster than
-the probe's highest rate on \slOverN{} of \slOverCells{} launch-budgets (up to \slOverMax$\times$), and the GPU term uses a
+the probe's highest rate on \rbAboveMax{} of \rbLaunchBudgets{} launch-budgets (up to \rbAboveMaxMax$\times$; \cref{tab:robust}), and the GPU term uses a
 datasheet rate that a card can exceed. The GPU term of \cref{eq:demand} is our engine's kernel time, not a property of
 the machine alone. The read time is nearly reachable in a microbenchmark that runs no compute.
 \item \textbf{The relation.} \Cref{eq:sum} describes the deployed path on consumer processors; states that copy in the

@@ -5,7 +5,7 @@ How this paper follows the twelve rules of \citet{hoefler2015benchmarking}.
 Rule & Where and how \\\midrule\endhead
 1. Report the base case of a speed-up and its absolute performance. & Every ratio in \cref{tab:headline} is next to both absolute speeds; llama.cpp is configured with per-layer expert offload at equal expert memory, the setting its users run. \\
 2. Explain subsets of benchmarks or resources. & Two models chosen for size and precision (MXFP4, BF16), a third that is FreeToken's own headline model; budgets span what fits a 32\,GB card; the 43.75\% budget is omitted where it does not fit. All 30 AIME-25 problems are used. \\
-3. Arithmetic mean for costs, harmonic mean for rates. & The accounting, the panel and the value of foresight average time per token over problems (a cost) and quote speeds as the harmonic mean this implies; in \cref{tab:headline} every problem decodes the same number of tokens, and ratios of total time agree with the reported ratios of mean rates within 0.003. \\
+3. Arithmetic mean for costs, harmonic mean for rates. & The accounting, the panel and the value of foresight average time per token over problems (a cost) and quote speeds as the harmonic mean this implies; \cref{tab:headline} averages per-problem rates arithmetically, which departs from this rule; every problem decodes the same number of tokens, so the harmonic mean is the right summary, and ratios of total time agree with the reported ratios of mean rates within 0.003. \\
 4. Avoid summarising ratios. & Ratios of means are never averaged across budgets or models; ranges list the per-budget values, and the medians reported across models (\cref{tab:policy}) or across published rows (\cref{app:audit}) are medians of per-cell quantities, labelled as such. \\
 5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval over problems; the panel (job 099) adds intervals over hosts, the unit that varies most. \\
 6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
@@ -593,7 +593,7 @@ budget: a single missed expert should run on the CPU (about 155\,$\mu$s, hidden 
 than be copied (about 225\,$\mu$s, on the critical path); that entry alone is worth \splitFOne\%. Fetching everything,
 FreeToken's offload strategy expressed in our engine, is the worst table, and running everything on the CPU the second
 worst. The model's table was within 1\% of the best of five alternatives on launch 1 and tied with it on launch 2. Given
-each run's measured misses, \cref{eq:split} ranks the tables correctly except law against lite, which are within 1\%,
+each run's measured misses, \cref{eq:split} ranks the tables correctly except the model's table against the lite one, which are within 1\%,
 and overstates their differences about 1.8$\times$.
 
 \paragraph{Machines with half the link.} On RTX 5090s whose links we measured at 27--30\,GB/s instead of 53 (jobs
@@ -614,7 +614,7 @@ and \slFtHigh$\times$ (lowest interval bound \slFtLoMin). Restricted to the CPU 
 decodes \slFzeroMid\,tok/s at every budget. llama.cpp on the same rental runs \slLlamaTeight\,tok/s with one thread
 per performance core (\slLlamaErrTeight\% from the model's prediction) and \slLlamaTall{} with all 24 threads
 (\slLlamaErrTall\%): the hybrid-core failure is a thread-count choice, and the model holds once the choice is right. The
-law predicted llama.cpp on the Ryzen within \hpLlamaQwen\%. \Cref{fig:ratio} puts every same-machine comparison on one
+model predicted llama.cpp on the Ryzen within \hpLlamaQwen\%. \Cref{fig:ratio} puts every same-machine comparison on one
 axis.
 
 \paragraph{Long outputs.} Our lead does not come from the first 256 tokens. On gpt-oss, on ten held-out hard

@@ -158,7 +158,7 @@ def figure(vm):
         ax.set_ylim(-0.05, 1.05)
         ax.tick_params(labelsize=7)
         ax.set_xlabel("tokens of foresight $W$", fontsize=7)
-    axs[0].set_ylabel("share of MIN's gain", fontsize=8)
+    axs[0].set_ylabel("share of MIN's gain\nover admit every miss", fontsize=7)
     axs[0].legend(fontsize=6.5, frameon=False, loc="upper left")
     fig.tight_layout(pad=0.3)
     fig.savefig(P("paper", "figs", "value.pdf"))

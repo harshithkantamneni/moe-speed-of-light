@@ -184,7 +184,7 @@ def main():
     ax.set_yticks([2, 5, 10, 20, 50, 100])
     ax.set_yticklabels(["2", "5", "10", "20", "50", "100"])
     ax.minorticks_off()
-    ax.set_ylabel("% of own speed of light", fontsize=7)
+    ax.set_ylabel("% of own bound", fontsize=7)
     ax.set_xticks(list(range(npub)) + [gx["gpt-oss-120b"], gx["Qwen3-30B-A3B"]])
     ax.set_xticklabels(labels + ["gpt-oss-120b", "Qwen3-30B"], rotation=60, ha="right", fontsize=5.6, rotation_mode="anchor")
     ax.set_xlim(-0.8, npub + 2.75)

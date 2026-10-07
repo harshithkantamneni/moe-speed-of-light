@@ -45,6 +45,7 @@
 \input{wsg_regtests}
 \input{wsg_robust}
 \input{wsg_regtime}
+\input{wsg_rstar}
 \input{wsg_pending}
 
 \mlsystitlerunning{Where the Seconds Go}
@@ -52,11 +53,14 @@
 \begin{document}
 \twocolumn[
 \mlsystitle{Where the Seconds Go: Bounding Mixture-of-Experts Decode from Host Memory, and Measuring What Foresight Is Worth}
+% The author block is in paper/authors.tex, which is not tracked, so that the submitted source names nobody; without
+% it the build uses an anonymous block (the submission style prints "Anonymous Authors" either way).
+\IfFileExists{authors.tex}{\input{authors}}{%
 \begin{mlsysauthorlist}
-\mlsysauthor{Harshith Kantamneni}{ind}
+\mlsysauthor{Anonymous Author}{anon}
 \end{mlsysauthorlist}
-\mlsysaffiliation{ind}{Independent Researcher}
-\mlsyscorrespondingauthor{Harshith Kantamneni}{harshithkantamneni@users.noreply.github.com}
+\mlsysaffiliation{anon}{Anonymous Institution}
+\mlsyscorrespondingauthor{Anonymous Author}{anonymous@example.org}}
 \mlsyskeywords{Mixture of Experts, Offloading, Caching, Performance Bounds}
 \vskip 0.3in
 \begin{abstract}
@@ -191,7 +195,7 @@ A \emph{launch} is one rental; in the later experiments each gpt-oss configurati
 intervals are within one machine; three of the main claims also carry intervals over machines, a bootstrap of one mean
 per machine (\cref{app:more}). A machine
 \emph{ran stably} (passed our checks) when its outputs matched the reference and its rounds ran within 2\% of each
-other; the checks were registered for the tests on new machines and applied after the fact to earlier ones. Every
+other (for launches with one round, correct outputs alone); the checks were registered for the tests on new machines and applied after the fact to earlier ones. Every
 experiment's predictions were committed before its machine started; \cref{app:prereg} scores them, and the main text
 says of each result whether it was registered.
 
@@ -208,7 +212,9 @@ weights $D$ plus $(Lk-c)\,S$. With everything overlapped,
 \end{equation}
 At a host-bound budget the minimum is at $c{=}0$ and the bound is MIN's read time, $R^\star S/B_{\mathrm{host}}$. The
 bound covers exact routing, whole experts of unmodified bytes, at most $C$ residents per layer and one token per
-forward pass. It drops all latencies and lets the two read paths share $B_{\mathrm{host}}$ freely, and it is relative
+forward pass. $R^\star$ is counted on the whole 30-problem trace; on the first 20 problems, which the later experiments time, it changes
+by \rsDiffLow\% at gpt-oss 11\% and \rsDiffMid\% at 25\%. The bound drops all latencies and lets the two read paths share
+$B_{\mathrm{host}}$ freely, and it is relative
 to the probe: a reader faster than the probe's best could beat it (\cref{sec:limits}).
 
 \paragraph{A tighter bound for our engine reading on demand.} At batch size 1 a system that reads an expert only after
@@ -240,7 +246,7 @@ bound's class a median \audInclassMed\% (\cref{app:audit}).
 without the model: CPU threads read part of each layer's experts while the copy engine copies the rest into slots.
 Waiting for every layer, it reaches \jdLayerMin--\jdLayerMax\% of the bound's read time (registered;
 \cref{tab:readsched}). Sending over the link the fewest admissions any of MIN's schedules needs raises the bound by at most
-\laOverLowMax\% at 11\% (\texttt{scripts/linkaware.py}). The GPU term of \cref{eq:limit}, by contrast, is loose, but it binds only at the
+\laOverLowMax\% at 11\% (\cref{app:system}). The GPU term of \cref{eq:limit}, by contrast, is loose, but it binds only at the
 largest budgets (\cref{tab:limit}).
 
 \section{Where the Seconds Go}\label{sec:gap}
@@ -254,7 +260,7 @@ solved for $T$: it is the larger root of $T^2-(G+t_M+t_A)\,T+t_A G=0$, with $t_M
 $t_A=AS/B_{\mathrm{host}}$. $M$ and $A$ are the misses and the background admissions per token (the engine's counters), $S$ the
 expert's bytes, $B_{\mathrm{host}}$ the machine's best probed rate, and $G$ the GPU's own kernel time per token in an
 Nsight profile of the same engine (\slGprofMin--\slGprofMax\,ms for gpt-oss; where a machine was not profiled or its profile captured no
-decode kernels, the median of the \jmFallbackHosts{} profiles of jobs 069c and 105). $G$ exceeds $T_{\text{GPU}}$ of
+decode kernels, the median of a fixed set of \jmFallbackHosts{} profiles; \cref{app:more}). $G$ exceeds $T_{\text{GPU}}$ of
 \cref{eq:demand} because it also counts the expert kernels the GPU runs for resident and fetched experts. No constant is
 fitted to the times. Every
 host read costs host time, except the background copies that run while the GPU computes: they spread over the next step,
@@ -339,14 +345,14 @@ takes \fsExBaseMs, MIN copying each admission in the step \fsExFetchMs, and MIN 
 relative to the deployed cache on the same host, at the six budgets ($^\dagger$host-bound). Three hosts at every budget (O3--O5, two Ryzen 9 9950X and a 9950X3D);
 the \pnHosts{} panel hosts (grey ticks) at the two gpt-oss host-bound budgets, and \pnHostsQlow{} of them at Qwen3
 12.5\%. Reading what MIN admits once (\emph{MIN, 1 read}) gains at every budget on these hosts; the usual ways of
-spending foresight (\emph{Belady}, \emph{MIN, 2 reads}) gain at some budgets and lose at others.}
+spending foresight (\emph{no bypass}, \emph{MIN, 2 reads}) gain at some budgets and lose at others.}
 \label{fig:factorial}
 \end{figure*}
 
 \paragraph{Spent as MIN spends it, foresight pays (registered).} MIN with each admission copied once, in the step, is
 faster than the deployed cache at every budget on the three hosts, by \fxFetchAllGainMin--\fxFetchAllGainMax\%, and by
 up to \fxPacedAllGainMax\% with the copies made ahead (\cref{fig:factorial}). The usual ways of spending foresight
-waste reads: Belady prefetch admits experts MIN would bypass, and serving a miss on the CPU before copying it reads every
+waste reads: prefetching without bypass (Belady's original rule) admits experts MIN would bypass, and serving a miss on the CPU before copying it reads every
 admission twice. At the smallest budget of each model they gain at most \fxUsualLowGainMax\% or lose; the trade-off is
 classical for disks \citep{cao1995prefetching} and CPU caches \citep{jain2018prefetch}.
 
@@ -365,7 +371,7 @@ the two budgets.
 Where the link is as fast as the CPU, copies in the step are cheap and the two schedules tie. Host by host, both loads
 and both budgets are in \cref{app:more}.
 
-\paragraph{The machine decides how much (exploratory).} Across machines, the gain of every state that moves reads from the CPU to the
+\paragraph{The machine decides how much (exploratory).} Across machines, the gain of every configuration that moves reads from the CPU to the
 link follows the link-to-CPU ratio: for MIN copied in the step, Spearman \rcFetchRatio{} [\rcFetchRatioLo,
 \rcFetchRatioHi] over \rcFetchRatioN{} machines (\cref{fig:hostdep}). Machines carry \ppVarHostsFetchMax\% of the
 variance of that state's log gain, problems at most \ppVarProbFetchMax\%.
@@ -393,7 +399,7 @@ deployed cache's reads. Our registered thresholds for it were met in part, and a
 \section{How Much Foresight Is Needed}\label{sec:horizon}
 The oracles know the whole future; a forecaster would know part of it, imperfectly. We give the cache a
 \emph{window}, the routing of the next $W$ tokens, exact or degraded (each future expert kept with probability $r$ and
-replaced otherwise, so that precision and recall are both $r$), and ask what it is worth in the engine and, on nine
+replaced otherwise, so that precision and recall are both $r$), and ask what it is worth in the engine and, on \fsModels{}
 models' traces, how long it must be. The window policies and their engine runs are detailed in \cref{app:value}.
 
 \paragraph{A short window pays little against the deployed cache (registered).} Given to the deployed policy, so that
@@ -484,7 +490,7 @@ to one run of our probe, so a faster reader could exceed them: by \cref{eq:sum}'
 the probe's highest rate on \rbAboveMax{} of \rbLaunchBudgets{} launch-budgets (up to \rbAboveMaxMax$\times$; \cref{tab:robust}), and the GPU term uses a
 datasheet rate that a card can exceed. The GPU term of \cref{eq:demand} is our engine's kernel time, not a property of
 the machine alone. The read time is nearly reachable in a microbenchmark that runs no compute.
-\item \textbf{The relation.} \Cref{eq:sum} describes the deployed path on consumer processors; states that copy in the
+\item \textbf{The relation.} \Cref{eq:sum} describes the deployed path on consumer processors; configurations that copy in the
 step add latency it does not model. It has not passed a registered test on machines new to it, and on new consumer
 machines it under-predicts slightly. The split by processor that separates its small misses from its large ones was
 drawn after the tests, and it is confounded with co-tenancy, NUMA layout, core limits and driver version. The overlap

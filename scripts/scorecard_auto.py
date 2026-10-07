@@ -80,7 +80,7 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "had throttled cards that the gate stopped. Cells gpt-oss 11\\% (g11) and 25\\% (g25).",
                  "106": "Hosts a (the Threadripper 9960X of 105b again), b (Pf again), c (EPYC 7302, a 13 GB/s link), d (Xeon Platinum "
                         "8347C), e (Ryzen 9 9950X). Cells gpt-oss 11\\% (g11, three rounds) and 25\\% (g25, two), Qwen3 12.5\\% (q12) and "
-                        "25\\% (q25), one round each. On hosts c and d the deployed cache varied by 11\\% and 39\\% between rounds.",
+                        "25\\% (q25), one round each. On hosts c and d the deployed cache's rounds were 12\\% and 52\\% apart (slowest over fastest).",
                  "107": "Valid hosts b (Ryzen 9 5900XT) and d (a dual-socket AMD engineering sample), both never rented before. Hosts c "
                         "(EPYC 9754) and e (EPYC 7663) failed the registered 2\\% check between rounds and are not scored; a, f and g "
                         "stopped at the gate (host memory in use). Cells gpt-oss 11\\% (g11) and 25\\% (g25), two rounds each, Qwen3 "

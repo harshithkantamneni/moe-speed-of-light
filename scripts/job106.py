@@ -385,7 +385,7 @@ def main():
             f.write("\\bottomrule\\end{tabular}}\\end{table}\n")
     table("tab_job106.tex", "tab:job106", hs, ", the hosts that ran stably")
     table("tab_job106_all.tex", "tab:job106all", hosts, ", every host ($^*$: deployed cache varied by more than the registered "
-          "2\\% between launches)")
+          "2\\% between rounds)")
     print(dict(st))
     for c in clauses:
         print(c["status"], c["id"], c["short"], c["measured"], c["ci"])

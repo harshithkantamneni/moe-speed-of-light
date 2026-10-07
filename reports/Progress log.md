@@ -3,6 +3,49 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 7 October (night): job 108, clarity rewrite, number check 14, review rounds 13 (5, 6) and 14 (6, 6)
+
+**Status for Harshith (read this first).** Round 14, after the clarity rewrite: MLSys PC **6/10** (soundness 3,
+significance 3, novelty 3, clarity **3**); professor **6/10** (soundness 3, methodology 4, significance 3, clarity
+**3**). Clarity rose from 2 to 3 in both reviews, and the PC score from 5 to 6. Round 13, before the rewrite, was 5 and
+6 with clarity 2.
+
+- **Job 108 (6 machines, about $2.40).** A registered test of the time relation, gpt-oss only.
+  - **Design.** The class line drawn after job 107 (one NUMA node, ≤ 32 cores) was checked before any download, and
+    the band widened to 8%.
+  - **Result: failed.** On an EPYC 7543 inside the class the relation was off by 34% and 28%. On a Ryzen 9 9950X3D and
+    a Ryzen 9 5950X it was within 8%, but 2 cells were beyond 6% and the median was 5.3%.
+  - **Hosts that did not count.** One GPU was turned away as rented before; one host had 323 GB of memory in use; one
+    EPYC ran its rounds 7% apart.
+  - **Deviation.** The EPYC's Nsight trace was empty under driver 570, so it used the median G of earlier profiles. The
+    paper says so; the outcome does not depend on it.
+- **After the fact.** The processor separates most fits from misses, but not all.
+  - Consumer parts: 0.88–1.16 of the probed rate over 39 launches.
+  - Valid server parts: EPYC 7402P 1.04 (fits), EPYC 7543 0.58, AMD engineering sample 0.27.
+- **The registered record of the relation (Table 4).** Four tests, three failed and one inconclusive by its own rule.
+  It held only on machines rented again.
+- **Clarity rewrite (main text):**
+  - Table 1 lists each claim with its evidence status.
+  - Section 4 is ordered by logic: relation, registered tests, after the fact, decomposition.
+  - Table 4 is full width and gives each registered test's verdict.
+  - A new Figure 1 shows one decode step.
+  - Job numbers and host nicknames are out of the main text, and there are fewer numbers per sentence.
+  - The decomposition figure is grouped by processor, uses each host's own G, and marks new machines.
+  - The foresight figure is trimmed to the series the text discusses.
+  - The main text ends on page 9.
+- **Number check 14** found no arithmetic errors. It found scope overclaims, which are fixed:
+  - the server claim now reads "two of three valid";
+  - job 107 is called inconclusive;
+  - the evidence labels are corrected.
+- **Still open, per round 14:**
+  1. The bound is relative to the probe: B_host is the single highest reading.
+  2. The relation has not passed on new machines.
+  3. Intervals are within a launch.
+  4. The appendices are not rewritten. Appendix B is one long paragraph, and the appendices still say "law".
+  5. Novelty is modest.
+  6. The LaTeX source (not the PDF) carries your name, so blind review breaks if the source is shared.
+- **Credit left:** about $0.75. No instances are running.
+
 ## 7 October (later): job 107 on new machines, number check 13, review round 12 (5/10 and 6/10)
 
 **Status for Harshith (read this first).** Round 12: MLSys PC **5/10** (soundness 3, significance 3, novelty 3,

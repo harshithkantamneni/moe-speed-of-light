@@ -85,7 +85,7 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "(EPYC 9754) and e (EPYC 7663) failed the registered 2\\% check between rounds and are not scored; a, f and g "
                         "stopped at the gate (host memory in use). Cells gpt-oss 11\\% (g11) and 25\\% (g25), two rounds each, Qwen3 "
                         "12.5\\% (q12) and 25\\% (q25), one round each.",
-                 "108": "Valid hosts a (EPYC 7543; G not profiled, the median of earlier profiles used), d (Ryzen 9 9950X3D) and f "
+                 "108": "Valid hosts a (EPYC 7543; G not profiled, the median of the profiles of jobs 069c and 105 used), d (Ryzen 9 9950X3D) and f "
                         "(Ryzen 9 5950X). Host b (EPYC 7K62) failed the round check; c and e stopped at the gate. Cells gpt-oss "
                         "11\\% (g11) and 25\\% (g25), two rounds each."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "

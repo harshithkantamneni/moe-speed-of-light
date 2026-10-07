@@ -140,6 +140,13 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
     M("bothLeadQwenMin", sgn(min(100 * (x['ratio'][0] - 1) for x in qb))); M("bothLeadQwenMax", sgn(max(100 * (x['ratio'][0] - 1) for x in qb)))
     M("bothLlamaXMin", f"{min(x['xl'] for x in both):.1f}"); M("bothLlamaXMax", f"{max(x['xl'] for x in both):.1f}")
     M("bothCells", str(len(both))); M("bothLeadCells", str(sum(1 for x in both if x["ratio"][1] > 1)))
+    # do the two hosts' intervals of ours / FreeToken overlap, configuration by configuration?
+    pair = [(x, y) for x in rows for y in rows2 if (x["model"], x["budget"]) == (y["model"], y["budget"])]
+    apart = [x for x, y in pair if max(x["ratio"][1], y["ratio"][1]) > min(x["ratio"][2], y["ratio"][2])]
+    words = ["no", "one", "two", "three", "four", "five", "six"]
+    M("bothApart", words[len(apart)]); M("bothPairs", words[len(pair)])
+    M("bothOverlapCfg", "; ".join(f"{'gpt-oss' if x['model'].startswith('gpt') else 'Qwen3'} {x['budget']}".replace("%", "\\%")
+                                  for x, y in pair if x not in apart))
     lims = [x["ours"] / x["limit"] for x in rows if x.get("limit")]
     if lims:
         M("limitPctMin", pct(min(lims)))

@@ -17,6 +17,7 @@ import re
 import sys
 
 import numpy as np
+from scipy import stats
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
@@ -46,6 +47,13 @@ def boot_machines(vals, stat=np.mean, nb=10000):
     v = np.array(vals, float)
     bs = [stat(v[RNG.integers(0, len(v), len(v))]) for _ in range(nb)]
     return float(stat(v)), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+
+
+def t_interval(vals):
+    """the 95% t-interval of the mean over machines (the percentile bootstrap is narrow at a handful of machines)"""
+    v = np.array(vals, float)
+    h = stats.t.ppf(0.975, len(v) - 1) * v.std(ddof=1) / np.sqrt(len(v))
+    return float(v.mean() - h), float(v.mean() + h)
 
 
 def launch_rows():
@@ -93,6 +101,9 @@ def main():
     M["rbLaunchBudgets"] = str(len(good))
     M["rbSecondGapMed"] = f"{100 * np.median(gap):.1f}"; M["rbSecondGapMax"] = f"{100 * max(gap):.0f}"
     M["rbSecondGapOverFive"] = str(sum(g > 0.05 for g in gap)); M["rbLaunches"] = str(len(gap))
+    byl = {r["dir"]: r for r in good}
+    M["rbSecondGapLaunch"] = max(byl, key=lambda d: byl[d]["Bmax"] / byl[d]["B2"])[:4]
+    M["rbLaunchMachines"] = str(len({r["uuid"] for r in good}))
     for nm in ("Max", "Second", "Cpu"):
         M[f"rbAbove{nm}"] = str(sum(r[f"eff_{nm}"] > 1.05 for r in good))
         M[f"rbAbove{nm}Max"] = f"{max(r[f'eff_{nm}'] for r in good):.2f}"
@@ -115,18 +126,23 @@ def main():
         for h in json.load(open(P("prereg", pj)))["hosts"]:
             c = h["cells"].get("14")
             if c and h.get("planned", {}).get("14") and c["speed"].get("fetchplan"):
-                fp.setdefault(uuid_of(h["dir"]), []).append(c["speed"]["fetchplan"][0])
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"][:4], c["speed"]["fetchplan"][0]))
     for pj, keep in (("job106.json", ("106a", "106b", "106e")), ("job107.json", None)):
         for h in json.load(open(P("prereg", pj)))["hosts"]:
             if (keep and h["dir"][:4] not in keep) or (keep is None and not h.get("valid")):
                 continue
             c = h["cells"].get("g14")
             if c and c["speed"].get("fetchplan"):
-                fp.setdefault(uuid_of(h["dir"]), []).append(c["speed"]["fetchplan"][0])
-    per = [float(np.mean(v)) for v in fp.values()]
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"][:4], c["speed"]["fetchplan"][0]))
+    per = [float(np.mean([x for _, x in v])) for v in fp.values()]
     pt, lo, hi = boot_machines(per)
     M["rbPlanMachines"] = str(len(per)); M["rbPlanMean"] = f"{pt:.2f}"; M["rbPlanLo"] = f"{lo:.2f}"; M["rbPlanHi"] = f"{hi:.2f}"
     M["rbPlanMin"] = f"{min(per):.2f}"
+    tl, th = t_interval(per); M["rbPlanTLo"] = f"{tl:.2f}"; M["rbPlanTHi"] = f"{th:.2f}"
+    # "beats the deployed cache" was a registered clause on job 104's slow-link host (104a) and in jobs 105-107; on
+    # 104b and 104c job 104 registered only the comparison with the greedy set
+    direct = sum(any(j == "104a" or j[:3] in ("105", "106", "107") for j, _ in v) for v in fp.values())
+    M["rbPlanRegMachines"] = str(direct); M["rbPlanImplied"] = ["no", "one", "two", "three", "four"][len(per) - direct]
     # the machines that ran unsteadily (or computed wrong outputs) and ran the same schedule
     un = []
     for pj, keep in (("job106.json", ("106c", "106d")), ("job107.json", None)):
@@ -151,6 +167,7 @@ def main():
     per = [float(np.mean(v)) for v in dk.values()]
     pt, lo, hi = boot_machines(per)
     M["rbDkMachines"] = str(len(per)); M["rbDkMean"] = f"{pt:.3f}"; M["rbDkLo"] = f"{lo:.3f}"; M["rbDkHi"] = f"{hi:.3f}"
+    tl, th = t_interval(per); M["rbDkTLo"] = f"{tl:.3f}"; M["rbDkTHi"] = f"{th:.3f}"
     # eq. (sum)'s error per consumer machine at gpt-oss 11% (mean over its launches)
     em = {}
     for r in cons:
@@ -160,6 +177,25 @@ def main():
     pt, lo, hi = boot_machines(per)
     M["rbErrMachines"] = str(len(per)); M["rbErrMean"] = f"{100 * pt:.1f}".replace("-", "$-$")
     M["rbErrLo"] = f"{100 * lo:.1f}".replace("-", "$-$"); M["rbErrHi"] = f"{100 * hi:.1f}".replace("-", "$-$")
+    # the same over the machines it was found on (jobs 093-104), their found-on launches only
+    FOUND = ("093", "094", "095", "096", "097", "099", "100", "101", "102", "103", "104")
+    ef = {}
+    for r in cons:
+        if r["C"] == 14 and r["dir"][:3] in FOUND:
+            ef.setdefault(r["uuid"], []).append(r["err_Max"])
+    per = [float(np.mean(v)) for v in ef.values()]
+    pt, lo, hi = boot_machines(per)
+    M["rbErrFoundMachines"] = str(len(per)); M["rbErrFoundMean"] = f"{100 * pt:.1f}".replace("-", "$-$")
+    M["rbErrFoundLo"] = f"{100 * lo:.1f}".replace("-", "$-$"); M["rbErrFoundHi"] = f"{100 * hi:.1f}".replace("-", "$-$")
+    # the same at gpt-oss 25%
+    em = {}
+    for r in cons:
+        if r["C"] == 32:
+            em.setdefault(r["uuid"], []).append(r["err_Max"])
+    per = [float(np.mean(v)) for v in em.values()]
+    pt, lo, hi = boot_machines(per)
+    M["rbErrMidMachines"] = str(len(per)); M["rbErrMidMean"] = f"{100 * pt:.1f}".replace("-", "$-$")
+    M["rbErrMidLo"] = f"{100 * lo:.1f}".replace("-", "$-$"); M["rbErrMidHi"] = f"{100 * hi:.1f}".replace("-", "$-$")
     # (3) profiled G among the consumer launches; sign of the error on machines new to a registered test
     cl = [r for r in cons if r["C"] == 14]
     M["rbConsProf"] = str(sum(r["prof"] for r in cl)); M["rbConsAll"] = str(len(cl))
@@ -168,6 +204,9 @@ def main():
     found = [r["err_Max"] for r in cl if r["dir"][:3] in ("093", "094", "095", "096", "097", "099", "100", "101", "102", "103", "104")]
     M["rbFoundSignedMed"] = f"{100 * np.median(found):.1f}".replace("-", "$-$")
     M["rbFoundUnder"] = str(sum(e < 0 for e in found)); M["rbFoundN"] = str(len(found))
+    fm = [r["err_Max"] for r in cons if r["C"] == 32 and r["dir"][:3] in ("093", "094", "095", "096", "097", "099", "100", "101", "102", "103", "104")]
+    M["rbFoundUnderMid"] = str(sum(e < 0 for e in fm)); M["rbFoundNMid"] = str(len(fm))
+    M["rbFoundOverMid"] = str(sum(e > 0 for e in fm))
     with open(P("paper", "wsg_robust.tex"), "w") as f:
         f.write("% generated by scripts/robustness.py\n")
         for k in sorted(M):

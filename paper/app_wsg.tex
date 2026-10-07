@@ -28,7 +28,10 @@ of the main text; \cref{tab:glossary} defines the other terms.
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the
 machine started; each machine cloned the published branch at boot and ran the header as committed, so git history
-orders every prediction before its measurement (for a few rentals the push and the start fall in the same second).
+orders every prediction before its measurement (for \rtNear{} of the \rtRentals{} rentals of jobs 093--108 the push and the rental's creation fall within a
+second of each other, and for \rtAfter{} GitHub records the push up to \rtAfterMax\,s after the rental was created; every
+commit preceded its rental by at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the
+push; \texttt{scripts/reg\_timing.py}).
 \Cref{tab:prereg} summarises every job's clauses; the notes below give the failures that matter. Outcome notes with the
 statistics are in \texttt{prereg/}. The scorecard, generated from \texttt{prereg/scorecard\_clauses.json},
 splits every prediction of jobs 073--\scLastJob{} into its separable clauses and scores each under one rule (jobs before
@@ -184,7 +187,7 @@ T \;=\; G_{\mathrm{fit}} \;+\; \max\!\Big(\frac{X_c}{B_c},\ \frac{X_p}{B_p},\ \f
 \label{eq:law}
 \end{equation}
 with one constant $G_{\mathrm{fit}}$ per engine and model, fitted once on one host and frozen (it is neither the profiled
-$G$ of \cref{eq:sum} nor $T_{\text{GPU}}$ of \cref{eq:demand}). It is a calibrated model, not a law: $G_{\mathrm{fit}}$ is
+$G_{\mathrm{fit}}$ of \cref{eq:sum} nor $T_{\text{GPU}}$ of \cref{eq:demand}). It is a calibrated model, not a law: $G_{\mathrm{fit}}$ is
 fitted, and it exceeds the whole all-in-VRAM token (\lawGRefit{} against \vramMs\,ms) because it absorbs
 per-token host work and the CPU helpers' shortfall against the probe (below). As a predictor of time it ties a naive
 one-path model with the same $G_{\mathrm{fit}}$ (time $= G_{\mathrm{fit}} +$ all host bytes over the best probed rate):
@@ -198,7 +201,7 @@ frozen, \lawFrozenN{} rows on \lawFrozenHosts{} later hosts & \lawFrozenMed\% & 
 \bottomrule\end{tabular}
 \end{center}
 It over-predicts Qwen3's speed on the later hosts by \lawFrozenQwenMin{} to \lawFrozenQwenMax\%, a budget-dependent
-bias whose $G$ was borrowed from llama.cpp. Its value is the per-machine fetch table it picks (\cref{eq:split} below),
+bias whose $G_{\mathrm{fit}}$ was borrowed from llama.cpp. Its value is the per-machine fetch table it picks (\cref{eq:split} below),
 which gains \lawGainMin--\lawGainMax\% over a fixed table on host B and \hpQwenLawMin--\hpGptLawMax\% on hosts with half
 the link (\cref{app:system}).
 
@@ -207,13 +210,13 @@ probe before any model ran (\cref{tab:law}; all of its cache rows are gpt-oss-12
 \lawCfg{} configurations on \lawHosts{} machines (\lawMeas{} measurements; one machine ran twice) the median error is
 \lawMedian\% per configuration; without the 12-channel EPYC 9655 it is \lawDeskMedian\% over \lawDeskN{}
 configurations (90th percentile \lawDeskPninety\%). llama.cpp \texttt{--n-cpu-moe} is predicted within 4\% on the
-Ryzen hosts, including two Qwen3 configurations on host B (+3.6\%, +4.0\%; for Qwen3, $G{=}4.3$\,ms, the mean
+Ryzen hosts, including two Qwen3 configurations on host B (+3.6\%, +4.0\%; for Qwen3, $G_{\mathrm{fit}}{=}4.3$\,ms, the mean
 residual of three llama.cpp runs on another host), and misses by \lawLlamaOffMin--\lawLlamaOffMax\% on the
 hybrid-core and server hosts. With its constants frozen, the model scores the cache on the \lawFrozenHosts{} RTX 5090
 hosts rented later (\lawFrozenN{} measurements at the six cells of \cref{tab:headline}, not written before the runs)
 at a median \lawFrozenMed\%, 90th percentile \lawFrozenPninety\%, worst \lawFrozenMax\% (\lawFrozenWorstCell).
 Refit under leave-one-host-out validation, the token-level max has a median error of \lohoMaxMed\% (90th percentile
-\lohoMaxPninety\%), the additive form $G+X_c/B_c+X_p/B_p$ \lohoAddMed\% (\lohoAddPninety\%) and a per-layer max summed
+\lohoMaxPninety\%), the additive form $G_{\mathrm{fit}}+X_c/B_c+X_p/B_p$ \lohoAddMed\% (\lohoAddPninety\%) and a per-layer max summed
 over layers \lohoLayerMed\% (\lohoLayerPninety\%); the max beats the sum on the three rows that copy misses on
 demand behind a 53\,GB/s link, where both paths carry most of the bytes, and on the EPYC 9655 rows, where both fail,
 the sum is closer on the two rows that copy behind a slow link, and elsewhere the two are within a few points
@@ -223,7 +226,7 @@ rate says; llama.cpp splits every matrix evenly across threads and runs at 46\% 
 on a 12-channel EPYC host memory stops being the limit and a per-layer latency floor takes over. $G_{\mathrm{fit}}$
 (\lawGRefit\,ms refit) exceeds the whole all-in-VRAM token (\vramMs\,ms) because it absorbs a shortfall the probe does
 not see: the helpers read at \helperRateMin--\helperRateMax$\times$ the probe's time per expert, and a fitted rate
-factor is collinear with $G$ at this sample size.
+factor is collinear with $G_{\mathrm{fit}}$ at this sample size.
 
 \input{tab_law}
 
@@ -257,8 +260,8 @@ bandwidth model declines to use there.
 \paragraph{Is the max the right form?} In 19 of the \lawCfg{} configurations nothing is copied, so they test one
 roof. We therefore refit the model and its alternatives on the same \lawRows{} measurements under leave-one-host-out
 validation (each of the \lawHostsLoho{} hosts predicted with constants fitted on the other \lawHostsLohoOther): the token-level max of
-\cref{eq:law} with $G$ refit has a median error of \lohoMaxMed\% (90th percentile \lohoMaxPninety\%); the additive form
-$G+X_c/B_c+X_p/B_p$, \lohoAddMed\% (\lohoAddPninety\%); a per-layer max summed over layers from the engine's per-layer
+\cref{eq:law} with $G_{\mathrm{fit}}$ refit has a median error of \lohoMaxMed\% (90th percentile \lohoMaxPninety\%); the additive form
+$G_{\mathrm{fit}}+X_c/B_c+X_p/B_p$, \lohoAddMed\% (\lohoAddPninety\%); a per-layer max summed over layers from the engine's per-layer
 miss histograms, \lohoLayerMed\% (\lohoLayerPninety\%). The additive form ties in sample but misses the three
 rows that copy misses on demand behind a 53\,GB/s link, where both paths carry most of the bytes, by
 \lohoAddFastFetchMin\%, while the max is within $\pm$0.2\% there; on the slow-link copy rows the additive form is the
@@ -271,7 +274,7 @@ predicted, because its counters are not exposed; the model covers our engine and
 
 \paragraph{Where it fails, and why.} Each failure now has a measured cause. (i) Copying misses on demand (FETCH) at
 25\% is over-predicted by \lohoFrozenFetchUltra\% on the Core Ultra 7 and \lohoFrozenFetchEpyc\% on the EPYC 7352 (links
-of 36 and 26\,GB/s); \lohoMaxFetchUltra\% and \lohoMaxFetchEpyc\% with $G$ refit. The engine's per-layer timers show
+of 36 and 26\,GB/s); \lohoMaxFetchUltra\% and \lohoMaxFetchEpyc\% with $G_{\mathrm{fit}}$ refit. The engine's per-layer timers show
 why: a CPU miss served beside a copy takes \fetchBesideMin--\fetchBesideMax\% longer than one served alone, so the two
 paths share DRAM less evenly than the probe's combined rate says; a variant of the model that uses the probe's
 per-path rates under contention and a per-layer hand-off constant predicts both rows within \lohoAsymFetchUltra\% and
@@ -279,7 +282,7 @@ per-path rates under contention and a per-layer hand-off constant predicts both 
 model's prediction at its default thread count, because it splits every matrix evenly across its threads; our helpers claim work
 dynamically and stay on the model on the same machine. We did not test llama.cpp restricted to the performance cores.
 (iii) On a 12-channel EPYC 9655 (559\,GB/s) host memory stops being the limit (\lohoMaxEpycMin{} to
-\lohoMaxEpycMax\% with $G$ refit under leave-one-host-out validation; \cref{tab:law} gives the blind errors): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
+\lohoMaxEpycMax\% with $G_{\mathrm{fit}}$ refit under leave-one-host-out validation; \cref{tab:law} gives the blind errors): the per-layer timers show a floor of \epycFloorMin--\epycFloorMax\,$\mu$s per layer with CPU misses
 that no desktop host has (their intercepts are at or below zero), the latency of the hand-off at a bandwidth where a
 13\,MB expert takes 24\,$\mu$s. (iv) Prefetch configurations are under-predicted by \lohoMaxPfMin{} to
 \lohoMaxPfMax\%: their copies overlap attention, which the model charges in full.

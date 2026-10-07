@@ -45,19 +45,11 @@ def gate(d):
 
 
 def fallback_G():
-    """median profiled G per budget over the desktop-class hosts profiled before job 108 (jobs 105-107; keys C14/G14)"""
-    out = {}
-    for C in (14, 32):
-        v = []
-        for f in sorted(glob.glob(f"{RES}/10[5-7]?_*@vast/g_prof.json")):
-            j = os.path.basename(os.path.dirname(f))[:4]
-            if j in ("106c", "106d", "107c", "107d", "107e"):   # servers
-                continue
-            gp = json.load(open(f)); g = (gp.get(f"G{C}") or gp.get(f"C{C}") or {}).get("G_prof_ms")
-            if g and g > 1.0:
-                v.append(g)
-        out[C] = (float(np.median(v)), len(v), min(v), max(v))
-    return out
+    """the median profiled G per budget, as in the rest of the paper: every Nsight profile of jobs 069c and 105
+    (scripts/reanalysis.py profiled_G), with their number and range"""
+    from scripts.reanalysis import profiled_G
+    med, allv = profiled_G()
+    return {C: (med[C], len(allv[C]), min(allv[C]), max(allv[C])) for C in (14, 32)}
 
 
 def main():
@@ -217,7 +209,7 @@ def main():
         f.write("\\caption{Job 108, registered before the runs and restricted in advance to desktop-class machines never rented "
                 "before: the deployed cache's time per token (gpt-oss, mean of two rounds) against \\cref{eq:sum}, with $G$ "
                 "profiled on the same machine before the timed runs (on the two EPYC hosts, whose traces held no decode kernels, the "
-                "median of earlier profiles), the run's own counters and the probe's best rate, and the "
+                "median of the profiles of jobs 069c and 105), the run's own counters and the probe's best rate, and the "
                 "read rate the time implies as a share of that rate. $^\\dagger$: rounds further apart than the registered "
                 "2\\%; outside the predictions.}\\label{tab:job108}\n")
         f.write("\\setlength\\tabcolsep{3pt}\\begin{tabular}{@{}lrrlrrrr@{}}\\toprule\n")

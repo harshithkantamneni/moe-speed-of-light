@@ -15,10 +15,11 @@ its host; the predictions were not changed). Scored by `scripts/job106.py` into 
 | 106e | Ryzen 9 9950X | 1.02 | 52 | 0.2% |
 
 - **106c and 106d were not stable.** Each failed the registered at-most-2% spread between rounds (prediction 8).
-  - On 106d the deployed cache ran 14.5, 22.1 and 21.9 ms per token in its three rounds. Only 79 of the node's 257 GB
-    were free, so other tenants held two-thirds of its memory.
+  - On 106d the deployed cache ran 14.5, 22.1 and 21.9 ms per token in its three rounds.
+  - Before the job started (`free.txt` at the gate, before any download), 131–132 GB of host memory was already in use
+    on 106c and 106d, against 12–15 GB on the stable hosts.
   - On both hosts the probe's CPU read rate falls when more threads than physical cores are used. 106c's container
-    showed 64 CPUs for 16 cores.
+    showed 64 CPUs for 15 usable physical cores.
 - **How they are treated.** Their clauses are scored as they came out: 36 clauses, 20 held and 16 failed. The paper's
   summaries leave both hosts out by the registered 2% threshold and say so. The leftover summary is 3 stable hosts.
 

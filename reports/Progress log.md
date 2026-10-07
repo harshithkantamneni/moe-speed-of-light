@@ -3,6 +3,29 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 7 October (late night, cont.): round-15 small problems, review round 16 (5, 6)
+
+**Status for Harshith (read this first).** Round 16 after the small fixes: MLSys PC **5/10** (soundness 3,
+significance 3, novelty 3, clarity 3); professor **6/10** (soundness 4, methodology 4, significance 3, clarity 3).
+Unchanged from round 15. Both reviewers reproduced every number they checked (47 and 36 claims).
+
+- **What changed for round 16:**
+  - The author block is in an untracked `paper/authors.tex`; `scripts/anon_export.sh` builds a review copy (407 MB) and
+    fails if your name, email or GitHub handle remains. Tested clean.
+  - R* on the 20 timed problems is 0.4% below the 30-problem value; stated.
+  - Belady's rule without bypass is renamed "no bypass"; "the law", "speed of light" and "state" are gone; job numbers
+    and script paths are out of the main text; the window figure names its baseline.
+- **Why the score has stopped moving:** both reviewers cap it on the same point. The title's decomposition rests on
+  Eq. 3, which failed all four registered tests and whose bias changes sign with the budget. Small fixes no longer
+  move the score.
+- **New small items from round 16 (not yet fixed):**
+  - Table 1's host S label: job 089's registered bands failed at 5 of 6 cells; say so rather than "observed".
+  - Job 100 added a prediction mid-job; the paper does not say so.
+  - The abstract's "foresight pays" needs scoping to fast links (MIN read once lost at link ratios 0.14–0.32).
+  - The 0.65 C horizon is 0.69–0.85 C on the AIME cells the engine runs.
+  - The abstract says four registered tests, Section 4.2 says three more; still read as inconsistent.
+  - The 1.02x admission-margin mean averages ratios across budgets (the paper's own rule 4).
+
 ## 7 October (late night): round-14 complaints, number check 15, review round 15 (5, 6)
 
 **Status for Harshith (read this first).** Round 15, after covering the round-14 complaints: MLSys PC **5/10**

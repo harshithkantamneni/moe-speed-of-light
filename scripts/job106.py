@@ -371,7 +371,7 @@ def main():
                     "problems). Hosts sorted by the probe's link-to-CPU ratio.}\\label{" + label + "}\n")
             f.write("\\setlength\\tabcolsep{2.2pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrlrrrlll@{}}\\toprule\n")
             f.write(" & Link/ & & $G$ & \\multicolumn{2}{c}{Deployed (ms)} & & & MIN, fewest \\\\\n")
-            f.write("Host & CPU & Budget & (ms) & Eq.~3 & meas. & dk & lrn & in the step \\\\\\midrule\n")
+            f.write("Host & CPU & Budget & (ms) & Eq.~\\ref{eq:sum} & meas. & dk & lrn & in the step \\\\\\midrule\n")
             fmt = lambda v: "--" if not v else f"{v[0]:.2f} [{v[1]:.2f}, {v[2]:.2f}]"  # noqa: E731
             for j, h in sorted(which.items(), key=lambda x: x[1]["ratio"]):
                 for key in ("g14", "g32", "q16", "q32"):

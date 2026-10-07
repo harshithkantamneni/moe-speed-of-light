@@ -193,7 +193,7 @@ def main():
                 "copied in the step. Hosts sorted by the probe's link-to-CPU ratio.}\\label{tab:job105}\n")
         f.write("\\setlength\\tabcolsep{2.5pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrlrrrrrr@{}}\\toprule\n")
         f.write(" & Link/ & & $G_{\\text{prof}}$ & \\multicolumn{2}{c}{Deployed (ms)} & Layer- & \\multicolumn{2}{c}{MIN, in step} \\\\\n")
-        f.write("Host & CPU & Budget & (ms) & plain Eq.~3 & measured & ahead & greedy & fewest \\\\\\midrule\n")
+        f.write("Host & CPU & Budget & (ms) & plain Eq.~\\ref{eq:sum} & measured & ahead & greedy & fewest \\\\\\midrule\n")
         for job, nm, r, C, c in sorted(rows, key=lambda x: (x[2], x[3])):
             sl = c.get("sum_law", {})
             sp = c["speed"]

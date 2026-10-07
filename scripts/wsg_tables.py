@@ -105,7 +105,7 @@ def headline():
     vram = vr["vram"]
     tex = r"""\begin{table*}[t]\centering\small
 \caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts (30 AIME-25 problems, the first 256 greedy
-tokens, one session). Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals. Our cache uses each
+tokens, one session). Ratios are of mean speeds, paired by problem, with 95\% bootstrap intervals over problems within one launch on one machine; each system decodes its own greedy text. Our cache uses each
 machine's fetch table; FreeToken uses its faster backend per budget, picked on host B on a separate launch.
 \emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
 rate, and at the rate all-in-VRAM decode measures at batch size 1 (\gpuEffPctGpt\% of datasheet for gpt-oss, \gpuEffPctQwen\% for Qwen3;

@@ -70,7 +70,27 @@ def base_of(d, C):
     return (float(np.mean(ms)), float(np.mean(mi)), float(np.mean(ad))) if ms else (None, None, None)
 
 
+def best_rates(txt):
+    """the probe's best CPU-only and best link-only readings, GB/s"""
+    import re
+    cpu = [float(x) for x in re.findall(r"^cpu_read_gbs t=\d+ ([\d.]+)", txt, re.M)]
+    pcie = [float(x) for x in re.findall(r"^pcie_\w+_gbs [^\n]*? ([\d.]+)$", txt, re.M)]
+    return max(cpu), max(pcie)
+
+
+def dep_bound(lim, B, Bc, Bp, tgpu):
+    """the dependency-aware bound (ms): reads copied over the link can be issued ahead and overlap everything, but an
+    expert run on the CPU needs its layer's attention output and the next layer's attention needs its result, so CPU
+    reads sit in series with the GPU's non-expert work. With a share f of MIN's reads on the CPU:
+    max((1-f) R*S/B_p, T_GPU + f R*S/B_c), minimised over f, and never below Eq. (1)."""
+    a, b = lim * B / Bp, lim * B / Bc
+    f = min(1.0, max(0.0, (a - tgpu) / (a + b)))
+    return max(lim, max((1 - f) * a, tgpu + f * b))
+
+
 def machines(C):
+    from scripts.sumlaw_paper import profiles
+    tgpu = min(p["nonexpert"] for p in profiles())
     ra = json.load(open(P("prereg", "reanalysis.json")))
     G = ra["sum_law"][str(C)]["G"]
     seen, rows = set(), []
@@ -104,8 +124,10 @@ def machines(C):
         m = re.search(r"available: (\d+) nodes", open(f"{d}/numa.txt").read()) if os.path.exists(f"{d}/numa.txt") else None
         server = bool(re.search(r"EPYC|Xeon|Eng Sample", cpu_of(d)))   # server processors (after jobs 107-108)
         new = os.path.basename(d)[:4] in NEW_IN_TEST
+        Bc, Bp = best_rates(open(f"{d}/concur.txt").read())
         rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=Gh, prof=prof, min_ms=lim, law=tl,
-                         excess_ms=tl - Gh - lim, server=server, new=new))
+                         excess_ms=tl - Gh - lim, server=server, new=new, dep=dep_bound(lim, B, Bc, Bp, tgpu),
+                         eq2=tgpu + lim, ratio=Bp / Bc))
     return rows
 
 
@@ -158,6 +180,11 @@ def main():
         M[f"dcMachines{nm}"] = str(len(rows))
         M[f"dcShareG{nm}Min"] = f"{100 * np.min(g / T):.0f}"; M[f"dcShareG{nm}Max"] = f"{100 * np.max(g / T):.0f}"
         M[f"dcShareMin{nm}Min"] = f"{100 * np.min(mn / T):.0f}"; M[f"dcShareMin{nm}Max"] = f"{100 * np.max(mn / T):.0f}"
+        dep = np.array([r["dep"] for r in rows]); eq2 = np.array([r["eq2"] for r in rows])
+        M[f"dcShareDep{nm}Min"] = f"{100 * np.min(dep / T):.0f}"; M[f"dcShareDep{nm}Max"] = f"{100 * np.max(dep / T):.0f}"
+        M[f"dcShareDem{nm}Min"] = f"{100 * np.min(eq2 / T):.0f}"; M[f"dcShareDem{nm}Max"] = f"{100 * np.max(eq2 / T):.0f}"
+        M[f"dcDepOverLim{nm}Max"] = f"{np.max(dep / mn):.2f}"
+        M[f"dcDepOverLim{nm}Med"] = f"{np.median(dep / mn):.2f}"
         M[f"dcShareEx{nm}Min"] = f"{100 * np.min(ex / T):.0f}"; M[f"dcShareEx{nm}Max"] = f"{100 * np.max(ex / T):.0f}"
         gap = np.array([r["G"] / (r["T"] - r["min_ms"]) for r in rows])
         M[f"dcGapG{nm}Min"] = f"{100 * gap.min():.0f}"; M[f"dcGapG{nm}Max"] = f"{100 * gap.max():.0f}"

@@ -46,7 +46,8 @@
 # (50 GB in use) and was replaced by 50680404 (107e); 107c and 107e then failed V2, leaving at most two valid hosts.
 # Of the list, 54519248 was no longer offered and 51600687 (Xeon E5, network at $0.0065/GB) would exceed the
 # remaining credit; host f is the cheapest verified offer not in the ledger with download >= 1000 Mb/s and network
-# at most $0.003/GB: 54055665 (Threadripper PRO 3000, 16 cores). Every host that started is reported.
+# at most $0.003/GB: 54055665 (Threadripper PRO 3000, 16 cores), and, as it could not be rented (no_such_ask), the
+# next by that rule, 53202662 (CPU not listed, PCIe 5). Every host that started is reported.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

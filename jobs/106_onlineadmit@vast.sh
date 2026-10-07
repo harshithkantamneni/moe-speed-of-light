@@ -45,6 +45,8 @@
 # Hosts: 106a = the Threadripper 9960X of 105b again (offer 53278552, ratio 0.32); 106b = Pf again (Core Ultra 9
 # 285K, x8 link, 40038866); 106c = an EPYC 7302 behind a 13 GB/s link (35010867); 106d = a Xeon Platinum 8347C
 # (42405157); 106e = O3's Ryzen 9 9950X3D again (51051777).
+# Amended after 106a-d launched, before 106e started: O3's offer was gone; 106e = a Ryzen 9 9950X (54559478).
+# Predictions unchanged.
 # Budget: the job stops starting steps 3 h 20 min after launch.
 set -x
 exec 2>&1

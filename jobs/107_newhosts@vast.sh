@@ -42,6 +42,11 @@
 # 54579644 (Ryzen 9 5900XT), 52451721 (EPYC 9754), 54581350 (CPU not listed), 50680404 (EPYC 7663), 54519248
 # (Threadripper PRO 3000), 51600687 (Xeon E5-2699 v3).
 # Budget: the job stops starting steps 2 h 30 min after launch.
+# Amended during the job, before host f started (predictions, gates and the job itself unchanged): 107a failed V0
+# (50 GB in use) and was replaced by 50680404 (107e); 107c and 107e then failed V2, leaving at most two valid hosts.
+# Of the list, 54519248 was no longer offered and 51600687 (Xeon E5, network at $0.0065/GB) would exceed the
+# remaining credit; host f is the cheapest verified offer not in the ledger with download >= 1000 Mb/s and network
+# at most $0.003/GB: 54055665 (Threadripper PRO 3000, 16 cores). Every host that started is reported.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

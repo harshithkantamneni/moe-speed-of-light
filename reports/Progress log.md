@@ -3,6 +3,49 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 6 October (late night): re-analysis, job 105, number check 11, review round 10 (5/10 and 6/10)
+
+**Status for Harshith (read this first).** Round 10: MLSys PC **5/10** (soundness 4, significance 3, novelty 3,
+clarity 2); professor **6/10, weak accept**, "conditional on rescoping the headline claims; without that, 5" (soundness
+3, methodology 3, significance 3, clarity 2). 10a reproduced about 30 numbers from raw data, 10b 25; all matched. This
+is the first 6 from the professor reviewer. Both still put clarity at 2/5.
+
+- **Re-analysis (no GPU):** time per token is the GPU's profiled compute plus counted host reads at the machine's best
+  rate (Eq. sum).
+  - At gpt-oss 11% it is within 6% on 28 of 30 launches (19 of 21 machines), with nothing fitted.
+  - It adds a demand bound for on-demand systems.
+  - The paper is rewritten around both; the Shapley accounting moved to the appendix.
+- **Job 105:** 4 hosts ran (EPYC 7402P, Threadripper 9960X, Pf, O4). 3 more produced nothing: 105c never started;
+  105d and 105g had throttled cards and were stopped by the gate. 31 clauses: 27 held, 4 failed.
+  - The law held at 11% on all four hosts (−1.5 to +4.7%).
+  - It failed at 25% on three hosts (+6.9 to +9.3%), and the pooled median failed (4.2% vs 4%).
+  - The layer-ahead copy gains 4% only where the link is as fast as the CPU, and loses 9–28% on the three slower
+    links. The gain and two of the losses were predicted; the third machine fell between the registered classes.
+  - The fewest-admission set now covers 7 launches on 6 machines. A second slow-link machine (the 9960X) repeats Pf:
+    greedy 0.91×, fewest 1.04×.
+- **Number check 11:** 15 defects, all fixed.
+  - The law was stated too broadly; it is now scoped to gpt-oss at 11%.
+  - Failed clauses were misreported.
+  - The serialisation share used the model's fitted G; it now uses each launch's implied G.
+  - The elasticity bootstrap now resamples machines.
+- **Round 10 fixes ($0):**
+  - The 30-launch fit is labelled exploratory; the overlap explanation at 25% is hedged.
+  - Implied G for the other states is reported, and the law describes the deployed cache only.
+  - The audit headline is out of the intro, and its in-class subset is defined.
+  - The R* definitions are reconciled.
+  - The B_p-vs-ratio claim is softened.
+  - Related work adds FOO, Flashield, PowerInfer, LLM in a Flash, SiDA, AdapMoE, SwapMoE and EdgeMoE, and positions
+    the fewest-admission LP against FOO and Demand-MIN.
+  - Appendix B gains the unscored pre-073 predictions, the unreported rentals, and the two job-105 clauses whose
+    values were already known.
+  - Limitations add variance, probe and engine-specific caveats.
+- **Spend:** job 105 cost about $3; Vast credit is $13.36. Every instance was destroyed after its fetch.
+- **What the reviewers say would move the score:**
+  1. A registered test of the law on a second model and at both budgets, with an overlap term.
+  2. An online rule that captures part of the fewest-admission gain.
+  3. Launch-level intervals on the slow-link machines.
+  4. A readability rewrite.
+
 ## 6 October (night): review round 9 (5/10 and 5/10), MLSys template, jobs 103-104
 
 **Status for Harshith (read this first).** Round 9: MLSys PC **5/10** (soundness 4, significance 3, clarity 2),

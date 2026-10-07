@@ -22,7 +22,9 @@ Rule & Where and how \\\midrule\endhead
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed and pushed
 before the machine started; git history orders every prediction before its measurement. Outcome notes with the
 statistics are in \texttt{prereg/}. The scorecard, generated from \texttt{prereg/scorecard\_clauses.json},
-splits every prediction of jobs 073--\scLastJob{} into its separable clauses and scores each under one rule: \emph{held} only
+splits every prediction of jobs 073--\scLastJob{} into its separable clauses and scores each under one rule (jobs before
+073, which built and debugged the engine, also registered predictions in their headers; their outcome notes are in
+\texttt{prereg/}, and they are not scored here; job 072's, for one, failed or did not apply on two of its three): \emph{held} only
 when the point estimate is on the predicted side and the 95\% paired-bootstrap interval excludes the threshold (for a
 band, lies inside it); \emph{held (point)} when only the point estimate is, or no interval exists (except in the hand
 scoring of jobs 073--098, which holds deterministic counts such as reads outright, since they have no sampling error);
@@ -101,8 +103,9 @@ Job 102 (\texttt{scripts/job102.py}; the read-schedule microbenchmark on three h
 failures are one prediction, that waiting per layer would cost at least 0.03 of the host term against the analytic
 schedule; on two of the three hosts it costs nothing measurable. The fifth is the ordering of the two budgets on the
 Intel host (\texttt{prereg/readsched\_outcome\_102.md}).
-Two launched hosts produced no results and were destroyed: 100d stalled downloading the model and 103c never
-started its job; both are in the rental ledger (\texttt{gpu/vast\_ledger.json}). Job 103 (\texttt{scripts/job103.py}; MIN's fewest-admission schedule against the greedy one): the hosts could not install
+Rentals that produced no results were destroyed and are in the rental ledger (\texttt{gpu/vast\_ledger.json}): the
+first two for 099a, replaced before any measurement; 100d, which stalled downloading the model; 100e, which never
+reached its job; and 103c, which never started its job. Job 103 (\texttt{scripts/job103.py}; MIN's fewest-admission schedule against the greedy one): the hosts could not install
 the plan's solver beside Debian's numpy, so the engine ran the greedy schedule in the plan configurations, as it logs;
 of \jeClauses{} clauses \jePoint{} held on the point estimate (the relaunch of Pf) and \jeUntested{} are untested. Job 104
 repeated it with the plan in its own environment on three of the same machines (Pf, a second Core Ultra 9 285K
@@ -121,7 +124,9 @@ the four hosts (\jgErrMidHeldMin\% on Pf) and so takes the pooled median error (
 \jgErrLowMax\%. Every speed prediction held: the layer-ahead copy gains at least 3\% on the host with a ratio above 0.8
 and loses on both below 0.4, and the fewest-admission set beats the deployed cache on every host, beats the greedy set
 by at least 0.03 on the three with a ratio under 0.7, and copies at most 0.65 of the greedy set's experts
-(\texttt{prereg/sumlaw\_outcome\_105.md}). Three more launched hosts produced no results: 105c never started its
+(\texttt{prereg/sumlaw\_outcome\_105.md}). Two clauses predicted quantities already measured, the profiled $G$ (job
+069c) and the plan's copies, which are a property of the trace (job 104); they test that the engine reproduces them.
+Three more launched hosts produced no results: 105c never started its
 job, and the job's bandwidth gate stopped 105d and 105g, whose cards were throttled, before any timed run.
 
 The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100, \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{} for job 105) are in the supplement
@@ -625,7 +630,9 @@ Fiddler \citep{kamahori2024fiddler}, ProMoE \citep{song2024promoe}, KTransformer
 HybriMoE \citep{zhong2025hybrimoe}, Fate \citep{fate2025}, SP-MoE \citep{spmoe}, MoE-SpeQ \citep{moespeq}, the CPU--GPU
 collaborative inference of \citet{huang2025cpugpu}, FreeToken \citep{freetoken}, SeqMoE \citep{wang2026seqmoe},
 NVIDIA's pipelined sharding \citep{pipelinedsharding2026}, a llama.cpp fork \citep{leloch2026} and a llama.cpp pull
-request \citep{llamacpppr27861}. Three caveats apply to every row: the ceilings are datasheet ones where ours are
+request \citep{llamacpppr27861}. The in-class subset of \cref{sec:limit} (\audInclassN{} rows) is the trace-scored rows less
+the lossy (Fate) and speculative (SP-MoE, MoE-SpeQ) ones; over all \audTraceN{} trace-scored rows the median is
+\audTraceMed\%. These systems mostly read on demand, so \cref{eq:demand} would place them higher. Three caveats apply to every row: the ceilings are datasheet ones where ours are
 probed; the trace is the model's own sampled text, sometimes of a sibling variant (an FP8 trace for a Q4 deployment);
 and systems whose cache is pooled across layers, whose placement pins whole layers, or which verify several tokens per
 pass are scored against the per-layer one-token bound, which is not theirs.

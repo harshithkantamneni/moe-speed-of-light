@@ -55,7 +55,7 @@ def main():
         M[f"slEffC{nm}"] = f"{ec['median']:.2f}"; M[f"slEffC{nm}Qa"] = f"{ec['q1']:.2f}"; M[f"slEffC{nm}Qb"] = f"{ec['q3']:.2f}"
         M[f"slGGap{nm}Min"] = f"{100 * s['G_share_of_gap']['lo']:.0f}"; M[f"slGGap{nm}Max"] = f"{100 * s['G_share_of_gap']['hi']:.0f}"
         M[f"slGTime{nm}Min"] = f"{100 * s['G_share_of_time']['lo']:.0f}"; M[f"slGTime{nm}Max"] = f"{100 * s['G_share_of_time']['hi']:.0f}"
-        for k, kn in (("fetch", "Fetch"), ("both3p", "Paced"), ("aa", "Aa"), ("bypass", "Bypass")):
+        for k, kn in (("fetch", "Fetch"), ("both3p", "Paced"), ("aa", "Aa"), ("bypass", "Bypass"), ("foa", "Foa")):
             if k in s["implied_G"]:
                 v = s["implied_G"][k]
                 M[f"slG{kn}{nm}"] = f"{v['median']:.1f}"
@@ -111,6 +111,22 @@ def main():
     M["ppVarHostsMin"] = f"{100 * min(vh):.0f}"; M["ppVarHostsMax"] = f"{100 * max(vh):.0f}"
     M["ppVarProbMin"] = f"{100 * min(vp):.0f}"; M["ppVarProbMax"] = f"{100 * max(vp):.0f}"
     M["ppMachines"] = str(pp["fetch@14"]["machines"]); M["ppProblems"] = str(pp["fetch@14"]["problems"])
+    # the law per launch and per machine at each budget (G = the profiles' median at that budget), and the reads' range
+    for C, nm in (("14", "Low"), ("32", "Mid")):
+        G = ra["sum_law"][C]["G"]
+        per, reads = {}, []
+        for h in hosts:
+            c = h["cells"].get(C)
+            f = f"{RES}/{h['dir']}/st_g_C{C}_base.json"
+            if not c or not os.path.exists(f):
+                continue
+            st = json.load(open(f))
+            r = (st["misses"] + st["admits"]) / max(1, st["steps"])
+            reads.append(r)
+            e = (G + r * S / (h["B_host"] * 1e9) * 1e3) / c["base_ms"] - 1
+            per.setdefault(h.get("gpu_uuid") or h["dir"], []).append(e)
+        M[f"slLawMach{nm}"] = str(len(per)); M[f"slLawMachWithin{nm}"] = str(sum(all(abs(e) <= 0.06 for e in v) for v in per.values()))
+        M[f"slReads{nm}Min"] = f"{min(reads):.0f}"; M[f"slReads{nm}Max"] = f"{max(reads):.0f}"
     uu = {h.get("gpu_uuid") or h["dir"] for h in hosts}
     n105 = 0
     for d in sorted(glob.glob(f"{RES}/105?_sumlaw@vast")):

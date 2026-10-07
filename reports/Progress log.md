@@ -3,6 +3,48 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 7 October (later): job 107 on new machines, number check 13, review round 12 (5/10 and 6/10)
+
+**Status for Harshith (read this first).** Round 12: MLSys PC **5/10** (soundness 3, significance 3, novelty 3,
+clarity 2); professor **6/10** (soundness 3, methodology 4, significance 3, clarity 2). Each checked 37–42 claims
+against the raw data; nearly all reproduce. The professor's 6 is back up from 5. Both say the abstract described the
+relation's registered record too kindly; that is fixed below at no cost.
+
+- **Job 107 (7 machines never rented before, about $6.5):** a registered test of the time relation on new machines,
+  with gates set before launch: a new GPU UUID, ≤ 48 GB of host memory in use, correct outputs, and rounds within 2%.
+  - **Gates and checks.** 3 machines stopped at the gate (50, 50 and 96 GB in use: shared servers). Two failed the
+    round check (EPYC 9754 at 3.5%, EPYC 7663 at 6.0%). Two were valid: a Ryzen 9 5900XT and a dual-socket 128-core AMD
+    engineering sample.
+  - **The relation failed.** It under-predicted 8 of 8 cells and missed 6% at 7. The 5900XT was off by 2–11%; the
+    server was off by 52–59%. The registration needed 3 valid machines, so by its own rule the test is inconclusive;
+    the paper calls it failed and says why.
+  - **Found after the fact** (labelled as such). On the 37 launches of jobs 093–106 on desktop-class machines (one
+    NUMA node, ≤ 32 cores) the engine reads at 0.88–1.16 of the probe's best rate. Every server launch read at
+    0.27–0.77, but 4 of the 5 failed a validity check.
+  - **Held:**
+    - admitting less on the valid machines, 0.99–1.07, median 1.02;
+    - MIN's fewest-admission set copied in the step, 1.16–1.42;
+    - the same set loaded by the CPU, 1.04–1.13;
+    - the crossover between the two.
+- **Paper:**
+  - Section 4 has the job 107 test, the per-host comparison of forms, the machine-class finding, and a new Table 3
+    listing the three registered tests and their outcomes. All three failed as registered.
+  - Fig. 1 adds the valid new machines and a hatched "reading below the machine's rate" segment.
+  - The abstract, introduction, contributions and conclusion now state the registered record plainly.
+  - The main text now runs about half a column onto page 10.
+- **Number check 13** found no arithmetic errors. It found overclaims about the desktop class and about servers
+  (mostly invalid launches), an inaccurate account of the registration's replacement rule, and hand-typed counts.
+  All are fixed.
+- **Open (small):** reviewers recomputed 12 rather than 13 launch-budgets above the probe, and 1.7% rather than 1.9%
+  for the job 101 relaunch. Both depend on which G or launch is used and were not chased.
+- **Credit left: $2.99.** No instances are running.
+- **What would move the score, per the reviewers:**
+  1. A relation that passes a registered test on machines new to it. That would need either a fix that makes the
+     engine reach the probe's rate on servers (thread count or NUMA placement), or a test restricted in advance to
+     desktop-class machines.
+  2. Clarity: fewer numbers in the abstract, and registered, exploratory and post-hoc results kept apart.
+  3. Intervals over launches rather than rounds.
+
 ## 7 October: job 106, the readability rewrite, number check 12, review round 11 (5/10 and 5/10)
 
 **Status for Harshith (read this first).** Round 11: MLSys PC **5/10** (soundness 3, significance 3, novelty 2,

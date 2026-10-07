@@ -58,13 +58,14 @@
 A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
 token at a time then waits on host reads. We ask how fast such decoding could be on a given machine, where the rest of
 the time goes, and what knowing the future routing is worth. Two lower bounds follow from the fewest host reads any
-cache of $C$ experts per layer can make (Belady's MIN with bypass) and the machine's measured read rates. On the
-\jlFoundMachines{} rented RTX 5090 machines, each with one NUMA node and at most \jlClassCores{} cores, on which we found it,
-our llama.cpp expert cache takes about the GPU's profiled compute plus its host reads at the machine's best rate, with
-nothing fitted (within 6\% on \jlFoundWithin{} of \jlFoundN{} launches), and the relation held when registered before new runs
-of \jiStable{} of them. Registered before runs on machines never rented before, it failed: it under-predicted a new desktop by
-up to \jlNewDeskErrMax\% and a dual-socket server by \jlNewServErrMin--\jlNewServErrMax\%, which read well below its
-best rate. On the desktops, the gap to the bound is serialisation plus the reads MIN would not make. Oracles inside the engine show that foresight pays when spent as MIN spends it, and that among MIN's
+cache of $C$ experts per layer can make (Belady's MIN with bypass) and the machine's measured read rates. Our llama.cpp
+expert cache's time per token is close to the GPU's profiled compute plus its host reads at the machine's best probed
+rate, with no constant fitted to the times: within 6\% on \jlFoundWithin{} of \jlFoundN{} launches on the
+\jlFoundMachines{} RTX 5090 machines where we found the relation. Registered in advance three times, it never passed as
+registered: it failed at one budget, then held on every cell of \jiStable{} machines rented again but failed on two new
+servers, and on machines never rented before it missed by up to \jlNewDeskErrMax\% on a desktop and by
+\jlNewServErrMin--\jlNewServErrMax\% on a dual-socket server that read far below its probed rate. Where it fits, the
+gap to the bound is serialisation plus the reads MIN would not make. Oracles inside the engine show that foresight pays when spent as MIN spends it, and that among MIN's
 equally good schedules the one with the fewest admissions also wins where the PCIe link is slow. Carried online, that lesson, admit less, gains up to
 \jlDkAllGainMax\% on gpt-oss (median \jlDkAllMed$\times$ on \jlDkAllMachines{} machines; it lost \jlDkAllLossPct\% at \jlDkFailWord{} of \jlDkAllN{} cells).
 Half of MIN's saving over admitting every miss needs the routing of about \dcMed$\,C$ distinct experts per layer ahead,
@@ -115,8 +116,9 @@ ahead, which no online policy, learned admission order, speculative batch or for
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{Two bounds on time per token} for exact-routing systems with $C$ slots per layer, from MIN's host reads
 and the machine's probed rates, with evidence that their read time is nearly reachable (\cref{sec:limit}).
-\item \textbf{A relation with nothing fitted} for where the time goes, found on \slOlN{} launches, which held when
-registered before new runs and a second model and failed when registered on new machines (\cref{sec:gap}).
+\item \textbf{A relation for where the time goes}, with no constant fitted to the times, found on \slOlN{} launches and
+registered three times: it held on machines rented again, at both models, and failed on machines new to the tests
+(\cref{sec:gap}, \cref{tab:regtests}).
 \item \textbf{An in-engine study of what foresight is worth} and how it must be spent, on \slAllMachines{} machines,
 including MIN's fewest-admission schedule and an online rule that carries its lesson (\cref{sec:foresight}).
 \item \textbf{A price on foresight}: its value by horizon and accuracy, and a one-constant rule for the horizon in
@@ -215,8 +217,8 @@ and \laOverMidMax\% at 25\% (\texttt{scripts/linkaware.py}). The GPU term of \cr
 assumption at once is in \cref{tab:limit}.
 
 \section{Where the Seconds Go}\label{sec:gap}
-\paragraph{Time is GPU compute plus host reads.} For the deployed cache, one relation with nothing fitted describes the
-time per token $T$:
+\paragraph{Where it fits, time is GPU compute plus host reads.} For the deployed cache on the machines where we found
+it, one relation with no constant fitted to the times describes the time per token $T$:
 \begin{equation}
 T \;=\; G + \frac{\big(M + (1 - G/T)\,A\big)\,S}{B_{\mathrm{host}}},
 \label{eq:sum}
@@ -243,6 +245,8 @@ model-budget cells (median error \jiErrMed\%, largest \jiErrMax\%), where the pl
 \jiNllGoodQ{} on Qwen3 everywhere else), and the other's deployed cache varied by \jiUnstableVarMax\% between rounds.
 There the relation under-predicted by \jiUnstErrMin--\jiUnstErrMax\%, which takes its registered pooled median error to
 \jiErrMedAll\% against the 4\% registered.
+
+\input{tab_regtests}
 
 \paragraph{Registered on new machines, it failed.} Job 107 registered the same relation once more, with validity gates
 set before launch: a GPU no earlier launch had recorded, at most \jlMemGate\,GB of host memory in use when the job
@@ -497,8 +501,8 @@ cost. Degraded windows draw errors independently; a real forecaster's errors are
 \end{itemize}
 
 \section{Conclusion}
-With experts in host memory, batch-1 MoE decode is the GPU's compute plus host bytes. A cache that reads on demand pays
-them in series, apart from the background copies that fall under the GPU's compute. On the desktop-class machines it was found on, our
+With experts in host memory, batch-1 MoE decode on the desktop machines we measured is close to the GPU's compute plus
+host bytes. A cache that reads on demand pays them in series, apart from the background copies that fall under the GPU's compute. On the desktop-class machines it was found on, our
 cache executes its reads at close to the machine's best rate, and what separates it from the bound is that serialisation and the reads
 it makes beyond MIN's. A test registered in advance on machines never rented before failed: by up to
 \jlNewDeskErrMax\% on a new desktop, and by far more on a server, which read well below its best rate.

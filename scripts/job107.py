@@ -297,6 +297,12 @@ def main():
             M["jlServAltErr"] = f"{100 * abs(t / T - 1):.0f}"
             M["jlServAltEff"] = f"{(ct['misses'] + ct['admits'] * (1 - G / T)) * S['g'] / ((T - G) * 1e-3) / 1e9 / Bb:.2f}"
             M["jlServEffValid"] = f"{(ct['misses'] + ct['admits'] * (1 - G / T)) * S['g'] / ((T - G) * 1e-3) / 1e9 / h['b_host']:.2f}"
+    # the three registered tests of the relation, cell by cell within 6% (job 105: the plain form; 106 and 107: overlap)
+    e105 = [c["sum_law"]["err"] for h in json.load(open(P("prereg", "job105.json")))["hosts"] for c in h["cells"].values() if "sum_law" in c]
+    M["jlRegFiveCells"] = str(len(e105)); M["jlRegFiveWithin"] = str(sum(abs(e) <= 0.06 for e in e105))
+    e106 = [c["err"]["base"]["olap"] for h in json.load(open(P("prereg", "job106.json")))["hosts"] for c in h["cells"].values()
+            if "err" in c and "base" in c["err"]]
+    M["jlRegSixCells"] = str(len(e106)); M["jlRegSixWithin"] = str(sum(abs(e) <= 0.06 for e in e106))
     # the relation's prediction of dk/base where it missed the registered 0.03
     pf = [c["measured"] for c in clauses if "-P4-" in c["id"] and c["status"] == "failed"]
     M["jlDkPredFailN"] = word(len(pf))

@@ -127,6 +127,33 @@ def main():
             per.setdefault(h.get("gpu_uuid") or h["dir"], []).append(e)
         M[f"slLawMach{nm}"] = str(len(per)); M[f"slLawMachWithin{nm}"] = str(sum(all(abs(e) <= 0.06 for e in v) for v in per.values()))
         M[f"slReads{nm}Min"] = f"{min(reads):.0f}"; M[f"slReads{nm}Max"] = f"{max(reads):.0f}"
+    # the overlap form, T = G + (M + A (1 - G/T)) S / B_host, on every launch of jobs 093-105 (exploratory: the term was
+    # derived after job 105, before job 106 registered it)
+    j105 = {h["job"]: h for h in json.load(open(P("prereg", "job105.json")))["hosts"]} if os.path.exists(P("prereg", "job105.json")) else {}
+    for C, nm in (("14", "Low"), ("32", "Mid")):
+        G = ra["sum_law"][C]["G"]
+        rows = []
+        for h in hosts:
+            c = h["cells"].get(C); f = f"{RES}/{h['dir']}/st_g_C{C}_base.json"
+            if c and os.path.exists(f):
+                rows.append((f, h["B_host"], c["base_ms"]))
+        for jb, h in j105.items():
+            d = glob.glob(f"{RES}/{jb}_sumlaw@vast")
+            if d and C in h["cells"]:
+                rows.append((f"{d[0]}/st_g_C{C}_base.json", h["B_host"], h["cells"][C]["ms"]["base"]))
+        e_pl, e_ol = [], []
+        for f, B, T in rows:
+            st = json.load(open(f)); n = max(1, st["steps"]); Mi, A = st["misses"] / n, st["admits"] / n
+            tm = lambda r: r * S / (B * 1e9) * 1e3  # noqa: E731
+            t = G + tm(Mi + A)
+            e_pl.append(t / T - 1)
+            for _ in range(100):
+                t = G + tm(Mi + A * (1 - G / t))
+            e_ol.append(t / T - 1)
+        e_pl, e_ol = np.array(e_pl), np.array(e_ol)
+        M["slOlN"] = str(len(e_ol))
+        M[f"slOlWithin{nm}"] = str(int(np.sum(np.abs(e_ol) <= 0.06))); M[f"slPlWithin{nm}"] = str(int(np.sum(np.abs(e_pl) <= 0.06)))
+        M[f"slOlMed{nm}"] = f"{100 * np.median(e_ol):.1f}".replace("-", "$-$"); M[f"slPlMed{nm}"] = f"{100 * np.median(e_pl):.1f}".replace("-", "$-$")
     uu = {h.get("gpu_uuid") or h["dir"] for h in hosts}
     n105 = 0
     for d in sorted(glob.glob(f"{RES}/105?_sumlaw@vast")):

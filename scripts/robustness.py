@@ -49,11 +49,16 @@ def boot_machines(vals, stat=np.mean, nb=10000):
     return float(stat(v)), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
 
 
-def t_interval(vals):
-    """the 95% t-interval of the mean over machines (the percentile bootstrap is narrow at a handful of machines)"""
-    v = np.array(vals, float)
+def t_interval(vals, geo=False):
+    """the 95% t-interval of the mean over machines (the percentile bootstrap is narrow at a handful of machines); for
+    ratios, on the log scale (the geometric mean's interval)"""
+    v = np.log(np.array(vals, float)) if geo else np.array(vals, float)
     h = stats.t.ppf(0.975, len(v) - 1) * v.std(ddof=1) / np.sqrt(len(v))
-    return float(v.mean() - h), float(v.mean() + h)
+    lo, hi = float(v.mean() - h), float(v.mean() + h)
+    return (float(np.exp(lo)), float(np.exp(hi))) if geo else (lo, hi)
+
+
+GMEAN = stats.gmean   # ratios are summarised by geometric means (the checklist's rule on summarising ratios)
 
 
 def launch_rows():
@@ -139,11 +144,12 @@ def main():
             c = h["cells"].get("g14")
             if c and c["speed"].get("fetchplan"):
                 fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["speed"]["fetchplan"][0]))
-    per = [float(np.mean([x for _, x in v])) for v in fp.values()]
-    pt, lo, hi = boot_machines(per)
+    per = [float(GMEAN([x for _, x in v])) for v in fp.values()]
+    pt, lo, hi = boot_machines(per, stat=GMEAN)
     M["rbPlanMachines"] = str(len(per)); M["rbPlanMean"] = f"{pt:.2f}"; M["rbPlanLo"] = f"{lo:.2f}"; M["rbPlanHi"] = f"{hi:.2f}"
     M["rbPlanMin"] = f"{min(per):.2f}"
-    tl, th = t_interval(per); M["rbPlanTLo"] = f"{tl:.2f}"; M["rbPlanTHi"] = f"{th:.2f}"
+    tl, th = t_interval(per, geo=True); M["rbPlanTLo"] = f"{tl:.2f}"; M["rbPlanTHi"] = f"{th:.2f}"
+    plan_stable = list(per)
     # "beats the deployed cache" was a registered clause on job 104's slow-link host (104a) and in jobs 105-107; on
     # 104b and 104c job 104 registered only the comparison with the greedy set
     direct = sum(any(j[:4] == "104a" or j[:3] in ("105", "106", "107") for j, _ in v) for v in fp.values())
@@ -164,22 +170,30 @@ def main():
     num = ["no", "one", "two", "three", "four", "five", "six"]
     M["rbPlanUnstN"] = num[len(un)]; M["rbPlanUnstLost"] = num[sum(v < 1 for v, _ in un)]
     lost = sorted(r for v, r in un if v < 1)
+    # every machine that ran it, stable or not (intention to treat)
+    pt, lo, hi = boot_machines(plan_stable + [v for v, _ in un], stat=GMEAN)
+    M["rbPlanAllN"] = str(len(plan_stable) + len(un)); M["rbPlanAllMean"] = f"{pt:.2f}"
+    M["rbPlanAllLo"] = f"{lo:.2f}"; M["rbPlanAllHi"] = f"{hi:.2f}"
     M["rbPlanLostRatios"] = " and ".join(f"{r:.2f}" for r in lost)
     M["rbPlanGainedSlow"] = f"{min(r for v, r in un if v >= 1):.2f}"
     # the admission margin at gpt-oss, per machine (mean over its gpt-oss cells)
-    dk = {}
-    for h in json.load(open(P("prereg", "job106.json")))["hosts"]:
-        if h["dir"][:4] in ("106a", "106b", "106e"):
-            v = [h["cells"][k]["speed"]["dk"][0] for k in ("g14", "g32") if h["cells"].get(k, {}).get("speed", {}).get("dk")]
-            dk.setdefault(uuid_of(h["dir"]), []).extend(v)
-    for h in json.load(open(P("prereg", "job107.json")))["hosts"]:
-        if h.get("valid"):
-            v = [h["cells"][k]["speed"]["dk"][0] for k in ("g14", "g32") if h["cells"].get(k, {}).get("speed", {}).get("dk")]
-            dk.setdefault(uuid_of(h["dir"]), []).extend(v)
-    per = [float(np.mean(v)) for v in dk.values()]
-    pt, lo, hi = boot_machines(per)
+    dk, dkc = {}, {"g14": {}, "g32": {}}
+    for pj, keep in (("job106.json", ("106a", "106b", "106e")), ("job107.json", None)):
+        for h in json.load(open(P("prereg", pj)))["hosts"]:
+            if (keep and h["dir"][:4] not in keep) or (keep is None and not h.get("valid")):
+                continue
+            for k in ("g14", "g32"):
+                if h["cells"].get(k, {}).get("speed", {}).get("dk"):
+                    x = h["cells"][k]["speed"]["dk"][0]
+                    dk.setdefault(uuid_of(h["dir"]), []).append(x); dkc[k].setdefault(uuid_of(h["dir"]), []).append(x)
+    for k, nm in (("g14", "Low"), ("g32", "Mid")):
+        pc = [float(GMEAN(v)) for v in dkc[k].values()]
+        a, b, c = boot_machines(pc, stat=GMEAN)
+        M[f"rbDk{nm}"] = f"{a:.3f}"; M[f"rbDk{nm}Lo"] = f"{b:.3f}"; M[f"rbDk{nm}Hi"] = f"{c:.3f}"
+    per = [float(GMEAN(v)) for v in dk.values()]
+    pt, lo, hi = boot_machines(per, stat=GMEAN)
     M["rbDkMachines"] = str(len(per)); M["rbDkMean"] = f"{pt:.3f}"; M["rbDkLo"] = f"{lo:.3f}"; M["rbDkHi"] = f"{hi:.3f}"
-    tl, th = t_interval(per); M["rbDkTLo"] = f"{tl:.3f}"; M["rbDkTHi"] = f"{th:.3f}"
+    tl, th = t_interval(per, geo=True); M["rbDkTLo"] = f"{tl:.3f}"; M["rbDkTHi"] = f"{th:.3f}"
     # eq. (sum)'s error per consumer machine at gpt-oss 11% (mean over its launches)
     em = {}
     for r in cons:

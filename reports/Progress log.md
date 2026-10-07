@@ -3,6 +3,32 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October: restructure for clarity and significance, review rounds 17 to 19
+
+**Status for Harshith (read this first).** Scores by round, MLSys PC / professor (clarity in brackets):
+round 16 **5 / 6** (3, 3) → round 17 **6 / 6** (3, 3) → round 18 **6 / 7** (3, 3) → round 19 **6 / 6** (3, 3).
+Every number the reviewers recomputed (35–47 claims a round) reproduced from the raw data.
+
+- **What changed (restructure):**
+  - "Where the seconds go" is now measured, not modelled. Oracles in the engine change what is cached and how it is
+    read, alone and together, then when it is read, on 15 machines (new Figure 2 and Table 3).
+  - Headline finding: at gpt-oss 11%, caching MIN's set and reading each admission once close about 1% of the gap each
+    alone but 39% together (33% over all 15 machines); reading ahead adds 15%. What is left matches the GPU's
+    non-expert time in series plus the prefetching oracle's own extra reads (residual about −2%).
+  - A dependency-aware bound (Eq. 3): CPU-served reads wait for attention, so only link copies can be issued early.
+  - A new Section 7, rules for system builders. The failed closed-form relation (old Eq. 3) moved to an appendix.
+  - The main text was rewritten one claim per paragraph; three uncited appendices moved to the supplement (paper 43 → 38
+    pages); an appendix map; the horizon rule given on our own workload (0.66–0.81 C) beside the nine-model 0.65 C.
+- **Why it stops at 6:** both reviewers cap significance at 3 for the same reasons: one GPU model, two models, AIME
+  prompts, oracle-only big gains (realisable: admission margin 1.02×), and the 39% coming from a subset drawn after the
+  data. Clarity stays at 3: number density, four yardsticks, many machine subsets.
+- **What would move it (needs your call):**
+  1. A realisable policy that captures the "together" effect (better set + single read, online), run on 5+ new machines
+     with registered predictions. Needs GPU credit (~$15–25); credit is $0.75.
+  2. One more clarity pass: abstract down to about four numbers, one machine set for all headline claims, each number
+     stated once.
+- **Anonymity:** author block in an untracked `paper/authors.tex`; `scripts/anon_export.sh` builds the review copy.
+
 ## 7 October (late night, cont.): round-15 small problems, review round 16 (5, 6)
 
 **Status for Harshith (read this first).** Round 16 after the small fixes: MLSys PC **5/10** (soundness 3,

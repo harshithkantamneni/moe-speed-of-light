@@ -12,14 +12,20 @@ its host; the predictions were not changed). Scored by `scripts/job106.py` into 
 | 106b | Pf again (Core Ultra 9 285K, x8 link) | 0.29 | 94 | 0.3% |
 | 106c | EPYC 7302, 13 GB/s link | 0.14 | 108 | **11%** |
 | 106d | Xeon Platinum 8347C | 0.23 | 113 | **39%** |
-| 106e | Ryzen 9 9950X | 1.02 | 52 | 0.2% |
+| 106e | Ryzen 9 9950X: panel host Pe again (same GPU UUID as 099e; found by number check 12) | 1.02 | 52 | 0.2% |
 
+- **106c computed wrong outputs.** Number check 12 found it. Its teacher-forced loss on the deployed cache was
+  0.21–0.42 nats per token on gpt-oss across rounds (0.45 on Qwen3), against 0.19 (0.086) on every other host and in
+  its own untimed routing pass, and its counters changed between rounds. Nothing can be drawn from its timings, including
+  the fewest-admission set's loss on its 13 GB/s link reported below.
 - **106c and 106d were not stable.** Each failed the registered at-most-2% spread between rounds (prediction 8).
   - On 106d the deployed cache ran 14.5, 22.1 and 21.9 ms per token in its three rounds.
   - Before the job started (`free.txt` at the gate, before any download), 131–132 GB of host memory was already in use
     on 106c and 106d, against 12–15 GB on the stable hosts.
   - On both hosts the probe's CPU read rate falls when more threads than physical cores are used. 106c's container
     showed 64 CPUs for 15 usable physical cores.
+- **All three stable hosts are machines rented before.** 106a is 105b's Threadripper, 106b is Pf, and 106e is Pe.
+  The registered test therefore covers new runs and a second model, not new machines.
 - **How they are treated.** Their clauses are scored as they came out: 36 clauses, 20 held and 16 failed. The paper's
   summaries leave both hosts out by the registered 2% threshold and say so. The leftover summary is 3 stable hosts.
 

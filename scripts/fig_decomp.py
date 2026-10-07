@@ -122,6 +122,8 @@ def main():
         M[f"dcShareG{nm}Min"] = f"{100 * np.min(g / T):.0f}"; M[f"dcShareG{nm}Max"] = f"{100 * np.max(g / T):.0f}"
         M[f"dcShareMin{nm}Min"] = f"{100 * np.min(mn / T):.0f}"; M[f"dcShareMin{nm}Max"] = f"{100 * np.max(mn / T):.0f}"
         M[f"dcShareEx{nm}Min"] = f"{100 * np.min(ex / T):.0f}"; M[f"dcShareEx{nm}Max"] = f"{100 * np.max(ex / T):.0f}"
+        gap = np.array([r["G"] / (r["T"] - r["min_ms"]) for r in rows])
+        M[f"dcGapG{nm}Min"] = f"{100 * gap.min():.0f}"; M[f"dcGapG{nm}Max"] = f"{100 * gap.max():.0f}"
         M[f"dcLawErr{nm}Med"] = f"{100 * np.median(tot / T - 1):.0f}".replace("-", "$-$")
     h, l = axs[0].get_legend_handles_labels()
     fig.legend(h, l, fontsize=7, frameon=False, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.0))

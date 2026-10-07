@@ -71,15 +71,15 @@ def points():
                         continue
                     if k in c["speed"]:
                         pts.append((h["job"], r, lab, k, c["speed"][k][0]))
-    # job 106: its one new machine with a stable deployed cache (106e); 106a and 106b relaunch the 9960X and Pf, and
-    # 106c and 106d varied by 11% and 39% between rounds (see scripts/job106.py)
+    # job 106: 106e is panel host Pe again (same GPU), whose fewest-admission set is new; 106a and 106b relaunch the
+    # 9960X and Pf (their plan states are already here); 106c computed wrong outputs and 106d varied by 39% between rounds
     pj = P("prereg", "job106.json")
     if os.path.exists(pj):
         for h in json.load(open(pj))["hosts"]:
             if h["job"] != "106e":
                 continue
             c = h["cells"].get("g14")
-            for k in ("fetch", "fetchplan", "dk"):
+            for k in ("fetchplan",):
                 if c and c["speed"].get(k):
                     pts.append((h["job"], h["ratio"], "gpt-oss 11%", k, c["speed"][k][0]))
     return pts

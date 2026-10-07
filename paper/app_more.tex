@@ -11,11 +11,17 @@ greedy set at 25\%.
 \input{tab_job105}
 \input{tab_job106_all}
 
-\paragraph{Job 106, every host.} \Cref{tab:job106all} adds the two server hosts whose deployed cache varied by
-\jiUnstableVarMin\% and \jiUnstableVarMax\% between launches, more than the 2\% we registered. Before our job started, \jiUsedUnstMin--\jiUsedUnstMax\,GB of their host memory
-was already in use (\jiUsedStableMin--\jiUsedStableMax\,GB on the stable hosts), and their probes' CPU read rates fell
-when more threads than physical cores read. On both, \cref{eq:sum} under-predicted the deployed cache
-by \jiUnstErrMin--\jiUnstErrMax\%; their clauses are scored in the supplement.
+\paragraph{Job 106, every host.} \Cref{tab:job106all} adds the two server machines new to job 106. On the
+\jiNllBadName{} host the engine computed wrong outputs: its teacher-forced loss on the deployed cache was
+\jiNllBadMin--\jiNllBadMax{} nats per token across rounds and models, against \jiNllGood{} (gpt-oss) and \jiNllGoodQ{}
+(Qwen3) on every other host and in its own untimed routing pass, and its counters changed between rounds. On the Xeon
+8347C host the deployed cache varied by \jiUnstableVarMax\% between rounds at gpt-oss 11\%, against at most 2\%
+registered, and the greedy copy gained in two of its three rounds where we had predicted it would lose. When their jobs
+reached the gate, before any download, \texttt{free} reported \jiUsedUnstMin--\jiUsedUnstMax\,GB of host memory in use
+(\jiUsedStableMin--\jiUsedStableMax\,GB on the other hosts), and their probes' CPU read rates fell when more threads
+read than the container had usable physical cores. On both, \cref{eq:sum} under-predicted the deployed cache by
+\jiUnstErrMin--\jiUnstErrMax\%. We report their clauses (in the supplement) and draw nothing from them. The three
+machines that ran stably were all rented before: Pf, the Threadripper 9960X of job 105, and panel host Pe (same GPU).
 
 \paragraph{The machine decides how much.} Across machines, the gain of every state that moves reads from the CPU to
 the link follows the link-to-CPU ratio (Spearman over the machines that ran it through job 104, 95\% bootstrap

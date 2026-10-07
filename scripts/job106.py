@@ -24,7 +24,7 @@ CELLS = (("g", 14, 3), ("g", 32, 2), ("q", 16, 1), ("q", 32, 1))
 LAB = {("g", 14): "gpt-oss 11%", ("g", 32): "gpt-oss 25%", ("q", 16): "Qwen3 12.5%", ("q", 32): "Qwen3 25%"}
 SHORT = {("g", 14): "g11", ("g", 32): "g25", ("q", 16): "q12", ("q", 32): "q25"}
 PROF = {("g", 14): ("g_prof.json", "G14"), ("g", 32): ("g_prof.json", "G32"), ("q", 16): ("q_prof.json", "Q16"), ("q", 32): ("q_prof.json", "Q32")}
-NAMES = {"106a": "Threadripper 9960X again", "106b": "Pf again (285K)", "106c": "EPYC 7302", "106d": "Xeon 8347C", "106e": "Ryzen 9 9950X"}
+NAMES = {"106a": "Threadripper 9960X again", "106b": "Pf again (285K)", "106c": "EPYC 7302", "106d": "Xeon 8347C", "106e": "Pe again (9950X)"}
 RNG = np.random.default_rng(106)
 
 
@@ -205,6 +205,44 @@ def main():
         ue = [100 * abs(c["err"]["base"]["olap"]) for j in unstable for c in hosts[j]["cells"].values() if "err" in c and "base" in c["err"]]
         if ue:
             M["jiUnstErrMin"] = f"{min(ue):.0f}"; M["jiUnstErrMax"] = f"{max(ue):.0f}"
+    # teacher-forced loss per token of the deployed cache, round by round (outputs must match the other hosts')
+    def nll(h, key):
+        out = []
+        tag, C = key[0], key[1:]
+        for f in sorted(glob.glob(f"{RES}/{h['dir']}/ec_{tag}_C{C}_r*.jsonl")):
+            rows = [json.loads(l) for l in open(f) if l.strip()]
+            v = [r["nll_sum"] / r["nll_n"] for r in rows if r["config"].rsplit("stats=", 1)[-1].endswith("_base.json")]
+            if v:
+                out.append(float(np.mean(v)))
+        return out
+    ng = {j: nll(h, "g14") for j, h in hosts.items()}
+    ref = float(np.median([x for v in ng.values() for x in v]))
+    bad = {j: v for j, v in ng.items() if v and max(abs(x / ref - 1) for x in v) > 0.05}
+    M["jiNllGood"] = f"{ref:.2f}"
+    if bad:
+        bv = [x for v in bad.values() for x in v] + [x for j in bad for x in nll(hosts[j], "q16")]
+        M["jiNllBadMin"] = f"{min(bv):.2f}"; M["jiNllBadMax"] = f"{max(bv):.2f}"
+        M["jiNllBadName"] = ", ".join(NAMES.get(j, j) for j in bad)
+    M["jiNllGoodQ"] = f"{np.median([x for j in hosts if j not in bad for x in nll(hosts[j], 'q16')]):.3f}"
+    # the pooled law error over every host, as registered
+    pm = next((c for c in clauses if c["id"] == "106-P2-median"), None)
+    if pm:
+        M["jiErrMedAll"] = f"{100 * pm['measured']:.1f}"
+    # predicting no change of speed, against the law's ratio prediction (stable hosts, gpt-oss)
+    nc = [abs(1 - c["speed"][k][0]) for h in hs.values() for c in h["cells"].values() if c["tag"] == "g" for k in ("dk", "lrn") if c["speed"].get(k)]
+    if nc:
+        M["jiNoChangeMed"] = f"{np.median(nc):.3f}"; M["jiNoChangeMax"] = f"{max(nc):.3f}"
+    # the stable hosts against their previous launch (same GPU), deployed cache at gpt-oss 11%
+    prev = {"106a": ("105b_sumlaw@vast", "14"), "106b": ("105e_sumlaw@vast", "14"), "106e": ("099e_panel@vast", "g11")}
+    rd = []
+    for j, (pd_, ck) in prev.items():
+        if j not in hs or not os.path.exists(f"{RES}/{pd_}"):
+            continue
+        cd = cell_data(f"{RES}/{pd_}", "g", 14)
+        if cd and "base" in cd["arr"]:
+            rd.append(100 * (hs[j]["cells"]["g14"]["ms"]["base"] / cd["arr"]["base"].mean() - 1))
+    if rd:
+        M["jiRelaunchMax"] = f"{max(abs(x) for x in rd):.1f}"
     fail = Counter("unst" if c["id"][:4] in unstable else ("pooled" if c["id"].startswith("106-") else "stable")
                    for c in clauses if c["status"] == "failed")
     M["jiFailedUnst"] = str(fail.get("unst", 0)); M["jiFailedStable"] = str(fail.get("stable", 0)); M["jiFailedPooled"] = str(fail.get("pooled", 0))
@@ -251,6 +289,7 @@ def main():
         M["jiWithin"] = str(int(np.sum(np.abs(errs_olap) <= 0.06)))
     if dk_pool:
         M["jiDkPooled"] = f"{np.median(dk_pool):.2f}"
+        M["jiDkPctMin"] = f"{max(0, round(100 * (min(dk_pool) - 1))):.0f}"; M["jiDkPctMax"] = f"{round(100 * (max(dk_pool) - 1)):.0f}"
     rng("jiRatio", [h["ratio"] for h in hs.values()])
     slow = [(j, h) for j, h in hs.items() if h["ratio"] < 0.4 and "g14" in h["cells"]]
     M["jiSlowN"] = str(len(slow))
@@ -304,8 +343,9 @@ def main():
                     "\\cref{eq:sum} (GPU compute profiled on the same host before the timed runs; the run's own counters), and "
                     "the speed relative to the deployed cache of the two online admission rules (\\emph{dk}: the decayed count "
                     "with a larger admission margin; \\emph{lrn}: the learned reuse predictor with a margin; both chosen on "
-                    "other text) and of MIN's fewest-admission set copied in the step, with launch-level 95\\% intervals "
-                    "(launches, then problems). Hosts sorted by the probe's link-to-CPU ratio.}\\label{" + label + "}\n")
+                    "other text) and of MIN's fewest-admission set copied in the step, with round-level 95\\% intervals "
+                    "(rounds, then problems: three rounds at gpt-oss 11\\%, two at 25\\%; Qwen3 ran one round, so its intervals are over "
+                    "problems). Hosts sorted by the probe's link-to-CPU ratio.}\\label{" + label + "}\n")
             f.write("\\setlength\\tabcolsep{2.2pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrlrrrlll@{}}\\toprule\n")
             f.write(" & Link/ & & $G$ & \\multicolumn{2}{c}{Deployed (ms)} & & & MIN, fewest \\\\\n")
             f.write("Host & CPU & Budget & (ms) & law & meas. & dk & lrn & in the step \\\\\\midrule\n")

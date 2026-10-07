@@ -78,12 +78,12 @@ def best_rates(txt):
     return max(cpu), max(pcie)
 
 
-def dep_bound(lim, B, Bc, Bp, tgpu):
+def dep_bound(lim, rs, Bc, Bp, tgpu):
     """the dependency-aware bound (ms): reads copied over the link can be issued ahead and overlap everything, but an
     expert run on the CPU needs its layer's attention output and the next layer's attention needs its result, so CPU
     reads sit in series with the GPU's non-expert work. With a share f of MIN's reads on the CPU:
     max((1-f) R*S/B_p, T_GPU + f R*S/B_c), minimised over f, and never below Eq. (1)."""
-    a, b = lim * B / Bp, lim * B / Bc
+    a, b = rs / (Bp * 1e9) * 1e3, rs / (Bc * 1e9) * 1e3     # all of MIN's reads over the link / on the CPU, ms
     f = min(1.0, max(0.0, (a - tgpu) / (a + b)))
     return max(lim, max((1 - f) * a, tgpu + f * b))
 
@@ -91,6 +91,7 @@ def dep_bound(lim, B, Bc, Bp, tgpu):
 def machines(C):
     from scripts.sumlaw_paper import profiles
     tgpu = min(p["nonexpert"] for p in profiles())
+    rs = json.load(open(P("prereg", "speed_limit_v2.json")))["models"]["gpt-oss-120b"]["rows"][str(C)]["reads_per_token"]["exact"] * S
     ra = json.load(open(P("prereg", "reanalysis.json")))
     G = ra["sum_law"][str(C)]["G"]
     seen, rows = set(), []
@@ -126,8 +127,8 @@ def machines(C):
         new = os.path.basename(d)[:4] in NEW_IN_TEST
         Bc, Bp = best_rates(open(f"{d}/concur.txt").read())
         rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=Gh, prof=prof, min_ms=lim, law=tl,
-                         excess_ms=tl - Gh - lim, server=server, new=new, dep=dep_bound(lim, B, Bc, Bp, tgpu),
-                         eq2=tgpu + lim, ratio=Bp / Bc))
+                         excess_ms=tl - Gh - lim, server=server, new=new, dep=dep_bound(lim, rs, Bc, Bp, tgpu),
+                         eq2=tgpu + rs / (B * 1e9) * 1e3, ratio=Bp / Bc))
     return rows
 
 

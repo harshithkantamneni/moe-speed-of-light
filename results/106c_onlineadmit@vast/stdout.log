@@ -1,0 +1,776 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/106_onlineadmit@vast.sh
+++ cd /w/jobs
+++ pwd
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ tr -d .
++++ head -1
+++ SM=120
++++ nproc
+++ export SM NPROC=64
+++ NPROC=64
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32 Q16 Q32'
++ PROF_KEEP_TAIL='G14 G32 Q16 Q32'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791337497
++ BUDGET=12000
++ RESERVE=600
+++ date +%s
++ ORDER_SEED=37497
++ echo 'order seed base 37497'
++ tee /w/results/106c_onlineadmit@vast/order_seed.txt
+order seed base 37497
++ NSEQ=20
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ cat /w/results/106c_onlineadmit@vast/gpu.csv
+name, memory.total [MiB], clocks.max.sm [MHz], clocks.max.memory [MHz], pcie.link.gen.max, pcie.link.gen.current, pcie.link.width.max, pcie.link.width.current, driver_version, power.limit [W]
+NVIDIA GeForce RTX 5090, 32607 MiB, 3105 MHz, 14001 MHz, 4, 4, 16, 8, 580.105.08, 520.00 W
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/106c_onlineadmit@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/106c_onlineadmit@vast/bw_gate.txt
++ DR=1692
++ echo 'device read 1692 GB/s'
++ tee -a /w/results/106c_onlineadmit@vast/gate.txt
+device read 1692 GB/s
++ '[' 1692 -ge 1500 ']'
++ free -g
+++ awk '/Mem:/{print $2}' /w/results/106c_onlineadmit@vast/free.txt
++ RAMGB=503
++ echo 'host RAM 503 GB'
++ tee -a /w/results/106c_onlineadmit@vast/gate.txt
+host RAM 503 GB
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=200
++ echo 'disk free 200 GB'
++ tee -a /w/results/106c_onlineadmit@vast/gate.txt
+disk free 200 GB
++ '[' 200 -ge 150 ']'
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket'
++ tee /w/results/106c_onlineadmit@vast/cpu.txt
+CPU(s):                                  64
+Model name:                              AMD EPYC 7302 16-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               2
+CPU(s) scaling MHz:                      58%
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-venv python3-pip
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet numpy numba
++ for i in 1 2 3
++ python3 -c 'import numba'
++ break
++ python3 -c 'import numba; print('\''numba'\'', numba.__version__)'
++ tee -a /w/results/106c_onlineadmit@vast/pip.txt
+numba 0.68.0
++ command -v uv
++ PV=/work/planenv
++ for i in 1 2 3
++ /work/planenv/bin/python -c 'import scipy'
++ break
++ /work/planenv/bin/python -c 'import numpy, scipy; print('\''plan env: numpy'\'', numpy.__version__, '\''scipy'\'', scipy.__version__)'
++ tee -a /w/results/106c_onlineadmit@vast/planenv.txt
+plan env: numpy 2.5.3 scipy 1.18.1
++ /work/planenv/bin/python -c 'import scipy'
+++ usable_cores
+++ python3 -
++ CORES=15
++ tee /w/results/106c_onlineadmit@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 15 (nproc 64)'
+usable physical cores 15 (nproc 64)
++ LM=/work/learned
++ mkdir -p /work/learned
++ LMP=6570
++ mkdir -p /work/models
++ DLG=6573
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6574
++ VE=/work/venv
++ VEP=6575
++ NSP=6576
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ install_nsys
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+error: RPC failed; curl 56 Recv failure: Connection reset by peer
+error: 10630 bytes of body are still expected
+fetch-pack: unexpected disconnect while reading sideband packet
+fatal: early EOF
+fatal: fetch-pack: invalid index-pack output
++ sleep 10
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/106c_onlineadmit@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j64 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/106c_onlineadmit@vast/build_lc-ec.txt
++ wait 6576
++ install_nsys
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/106c_onlineadmit@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct  7 02:05 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/minadm_plan.py /w/jobs/ec2/learned/learned_weights.json
++ tee /w/results/106c_onlineadmit@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+2bb6d5eb5528c4a1e0a28e882ade702dad7aef0dbca8b5e40ea1dc44436fb481  /w/jobs/ec2/minadm_plan.py
+165183913a3890b652e7096472b70a99d769384e6993f58988cd9f27025cf737  /w/jobs/ec2/learned/learned_weights.json
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=13
++ wait 6570
++ cat /w/results/106c_onlineadmit@vast/learned_export.txt
++ python3 /w/jobs/ec2/learned_export.py /w/jobs/ec2/learned/gpt-oss-120b_S.npz /w/jobs/ec2/learned/learned_weights.json gpt-oss-120b_C14 /work/learned/learned_g14.bin
+gpt-oss-120b_C14 sha256 43c546ab8d8f2d543e9fd375db5674f2ff956f026399ebb46a3374f2054c658b
++ python3 /w/jobs/ec2/learned_export.py /w/jobs/ec2/learned/gpt-oss-120b_S.npz /w/jobs/ec2/learned/learned_weights.json gpt-oss-120b_C32 /work/learned/learned_g32.bin
+gpt-oss-120b_C32 sha256 9b6bac0179497f58c086d8b4238567ae230103e16f1ca4164954b2759f36f743
++ python3 /w/jobs/ec2/learned_export.py /w/jobs/ec2/learned/qwen3-30b-a3b_fp8_S.npz /w/jobs/ec2/learned/learned_weights.json qwen3-30b-a3b_C16 /work/learned/learned_q16.bin
+qwen3-30b-a3b_C16 sha256 c743a56b2b9ea6d14c5be1fc632dcb892bda8224fa7625170a11e812869d86f8
++ python3 /w/jobs/ec2/learned_export.py /w/jobs/ec2/learned/qwen3-30b-a3b_fp8_S.npz /w/jobs/ec2/learned/learned_weights.json qwen3-30b-a3b_C32 /work/learned/learned_q32.bin
+qwen3-30b-a3b_C32 sha256 364516b4fbc3c5031b0449325e75d6e6c925952e1068f506a9bca0feb54792f7
++ python3 - /w/jobs/ec2/learned/learned_weights.json /work/learned
+g14 MATCH
+g32 MATCH
+q16 MATCH
+q32 MATCH
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/106c_onlineadmit@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/106c_onlineadmit@vast/concur.txt 13 13253760 4 /w/results/106c_onlineadmit@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,0,0
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/106c_onlineadmit@vast/concur.txt 13 9437184 8 /w/results/106c_onlineadmit@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,0,0,0,0,0,0,0
++ tee /w/results/106c_onlineadmit@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-10-07T02:06:28Z): gpt-oss 0,0,0,0,0; qwen3 0,0,0,0,0,0,0,0,0'
+law tables (2026-10-07T02:06:28Z): gpt-oss 0,0,0,0,0; qwen3 0,0,0,0,0,0,0,0,0
++ '[' -n 0,0,0,0,0 ']'
++ '[' -n 0,0,0,0,0,0,0,0,0 ']'
+++ date +%s
++ echo 'builds and probe done, waiting for the gpt-oss download (1291 s since launch)'
+builds and probe done, waiting for the gpt-oss download (1291 s since launch)
++ wait 6573
++ cat /w/results/106c_onlineadmit@vast/dl_gguf.txt
+++ date +%s
++ t0=1791337519
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d('\''ggml-org/gpt-oss-120b-GGUF'\'', '\''gpt-oss-120b-MXFP4.gguf'\'', local_dir=sys.argv[1])' /work/models
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 1047 s'
+gguf hf download rc=0 in 1047 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct  7 02:02 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ MB=mailbox=1:tdec=1:helpers=13
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ lookahead g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 24
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl n=24
+++ date +%s
++ local t0=1791338788
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/106c_onlineadmit@vast/la_g.bin
+++ date +%s
+++ ls -la /w/results/106c_onlineadmit@vast/la_g.bin
+++ awk '{print $5}'
++ echo 'lookahead g rc=0 in 507 s: 11816960 bytes'
+lookahead g rc=0 in 507 s: 11816960 bytes
++ cat /w/results/106c_onlineadmit@vast/la_g.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/106c_onlineadmit@vast/la_g.err
++ rm -f /w/results/106c_onlineadmit@vast/la_g.err
++ '[' -s /w/results/106c_onlineadmit@vast/la_g.bin ']'
++ for C in 14 32
++ prof_run G14 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G14
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G14 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G14 rc=0'
+prof G14 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G14 /work/prof_G14.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G14 --out /w/results/106c_onlineadmit@vast --keep-tail
++ '[' -f /work/prof_G14_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G14_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G14_cuda_api_trace.csv /work/prof_G14_cuda_gpu_kern_sum.csv /work/prof_G14_cuda_gpu_trace.csv /work/prof_G14.sqlite
++ ls -la /w/results/106c_onlineadmit@vast/prof_G14.err /w/results/106c_onlineadmit@vast/prof_G14.json /w/results/106c_onlineadmit@vast/prof_G14.stdout /w/results/106c_onlineadmit@vast/prof_G14_kern_sum.csv.gz /w/results/106c_onlineadmit@vast/prof_G14_tail.csv.gz
+-rw-r--r-- 1 root root 396720 Oct  7 02:17 /w/results/106c_onlineadmit@vast/prof_G14.err
+-rw-r--r-- 1 root root   4093 Oct  7 02:17 /w/results/106c_onlineadmit@vast/prof_G14.json
+-rw-r--r-- 1 root root   1969 Oct  7 02:17 /w/results/106c_onlineadmit@vast/prof_G14.stdout
+-rw-r--r-- 1 root root   2392 Oct  7 02:17 /w/results/106c_onlineadmit@vast/prof_G14_kern_sum.csv.gz
+-rw-r--r-- 1 root root 209593 Oct  7 02:17 /w/results/106c_onlineadmit@vast/prof_G14_tail.csv.gz
++ for C in 14 32
++ prof_run G32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G32 rc=0'
+prof G32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G32 /work/prof_G32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G32 --out /w/results/106c_onlineadmit@vast --keep-tail
++ '[' -f /work/prof_G32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G32_cuda_api_trace.csv /work/prof_G32_cuda_gpu_kern_sum.csv /work/prof_G32_cuda_gpu_trace.csv /work/prof_G32.sqlite
++ ls -la /w/results/106c_onlineadmit@vast/prof_G32.err /w/results/106c_onlineadmit@vast/prof_G32.json /w/results/106c_onlineadmit@vast/prof_G32.stdout /w/results/106c_onlineadmit@vast/prof_G32_kern_sum.csv.gz /w/results/106c_onlineadmit@vast/prof_G32_tail.csv.gz
+-rw-r--r-- 1 root root 396721 Oct  7 02:18 /w/results/106c_onlineadmit@vast/prof_G32.err
+-rw-r--r-- 1 root root   4036 Oct  7 02:19 /w/results/106c_onlineadmit@vast/prof_G32.json
+-rw-r--r-- 1 root root   2022 Oct  7 02:19 /w/results/106c_onlineadmit@vast/prof_G32.stdout
+-rw-r--r-- 1 root root   2380 Oct  7 02:19 /w/results/106c_onlineadmit@vast/prof_G32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 213356 Oct  7 02:19 /w/results/106c_onlineadmit@vast/prof_G32_tail.csv.gz
++ gprof G14 G32
++ python3 - /w/results/106c_onlineadmit@vast G14 G32
+++ date -u +%FT%TZ
++ echo 'G_prof (gpt-oss) written 2026-10-07T02:19:21Z, before any timed run:'
+G_prof (gpt-oss) written 2026-10-07T02:19:21Z, before any timed run:
++ cat /w/results/106c_onlineadmit@vast/g_prof.json
+{"G14": {"G_prof_ms": 4.2715309999999995, "wall_ms": 29.1402475, "wait_ms": 21.4340755, "copy_ms": 12.5262555}, "G32": {"G_prof_ms": 4.667477, "wall_ms": 19.3092415, "wait_ms": 9.0203985, "copy_ms": 14.956685}}
+++ date +%s
++ t0=1791339561
+++ date +%s
++ echo 'plan C14 rc=0 in 5 s'
+plan C14 rc=0 in 5 s
++ cat /w/results/106c_onlineadmit@vast/plan_g14.txt
++ cd /w/jobs/ec2
++ R 20m /work/planenv/bin/python -I minadm_plan.py /w/results/106c_onlineadmit@vast/la_g.bin 14 /w/results/106c_onlineadmit@vast/plan_g14.bin 15
+++ secs 20m
+++ case $1 in
+++ echo 1200
++ local t=1200
++ shift
+++ left
++++ date +%s
+++ echo 9336
++ local l=9336
++ '[' 9336 -lt 120 ']'
++ '[' 1200 -gt 9336 ']'
++ timeout -k 30 1200 /work/planenv/bin/python -I minadm_plan.py /w/results/106c_onlineadmit@vast/la_g.bin 14 /w/results/106c_onlineadmit@vast/plan_g14.bin 15
+{"la": "/w/results/106c_onlineadmit@vast/la_g.bin", "C": 14, "records": 5120, "layers": 36, "admissions": 65514, "admissions_per_token": 12.795703125, "hits_per_token": 104.076953125, "fractional_layers": 0, "milp_layers": 0, "sim": {"greedy_misses": 39.1134765625, "greedy_admissions": 20.162109375, "plan_misses": 39.2275390625, "plan_admissions": 12.1849609375, "plan_refused": 0.0107421875}, "seconds": 2.7}
++ GN14='base dk lrn fetch'
++ '[' -s /w/results/106c_onlineadmit@vast/plan_g14.bin ']'
++ GN14='base dk lrn fetch fetchplan'
++ for rd in 1 2 3
++ run_round g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 14 0,0,0,0,0 3 0.4 g14 1 'base dk lrn fetch fetchplan'
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=14 law=0,0,0,0,0 kdk=3 mrg=0.4 lf=g14 rd=1 'names=base dk lrn fetch fetchplan'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_g.bin
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_g_C14_r1
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json'
++ for n in $names
++ case $n in
++ lrnok g14
++ grep -q '^g14 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_lrn.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetchplan.json'
++ local seed=37611
++ echo 'cell g C14 round 1 order-seed 37611 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetchplan.json'
+++ date +%s
++ local t0=1791339566
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37611 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r1_fetchplan.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C14 round 1 rc=0 in 957 s'
+cell g C14 round 1 rc=0 in 957 s
+++ date +%s
++ echo 'ec_g_C14_r1 0 957'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_g_C14_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_g_C14_r1.err
++ head -40
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_g_C14_r1.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_g_C14_r1.err
++ for rd in 1 2 3
++ run_round g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 14 0,0,0,0,0 3 0.4 g14 2 'base dk lrn fetch fetchplan'
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=14 law=0,0,0,0,0 kdk=3 mrg=0.4 lf=g14 rd=2 'names=base dk lrn fetch fetchplan'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_g.bin
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_g_C14_r2
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json'
++ for n in $names
++ case $n in
++ lrnok g14
++ grep -q '^g14 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_lrn.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetchplan.json'
++ local seed=37711
++ echo 'cell g C14 round 2 order-seed 37711 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetchplan.json'
+++ date +%s
++ local t0=1791340523
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37711 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r2_fetchplan.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C14 round 2 rc=0 in 955 s'
+cell g C14 round 2 rc=0 in 955 s
+++ date +%s
++ echo 'ec_g_C14_r2 0 955'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_g_C14_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_g_C14_r2.err
++ head -40
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_g_C14_r2.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_g_C14_r2.err
++ for rd in 1 2 3
++ run_round g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 14 0,0,0,0,0 3 0.4 g14 3 'base dk lrn fetch fetchplan'
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=14 law=0,0,0,0,0 kdk=3 mrg=0.4 lf=g14 rd=3 'names=base dk lrn fetch fetchplan'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_g.bin
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_g_C14_r3
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json'
++ for n in $names
++ case $n in
++ lrnok g14
++ grep -q '^g14 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_lrn.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetchplan.json'
++ local seed=37811
++ echo 'cell g C14 round 3 order-seed 37811 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetchplan.json'
+++ date +%s
++ local t0=1791341478
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37811 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_dk.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g14.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_lrn.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetch.json;slots=14:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_plan=/w/results/106c_onlineadmit@vast/plan_g14.bin:stats=/w/results/106c_onlineadmit@vast/st_g_C14_r3_fetchplan.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C14 round 3 rc=0 in 949 s'
+cell g C14 round 3 rc=0 in 949 s
+++ date +%s
++ echo 'ec_g_C14_r3 0 949'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_g_C14_r3.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_g_C14_r3.err
++ head -40
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_g_C14_r3.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_g_C14_r3.err
++ for rd in 1 2
++ run_round g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 32 0,0,0,0,0 2 0.4 g32 1 'base dk lrn'
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=32 law=0,0,0,0,0 kdk=2 mrg=0.4 lf=g32 rd=1 'names=base dk lrn'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_g.bin
++ local base=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=32:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_g_C32_r1
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_dk.json'
++ for n in $names
++ case $n in
++ lrnok g32
++ grep -q '^g32 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_lrn.json'
++ local seed=37629
++ echo 'cell g C32 round 1 order-seed 37629 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_lrn.json'
+++ date +%s
++ local t0=1791342427
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37629 --ec 'slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r1_lrn.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C32 round 1 rc=0 in 446 s'
+cell g C32 round 1 rc=0 in 446 s
+++ date +%s
++ echo 'ec_g_C32_r1 0 446'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_g_C32_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ head -40
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_g_C32_r1.err
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_g_C32_r1.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_g_C32_r1.err
++ for rd in 1 2
++ run_round g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 32 0,0,0,0,0 2 0.4 g32 2 'base dk lrn'
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl C=32 law=0,0,0,0,0 kdk=2 mrg=0.4 lf=g32 rd=2 'names=base dk lrn'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_g.bin
++ local base=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=32:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_g.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_g_C32_r2
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_base.json
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_dk.json'
++ for n in $names
++ case $n in
++ lrnok g32
++ grep -q '^g32 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_lrn.json'
++ local seed=37729
++ echo 'cell g C32 round 2 order-seed 37729 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_lrn.json'
+++ date +%s
++ local t0=1791342873
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37729 --ec 'slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_g32.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_g_C32_r2_lrn.json'
++ local rc=0
+++ date +%s
++ echo 'cell g C32 round 2 rc=0 in 448 s'
+cell g C32 round 2 rc=0 in 448 s
+++ date +%s
++ echo 'ec_g_C32_r2 0 448'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_g_C32_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ head -40
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_g_C32_r2.err
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_g_C32_r2.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_g_C32_r2.err
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf /w/results/106c_onlineadmit@vast/la_g.bin
++ wait 6574 6575
++ cat /w/results/106c_onlineadmit@vast/dl_qwen3.txt
+++ date +%s
++ t0=1791337519
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   4%|▍         | 1/26 [00:00<00:11,  2.25it/s]Fetching 26 files:  15%|█▌        | 4/26 [00:00<00:02,  8.54it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:00<00:02,  9.97it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:20<00:02,  9.97it/s]Fetching 26 files:  27%|██▋       | 7/26 [03:11<14:20, 45.31s/it]Fetching 26 files:  31%|███       | 8/26 [03:32<11:44, 39.17s/it]Fetching 26 files:  35%|███▍      | 9/26 [04:23<11:59, 42.35s/it]Fetching 26 files:  38%|███▊      | 10/26 [05:06<11:22, 42.64s/it]Fetching 26 files:  42%|████▏     | 11/26 [05:56<11:07, 44.47s/it]Fetching 26 files:  46%|████▌     | 12/26 [06:11<08:25, 36.08s/it]Fetching 26 files:  50%|█████     | 13/26 [06:26<06:31, 30.11s/it]Fetching 26 files:  54%|█████▍    | 14/26 [07:07<06:37, 33.10s/it]Fetching 26 files:  58%|█████▊    | 15/26 [07:50<06:39, 36.28s/it]Fetching 26 files:  62%|██████▏   | 16/26 [07:51<04:17, 25.79s/it]Fetching 26 files:  65%|██████▌   | 17/26 [08:30<04:25, 29.55s/it]Fetching 26 files:  69%|██████▉   | 18/26 [08:31<02:48, 21.10s/it]Fetching 26 files:  73%|███████▎  | 19/26 [08:34<01:49, 15.60s/it]Fetching 26 files:  77%|███████▋  | 20/26 [09:10<02:10, 21.67s/it]Fetching 26 files:  81%|████████  | 21/26 [09:53<02:21, 28.27s/it]Fetching 26 files:  85%|████████▍ | 22/26 [10:47<02:23, 35.90s/it]Fetching 26 files:  88%|████████▊ | 23/26 [10:52<01:19, 26.56s/it]Fetching 26 files:  92%|█████████▏| 24/26 [11:10<00:47, 23.93s/it]Fetching 26 files:  96%|█████████▌| 25/26 [11:13<00:17, 17.69s/it]Fetching 26 files: 100%|██████████| 26/26 [11:18<00:00, 13.90s/it]Fetching 26 files: 100%|██████████| 26/26 [11:18<00:00, 26.09s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 680 s'
+qwen3 hf download rc=0 in 680 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/106c_onlineadmit@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Oct  7 03:30 /work/models/Qwen3-30B-A3B-BF16.gguf
++ rm -rf /work/models/Qwen3-30B-A3B
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ CQ=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ for C in 16 32
++ prof_run Q16 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=Q16
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_Q16 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof Q16 rc=0'
+prof Q16 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_Q16 /work/prof_Q16.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label Q16 --out /w/results/106c_onlineadmit@vast --keep-tail
++ '[' -f /work/prof_Q16_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_Q16_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_Q16_cuda_api_trace.csv /work/prof_Q16_cuda_gpu_kern_sum.csv /work/prof_Q16_cuda_gpu_trace.csv /work/prof_Q16.sqlite
++ ls -la /w/results/106c_onlineadmit@vast/prof_Q16.err /w/results/106c_onlineadmit@vast/prof_Q16.json /w/results/106c_onlineadmit@vast/prof_Q16.stdout /w/results/106c_onlineadmit@vast/prof_Q16_kern_sum.csv.gz /w/results/106c_onlineadmit@vast/prof_Q16_tail.csv.gz
+-rw-r--r-- 1 root root 500121 Oct  7 03:31 /w/results/106c_onlineadmit@vast/prof_Q16.err
+-rw-r--r-- 1 root root   3867 Oct  7 03:32 /w/results/106c_onlineadmit@vast/prof_Q16.json
+-rw-r--r-- 1 root root   2096 Oct  7 03:31 /w/results/106c_onlineadmit@vast/prof_Q16.stdout
+-rw-r--r-- 1 root root   2339 Oct  7 03:32 /w/results/106c_onlineadmit@vast/prof_Q16_kern_sum.csv.gz
+-rw-r--r-- 1 root root 244136 Oct  7 03:32 /w/results/106c_onlineadmit@vast/prof_Q16_tail.csv.gz
++ for C in 16 32
++ prof_run Q32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=Q32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_Q32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof Q32 rc=0'
+prof Q32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_Q32 /work/prof_Q32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label Q32 --out /w/results/106c_onlineadmit@vast --keep-tail
++ '[' -f /work/prof_Q32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_Q32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_Q32_cuda_api_trace.csv /work/prof_Q32_cuda_gpu_kern_sum.csv /work/prof_Q32_cuda_gpu_trace.csv /work/prof_Q32.sqlite
++ ls -la /w/results/106c_onlineadmit@vast/prof_Q32.err /w/results/106c_onlineadmit@vast/prof_Q32.json /w/results/106c_onlineadmit@vast/prof_Q32.stdout /w/results/106c_onlineadmit@vast/prof_Q32_kern_sum.csv.gz /w/results/106c_onlineadmit@vast/prof_Q32_tail.csv.gz
+-rw-r--r-- 1 root root 500122 Oct  7 03:33 /w/results/106c_onlineadmit@vast/prof_Q32.err
+-rw-r--r-- 1 root root   3839 Oct  7 03:33 /w/results/106c_onlineadmit@vast/prof_Q32.json
+-rw-r--r-- 1 root root   2097 Oct  7 03:33 /w/results/106c_onlineadmit@vast/prof_Q32.stdout
+-rw-r--r-- 1 root root   2346 Oct  7 03:33 /w/results/106c_onlineadmit@vast/prof_Q32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 242934 Oct  7 03:33 /w/results/106c_onlineadmit@vast/prof_Q32_tail.csv.gz
++ gprof Q16 Q32
++ python3 - /w/results/106c_onlineadmit@vast Q16 Q32
+++ date -u +%FT%TZ
++ echo 'G_prof (Qwen3) written 2026-10-07T03:33:30Z, before any Qwen3 timed run:'
+G_prof (Qwen3) written 2026-10-07T03:33:30Z, before any Qwen3 timed run:
++ cat /w/results/106c_onlineadmit@vast/q_prof.json
+{"Q16": {"G_prof_ms": 5.8173385, "wall_ms": 34.244684, "wait_ms": 26.485326, "copy_ms": 21.987453}, "Q32": {"G_prof_ms": 6.3335004999999995, "wall_ms": 22.9817065, "wait_ms": 14.506177, "copy_ms": 17.82903}}
++ run_round q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 16 0,0,0,0,0,0,0,0,0 3 0.4 q16 1 'base dk lrn'
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl C=16 law=0,0,0,0,0,0,0,0,0 kdk=3 mrg=0.4 lf=q16 rd=1 'names=base dk lrn'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_q.bin
++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=16:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_q.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_q_C16_r1
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_base.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_dk.json'
++ for n in $names
++ case $n in
++ lrnok q16
++ grep -q '^q16 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q16.bin:learned_margin=0.4
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_base.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_dk.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q16.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_lrn.json'
++ local seed=37613
++ echo 'cell q C16 round 1 order-seed 37613 configs: slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_base.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_dk.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q16.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_lrn.json'
+++ date +%s
++ local t0=1791344010
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37613 --ec 'slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_base.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=3:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_dk.json;slots=16:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q16.bin:learned_margin=0.4:stats=/w/results/106c_onlineadmit@vast/st_q_C16_r1_lrn.json'
++ local rc=0
+++ date +%s
++ echo 'cell q C16 round 1 rc=0 in 631 s'
+cell q C16 round 1 rc=0 in 631 s
+++ date +%s
++ echo 'ec_q_C16_r1 0 631'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_q_C16_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_q_C16_r1.err
++ head -40
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_q_C16_r1.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_q_C16_r1.err
++ run_round q /work/models/Qwen3-30B-A3B-BF16.gguf /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl 32 0,0,0,0,0,0,0,0,0 2 0.3 q32 1 'base dk lrn'
++ local tag=q g=/work/models/Qwen3-30B-A3B-BF16.gguf corpus=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl C=32 law=0,0,0,0,0,0,0,0,0 kdk=2 mrg=0.3 lf=q32 rd=1 'names=base dk lrn'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local LA=/w/results/106c_onlineadmit@vast/la_q.bin
++ local base=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0
++ local orc=slots=32:policy=oracle:oracle=/w/results/106c_onlineadmit@vast/la_q.bin:mailbox=1:tdec=1:helpers=13:kappa=1:fetch=0,0,0,0,0,0,0,0,0:overlap=1:oracle_w=0
++ local st=/w/results/106c_onlineadmit@vast/st_q_C32_r1
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_dk.json'
++ for n in $names
++ case $n in
++ lrnok q32
++ grep -q '^q32 MATCH' /w/results/106c_onlineadmit@vast/learned_export.txt
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q32.bin:learned_margin=0.3
++ cfg='slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q32.bin:learned_margin=0.3:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_lrn.json'
++ local seed=37629
++ echo 'cell q C32 round 1 order-seed 37629 configs: slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q32.bin:learned_margin=0.3:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_lrn.json'
+++ date +%s
++ local t0=1791344641
++ R 100m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 15 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 37629 --ec 'slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_base.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=2:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_dk.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=13:fetch=0,0,0,0,0,0,0,0,0:paced=0:overlap=1:oracle_w=0:kappa=1:learned=/work/learned/learned_q32.bin:learned_margin=0.3:stats=/w/results/106c_onlineadmit@vast/st_q_C32_r1_lrn.json'
++ local rc=0
+++ date +%s
++ echo 'cell q C32 round 1 rc=0 in 518 s'
+cell q C32 round 1 rc=0 in 518 s
+++ date +%s
++ echo 'ec_q_C32_r1 0 518'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/106c_onlineadmit@vast/ec_q_C32_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|learned\|shuffled\|plan' /w/results/106c_onlineadmit@vast/ec_q_C32_r1.err
++ head -40
++ tail -n 30 /w/results/106c_onlineadmit@vast/ec_q_C32_r1.err
++ rm -f /w/results/106c_onlineadmit@vast/ec_q_C32_r1.err
++ rm -f /work/models/Qwen3-30B-A3B-BF16.gguf
++ python3 - /w/results/106c_onlineadmit@vast
++ tee /w/results/106c_onlineadmit@vast/summary.txt
+st_g_C14_r1_base             57.55 tok/s  17.38 ms n=20 speed vs base 1.000 misses 60.40 admits 7.97 learned_us 0.0
+st_g_C14_r1_dk               58.26 tok/s  17.16 ms n=20 speed vs base 1.012 misses 61.84 admits 2.59 learned_us 0.0
+st_g_C14_r1_fetch            37.42 tok/s  26.72 ms n=20 speed vs base 0.650 misses 39.40 admits 0.00 learned_us 0.0
+st_g_C14_r1_fetchplan        47.97 tok/s  20.85 ms n=20 speed vs base 0.834 misses 41.09 admits 0.00 learned_us 0.0
+st_g_C14_r1_lrn              58.43 tok/s  17.11 ms n=20 speed vs base 1.015 misses 61.11 admits 2.51 learned_us 577.22
+st_g_C14_r2_base             53.01 tok/s  18.87 ms n=20 speed vs base 1.000 misses 60.40 admits 7.97 learned_us 0.0
+st_g_C14_r2_dk               57.87 tok/s  17.28 ms n=20 speed vs base 1.092 misses 61.84 admits 2.59 learned_us 0.0
+st_g_C14_r2_fetch            36.72 tok/s  27.23 ms n=20 speed vs base 0.693 misses 39.40 admits 0.00 learned_us 0.0
+st_g_C14_r2_fetchplan        46.56 tok/s  21.48 ms n=20 speed vs base 0.878 misses 41.09 admits 0.00 learned_us 0.0
+st_g_C14_r2_lrn              50.81 tok/s  19.68 ms n=20 speed vs base 0.959 misses 61.11 admits 2.51 learned_us 691.85
+st_g_C14_r3_base             59.11 tok/s  16.92 ms n=20 speed vs base 1.000 misses 58.16 admits 7.69 learned_us 0.0
+st_g_C14_r3_dk               63.92 tok/s  15.64 ms n=20 speed vs base 1.081 misses 59.60 admits 2.51 learned_us 0.0
+st_g_C14_r3_fetch            41.85 tok/s  23.89 ms n=20 speed vs base 0.708 misses 43.29 admits 0.00 learned_us 0.0
+st_g_C14_r3_fetchplan        48.69 tok/s  20.54 ms n=20 speed vs base 0.824 misses 55.03 admits 0.00 learned_us 0.0
+st_g_C14_r3_lrn              54.68 tok/s  18.29 ms n=20 speed vs base 0.925 misses 59.07 admits 2.39 learned_us 689.29
+st_g_C32_r1_base             81.27 tok/s  12.31 ms n=20 speed vs base 1.000 misses 28.91 admits 8.51 learned_us 0.0
+st_g_C32_r1_dk               92.68 tok/s  10.79 ms n=20 speed vs base 1.140 misses 29.76 admits 3.77 learned_us 0.0
+st_g_C32_r1_lrn              88.14 tok/s  11.35 ms n=20 speed vs base 1.085 misses 30.12 admits 2.45 learned_us 567.33
+st_g_C32_r2_base             82.56 tok/s  12.11 ms n=20 speed vs base 1.000 misses 28.91 admits 8.51 learned_us 0.0
+st_g_C32_r2_dk               84.99 tok/s  11.77 ms n=20 speed vs base 1.030 misses 29.76 admits 3.77 learned_us 0.0
+st_g_C32_r2_lrn              92.33 tok/s  10.83 ms n=20 speed vs base 1.118 misses 30.12 admits 2.45 learned_us 514.49
+st_q_C16_r1_base             39.32 tok/s  25.43 ms n=20 speed vs base 1.000 misses 155.58 admits 15.31 learned_us 0.0
+st_q_C16_r1_dk               42.23 tok/s  23.68 ms n=20 speed vs base 1.074 misses 158.37 admits 6.50 learned_us 0.0
+st_q_C16_r1_lrn              36.50 tok/s  27.40 ms n=20 speed vs base 0.928 misses 156.95 admits 5.61 learned_us 1151.36
+st_q_C32_r1_base             58.23 tok/s  17.17 ms n=20 speed vs base 1.000 misses 81.58 admits 16.28 learned_us 0.0
+st_q_C32_r1_dk               59.03 tok/s  16.94 ms n=20 speed vs base 1.014 misses 83.29 admits 9.54 learned_us 0.0
+st_q_C32_r1_lrn              49.11 tok/s  20.36 ms n=20 speed vs base 0.843 misses 79.34 admits 10.89 learned_us 995.1
+++ cat /w/results/106c_onlineadmit@vast/oneline.txt
++ ONE='106 g_C14_r1_base 57.5 g_C14_r1_dk 58.3 g_C14_r1_fetchplan 48.0 g_C14_r1_lrn 58.4 g_C32_r1_base 81.3 g_C32_r1_dk 92.7 g_C32_r1_lrn 88.1 q_C16_r1_base 39.3 q_C16_r1_dk 42.2 q_C16_r1_lrn 36.5 q_C32_r1_base 58.2 q_C32_r1_dk 59.0 q_C32_r1_lrn 49.1'
++ python3 /w/jobs/ec2/manifest.py /w/results/106c_onlineadmit@vast 106_onlineadmit@vast 1791337497 '106 g_C14_r1_base 57.5 g_C14_r1_dk 58.3 g_C14_r1_fetchplan 48.0 g_C14_r1_lrn 58.4 g_C32_r1_base 81.3 g_C32_r1_dk 92.7 g_C32_r1_lrn 88.1 q_C16_r1_base 39.3 q_C16_r1_dk 42.2 q_C16_r1_lrn 36.5 q_C32_r1_base 58.2 q_C32_r1_dk 59.0 q_C32_r1_lrn 49.1' law_gptoss=0,0,0,0,0 law_qwen3=0,0,0,0,0,0,0,0,0 device_read_gbs=1692 memory_clock_max_mhz=14001
+manifest: 122 files, 7673 s; 106 g_C14_r1_base 57.5 g_C14_r1_dk 58.3 g_C14_r1_fetchplan 48.0 g_C14_r1_lrn 58.4 g_C32_r1_base 81.3 g_C32_r1_dk 92.7 g_C32_r1_lrn 88.1 q_C16_r1_base 39.3 q_C16_r1_dk 42.2 q_C16_r1_lrn 36.5 q_C32_r1_base 58.2 q_C32_r1_dk 59.0 q_C32_r1_lrn 49.1
++ cat /w/results/106c_onlineadmit@vast/skipped.txt
++ echo 'SUMMARY: 106 g_C14_r1_base 57.5 g_C14_r1_dk 58.3 g_C14_r1_fetchplan 48.0 g_C14_r1_lrn 58.4 g_C32_r1_base 81.3 g_C32_r1_dk 92.7 g_C32_r1_lrn 88.1 q_C16_r1_base 39.3 q_C16_r1_dk 42.2 q_C16_r1_lrn 36.5 q_C32_r1_base 58.2 q_C32_r1_dk 59.0 q_C32_r1_lrn 49.1'
+SUMMARY: 106 g_C14_r1_base 57.5 g_C14_r1_dk 58.3 g_C14_r1_fetchplan 48.0 g_C14_r1_lrn 58.4 g_C32_r1_base 81.3 g_C32_r1_dk 92.7 g_C32_r1_lrn 88.1 q_C16_r1_base 39.3 q_C16_r1_dk 42.2 q_C16_r1_lrn 36.5 q_C32_r1_base 58.2 q_C32_r1_dk 59.0 q_C32_r1_lrn 49.1

@@ -48,6 +48,10 @@
 # remaining credit; host f is the cheapest verified offer not in the ledger with download >= 1000 Mb/s and network
 # at most $0.003/GB: 54055665 (Threadripper PRO 3000, 16 cores), and, as it could not be rented (no_such_ask), the
 # next by that rule, 53202662 (CPU not listed, PCIe 5). Every host that started is reported.
+# Amended again, before host g started: 107f failed V0 (50 GB in use) and 107b and 107d passed every check, so two
+# valid hosts. Host g is the cheapest verified offer not in the ledger, not on a machine already rented in this
+# job (52451718 sits beside 107c's EPYC 9754 offer, 54581350 is 107d's), with download >= 900 Mb/s and network at
+# most $0.003/GB: 52395190 (Threadripper PRO 5000). This is the last host; the credit allows no other.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

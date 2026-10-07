@@ -74,10 +74,11 @@ def losses(d):
 
 
 DAG = "$^{\\dagger}$"
-INVALID = {"106c": "wrong outputs", "106d": "rounds 39% apart", "107c": "rounds 3.5% apart", "107e": "rounds 6.0% apart"}
+INVALID = {"106c": "wrong outputs", "106d": "rounds 39% apart", "107c": "rounds 3.5% apart", "107e": "rounds 6.0% apart",
+           "108b": "rounds 7.0% apart"}
 
 
-def machine_classes():
+def machine_classes(jobs=r"(09[3-9]|10[0-7])"):
     """every launch of jobs 093-107 that ran the deployed cache at gpt-oss 11% (first round): class (server = more than
     one NUMA node or more than 32 usable physical cores), implied read rate over B_host, the overlap form's error"""
     ra = json.load(open(P("prereg", "reanalysis.json")))
@@ -85,7 +86,7 @@ def machine_classes():
     out = []
     for d in sorted(glob.glob(f"{RES}/*@vast")):
         j = os.path.basename(d)
-        if not re.match(r"(09[3-9]|10[0-7])", j):
+        if not re.match(jobs, j):
             continue
         st = [f for f in (f"{d}/st_g_C14_base.json", f"{d}/st_g_C14_r1_base.json") if os.path.exists(f)]
         if not st or not os.path.exists(f"{d}/concur.txt"):
@@ -101,6 +102,8 @@ def machine_classes():
         if os.path.exists(f"{d}/g_prof.json"):
             gp = json.load(open(f"{d}/g_prof.json"))
             G = (gp.get("G14") or gp.get("C14") or {}).get("G_prof_ms", G0)
+            if not G or G < 1.0:   # a profile that captured no decode kernels
+                G = G0
         B = hi["b_host"]
         t = law(G, Mi, A, B, S["g"])
         eff = (Mi + A * (1 - G / T)) * S["g"] / ((T - G) * 1e-3) / 1e9 / B

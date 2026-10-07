@@ -84,7 +84,10 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                  "107": "Valid hosts b (Ryzen 9 5900XT) and d (a dual-socket AMD engineering sample), both never rented before. Hosts c "
                         "(EPYC 9754) and e (EPYC 7663) failed the registered 2\\% check between rounds and are not scored; a, f and g "
                         "stopped at the gate (host memory in use). Cells gpt-oss 11\\% (g11) and 25\\% (g25), two rounds each, Qwen3 "
-                        "12.5\\% (q12) and 25\\% (q25), one round each."}[job]
+                        "12.5\\% (q12) and 25\\% (q25), one round each.",
+                 "108": "Valid hosts a (EPYC 7543; G not profiled, the median of earlier profiles used), d (Ryzen 9 9950X3D) and f "
+                        "(Ryzen 9 5950X). Host b (EPYC 7K62) failed the round check; c and e stopped at the gate. Cells gpt-oss "
+                        "11\\% (g11) and 25\\% (g25), two rounds each."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -155,6 +158,10 @@ def main():
     if os.path.exists(p107):
         write_099(json.load(open(p107))["clauses"], P("paper", "tab_scorecard_107.tex"), job="107",
                   title="the time relation on machines never rented before", script="job107.py", label="scorecard107")
+    p108 = P("prereg", "scorecard_108.json")
+    if os.path.exists(p108):
+        write_099(json.load(open(p108))["clauses"], P("paper", "tab_scorecard_108.tex"), job="108",
+                  title="the time relation on new machines of the class it was found on", script="job108.py", label="scorecard108")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

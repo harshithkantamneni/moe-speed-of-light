@@ -2,7 +2,7 @@
 (eq. sum, with its overlap term) into the GPU's own compute (the median profile at that budget), MIN's host reads at the machine's best rate
 (the bound of eq. limit at a host-bound budget) and the reads it makes beyond MIN's; the dot is the measured time.
 One launch per machine (the first, by GPU UUID), from jobs 093-104 (prereg/reanalysis_hosts.json) and the new machines
-of jobs 105-107 (servers, more than one NUMA node or more than 32 usable cores, are drawn but left out of the shares).
+of jobs 105-108 (server processors, EPYC and Xeon, are drawn but left out of the shares).
 Writes paper/figs/decomp.pdf and paper/wsg_decomp.tex.
 
     python scripts/fig_decomp.py
@@ -23,7 +23,7 @@ RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 S = 13253760
 CELL = {14: "gpt-oss 11%", 32: "gpt-oss 25%"}
-UNSTABLE = ("106c", "106d", "107c", "107e")   # wrong outputs, or rounds further apart than 2%
+UNSTABLE = ("106c", "106d", "107c", "107e", "108b")   # wrong outputs, or rounds further apart than 2%
 
 
 def uuid_of(d):
@@ -74,7 +74,7 @@ def machines(C):
     G = ra["sum_law"][str(C)]["G"]
     seen, rows = set(), []
     hosts = json.load(open(P("prereg", "reanalysis_hosts.json")))["launches"]
-    dirs = [f"{RES}/{h['dir']}" for h in hosts] + sorted(glob.glob(f"{RES}/105?_sumlaw@vast")) + sorted(glob.glob(f"{RES}/106?_onlineadmit@vast")) + sorted(glob.glob(f"{RES}/107?_newhosts@vast"))
+    dirs = [f"{RES}/{h['dir']}" for h in hosts] + sorted(glob.glob(f"{RES}/105?_sumlaw@vast")) + sorted(glob.glob(f"{RES}/106?_onlineadmit@vast")) + sorted(glob.glob(f"{RES}/107?_newhosts@vast")) + sorted(glob.glob(f"{RES}/108?_smallhosts@vast"))
     for d in dirs:
         if not os.path.exists(f"{d}/concur.txt") or not os.path.exists(f"{d}/nvidia-smi-q.txt"):
             continue
@@ -96,7 +96,7 @@ def machines(C):
         import re
         cores = int(re.search(r"usable physical cores (\d+)", open(f"{d}/cores.txt").read()).group(1))
         m = re.search(r"available: (\d+) nodes", open(f"{d}/numa.txt").read()) if os.path.exists(f"{d}/numa.txt") else None
-        server = (int(m.group(1)) if m else 1) > 1 or cores > 32
+        server = bool(re.search(r"EPYC|Xeon|Eng Sample", cpu_of(d)))   # server processors (after jobs 107-108)
         rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=G, min_ms=lim, law=tl, excess_ms=tl - G - lim,
                          server=server))
     return rows
@@ -131,7 +131,7 @@ def main():
         sv = [r for r in rows if r["server"]]
         if sv:
             M[f"dcServ{nm}N"] = str(len(sv))
-            M[f"dcServShort{nm}"] = ", ".join(f"{100 * (r['T'] - r['law']) / r['T']:.0f}" for r in sv)
+            M[f"dcServShort{nm}"] = "; ".join(f"{r['cpu']} {max(0, round(100 * (r['T'] - r['law']) / r['T']))}\\%" for r in sorted(sv, key=lambda r: r["T"] - r["law"]))
         g, mn, ex, rows = g[dk], mn[dk], ex[dk], [r for r, k in zip(rows, dk) if k]
         M[f"dcDeskShort{nm}Max"] = f"{100 * max(max(0.0, r['T'] - r['law']) / r['T'] for r in rows):.0f}"
         tot = g + mn + ex

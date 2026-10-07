@@ -39,6 +39,7 @@
 \input{wsg_job105}
 \input{wsg_job106}
 \input{wsg_job107}
+\input{wsg_job108}
 \input{wsg_decomp}
 \input{wsg_pending}
 
@@ -58,14 +59,13 @@
 A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
 token at a time then waits on host reads. We ask how fast such decoding could be on a given machine, where the rest of
 the time goes, and what knowing the future routing is worth. Two lower bounds follow from the fewest host reads any
-cache of $C$ experts per layer can make (Belady's MIN with bypass) and the machine's measured read rates. Our llama.cpp
-expert cache's time per token is close to the GPU's profiled compute plus its host reads at the machine's best probed
-rate, with no constant fitted to the times: within 6\% on \jlFoundWithin{} of \jlFoundN{} launches on the
-\jlFoundMachines{} RTX 5090 machines where we found the relation. Registered in advance three times, it never passed as
-registered: it failed at one budget, then held on every cell of \jiStable{} machines rented again but failed on two new
-servers, and on machines never rented before it missed by up to \jlNewDeskErrMax\% on a desktop and by
-\jlNewServErrMin--\jlNewServErrMax\% on a dual-socket server that read far below its probed rate. Where it fits, the
-gap to the bound is serialisation plus the reads MIN would not make. Oracles inside the engine show that foresight pays when spent as MIN spends it, and that among MIN's
+cache of $C$ experts per layer can make (Belady's MIN with bypass) and the machine's measured read rates. On machines
+with consumer processors, our llama.cpp expert cache's time per token is close to the GPU's profiled compute plus its
+host reads at the machine's best probed rate, with no constant fitted to the times: within 8\% on \jmConsWithinEight{} of
+\jmConsN{} launches, including every cell of the \jmNewConsWord{} such machines first rented for a registered test. On
+server processors the engine reads at \jmServEffMin--\jmServEffMax{} of that rate, and the relation fails. Registered in
+advance four times, it never passed as registered. Where it fits, the gap to the bound is serialisation plus the reads
+MIN would not make. Oracles inside the engine show that foresight pays when spent as MIN spends it, and that among MIN's
 equally good schedules the one with the fewest admissions also wins where the PCIe link is slow. Carried online, that lesson, admit less, gains up to
 \jlDkAllGainMax\% on gpt-oss (median \jlDkAllMed$\times$ on \jlDkAllMachines{} machines; it lost \jlDkAllLossPct\% at \jlDkFailWord{} of \jlDkAllN{} cells).
 Half of MIN's saving over admitting every miss needs the routing of about \dcMed$\,C$ distinct experts per layer ahead,
@@ -94,15 +94,13 @@ microbenchmark that replays MIN's reads reaches \jdLayerMin--\jdLayerMax\% of it
 
 \textbf{Where does the time go?} (\cref{sec:gap}, \cref{fig:decomp}) Our cache's time per token is the GPU's profiled
 compute plus its counted host reads at the machine's best rate, with nothing fitted, less the background copies that
-fall under the GPU's compute. Found on \slOlN{} launches of gpt-oss and registered before new runs of \jiStable{} of those
-machines on both models at two budgets, the relation came within 6\% on all \jiCells{} model-budget cells (median error
-\jiErrMed\%). Registered again before runs on machines never rented before, it failed: on the \jlValidWord{} of
-\jlLaunched{} that passed every validity check, it under-predicted by up to \jlNewDeskErrMax\% on a
-\jlNewDeskCores-core desktop and by \jlNewServErrMin--\jlNewServErrMax\% on a dual-socket server. On the machines it
-was found on, all with one NUMA node and at most \jlClassCores{} cores, the cache reads at \jlFoundEffMin--\jlFoundEffMax{} of
-the probe's best rate; on the one server that passed every check, at \jlServEffValid. On the former, the gap to the
-bound has two parts: the GPU's compute, which runs in series with the reads, and the reads beyond MIN's; on that server
-there is a third, reading below the machine's rate.
+fall under the GPU's compute. We found this relation on \slOlN{} launches of gpt-oss and registered it before four
+later jobs (\cref{tab:regtests}). It held on every cell of \jiStable{} machines rented again, at two models, and failed
+on most machines new to a test: by up to \jlNewServErrMax\% on servers, whose engine reads far below the probe's best
+rate, while on the \jmNewConsWord{} new machines with consumer processors it was within 8\% at every gpt-oss cell but
+under-predicted each (by \jmNewConsErrMax{} to \jmNewConsErrMin\%). On consumer processors, then, the gap to the bound
+has two parts: the GPU's compute, which runs in series with the reads, and the reads beyond MIN's; on servers there is
+a third, reading below the machine's rate.
 
 \textbf{What is knowing the future worth?} (\cref{sec:foresight,sec:horizon}) Oracles of the future routing built into the
 engine show that foresight pays when it is spent as MIN spends it, caching MIN's set and reading each expert once:
@@ -117,7 +115,7 @@ ahead, which no online policy, learned admission order, speculative batch or for
 \item \textbf{Two bounds on time per token} for exact-routing systems with $C$ slots per layer, from MIN's host reads
 and the machine's probed rates, with evidence that their read time is nearly reachable (\cref{sec:limit}).
 \item \textbf{A relation for where the time goes}, with no constant fitted to the times, found on \slOlN{} launches and
-registered three times: it held on machines rented again, at both models, and failed on machines new to the tests
+registered four times: it held on machines rented again, at both models, and failed whenever a test included machines new to it
 (\cref{sec:gap}, \cref{tab:regtests}).
 \item \textbf{An in-engine study of what foresight is worth} and how it must be spent, on \slAllMachines{} machines,
 including MIN's fewest-admission schedule and an online rule that carries its lesson (\cref{sec:foresight}).
@@ -153,8 +151,7 @@ routing of the rest of the problem from a trace recorded on the same machine; th
 (\cref{tab:configs}). A budget is \emph{host-bound} when host reads, not the GPU, bound the time; the two smallest
 budgets of each model are. Each host's probe measures how fast it reads its memory from CPU threads ($B_c$), over PCIe
 ($B_p$), and the highest rate by any method ($B_{\mathrm{host}}$); $B_p/B_c$ is its \emph{link-to-CPU ratio}. We call
-a machine with one NUMA node and at most \jlClassCores{} usable cores \emph{desktop-class}, and the rest \emph{servers}; the
-line was drawn after job 107.
+Ryzen, Core and Threadripper parts \emph{consumer} processors and EPYC and Xeon parts \emph{server} processors.
 
 \input{tab_configs}
 
@@ -265,33 +262,44 @@ too), and on the server every form misses by \jlNewServFormMin--\jlNewServFormMa
 \jlServBhost\,GB/s, is one reading of the CPU and the link together; against its best CPU-only reading
 (\jlServCpuBest\,GB/s, \jlServCpuBestThreads{} threads) the relation still misses by \jlServAltErr\%.
 
-\paragraph{What the failures share.} Found after job 107 and not tested in advance: the error follows the class of
-machine. At gpt-oss 11\%, the read rate the deployed cache implies, $(M + (1-G/T)A)\,S/(T-G)$, is
-\jlFoundEffMin--\jlFoundEffMax{} of the probe's best rate on the \jlFoundN{} launches of jobs 093--106 on desktop-class
-machines, where the relation was found (within 6\% on \jlFoundWithin{} of them), and \jlServEffMin--\jlServEffMax{} on all
-\jlServN{} launches on servers; \jlServInvalidWord{} of those failed a validity check, including both of job 106's failures,
-and the one that passed read at \jlServEffValid{} (\cref{fig:decomp}). On that server the probe's own CPU threads read
-at \jlServCpuMany\,GB/s with \jlServCpuManyThreads{} threads, about the engine's \jlServHelpers{} helpers, against
-\jlServCpuBest{} with \jlServCpuBestThreads; on an EPYC 9655 rented earlier, per-layer timers showed a latency floor per
-layer that no desktop has (\cref{app:law}). We have not established which of these, or memory placed on one NUMA
-node, is the cause. The relation was found on desktop-class machines and fits most of their launches; the one new
-desktop it was registered on missed at \jlFailDeskWord{} of its \jlNewDeskCells{} cells.
+\paragraph{Registered on a class drawn after the fact, it failed again.} After job 107 we drew a line around the
+machines the relation was found on, one NUMA node and at most \jlClassCores{} usable cores, and job 108 registered the
+relation once more on machines never rented before, with that class checked before any download, gpt-oss only, and
+the band widened to the spread of the launches it was found on: within 8\% at every cell, at most one cell beyond 6\%
+and a median error of at most 4\% (\cref{tab:job108}). Of \jmLaunched{} machines rented, \jmGated{} stopped at the gate
+(one GPU rented before, one with \jmUsedGateMin\,GB of memory in use) and \jmInvalid{} ran its rounds
+\jmInvSpreadMin\% apart; \jmValidWord{} were valid. On a Ryzen 9 9950X3D and a Ryzen 9 5950X the relation was within 8\%
+at all four cells (off by \jmErrdLow, \jmErrdMid, \jmErrfLow{} and \jmErrfMid\%). On an EPYC 7543 with \jmCoresa{} usable
+cores on one NUMA node it under-predicted by \jmErraLow{} and \jmErraMid\%: the engine read at \jmEffaLow{} of the
+probe's best rate. Its Nsight trace captured no decode kernels under an older driver, so its $G$ is the median of
+\jmFallbackHosts{} earlier profiles, a deviation from the registration; any $G$ in their range leaves it
+\jmFallbackErrMin--\jmFallbackErrMax\% off. The test failed, and the line we drew did not hold.
 
-\paragraph{On desktops it reads at about the machine's best rate.} With $G$ removed, the deployed cache's time on the
-machines of jobs 093--104, all desktop-class, scales with the host's read rate with an elasticity of \slElastLow{} (95\% interval over machines \slElastLowLo{} to \slElastLowHi), as
+\paragraph{What does separate them, after the fact.} The processor. On the \jmConsN{} valid launches on \jmConsMachines{}
+machines with consumer processors, the read rate the deployed cache implies, $(M + (1-G/T)A)\,S/(T-G)$, is
+\jmConsEffMin--\jmConsEffMax{} of the probe's best rate at gpt-oss 11\%, and the relation is within 8\% on
+\jmConsWithinEight{} of them and within 6\% on \jmConsWithinSix. On server processors, \jmServInvalid{} of \jmServAll{}
+launches failed a validity check, and the \jmServWord{} valid ones read at \jmServList{} of it. On the engineering sample
+the probe's own threads read at \jlServCpuMany\,GB/s with \jlServCpuManyThreads{} threads, about the engine's
+\jlServHelpers{} helpers, against \jlServCpuBest{} with \jlServCpuBestThreads; on an EPYC 9655 rented earlier, per-layer
+timers showed a latency floor per layer that no desktop has (\cref{app:law}). We have not established the cause. The
+relation describes our engine on consumer processors; it is not a property of every machine.
+
+\paragraph{On consumer processors it reads at about the machine's best rate.} With $G$ removed, the deployed cache's time on the
+machines of jobs 093--104, all with consumer processors, scales with the host's read rate with an elasticity of \slElastLow{} (95\% interval over machines \slElastLowLo{} to \slElastLowHi), as
 reads at $B_{\mathrm{host}}$ would: it executes the reads it decides to make at the machine's best rate.
 
-\paragraph{So on desktops the gap to the bound has two parts.} \Cref{fig:decomp} splits each machine's time by
-\cref{eq:sum}: on the desktop-class machines, the GPU's compute (\dcShareGLowMin--\dcShareGLowMax\% of the time at gpt-oss 11\%), MIN's reads, which are the bound
+\paragraph{So on consumer processors the gap to the bound has two parts.} \Cref{fig:decomp} splits each machine's time by
+\cref{eq:sum}: on the machines with consumer processors, the GPU's compute (\dcShareGLowMin--\dcShareGLowMax\% of the time at gpt-oss 11\%), MIN's reads, which are the bound
 (\dcShareMinLowMin--\dcShareMinLowMax\%), and the reads beyond MIN's (\dcShareExLowMin--\dcShareExLowMax\%). The
 first is serialisation: the GPU's compute in series with the reads, \dcGapGLowMin--\dcGapGLowMax\% of the gap to
 \cref{eq:limit}. The second is the reads MIN would not make. Foresight can attack both: fewer reads need MIN's choices,
 and overlap needs reads issued ahead (with MIN's copies made a few steps ahead, the implied $G$ falls to
 \slGPacedLow\,ms). Copies in the step do the opposite: they add latency on the critical path, and the implied $G$ rises to
 \slGFetchLow\,ms for MIN's set and \slGAaLow\,ms when admitting every miss, so \cref{eq:sum} describes the deployed
-path, not states that copy in the step. On the desktop-class machines the measured time exceeds \cref{eq:sum} by at
-most \dcDeskShortLowMax\% of it at 11\%; on the dual-socket server, reading below the machine's rate is a third part,
-\dcServShortLow\% of the time at 11\% and \dcServShortMid\% at 25\%.
+path, not states that copy in the step. On consumer processors the measured time exceeds \cref{eq:sum} by at most
+\dcDeskShortLowMax\% of it at 11\%; on the valid server processors, reading below the machine's rate is a third part of the
+time at 11\% (\dcServShortLow).
 
 \begin{figure*}[t]\centering
 \includegraphics[width=\textwidth]{figs/decomp.pdf}
@@ -299,7 +307,7 @@ most \dcDeskShortLowMax\% of it at 11\%; on the dual-socket server, reading belo
 budgets split by \cref{eq:sum} into the GPU's own compute (the median of the profiles at that budget), MIN's host
 reads at the machine's best rate (the bound of \cref{eq:limit}) and the reads the cache makes beyond MIN's; the dot is
 the measured time; hatched, the measured time beyond \cref{eq:sum}, reading below the machine's best rate. One launch
-per machine that ran stably: \dcMachinesLow{} desktop-class machines and \dcServLowN{} server (AMD ES). Nothing is
+per machine that ran stably: \dcMachinesLow{} with consumer processors and \dcServLowN{} with server processors (EPYC, AMD ES). Nothing is
 fitted: $G$ comes from profiles, the reads from the engine's counters and the rate from each machine's probe.}
 \label{fig:decomp}
 \end{figure*}
@@ -470,14 +478,14 @@ caches \citep{jain2016hawkeye,song2020lrb} and in an SSD-backed expert cache \ci
 
 \section{Limitations}\label{sec:limits}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{Hardware and sample.} Rented consumer cards, nearly all in desktop hosts; clocks could not be locked and
+\item \textbf{Hardware and sample.} Rented consumer cards, mostly in desktop hosts; clocks could not be locked and
 power limits differed. The panel has \pnHosts{} hosts, one launch each. Few hosts have a link slower than half their CPU
 rate: the greedy copy loses on \jkSlowMachines{} machines, so where the crossovers lie rests on few points. Rented
-machines are often shared or unsteady: of \jlLaunched{} machines rented for job 107, \jlGated{} had other tenants' memory
-in use and \jlInvalid{} ran rounds more than 2\% apart; of the two server machines new to job 106, one computed wrong
-outputs and the other varied by \jiUnstableVarMax\% between rounds. Of the \jlServN{} server launches, \jlServValidWord{}
+machines are often shared or unsteady: of the \jlLaunched{} and \jmLaunched{} machines rented for jobs 107 and 108,
+\jlGated{} and \jmGated{} stopped at the gate and \jlInvalid{} and \jmInvalid{} ran rounds more than 2\% apart; of the two server machines new to job 106, one computed wrong
+outputs and the other varied by \jiUnstableVarMax\% between rounds. Of the \jmServAll{} launches on server processors, \jmServWord{}
 passed every check. Within-host
-intervals resample problems; round-level intervals exist only for jobs 106 and 107.
+intervals resample problems; round-level intervals exist only for jobs 106 to 108.
 \item \textbf{Workload.} Batch-1 decode of two models on AIME prompts, also used while developing the system,
 teacher-forced on each model's own greedy text. Prompts and batches above one bypass the cache.
 \item \textbf{The bounds.} Exact routing and per-layer slots (pooling slots across layers lowers MIN's reads by
@@ -487,10 +495,10 @@ the probe's highest rate on \slOverN{} of \slOverCells{} launch-budgets (up to \
 datasheet rate that a card can exceed. The GPU term of \cref{eq:demand} is our engine's kernel time, not a property of
 the machine alone. The read time is nearly reachable in a microbenchmark that runs no compute.
 \item \textbf{The relation.} \Cref{eq:sum} describes the deployed path; states that copy in the step add latency it
-does not model. It assumes the engine reads at the machine's probed rate, which held approximately on the desktop-class
-machines it was found on and not on the one valid server. Its registered success is on new runs of machines rented
-before; registered on new machines it failed, and the desktop-class line, which separates its small misses from its
-large ones, was drawn after that test, not before it. The overlap
+does not model. It assumes the engine reads at the machine's probed rate, which held approximately on consumer processors
+and not on two of the three valid server processors. Its registered successes are on new runs of machines rented
+before; on machines new to a test it failed, and the split by processor that separates its small misses from its large
+ones was drawn after the tests, not before them. The overlap
 term assumes background copies spread evenly over the next step; we have
 not measured that directly, and it makes the fit at gpt-oss 11\% slightly worse. It was tested on two models only.
 \item \textbf{The oracles.} Oracles read a recorded trace. In the engine the fewest-admission schedule misses
@@ -501,11 +509,11 @@ cost. Degraded windows draw errors independently; a real forecaster's errors are
 \end{itemize}
 
 \section{Conclusion}
-With experts in host memory, batch-1 MoE decode on the desktop machines we measured is close to the GPU's compute plus
-host bytes. A cache that reads on demand pays them in series, apart from the background copies that fall under the GPU's compute. On the desktop-class machines it was found on, our
-cache executes its reads at close to the machine's best rate, and what separates it from the bound is that serialisation and the reads
-it makes beyond MIN's. A test registered in advance on machines never rented before failed: by up to
-\jlNewDeskErrMax\% on a new desktop, and by far more on a server, which read well below its best rate.
+With experts in host memory, batch-1 MoE decode on machines with consumer processors is close to the GPU's compute plus
+host bytes. A cache that reads on demand pays them in series, apart from the background copies that fall under the
+GPU's compute; on those machines our cache executes its reads at close to the machine's best rate, and what separates
+it from the bound is that serialisation and the reads it makes beyond MIN's. On server processors it reads well below
+that rate, and every registered test that included machines new to it failed.
 Knowing the future reduces both when it is spent as MIN spends it, and which of MIN's schedules is followed matters: the
 fewest-admission one gains on every machine that ran stably, while the greedy one loses where the link is slow, and
 there the copies belong in the background.

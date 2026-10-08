@@ -12,8 +12,8 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN greedy, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "MIN, prefetched", "#2e8b57", "s"),
-          ("bypass", "MIN greedy, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "single read", "#7a7974", "v"),
+SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN greedy, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "read-ahead oracle", "#2e8b57", "s"),
+          ("bypass", "MIN greedy, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "deployed, 1 read", "#7a7974", "v"),
           ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "deployed + layer-ahead copy", "#a4243b", "P")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
 
@@ -115,6 +115,17 @@ def main():
                     b, a = np.polyfit(np.log(xs), ys, 1)
                     xx = np.linspace(min(xs), max(xs), 50)
                     ax.plot(xx, a + b * np.log(xx), "-", color=col, lw=0.8, alpha=0.6)
+        # the RTX 4090 machines of the registered second-card test (job 111): hollow markers, not in the fits or macros
+        pj = P("prereg", "job111.json")
+        if os.path.exists(pj):
+            C = "14" if lab == "gpt-oss 11%" else "32"
+            for h in json.load(open(pj))["hosts"]:
+                c = h["cells"].get(C)
+                if not h.get("valid") or not c or not c.get("rounds"):
+                    continue
+                for k, name, col, mk in SERIES:
+                    if k in PLOTTED and k in c["ratio"]:
+                        ax.plot([h["ratio"]], [c["ratio"][k]], mk, color=col, mfc="none", ms=6, mew=1.0, ls="none", zorder=6)
         ax.set_xscale("log")
         ax.set_xlim(0.22, 1.25)
         ax.set_xticks([0.25, 0.35, 0.5, 0.7, 1.0])
@@ -124,7 +135,12 @@ def main():
         ax.set_xlabel("link / CPU read rate (the host's probe)", fontsize=8)
         ax.tick_params(labelsize=8)
     axs[0].set_ylabel("speed relative to deployed", fontsize=8.5)
-    axs[1].legend(fontsize=7, frameon=False, loc="center left", bbox_to_anchor=(1.01, 0.5))
+    from matplotlib.lines import Line2D
+    hh, ll = axs[1].get_legend_handles_labels()
+    if os.path.exists(P("prereg", "job111.json")):
+        hh.append(Line2D([0], [0], marker="o", color="#52514e", mfc="none", ls="none", ms=6, mew=1.0))
+        ll.append("hollow: RTX 4090 (registered test)")
+    axs[1].legend(hh, ll, fontsize=7, frameon=False, loc="center left", bbox_to_anchor=(1.01, 0.5))
     fig.tight_layout(pad=0.3)
     fig.savefig(P("paper", "figs", "hostdep.pdf"))
     fig.savefig(P("paper", "figs", "hostdep.png"), dpi=160)

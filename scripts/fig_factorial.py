@@ -27,9 +27,9 @@ HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b",
          ("097a", "O4, job 097", "#eb6834", "D"), ("097b", "O6, job 097", "#4a3aa7", "v")]
 ONLY_LEARNED = {"097a", "097b"}   # job 097's hosts are drawn on the learned row only (their other states repeat job 096's)
 # the learned order and the prefetched Belady are left to the appendices, to keep the figure readable
-ROWS = [("foa", "single read"), ("aa", "admit every miss"), ("bypass", "MIN, 2 reads"),
+ROWS = [("foa", "deployed, 1 read"), ("aa", "admit every miss"), ("bypass", "MIN, 2 reads"),
         ("hitopt", "no bypass, 2 reads"), ("nb2", "no bypass, 1 read"), ("fetch", "MIN, 1 read"),
-        ("both3p", "MIN, prefetched")]
+        ("both3p", "read-ahead oracle")]
 PANEL_KEYS = {"foa": "foa/base", "aa": "aa/base", "bypass": "bypass/base", "fetch": "fetch/base", "both3p": "both3p/base"}
 CELLS = ["gpt-oss 11%", "gpt-oss 25%", "gpt-oss 40%", "Qwen3 12.5%", "Qwen3 25%", "Qwen3 43.75%"]
 HOSTBOUND = {"gpt-oss 11%", "gpt-oss 25%", "Qwen3 12.5%", "Qwen3 25%"}

@@ -69,13 +69,13 @@ def main():
     with open(P("paper", "tab_learned.tex"), "w") as f:
         f.write("\\begin{table}[t]\\centering\\footnotesize\n")
         f.write("\\caption{A learned admission order, offline: host reads per token on the AIME-25 routing the engine runs, of the "
-                "decayed frequency with each admission read once (single read; within "
-                f"{M['lrnSimVsFoaMax']}\\% of the engine's fetch-on-admit reads on hosts O4 and O5), the learned order with single-read admission (trained on the model's "
+                "decayed frequency with each admission read once (deployed, 1 read; within "
+                f"{M['lrnSimVsFoaMax']}\\% of the engine's fetch-on-admit reads on hosts O4 and O5), the learned order with each admission read once (trained on the model's "
                 "mixed-domain trace; 8-bit cross-layer table, as in the engine), Belady within one and four tokens of perfect "
-                "foresight, and MIN with bypass in its no-evict form (\\cref{tab:limit}). \\emph{closed}: the share of the single-read policy's excess over MIN that the "
+                "foresight, and MIN with bypass in its no-evict form (\\cref{tab:limit}). \\emph{closed}: the share of the deployed, 1-read policy's excess over MIN that the "
                 "learned order removes. $^\\dagger$host-bound.}\\label{tab:learned}\n")
         f.write("\\setlength\\tabcolsep{3.5pt}\n\\begin{tabular}{@{}lrrrrrr@{}}\\toprule\n")
-        f.write("cell & single read & learned & $W{=}1$ & $W{=}4$ & MIN & closed \\\\\\midrule\n")
+        f.write("cell & deployed, 1 read & learned & $W{=}1$ & $W{=}4$ & MIN & closed \\\\\\midrule\n")
         for m, C, tag, lab, h in CELLS:
             r = q[(m, C)]
             dag = "$^\\dagger$" if h else ""

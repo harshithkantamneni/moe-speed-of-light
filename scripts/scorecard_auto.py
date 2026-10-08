@@ -87,7 +87,13 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "12.5\\% (q12) and 25\\% (q25), one round each.",
                  "108": "Valid hosts a (EPYC 7543; G not profiled, the median of the profiles of jobs 069c and 105 used), d (Ryzen 9 9950X3D) and f "
                         "(Ryzen 9 5950X). Host b (EPYC 7K62) failed the round check; c and e stopped at the gate. Cells gpt-oss "
-                        "11\\% (g11) and 25\\% (g25), two rounds each."}[job]
+                        "11\\% (g11) and 25\\% (g25), two rounds each.",
+                 "109": "Hosts a, c, d, e, f (new desktop-class machines; offer b was no longer listed); cells gpt-oss 11\\% (g11, "
+                        "two rounds) and 25\\% (g25, one). Intervals are over problems, paired across configurations and rounds.",
+                 "110": "RTX 4090 hosts a--e; a stopped at the ratio gate, the others at the output check after one round (the "
+                        "RTX 5090 reference loss): no host is valid, as registered.",
+                 "111": "The RTX 4090 machines of job 110 relaunched with the card's reference loss; job 110's clauses scored "
+                        "on its valid hosts. Intervals are over problems."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -162,6 +168,12 @@ def main():
     if os.path.exists(p108):
         write_099(json.load(open(p108))["clauses"], P("paper", "tab_scorecard_108.tex"), job="108",
                   title="the time relation on new machines of the class it was found on", script="job108.py", label="scorecard108")
+    for jb, title in (("109", "the 2x2 and online policies on new machines"), ("110", "the RTX 5090 trend on RTX 4090s, as registered"),
+                      ("111", "job 110's predictions on the relaunched RTX 4090s")):
+        pj = P("prereg", f"scorecard_{jb}.json")
+        if os.path.exists(pj):
+            write_099(json.load(open(pj))["clauses"], P("paper", f"tab_scorecard_{jb}.tex"), job=jb, title=title,
+                      script="job109.py", label=f"scorecard{jb}")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

@@ -33,6 +33,7 @@ FAST = 0.5          # link-to-CPU ratio at or above which a machine counts as fa
 STATES = ("base", "bypass", "foa", "fetch", "both3p")
 PARTS = ("setalone", "oncealone", "together", "ahead", "serial", "rest", "left", "extra", "resid")
 RES = os.environ.get("MOSL_RESULTS", "/home/claude/gpu-branch/results")
+TLO = [2.9402065]   # set in main() to the smallest profiled T_GPU
 S = 13253760
 
 
@@ -81,6 +82,36 @@ def rows():
     return out, (tmed, tlo, thi)
 
 
+def rows_new(tlo):
+    """job 109's valid machines (new desktop-class machines, link-to-CPU ratio >= 0.5 fixed before launch), same parts"""
+    p = P("prereg", "job109.json")
+    if not os.path.exists(p):
+        return []
+    J = json.load(open(p))
+    rstar = {14: 38.315364583333334, 32: 15.340364583333333}
+    out = []
+    for h in J["hosts"]:
+        if not h["valid"]:
+            continue
+        for C, c in h["cells"].items():
+            C = int(C)
+            t = c.get("t", {})
+            if not all(k in t for k in STATES) or "eq1" not in c:
+                continue
+            eq1 = c["eq1"]; gap = t["base"] - eq1
+            parts = dict(setalone=t["base"] - t["bypass"], oncealone=t["base"] - t["foa"], together=t["base"] - t["fetch"],
+                         ahead=t["fetch"] - t["both3p"], serial=tlo, rest=t["both3p"] - eq1 - tlo, left=t["both3p"] - eq1)
+            parts["extra"] = (c["reads"]["both3p"] - rstar[C]) * S / (float(h["B_host"]) * 1e9) * 1e3
+            parts["resid"] = parts["left"] - tlo - parts["extra"]
+            share = {k: v / gap for k, v in parts.items()}
+            share["interaction"] = share["together"] - share["setalone"] - share["oncealone"]
+            share["tgpu"] = tlo / gap
+            out.append(dict(dir=h["dir"], C=C, ratio=float(h["ratio"]), cpu=h.get("cpu", ""), t=t, eq1=eq1, gap=gap,
+                            share=share, reads_both=c["reads"]["both3p"] / rstar[C],
+                            closed=(t["base"] - min(t["bypass"], t["fetch"], t["both3p"])) / gap))
+    return out
+
+
 def boot(v, stat=np.mean, nb=10000):
     """the statistic over machines and its 95% percentile-bootstrap interval, resampling machines"""
     v = np.array(v, float)
@@ -93,14 +124,14 @@ def pct(x):
     return str(v).replace("-", "$-$")
 
 
-def figure(R, path):
+def figure(R, path, NEW=()):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
     labels = ["deployed", "one change\nalone", "MIN's set,\nread once", "and read\nahead", "Eq. (2)", "Eq. (1)"]
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5), sharey=True)
-    blue, dark, orange = "#2a78d6", "#1b3f6b", "#eb6834"
+    blue, dark, orange, green = "#2a78d6", "#1b3f6b", "#eb6834", "#2e9e5b"
     for ax, (C, lab) in zip(axes, ((14, "gpt-oss 11%"), (32, "gpt-oss 25%"))):
         sel = [r for r in R if r["C"] == C]
         A, B = [], []
@@ -113,6 +144,11 @@ def figure(R, path):
             ax.plot([1.12], [t["foa"] / t["base"]], marker="s", ms=2.6, mfc="none", mec=col, mew=0.7, lw=0, zorder=3)
             if fast:
                 A.append(ya); B.append(t["foa"] / t["base"])
+        for r in (x for x in NEW if x["C"] == C):
+            t = r["t"]
+            yn = [1.0, t["bypass"] / t["base"], t["fetch"] / t["base"], t["both3p"] / t["base"], (r["eq1"] + TLO[0]) / t["base"], r["eq1"] / t["base"]]
+            ax.plot([0, 0.88, 2, 3, 4, 5], yn, color=green, lw=1.1, alpha=0.95, zorder=4)
+            ax.plot([1.12], [t["foa"] / t["base"]], marker="s", ms=2.6, mfc="none", mec=green, mew=0.8, lw=0, zorder=4)
         med = np.median(np.array(A), axis=0); mb = float(np.median(B))
         ax.plot([0, 0.88, 2, 3, 4, 5], med, color=dark, lw=2.0, marker="o", ms=3.4, zorder=5)
         ax.plot([0, 1.12, 2], [1.0, mb, med[2]], color=dark, lw=1.6, ls=(0, (3, 1.5)), marker="s", ms=3.4, mfc="white", zorder=5)
@@ -129,41 +165,65 @@ def figure(R, path):
          Line2D([0], [0], color=dark, lw=1.6, ls=(0, (3, 1.5)), marker="s", ms=3.4, mfc="white", label="median: one read first (deployed set)"),
          Line2D([0], [0], color=blue, lw=0.8, label=f"each machine, link/CPU $\\geq$ {FAST} ({nf})"),
          Line2D([0], [0], color=orange, lw=0.8, label=f"link/CPU $<$ {FAST} ({ns})")]
-    fig.legend(handles=h, loc="upper center", ncol=4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.5, 1.03))
+    if NEW:
+        h.append(Line2D([0], [0], color=green, lw=1.1, label=f"new machines, registered ({len({r['dir'] for r in NEW})})"))
+    fig.legend(handles=h, loc="upper center", ncol=3 if NEW else 4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.5, 1.06 if NEW else 1.03))
     fig.tight_layout(rect=(0, 0, 1, 0.91))
     fig.savefig(path, bbox_inches="tight"); fig.savefig(path.replace(".pdf", ".png"), dpi=160, bbox_inches="tight")
 
 
-def table(M):
-    lab = [("setalone", "MIN's set alone, still read twice"),
-           ("oncealone", "One read alone, deployed set"),
-           ("together", "Both together: MIN's set read once"),
-           ("ahead", "Then reading ahead: copies issued a few steps early"),
-           ("left", "Left after all three"),
-           ("tgpu", "\\quad of it, the GPU's non-expert time ($T_{\\text{GPU}}$)"),
-           ("extra", "\\quad of it, the prefetching oracle's reads beyond MIN's"),
-           ("resid", "\\quad residual")]
+def table(M, has_new=False):
+    meas = [("setalone", "MIN's set alone, still read twice"),
+            ("oncealone", "One read alone, deployed set"),
+            ("together", "Both: MIN's set read once"),
+            ("ahead", "Then the read-ahead oracle"),
+            ("left", "Left after all three")]
+    attr = [("tgpu", "the GPU's non-expert time ($T_{\\text{GPU}}$)"),
+            ("extra", "the oracle's reads beyond MIN's, at $B_{\\mathrm{host}}$"),
+            ("resid", "residual")]
+    def cell(pre, k, nm):
+        K = k.capitalize()
+        if pre + K + nm not in M:
+            return "--"
+        return f"{M[pre + K + nm]} [{M[pre + K + nm + 'Lo']}, {M[pre + K + nm + 'Hi']}]"
     with open(P("paper", "tab_dm.tex"), "w") as f:
-        f.write("% generated by scripts/decomp_measured.py\n\\begin{table}[!t]\\centering\\footnotesize\n")
+        f.write("% generated by scripts/decomp_measured.py\n\\begin{table*}[t]\\centering\\footnotesize\n")
         f.write("\\caption{The deployed cache's gap to \\cref{eq:limit}, split by oracles in the engine (\\cref{fig:staircase}): mean "
-                "share of the gap over the " + M["dmFastN"] + " machines whose link-to-CPU ratio is at least " + M["dmFast"] + " (a "
-                "subset drawn after the data), with 95\\% intervals over machines. The first two rows each change one thing; the "
-                "third changes both. \\emph{Together}, \\emph{ahead} and \\emph{left} sum to the gap, and the last three rows sum "
-                "to \\emph{left}: $T_{\\text{GPU}}$ as in \\cref{eq:demand} (" + M["dmTgpu"] + "\\,ms; " + M["dmSerialLowPlo"] + "--"
-                + M["dmSerialLowPhi"] + "\\% of the gap at 11\\% over the profiles' range), and the oracle's reads beyond "
-                "$R^\\star$ at $B_{\\mathrm{host}}$.}\\label{tab:gap}\n")
-        f.write("\\setlength\\tabcolsep{3pt}\\begin{tabular}{@{}p{0.46\\linewidth}rr@{}}\\toprule\nPart of the gap & gpt-oss 11\\% & 25\\% \\\\\\midrule\n")
-        for k, text in lab:
-            K = k.capitalize()
-            f.write(f"{text} & {M['dm' + K + 'Low']}\\% [{M['dm' + K + 'LowLo']}, {M['dm' + K + 'LowHi']}] & "
-                    f"{M['dm' + K + 'Mid']}\\% [{M['dm' + K + 'MidLo']}, {M['dm' + K + 'MidHi']}] \\\\\n")
-            if k == "oncealone":
-                f.write("\\addlinespace\n")
-        f.write("\\bottomrule\\end{tabular}\\end{table}\n")
+                "share of the gap, in percent, with 95\\% intervals over machines. \\emph{Panel}: the " + M["dmMachines"] + " machines "
+                "of jobs 096--101 that ran every state. " + ("\\emph{New}: the " + M["dmNewN"] + " machines of job 109, rented for "
+                "this test, whose population (desktop-class, link-to-CPU ratio at least 0.5) and predictions were registered "
+                "before any of them started; the job's deadline cut one machine's 25\\% round. " if has_new else "") + "The first two rows each change one thing; the third "
+                "changes both. \\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap. The last three "
+                "rows are attributed, not measured: they split \\emph{left} with $T_{\\text{GPU}}$ as in \\cref{eq:demand} "
+                "(" + M["dmTgpu"] + "\\,ms, the smallest profile) and the read-ahead oracle's reads beyond $R^\\star$ at "
+                "$B_{\\mathrm{host}}$; the residual is what they leave.}\\label{tab:gap}\n")
+        cols = "rrrr" if has_new else "rr"
+        f.write("\\setlength\\tabcolsep{4pt}\\begin{tabular}{@{}l" + cols + "@{}}\\toprule\n")
+        if has_new:
+            f.write(" & \\multicolumn{2}{c}{gpt-oss 11\\%} & \\multicolumn{2}{c}{gpt-oss 25\\%} \\\\\\cmidrule(lr){2-3}\\cmidrule(l){4-5}\n")
+            f.write("Part of the gap & Panel (" + M["dmMachines"] + ") & New (" + M["dmNewNLow"] + ") & Panel (" + M["dmMachines"]
+                    + ") & New (" + M["dmNewNMid"] + ") \\\\\\midrule\n")
+        else:
+            f.write("Part of the gap & gpt-oss 11\\% & 25\\% \\\\\\midrule\n")
+        f.write("\\multicolumn{" + str(len(cols) + 1) + "}{@{}l}{\\emph{Measured}} \\\\\n")
+        for item in meas + [None] + attr:
+            if item is None:
+                f.write("\\addlinespace\\multicolumn{" + str(len(cols) + 1) + "}{@{}l}{\\emph{Attributed: of what is left}} \\\\\n")
+                continue
+            k, text = item
+            row = [cell("dmAll", k, "Low")]
+            if has_new:
+                row.append(cell("dmNew", k, "Low"))
+            row.append(cell("dmAll", k, "Mid"))
+            if has_new:
+                row.append(cell("dmNew", k, "Mid"))
+            f.write("\\quad " + text + " & " + " & ".join(row) + " \\\\\n")
+        f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
 
 
 def main():
     R, (tmed, tlo, thi) = rows()
+    TLO[0] = tlo
     M = {}
     words = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
     w = lambda n: words[n] if n < len(words) else str(n)  # noqa: E731
@@ -185,6 +245,9 @@ def main():
         for k in ("together", "ahead", "left"):
             m, a, b = boot([r["share"][k] for r in sel])
             M[f"dm{k.capitalize()}All{nm}"] = pct(m); M[f"dm{k.capitalize()}All{nm}Lo"] = pct(a); M[f"dm{k.capitalize()}All{nm}Hi"] = pct(b)
+        for k in PARTS + ("interaction", "tgpu"):   # every part over all machines (the table's panel column)
+            m, a, b = boot([r["share"][k] for r in sel])
+            M[f"dmAll{k.capitalize()}{nm}"] = pct(m); M[f"dmAll{k.capitalize()}{nm}Lo"] = pct(a); M[f"dmAll{k.capitalize()}{nm}Hi"] = pct(b)
         m, a, b = boot([r["closed"] for r in sel]); M[f"dmClosedAll{nm}"] = pct(m)
         m, a, b = boot([r["closed"] for r in fast])
         M[f"dmClosed{nm}"] = pct(m); M[f"dmClosed{nm}Lo"] = pct(a); M[f"dmClosed{nm}Hi"] = pct(b)
@@ -193,6 +256,27 @@ def main():
         M[f"dmPrefEqTwo{nm}Max"] = f"{max(r['pref_over_eq2'] for r in fast):.2f}"
         M[f"dmBoundShare{nm}Min"] = pct(min(r["bound_share"] for r in sel)); M[f"dmBoundShare{nm}Max"] = pct(max(r["bound_share"] for r in sel))
         out[nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"]) for r in sel]
+    # job 109: the registered replication on new machines (population fixed before launch: desktop-class, ratio >= 0.5)
+    NEW = rows_new(tlo)
+    M["dmNewN"] = str(len({r["dir"] for r in NEW})); M["dmNewNWord"] = w(len({r["dir"] for r in NEW}))
+    for C, nm in ((14, "Low"), (32, "Mid")):
+        sel = [r for r in NEW if r["C"] == C]
+        M[f"dmNewN{nm}"] = str(len(sel))
+        if not sel:
+            continue
+        for k in PARTS + ("interaction", "tgpu"):
+            v = [r["share"][k] for r in sel]
+            m, a_, b_ = boot(v) if len(v) > 1 else (v[0], v[0], v[0])
+            K = k.capitalize()
+            M[f"dmNew{K}{nm}"] = pct(m); M[f"dmNew{K}{nm}Lo"] = pct(a_); M[f"dmNew{K}{nm}Hi"] = pct(b_)
+            M[f"dmNew{K}{nm}Min"] = pct(min(v)); M[f"dmNew{K}{nm}Max"] = pct(max(v))
+        M[f"dmNewInteractionPos{nm}"] = str(sum(r["share"]["interaction"] > 0 for r in sel))
+        m, a_, b_ = boot([r["closed"] for r in sel]) if len(sel) > 1 else (sel[0]["closed"],) * 3
+        M[f"dmNewClosed{nm}"] = pct(m)
+        M[f"dmNewPrefReads{nm}Min"] = f"{min(r['reads_both'] for r in sel):.2f}"; M[f"dmNewPrefReads{nm}Max"] = f"{max(r['reads_both'] for r in sel):.2f}"
+        out["New" + nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"]) for r in sel]
+    M["dmNewRatioMin"] = f"{min(r['ratio'] for r in NEW):.2f}" if NEW else "--"
+    M["dmNewRatioMax"] = f"{max(r['ratio'] for r in NEW):.2f}" if NEW else "--"
     reg = [r for r in lo if r["dir"][:3] == "099"]
     M["dmRegN"] = str(len(reg)); M["dmRegHeld"] = str(sum(r["share"]["interaction"] > 0 for r in reg))
     v2 = json.load(open(P("prereg", "speed_limit_v2.json")))["models"]["gpt-oss-120b"]["rows"]
@@ -209,8 +293,8 @@ def main():
         f.write("% generated by scripts/decomp_measured.py\n")
         for k in sorted(M):
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
-    figure(R, P("paper", "figs", "decomp_measured.pdf"))
-    table(M)
+    figure(R, P("paper", "figs", "decomp_measured.pdf"), NEW)
+    table(M, bool(NEW))
     for k in sorted(M):
         print(k, M[k])
 

@@ -3,6 +3,56 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October (morning): job 112, the closing clarity pass, number check 19, review round 22 (6, 7)
+
+**Status for Harshith (read this first).** Round 22, MLSys PC / professor: **6 / 7** (clarity 3 / 3; soundness 4 / 4;
+significance 3 / 3). Both reviewers reproduced every table cell they checked from raw data. After the reviews, two
+things they flagged were fixed: every main-text table had floated past the references (now pages 2-9, main text ends
+on page 10), and the abstract and builder rules were scoped as they asked. All GPU work is done: no instances running;
+credit left is shown by `gpu/vast.py balance` (about $4). Nothing was pushed to `main`.
+
+### Job 112 (gpu commit 92849de, predictions pushed 71 s before the first rental)
+
+| Host | Machine | Ratio | What it tested | Outcome |
+|---|---|---|---|---|
+| 112a | RTX 4090 + Core i5-12400 (job 091's machine, allowed by name) | 0.77 | job 110's Q1-Q6, timing control, probe 2 | valid; trend within 6.4% (log), Q6 interaction positive |
+| 112b | RTX 4090 + Ryzen 7 7800X3D | 0.57 | same | valid; trend within 3.0% |
+| 112c | RTX 5090, job 109d's machine | - | relaunch | model download never finished in 2 h; destroyed without results |
+| 112d | RTX 5090, job 109c's machine | 0.88 | relaunch, timing control, probe 2 | valid; base within 0.4% of job 109 |
+| 112g | RTX 5090, job 109f's machine (replacement for 112c) | 0.74 | same | valid; base within 0.7%; ratio moved 12% between rentals |
+
+- **The second card now spans ratios 0.37-0.77** (five machines): MIN-1R and the read-ahead oracle within 7% / 5% of
+  the frozen RTX 5090 trend at 11% / 25%; no-change and slow-panel-mean predictors miss by up to 46% / 38%.
+- **The timing control failed its registered manipulation check.** Few-2R-early (each copy issued a step early) runs
+  0.98-1.00x the deployed cache vs Few-2R 1.03x and Few-1R 1.21-1.41x; its misses fall only to 0.97-0.98 of Few-2R's
+  (registered <= 0.95, from a replay that predicted 0.91), and it is 0.03-0.05 slower (registered >= -0.01). T3 (the
+  second read costs more than the landing) and T4 held. The counters show the fetch table's in-step fetches (18-24 per
+  token) keep MIN's set from forming on the two-read path: the late landing is not the cause.
+- **Second probe:** within 4.9% of the first on all four machines.
+- Clauses: 58 (22 held with an interval, 24 on the point estimate, 12 failed: all T1/T2).
+
+### The clarity and statistics pass
+
+- Typographic names (MIN-1R, MIN-2R, Dep-1R, Few-1R/2R/2R-early, Margin, LA, LA-1R, LA-1R-margin) in text, tables,
+  figures and appendices; "online policy" no longer means the deployed cache anywhere; R*_eng for the engine's count.
+- Section 6 split out (no foresight; second card) with subsections; "(registered: ...)" tags state thresholds; job
+  numbers out of the main text; the 0.5 line disclosed as drawn after the panel.
+- t-intervals over machines everywhere a summary is over machines; within-machine intervals in Table 6 and on the
+  transfer clauses (more clauses now "held" with an interval).
+- Appendix D's failures tabulated (Table 11); related work and detailed limitations moved to appendices to keep the
+  main text at 10 pages; the slow-link gap to Eq. (3) and the RTX 4090's own T_GPU reported.
+
+### Number check 19 and review round 22
+
+- Number check 19: 109 items, 11 defects (scope qualifiers lost in the abstract, job 112 missing from the failures
+  table, Few-1R not counting job 112's machines, typed counts). All fixed.
+- Review 22a (MLSys PC): 6; asks: claims beyond what was tested (abstract, builder rules), the 2x2's MIN-2R arm does
+  not keep MIN's set, the soft bound (one probe, R* trace not shipped), T_GPU constant, narrow scope; tables after the
+  references (fixed).
+- Review 22b (professor): 7; asks: probe sensitivity of Table 4, weak tests behind "pre-specified" (Table 1 row now
+  says the panel test failed), the RTX 4090 test less blind than presented (110e's -5.6% now disclosed), T_GPU
+  constant (now reported both ways), over-generalisation (scoped).
+
 ## 8 October (night): the final run (jobs 109-111), the clarity pass, number check 18, review round 21 (6, 7)
 
 **Status for Harshith (read this first).** Scores by round, MLSys PC / professor (clarity in brackets): round 20 was

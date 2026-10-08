@@ -1,0 +1,34 @@
+\section{Related work in full}\label{app:related}
+\paragraph{Offloading systems.} Demand-paging systems cache experts per layer and copy misses over
+PCIe \citep{eliseev2023offloading,xue2024moeinfinity,song2024promoe,tang2024hobbit,swapmoe2024,adapmoe2024,edgemoe2023,expertflow,pagingexperts2026},
+or use predicted expert activations to decide what to keep \citep{sida2024}; an upstream llama.cpp pull request adds
+such a cache, admitting every miss into an LRU \citep{llamacpppr29887}. CPU-execution systems run non-resident experts on
+the host \citep{kamahori2024fiddler,ktransformers,zhong2025hybrimoe,daop2025,wang2026cloudgrade,atsinfer2026}, as
+PowerInfer runs a dense model's cold neurons \citep{powerinfer2024}; a set-associative GPU cache with CPU-executed misses
+\citep{huang2025cpugpu}, a llama.cpp fork \citep{leloch2026,llamacppdisc24528} and two llama.cpp pull requests
+\citep{llamacpppr26563,llamacpppr27861} are the closest designs to ours. FreeToken \citep{freetoken} and DALI
+\citep{dali2026} split each layer's misses between CPU and PCIe. Predictors guess upcoming experts from the previous
+layer's state \citep{hwang2024pregated,zhu2025preattention}, several tokens ahead with a learned forecaster
+\citep{wang2026seqmoe,mira2026}, or from draft tokens \citep{spmoe,moespac2026,cascade2025}; Read-ME decouples the router
+so routing is known in advance \citep{readme2024}. Batched-throughput systems
+\citep{flexgen2023,cao2024moelightning,yuan2025moelens} and flash or SSD tiers \citep{llminflash2024,ssdllama,edgezero}
+are outside our scope.
+
+\paragraph{Bounds, oracles and caching theory.} WiSP \citep{wisp2026} bounds decode by PCIe turnover, Budgeting Bytes
+\citep{budgetingbytes2026} by bytes over bandwidth for a given fetch set, and MoE-CAP \citep{moecap} measures bandwidth
+utilisation against a single peak; the roofline \citep{williams2009roofline} is the single-memory ancestor of our bound.
+\citet{zhang2026reproducible} propose a trace-level evaluation contract and report a 44--46\% gap between causal
+policies and MIN with bypass; \citet{liang2026lrc} measure, across 20 models, the hit rate of an oracle cache that sees
+$m$ tokens ahead. We add the time domain: oracles inside a real engine, a measured decomposition of the gap, the cost of
+how foresight is spent, and a horizon rule in distinct experts. SAEM \citep{saem2026} gives its own stage-level planner
+perfect knowledge of the coming stage and finds that worth at most about 14\% on an A100; SpecMD \citep{specmd}
+benchmarks expert-cache and speculative prefetch policies across hardware; \citet{angelopoulos2025cache} give competitive
+bounds for layered expert paging. With bypass, MIN maximises hits exactly \citep{carlisle1995kcoloring,jain2016hawkeye};
+when bypass and admission cost differ, the time-optimal placement is a different problem \citep{bypassopt}, which is
+why we use MIN's reads as an input to a bound rather than as a time-optimal policy. Choosing among hit-optimal schedules
+by what admissions cost has precedents: Demand-MIN for prefetching \citep{jain2018prefetch}, offline-optimal caching as a
+min-cost flow over reuse intervals \citep{berger2018foo}, and admission rationing in flash caches \citep{flashield2019}.
+Our fewest-admission schedule is that interval formulation with admissions as a second objective, measured in an
+engine. Learning-augmented paging is most robust with predictions of whether a page will be evicted before its next use
+\citep{antoniadis2023succinct}; learned replacement imitates Belady in CPU and content-delivery caches
+\citep{jain2016hawkeye,song2020lrb} and in an SSD-backed expert cache \citep{flashmoe2026}.

@@ -527,6 +527,19 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         rs = [h["cells"][C]["residual"] for h in sel if "residual" in h["cells"][C]]
         if rs:
             M[f"cxResid{nm}Min"] = pc(min(rs)); M[f"cxResid{nm}Max"] = pc(max(rs))
+        # the same residual with the RTX 4090's own non-expert time (the smallest of these machines' profiles at this
+        # budget) in place of the RTX 5090's 2.94 ms
+        ne = []
+        for h in sel:
+            f = f"{RES}/{h['dir']}/prof_G{C}.json"
+            if os.path.exists(f):
+                d = json.load(open(f))["median_ms"]
+                g = sum(v for k, v in d.items() if k.startswith("cat_") and k not in ("cat_ec_wait", "cat_ec_copy"))
+                ne.append(g - d.get("cat_expert_gemv", 0.0) - d.get("cat_ec_ctl", 0.0))
+        if ne and rs:
+            t4 = min(ne)
+            ro = [h["cells"][C]["residual"] + (TGPU - t4) / h["cells"][C]["gap"] for h in sel if "residual" in h["cells"][C]]
+            M[f"cxTgpu{nm}"] = f"{t4:.1f}"; M[f"cxResidOwn{nm}Min"] = pc(min(ro)); M[f"cxResidOwn{nm}Max"] = pc(max(ro))
         rng(f"cxPf{nm}", [h["cells"][C]["ratio"]["pf"] for h in sel]); rng(f"cxRone{nm}", [h["cells"][C]["ratio"]["R1"] for h in sel])
         rng(f"cxLayer{nm}", [h["cells"][C]["ratio"][n] for h in sel for n in ("pf", "R1", "R2")])
         cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]
@@ -570,6 +583,12 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     M["cxClausesFailed"] = str(st3.get("failed", 0))
     M["olClausesHeldCI"] = str(st.get("held", 0)); M["olClausesPoint"] = str(st.get("held (point)", 0))
     first = [h for h in H2 if h["ran"]]
+    # the machine of job 110 that ran a round and was not relaunched in job 111 (110e): its first-round deviation
+    nr = [h for h in first if h["uuid"] not in {x["uuid"] for x in H3}]
+    dnr = [math.exp(trend_dev(h, lo, n)) - 1 for h in nr for n in ("fetch", "both3p") if h["cells"][lo]["rounds"]]
+    if dnr:
+        x = max(dnr, key=abs)
+        M["cxNotRelaunchedDev"] = f"{100 * x:+.1f}".replace("-", "$-$")
     dvf = [abs(math.exp(trend_dev(h, lo, n)) - 1) for h in first for n in ("fetch", "both3p")]
     if dvf:
         M["cxFirstDevLowMax"] = pc(max(dvf))

@@ -133,7 +133,7 @@ workload.
 committed before the machines started, with the outcome (\cref{app:prereg}); \emph{post hoc}: found in the data it
 describes; \emph{derived}: follows from the definitions.}\label{tab:claims}
 \setlength\tabcolsep{2.5pt}
-\begin{tabular}{@{}p{0.43\linewidth}p{0.40\linewidth}rr@{}}\toprule
+\begin{tabular}{@{}p{0.41\linewidth}p{0.375\linewidth}rr@{}}\toprule
 Claim & Test and outcome & Mach. & \S \\\midrule
 MIN's reads at the probed rate bound any exact-routing cache with $C$ slots per layer & derived & -- & \ref{sec:limit} \\
 The bound's read time is nearly reachable & pre-specified bands; \jdFailed{} of \jdClauses{} clauses failed & \jdHosts & \ref{sec:limit} \\
@@ -374,8 +374,9 @@ layer-ahead copy. Lines: least-squares fits in the log of the ratio, for the tre
 engine's mechanisms act on these levers without foresight. A higher admission margin admits less: it cuts the deployed
 cache's host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at 11\%. The layer-ahead copy applies layer $l{+}1$'s
 router to layer $l$'s input and copies the top predicted expert ahead, so that an admission is read once, by the GPU.
-We combined both with reading each admission once into two online policies, and ran all four beside the oracles on
-\olNWord{} machines rented for the test (\cref{tab:job109}). At 11\% the best of them runs
+Two online policies combine them with reading each admission once: the layer-ahead copy alone, and the layer-ahead copy
+with admitting less. We ran these and the two mechanisms alone beside the oracles on \olNWord{} machines rented for the
+test (\cref{tab:job109}). At 11\% the best of them runs
 \olBestLowMin--\olBestLowMax$\times$ the deployed cache: at most \olCapLowMax\% of the read-ahead oracle's gain
 (registered: at most 35\%). The counters say why. The online policies still read
 \olReadsRoneLowMin--\olReadsRoneLowMax$\,R^\star$ host experts per token, as many as the deployed cache: a prediction
@@ -399,11 +400,10 @@ engine runs. Markers: the same share in time per token on the panel machines (me
 \label{fig:value}
 \end{figure*}
 
-\paragraph{Next-token prediction buys little.} Exact routing of the next token recovers \vmShareOneLow{} of MIN's gain at
-gpt-oss 11\% and \vmShareOneMid{} at 25\%, and at most \vmShareOneQlow{} at any host-bound budget of our two models
-(\cref{fig:value}). Half of the gain needs \vmHalfLow{} and \vmHalfMid{} tokens.
-In the engine, an exact 16-token window recovers \pnShareSixteenLowMin--\pnShareSixteenLowMax{} of the gain in time at
-11\% (registered at 0.80 or more, which the lowest machine missed).
+\paragraph{Next-token prediction buys little.} Exact routing of the next token recovers at most \vmShareOneQlow{} of
+MIN's gain at any host-bound budget of our two models; half of the gain at gpt-oss 11\% needs \vmHalfLow{} tokens
+(\cref{fig:value}). In the engine, an exact 16-token window recovers \pnShareSixteenLowMin--\pnShareSixteenLowMax{} of
+the gain in time at 11\% (registered at 0.80 or more; the lowest machine missed).
 
 \paragraph{Accuracy matters as much as horizon.} An 8-token window that is right half the time recovers
 \vmEightHalfLow{} of the gain at 11\%, about what 2 exact tokens buy (\vmShareTwoLow).
@@ -411,14 +411,14 @@ In the engine, an exact 16-token window recovers \pnShareSixteenLowMin--\pnShare
 \paragraph{The horizon is measured in distinct experts (exploratory).} On \fsModels{} models' own sampled text, the
 window that closes half of the read gap ranges from \dcWMin{} to \dcWMax{} tokens. Paging theory measures lookahead in
 distinct pages \citep{albers1997lookahead,breslauer1995lookahead}, and so does the rule that fits: within that window a
-layer requests about \dcMed$\,C$ distinct experts (quartiles \dcLo--\dcHi). On the AIME routing the engine runs, the
-same quantity is \dcAimeMin--\dcAimeMax$\,C$. Given a model's routing trace, this one-constant rule predicts its horizon
+layer requests about \dcMed$\,C$ distinct experts (\dcAimeMin--\dcAimeMax$\,C$ on the AIME routing the engine
+runs). Given a model's routing trace, this one-constant rule predicts its horizon
 as well as a two-constant power law in tokens (\cref{app:traces}).
 
 \paragraph{Nothing realisable reaches it.} Forecasters trained on routing histories, linear or recurrent, close at
 most \lfShareMaxGpt\% of the read gap on gpt-oss: their precision falls with the horizon. Speculative batches save an
-online cache \bkSameNineMin--\bkSameNineMax\% of its reads at 90\% draft acceptance and cost
-\bkSameEightLossMin--\bkSameEightLossMax\% at 80\% \citep{spmoe,moespac2026,cascade2025}. Layer-ahead predictors
+online cache about a tenth of its reads at 90\% draft acceptance and cost reads at 80\%
+\citep{spmoe,moespac2026,cascade2025} (\cref{app:traces}). Layer-ahead predictors
 \citep{hwang2024pregated,zhu2025preattention} reach \laRecallK\% recall in our engine but see less than one token ahead;
 built into an online policy, they recover at most \olCapLowMax\% of the oracle's gain (\cref{sec:online}).
 

@@ -44,7 +44,7 @@ of the main text; \cref{tab:glossary} defines the other terms.
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the
 machine started; each machine cloned the published branch at boot and ran the header as committed, so git history
-orders every prediction before its measurement (for \rtNear{} of the \rtRentals{} rentals of jobs 093--108 the push and the rental's creation fall within a
+orders every prediction before its measurement (for \rtNear{} of the \rtRentals{} rentals of jobs 093--111 the push and the rental's creation fall within a
 second of each other, and for \rtAfter{} GitHub records the push up to \rtAfterMax\,s after the rental was created; every
 commit preceded its rental by at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the
 push; \texttt{scripts/reg\_timing.py}).
@@ -82,7 +82,7 @@ the single-read job (095) 44 of 56 clauses held, and the 12 that failed are of s
 counters was predicted within 10\% and missed by 13--17\% at four cells, the fetch oracle's reads were predicted within
 10\% of the simulation's and came 17\% below at the two GPU-bound cells (the registered simulator left a resident
 carried over from the previous sequence with no next use, and so evicted it first; corrected, the simulation is within
-\fsfSimReadsDiffMax\% of the engine's reads at every cell, \cref{app:foresight}), the prefetching oracle was predicted at 55--85\% of the limit at the host-bound cells and reached
+\fsfSimReadsDiffMax\% of the engine's reads at every cell, \cref{app:foresight}), the read-ahead oracle was predicted at 55--85\% of the limit at the host-bound cells and reached
 44 and 51\% at the two 25\% cells, the model's over-prediction of it was predicted at 15--50\% and came to 7 and 13\% at
 the two lowest budgets, and the paced variant, predicted within 10\% of the unpaced one, was 12--13\% faster at the
 two 25\% cells; in the confirmatory factorial (096) the clauses held at most cells of both hosts and the failures are
@@ -195,25 +195,28 @@ implied read rate at both budgets, and the two pooled clauses (\jmWithinSix{} of
 error \jmErrMed\%); the profiled $G$ of that host could not be tested (\texttt{prereg/smallhosts\_outcome\_108.md}).
 Job 109 (\texttt{scripts/job109.py}; the 2$\times$2 of \cref{sec:gap}, the read-ahead oracle and four online
 policies on desktop-class machines never rented before, with the population, link-to-CPU ratio at least 0.5, fixed
-before any started; \cref{tab:job109}): \olStartedWord{} machines started, \olGated{} stopped at a gate, \olUnstable{}
-failed a round check, and \olNWord{} were valid. Of its \olPredN{} predictions \olPredHeld{} held; of \olClauses{}
-clauses, \olClausesHeldCI{} held with a 95\% interval over problems, \olClausesPoint{} on the point estimate, and
+before any started; \cref{tab:job109}): \olStartedWord{} machines started, and all \olNWord{} passed every gate and round check. Of its \olPredN{}
+predictions \olPredHeld{} held (one clause of P8, for ratios of at least 0.9, had no machine to test it); of
+\olClauses{} clauses, \olClausesHeldCI{} held with a 95\% interval over problems, \olClausesPoint{} on the point estimate, and
 \olClausesFailed{} failed. A smoke run on gpt-oss-20b, on a machine outside the sample, first checked that the two new
-combinations run and compute the same model. One listed offer was no longer offered and was skipped as registered.
+combinations run and compute the same model. One listed offer was no longer offered and was skipped as registered, and the job's deadline cut the 25\% round of
+the Ryzen 9 5950X, the slowest machine.
 The header's statement that no listed offer was in the rental ledger was wrong for one: the Core i9-13900KF's offer had
 been rented twice before (job 099's first host d and job 100's host e), both times without a result; its GPU had never
 been measured, and it passed the identity gate. Job 110 (the RTX 5090 trend of \cref{sec:secondcard}, frozen in its
-header, on RTX 4090 machines): \scTenStarted{} machines started, \scTenGated{} stopped at its ratio gate (at \scTenGatedRatio,
+header, on RTX 4090 machines): \cxTenStarted{} machines started, \cxTenGated{} stopped at its ratio gate (at \cxTenGatedRatio,
 below 0.25), and every other one failed its output check after one round. That check used the RTX 5090's reference
-loss; the RTX 4090 computes a loss \scLossDiff\% higher in every configuration of every process, so the check failed by
-design rather than by fault, and job 110 is void as registered. Job 111 relaunched those machines with the card's own
-reference (its first round's loss on one of them) and job 110's predictions unchanged; the predictions were committed
-before any RTX 4090 data, the corrected reference after one round on these machines. \scElevenNoModel{} of its first
-launches failed to download the model, before any measurement, and were relaunched once by an amendment committed
-before the relaunch. Of job 110's clauses scored on job 111's \scNWord{} valid machines, \scClausesHeld{} held with an
-interval, \scClausesPoint{} on the point estimate, and \scClausesFailed{} failed.
+loss; the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration of every process, so the check failed by
+design rather than by fault, and job 110 is void as registered. Job 111 relaunched three of the four machines that had run a round, with the card's own reference (its first
+round's loss on one of them) and job 110's predictions unchanged; the fourth, job 110's host e, was not relaunched,
+because its GPU was left out of the relaunch list, an oversight we found after the job; the predictions were committed
+before any RTX 4090 data, the corrected reference after one round on these machines. \cxElevenNoModel{} of its first
+launches failed to download the model, before any model run, and were relaunched once by an amendment committed
+before the relaunch. Of job 110's clauses scored on job 111's \cxNWord{} valid machines, \cxClausesHeld{} held with an
+interval, \cxClausesPoint{} on the point estimate, and \cxClausesFailed{} failed; its sixth prediction, for machines
+with a ratio of at least 0.5, had none to test.
 
-The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100, \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{} for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109, \scClauses{} for jobs 110 and 111) are in the supplement
+The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100, \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{} for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109, \cxClauses{} for jobs 110 and 111) are in the supplement
 (\texttt{paper/supplement.pdf}), generated by the same scripts.
 
 \section{Foresight in the engine}\label{app:foresight}

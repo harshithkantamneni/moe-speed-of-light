@@ -156,6 +156,8 @@ def load(d, cells=(14, 32), min_ratio=0.5):
             c["ratio"][n] = float(math.exp(np.mean(np.log(v))))
         if c["rounds"]:
             c["ci"] = boot_cell(c.pop("_pp"))
+        if c["t"].get("base"):
+            c["t_r1_base"] = c["t"]["base"][0]   # process A's base in the first round run
         c["t"] = {n: float(np.mean(v)) for n, v in c["t"].items()}
         c["reads"] = {n: float(np.mean([x["reads"] for x in v])) for n, v in c["counters"].items()}
         if c["rounds"] and h.get("B_host"):
@@ -426,7 +428,8 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     pc = lambda x: str(int(round(100 * x))).replace("-", "$-$")  # noqa: E731
     # job 109
     M["olN"] = str(len(V)); M["olNWord"] = word(len(V)); M["olStarted"] = str(len(H)); M["olStartedWord"] = word(len(H))
-    M["olGated"] = word(sum(1 for h in H if h["gate"])); M["olUnstable"] = word(sum(1 for h in H if not h["gate"] and not h["valid"]))
+    nz = lambda n: "none" if n == 0 else word(n)  # noqa: E731
+    M["olGated"] = nz(sum(1 for h in H if h["gate"])); M["olUnstable"] = nz(sum(1 for h in H if not h["gate"] and not h["valid"]))
     rng("olRatio", [h["ratio"] for h in V])
     for C in cells:
         nm = NM[C]
@@ -441,6 +444,21 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         rng(f"olReadsRone{nm}", [min(c["reads"]["R1"], c["reads"]["R2"]) / RSTAR[C] for c in sel])
         rng(f"olReadsBase{nm}", [c["reads"]["base"] / RSTAR[C] for c in sel])
         M[f"olBestName{nm}"] = ", ".join(sorted(Counter(c["best_name"] for c in sel)))
+    # the frozen RTX 5090 trend of job 110 against job 109's own RTX 5090s (out of sample, same card; not registered)
+    tdv = [trend_dev(h, C, n) for h in V for C in cells if h["cells"][C]["rounds"] for n in ("fetch", "both3p")]
+    if tdv:
+        M["olTrendDevMax"] = pc(max(abs(math.exp(x) - 1) for x in tdv)); M["olTrendCells"] = str(len(tdv))
+        M["olTrendMiss"] = str(sum(abs(x) > 0.10 for x in tdv)); M["olTrendMissWord"] = word(sum(abs(x) > 0.10 for x in tdv))
+    # reads of both online policies (R1 and R2) over R*
+    for C in cells:
+        nm = NM[C]
+        rr = [h["cells"][C]["reads"][n] / RSTAR[C] for h in V if h["cells"][C]["rounds"] for n in ("R1", "R2")]
+        if rr:
+            M[f"olReadsOnline{nm}Min"] = f"{min(rr):.2f}"; M[f"olReadsOnline{nm}Max"] = f"{max(rr):.2f}"
+        # the deployed cache's share of Eq. (1)'s speed on these machines
+        sh = [h["cells"][C]["eq1"] / h["cells"][C]["t"]["base"] for h in V if h["cells"][C]["rounds"]]
+        if sh:
+            M[f"olShare{nm}Min"] = pc(min(sh)); M[f"olShare{nm}Max"] = pc(max(sh))
     held = [k for k, (ok, _) in pr.items() if k.startswith("P") and ok]
     failed = [k for k, (ok, _) in pr.items() if k.startswith("P") and ok is False]
     M["olPredN"] = str(sum(1 for k in pr if k.startswith("P"))); M["olPredHeld"] = str(len(held)); M["olPredFailed"] = str(len(failed))
@@ -448,56 +466,57 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     cl = clauses109(V, cells); st = Counter(c["status"] for c in cl)
     M["olClauses"] = str(len(cl)); M["olClausesHeld"] = str(st.get("held (point)", 0) + st.get("held", 0)); M["olClausesFailed"] = str(st.get("failed", 0))
     # the RTX 4090s: job 111 (registered predictions of job 110, relaunched with V1 corrected) and job 110's first rounds
-    M["scN"] = str(len(V3)); M["scNWord"] = word(len(V3)); M["scStarted"] = str(len(H3))
-    M["scFirstN"] = str(sum(1 for h in H2 if h["ran"])); M["scFirstNWord"] = word(sum(1 for h in H2 if h["ran"]))
-    rng("scRatio", [h["ratio"] for h in V3])
+    M["cxN"] = str(len(V3)); M["cxNWord"] = word(len(V3)); M["cxStarted"] = str(len(H3))
+    M["cxFirstN"] = str(sum(1 for h in H2 if h["ran"])); M["cxFirstNWord"] = word(sum(1 for h in H2 if h["ran"]))
+    rng("cxRatio", [h["ratio"] for h in V3])
     for C in cells:
         nm = NM[C]
         sel = [h for h in V3 if h["cells"][C]["rounds"]]
         dv = [abs(math.exp(trend_dev(h, C, n)) - 1) for h in sel for n in ("fetch", "both3p")]
         if dv:
-            M[f"scDev{nm}Max"] = pc(max(dv)); M[f"scDev{nm}Med"] = pc(float(np.median(dv)))
+            M[f"cxDev{nm}Max"] = pc(max(dv)); M[f"cxDev{nm}Med"] = pc(float(np.median(dv)))
         dv2 = [abs(math.exp(trend_dev(h, C, n)) - 1) for h in sel for n in ("foa", "bypass")]
         if dv2:
-            M[f"scDevSmall{nm}Max"] = pc(max(dv2))
-        rng(f"scBest{nm}", [h["cells"][C]["best"] for h in sel if "best" in h["cells"][C]], "{:.3f}")
-        rng(f"scDist{nm}", [h["cells"][C]["t"]["base"] / h["cells"][C]["eq1"] for h in sel], "{:.1f}")
-        rng(f"scOracle{nm}", [h["cells"][C]["ratio"]["both3p"] for h in sel])
-        rng(f"scFetch{nm}", [h["cells"][C]["ratio"]["fetch"] for h in sel])
-        rng(f"scPf{nm}", [h["cells"][C]["ratio"]["pf"] for h in sel]); rng(f"scRone{nm}", [h["cells"][C]["ratio"]["R1"] for h in sel])
+            M[f"cxDevSmall{nm}Max"] = pc(max(dv2))
+        rng(f"cxBest{nm}", [h["cells"][C]["best"] for h in sel if "best" in h["cells"][C]], "{:.3f}")
+        rng(f"cxDist{nm}", [h["cells"][C]["t"]["base"] / h["cells"][C]["eq1"] for h in sel], "{:.1f}")
+        rng(f"cxOracle{nm}", [h["cells"][C]["ratio"]["both3p"] for h in sel])
+        rng(f"cxFetch{nm}", [h["cells"][C]["ratio"]["fetch"] for h in sel])
+        rng(f"cxPf{nm}", [h["cells"][C]["ratio"]["pf"] for h in sel]); rng(f"cxRone{nm}", [h["cells"][C]["ratio"]["R1"] for h in sel])
+        rng(f"cxLayer{nm}", [h["cells"][C]["ratio"][n] for h in sel for n in ("pf", "R1", "R2")])
         cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]
         if cp:
-            M[f"scCap{nm}Max"] = pc(max(cp)); M[f"scCap{nm}Min"] = pc(min(cp))
+            M[f"cxCap{nm}Max"] = pc(max(cp)); M[f"cxCap{nm}Min"] = pc(min(cp))
     gr = [h.get("ratio") for h in H2 if h["gate"].startswith("VR") and h.get("ratio")]
-    M["scTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
-    M["scTenStarted"] = word(len(H2)); M["scTenGated"] = word(sum(1 for h in H2 if h["gate"]))
-    M["scElevenStarted"] = word(len(H3)); M["scElevenNoModel"] = word(sum(1 for h in H3 if not h["gate"] and not h["ran"]))
+    M["cxTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
+    M["cxTenStarted"] = word(len(H2)); M["cxTenGated"] = word(sum(1 for h in H2 if h["gate"]))
+    M["cxElevenStarted"] = word(len(H3)); M["cxElevenNoModel"] = word(sum(1 for h in H3 if not h["gate"] and not h["ran"]))
     cl3 = clauses110(V3, cells); st3 = Counter(c["status"] for c in cl3)
-    M["scClauses"] = str(len(cl3)); M["scClausesHeld"] = str(st3.get("held", 0)); M["scClausesPoint"] = str(st3.get("held (point)", 0))
-    M["scClausesFailed"] = str(st3.get("failed", 0))
+    M["cxClauses"] = str(len(cl3)); M["cxClausesHeld"] = str(st3.get("held", 0)); M["cxClausesPoint"] = str(st3.get("held (point)", 0))
+    M["cxClausesFailed"] = str(st3.get("failed", 0))
     M["olClausesHeldCI"] = str(st.get("held", 0)); M["olClausesPoint"] = str(st.get("held (point)", 0))
     first = [h for h in H2 if h["ran"]]
     dvf = [abs(math.exp(trend_dev(h, lo, n)) - 1) for h in first for n in ("fetch", "both3p")]
     if dvf:
-        M["scFirstDevLowMax"] = pc(max(dvf))
+        M["cxFirstDevLowMax"] = pc(max(dvf))
     # relaunch agreement: job 111's first round against job 110's first round on the same GPU (deployed cache's time)
     rel = []
     for h in V3:
         g = next((x for x in H2 if x["uuid"] == h["uuid"] and x["ran"]), None)
         if g:
-            rel.append(abs(h["cells"][lo]["t"]["base"] / g["cells"][lo]["t"]["base"] - 1))
+            rel.append(abs(h["cells"][lo]["t_r1_base"] / g["cells"][lo]["t_r1_base"] - 1))
     if rel:
-        M["scRelaunchMax"] = f"{100 * max(rel):.1f}"
+        M["cxRelaunchMax"] = f"{100 * max(rel):.1f}"
     held3 = [k for k, (ok, _) in pr3.items() if k.startswith("Q") and ok]
     failed3 = [k for k, (ok, _) in pr3.items() if k.startswith("Q") and ok is False]
-    M["scPredN"] = str(sum(1 for k in pr3 if k.startswith("Q") and pr3[k][0] is not None)); M["scPredHeld"] = str(len(held3))
-    M["scPredFailed"] = str(len(failed3)); M["scPredFailedList"] = ", ".join(failed3) if failed3 else "none"
+    M["cxPredN"] = str(sum(1 for k in pr3 if k.startswith("Q") and pr3[k][0] is not None)); M["cxPredHeld"] = str(len(held3))
+    M["cxPredFailed"] = str(len(failed3)); M["cxPredFailedList"] = ", ".join(failed3) if failed3 else "none"
     lf = [h["loss_base"] for h in H2 + H3 if h.get("loss_base")]
-    M["scLossDiff"] = pc(np.mean(lf) / 0.190 - 1) if lf else "--"
-    M["scLossFour"] = f"{np.mean([h['loss_base'] for h in H2 + H3 if h.get('loss_base')]):.3f}" if any(h.get("loss_base") for h in H2 + H3) else "--"
-    for k in ("scRatioMin", "scRatioMax", "scDevLowMax", "scDevMidMax", "scDevLowMed", "scDevMidMed", "scDevSmallLowMax",
-              "scBestLowMax", "scBestMidMax", "scDistLowMin", "scDistLowMax", "scDistMidMin", "scDistMidMax", "scRelaunchMax",
-              "scFirstDevLowMax", "olBestLowMin", "olBestLowMax", "olCapLowMax", "olCapLowMean", "olCapMidMax", "olCapMidMean",
+    M["cxLossDiff"] = pc(np.mean(lf) / 0.190 - 1) if lf else "--"
+    M["cxLossFour"] = f"{np.mean([h['loss_base'] for h in H2 + H3 if h.get('loss_base')]):.3f}" if any(h.get("loss_base") for h in H2 + H3) else "--"
+    for k in ("cxRatioMin", "cxRatioMax", "cxDevLowMax", "cxDevMidMax", "cxDevLowMed", "cxDevMidMed", "cxDevSmallLowMax",
+              "cxBestLowMax", "cxBestMidMax", "cxDistLowMin", "cxDistLowMax", "cxDistMidMin", "cxDistMidMax", "cxRelaunchMax",
+              "cxFirstDevLowMax", "olBestLowMin", "olBestLowMax", "olCapLowMax", "olCapLowMean", "olCapMidMax", "olCapMidMean",
               "olReadsRoneLowMin", "olReadsRoneLowMax", "olRatioMin", "olRatioMax"):
         M.setdefault(k, "--")
     with open(P("paper", "wsg_job109.tex"), "w") as f:
@@ -510,8 +529,8 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         f.write("\\caption{The registered tests on machines rented for them: speed relative to the deployed cache on the same "
                 "machine (geometric mean of its rounds) of MIN read once in the step (\\emph{1 read}), the read-ahead oracle "
                 "(\\emph{ahead}), and the best of the four online policies (\\emph{online}: admitting less, the layer-ahead "
-                "copy, and the two built from both, \\cref{sec:online}), and that policy's capture, its share of the "
-                "read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
+                "copy, and the layer-ahead copy with each admission read once, alone and with admitting less; "
+                "\\cref{sec:online}), and that policy's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
                 "whose population (desktop-class, link-to-CPU ratio at least 0.5) was fixed before any machine started. RTX "
                 "4090: job 111 (job 110's predictions, committed before any RTX 4090 ran); in brackets, what the RTX 5090 "
                 "machines' trend in the link-to-CPU ratio predicted for that machine.}\\label{tab:job109}\n")

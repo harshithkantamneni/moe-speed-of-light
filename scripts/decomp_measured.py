@@ -166,7 +166,8 @@ def figure(R, path, NEW=()):
          Line2D([0], [0], color=blue, lw=0.8, label=f"each machine, link/CPU $\\geq$ {FAST} ({nf})"),
          Line2D([0], [0], color=orange, lw=0.8, label=f"link/CPU $<$ {FAST} ({ns})")]
     if NEW:
-        h.append(Line2D([0], [0], color=green, lw=1.1, label=f"new machines, registered ({len({r['dir'] for r in NEW})})"))
+        n11 = len({r['dir'] for r in NEW if r['C'] == 14}); n25 = len({r['dir'] for r in NEW if r['C'] == 32})
+        h.append(Line2D([0], [0], color=green, lw=1.1, label=f"new machines, registered ({n11}; {n25} at 25%)"))
     fig.legend(handles=h, loc="upper center", ncol=3 if NEW else 4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.5, 1.06 if NEW else 1.03))
     fig.tight_layout(rect=(0, 0, 1, 0.91))
     fig.savefig(path, bbox_inches="tight"); fig.savefig(path.replace(".pdf", ".png"), dpi=160, bbox_inches="tight")

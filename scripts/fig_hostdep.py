@@ -12,9 +12,9 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN greedy, 1 read (in the step)", "#1f4e79", "o"), ("both3p", "read-ahead oracle", "#2e8b57", "s"),
-          ("bypass", "MIN greedy, 2 reads (CPU, then copy)", "#c55a11", "^"), ("foa", "deployed, 1 read", "#7a7974", "v"),
-          ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "deployed + layer-ahead copy", "#a4243b", "P")]
+SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN, 1 read", "#1f4e79", "o"), ("both3p", "read-ahead oracle", "#2e8b57", "s"),
+          ("bypass", "MIN, 2 reads", "#c55a11", "^"), ("foa", "deployed, 1 read", "#7a7974", "v"),
+          ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "layer-ahead copy", "#a4243b", "P")]
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
 
 

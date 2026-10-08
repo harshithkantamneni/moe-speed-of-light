@@ -1,15 +1,12 @@
 A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
-token at a time then waits on host reads. We ask how fast such decoding could be on a given machine, where the
-remaining time goes, and what knowing the future routing is worth. Our bound is the host reads of Belady's MIN with
-bypass, the fewest that any cache of a given size per layer can make, at the machine's probed read rate. Our llama.cpp
-expert cache, faster than two other systems at most configurations, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of
-the bound's speed on machines with consumer processors at the smallest budget we test. We call its time beyond the
-bound the gap. Oracles built into the engine close about half of the gap; we attribute the rest without measuring it
-part by part. At that budget, on machines whose link reads at least half as fast as the CPU, the experts MIN's greedy
-schedule keeps pay in the engine as deployed only when each admitted expert is read once, not twice: then they close
-\dmNewTogetherLow\% of the gap, in a test registered before its machines were rented. A second registered test, on two
-machines, shows why: the engine's in-step fetches push MIN's set out of the cache. With them off, MIN's
-fewest-admission set read twice runs \hsPlanZeroLowRng{} times as fast as a deployed cache without them, and reading
-it once gains \hsOneReadMarginLowRng{} more of the deployed cache's speed. Policies without foresight, built from the
-engine's own mechanisms, recover at most \olCapLowMax\% of what an oracle that reads ahead gains. In host reads, half
-of foresight's value needs the routing of about \dcMed{} times as many distinct experts per layer as the cache holds.
+token at a time then waits on host reads. We bound how fast such decoding can be on a given machine, measure where the
+remaining time goes, and price knowledge of the future routing. The bound is the fewest host reads any expert cache of
+a given size can make (Belady's MIN with bypass) at the machine's measured read rate. Our llama.cpp expert cache,
+faster than two other systems at most settings, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of the bound's speed on
+consumer machines at the smallest cache we test. Oracles built into the engine close about half of the remaining time.
+Caching the experts MIN would keep pays only if the engine keeps them: its in-step fetches, which copy misses into
+cache slots the policy did not choose, push them out. With those fetches off, MIN's set runs \hsGreedyZeroLowMin{} to
+\hsPlanZeroLowMax{} times as fast as the deployed cache without them on two machines, even when every cached expert is
+read twice. Policies
+without foresight recover at most \olCapLowMax\% of an oracle's gain. Half of foresight's value needs the routing of
+about \dcMed{} cache-fulls of distinct experts ahead. Every prediction was committed before its machines were rented.

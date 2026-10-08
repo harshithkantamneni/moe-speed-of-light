@@ -3,6 +3,22 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 9 October (early): review round 25 (6, 6; clarity 3, 3) and clarity pass 3
+
+Round 25 scored 6 / 6 (soundness 3 / 3, clarity 3 / 3). Both reproduced every number they checked. As asked, clarity
+stayed at 3, so its pointers went into a third pass:
+- Abstract cut to about 190 words, with the held-set result stated first and the terms defined in place.
+- Section 4 now states the in-step fetches up front; its 2x2 paragraph is headed "On the deployed read path, MIN's set
+  pays only when read once", and the new paragraph "Why: the in-step fetches push MIN's set out" fixes a wrong
+  comparator (0.77-0.79 compares Few-2R with and without fetches, not with the deployed cache).
+- "Reading once adds 0.02-0.16 of the deployed cache's speed" replaced everywhere in prose by "reading twice keeps
+  59-93% of reading once's gain".
+- Table 4's set row and Fig. 2's legend say "deployed read path", with a note pointing to Table 5.
+- Table 1 statuses match the prediction log (held vs held (point)); the 2x2's machine count reads 10 + 5.
+- The claim index (Appendix D) now maps each claim to its data tables as well as its clauses.
+- Tables are scaled down when too wide, never up (narrow appendix tables had printed at about twice body size).
+- IEEE: Eq. (1)'s number no longer wraps; the supplement's references are numbered S1, S2, ...
+
 ## 8 October (night): job 113, the two-read path without in-step fetches; clarity pass 2; number check 22
 
 **Status for Harshith (read this first).** Job 113 (registered, gpu f174e0a, pushed 32 s before the rentals) ran on

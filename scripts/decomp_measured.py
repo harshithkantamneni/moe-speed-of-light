@@ -177,7 +177,7 @@ def figure(R, path, NEW=()):
         ax.set_ylim(0.2, 1.25)
     axes[0].set_ylabel("time per token / deployed", fontsize=7)
     nf = sum(1 for r in R if r["C"] == 14 and r["ratio"] >= FAST); ns = sum(1 for r in R if r["C"] == 14 and r["ratio"] < FAST)
-    h = [Line2D([0], [0], color=dark, lw=2.0, marker="o", ms=3.4, label="median: MIN-2R first (MIN's set, 2 reads)"),
+    h = [Line2D([0], [0], color=dark, lw=2.0, marker="o", ms=3.4, label="median: MIN-2R first (MIN's set, deployed read path)"),
          Line2D([0], [0], color=dark, lw=1.6, ls=(0, (3, 1.5)), marker="s", ms=3.4, mfc="white", label="median: Dep-1R first (deployed set, 1 read)"),
          Line2D([0], [0], color=blue, lw=0.8, label=f"each machine, link/CPU $\\geq$ {FAST} ({nf})"),
          Line2D([0], [0], color=orange, lw=0.8, label=f"link/CPU $<$ {FAST} ({ns})")]
@@ -190,7 +190,7 @@ def figure(R, path, NEW=()):
 
 
 def table(M, has_new=False):
-    meas = [("setalone", "MIN's set alone (\\MinTwo)"),
+    meas = [("setalone", "MIN's set, deployed read path$^\\ast$ (\\MinTwo)"),
             ("oncealone", "One read alone (\\DepOne)"),
             ("together", "Both (\\MinOne)"),
             ("ahead", "Then the read-ahead oracle"),
@@ -210,7 +210,8 @@ def table(M, has_new=False):
                 "of jobs 096--101 that ran every state. " + ("\\emph{New}: the " + M["dmNewN"] + " machines of job 109, rented for "
                 "this test, whose population (desktop-class, link-to-CPU ratio at least 0.5) and predictions were registered "
                 "before any of them started; the job's deadline cut one machine's 25\\% round. " if has_new else "") + "The first two rows each change one thing; the third "
-                "changes both. \\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap. The last three "
+                "changes both. $^\\ast$On the deployed read path the in-step fetches displace MIN's set, so this row does not "
+                "measure MIN's set held (\\cref{tab:job113} does, with them off). \\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap. The last three "
                 "rows are attributed, not measured: they split \\emph{left} with $T_{\\text{GPU}}$ as in \\cref{eq:demand} "
                 "(" + M["dmTgpu"] + "\\,ms, the smallest profile) and the read-ahead oracle's reads beyond $R^\\star$ at "
                 "$B_{\\mathrm{host}}$; the residual is what they leave. Probe sensitivity: with every machine's $B_{\\mathrm{host}}$ 10\\% "

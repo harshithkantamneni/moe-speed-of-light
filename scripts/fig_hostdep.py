@@ -12,9 +12,10 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-SERIES = [("fetchplan", "MIN, fewest admissions, 1 read", "#b8860b", "*"), ("fetch", "MIN, 1 read", "#1f4e79", "o"), ("both3p", "read-ahead oracle", "#2e8b57", "s"),
-          ("bypass", "MIN, 2 reads", "#c55a11", "^"), ("foa", "deployed, 1 read", "#7a7974", "v"),
-          ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "layer-ahead copy", "#a4243b", "P")]
+SERIES = [("fetchplan", "Few-1R", "#b8860b", "*"), ("fetch", "MIN-1R", "#1f4e79", "o"), ("both3p", "read-ahead oracle", "#2e8b57", "s"),
+          ("bypass", "MIN-2R", "#c55a11", "^"), ("foa", "Dep-1R", "#7a7974", "v"),
+          ("aa", "admit every miss", "#4a3aa7", "D"), ("pf", "LA (layer-ahead copy)", "#a4243b", "P")]
+CARD2 = "#7b2cbf"   # the RTX 4090 machines of the registered second-card tests (jobs 111 and 112)
 CELLS = ["gpt-oss 11%", "gpt-oss 25%"]
 
 
@@ -115,17 +116,20 @@ def main():
                     b, a = np.polyfit(np.log(xs), ys, 1)
                     xx = np.linspace(min(xs), max(xs), 50)
                     ax.plot(xx, a + b * np.log(xx), "-", color=col, lw=0.8, alpha=0.6)
-        # the RTX 4090 machines of the registered second-card test (job 111): hollow markers, not in the fits or macros
-        pj = P("prereg", "job111.json")
-        if os.path.exists(pj):
-            C = "14" if lab == "gpt-oss 11%" else "32"
+        # the RTX 4090 machines of the registered second-card tests (jobs 111 and 112): the series' marker in purple, not
+        # in the fits or the macros
+        C = "14" if lab == "gpt-oss 11%" else "32"
+        for pj in (P("prereg", "job111.json"), P("prereg", "job112.json")):
+            if not os.path.exists(pj):
+                continue
             for h in json.load(open(pj))["hosts"]:
-                c = h["cells"].get(C)
-                if not h.get("valid") or not c or not c.get("rounds"):
+                c = h["cells"].get(C) or h["cells"].get(int(C))
+                if not h.get("valid") or h.get("card", "4090") != "4090" or not c or not c.get("rounds"):
                     continue
                 for k, name, col, mk in SERIES:
                     if k in PLOTTED and k in c["ratio"]:
-                        ax.plot([h["ratio"]], [c["ratio"][k]], mk, color=col, mfc="none", ms=6, mew=1.0, ls="none", zorder=6)
+                        ax.plot([h["ratio"]], [c["ratio"][k]], mk, color=CARD2, ms=11 if mk == "*" else 5.5, mec="white",
+                                mew=0.5, ls="none", zorder=6)
         ax.set_xscale("log")
         ax.set_xlim(0.22, 1.25)
         ax.set_xticks([0.25, 0.35, 0.5, 0.7, 1.0])
@@ -138,8 +142,8 @@ def main():
     from matplotlib.lines import Line2D
     hh, ll = axs[1].get_legend_handles_labels()
     if os.path.exists(P("prereg", "job111.json")):
-        hh.append(Line2D([0], [0], marker="o", color="#52514e", mfc="none", ls="none", ms=6, mew=1.0))
-        ll.append("hollow: RTX 4090 (registered test)")
+        hh.append(Line2D([0], [0], marker="o", color=CARD2, mec="white", ls="none", ms=5.5, mew=0.5))
+        ll.append("purple: RTX 4090 (registered tests)")
     axs[1].legend(hh, ll, fontsize=7, frameon=False, loc="center left", bbox_to_anchor=(1.01, 0.5))
     fig.tight_layout(pad=0.3)
     fig.savefig(P("paper", "figs", "hostdep.pdf"))

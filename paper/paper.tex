@@ -1,14 +1,15 @@
 \documentclass{article}
 \usepackage{microtype,graphicx,booktabs,hyperref}
-% Submission build: anonymous. For the camera-ready version use \usepackage[accepted]{mlsys2025}.
+% Submission build: anonymous, on the MLSys style file (mlsys2025.sty, the latest we have). For the camera-ready version use \usepackage[accepted]{mlsys2025}.
 \usepackage{mlsys2025}
 \usepackage{amsmath,amssymb,amsthm,xcolor,longtable,siunitx,multirow,array}
 \usepackage{needspace}
 \usepackage[capitalise]{cleveref}
-\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+\hypersetup{pdfsubject={MLSys 2027 submission},colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
 \newtheorem{proposition}{Proposition}
 \renewcommand{\dbltopfraction}{0.85}\setcounter{dbltopnumber}{2}
 \newcommand{\pend}{\textcolor{red}{[pend.]}}
+\input{names}
 \input{wsg_numbers}
 \input{wsg_numbers2}
 \input{wsg_grid}
@@ -69,16 +70,14 @@
 \begin{abstract}
 A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
 token at a time then waits on host reads. We bound how fast such decoding can be on a given machine, measure where the
-rest of the time goes, and ask what knowing the future routing is worth. Belady's MIN with bypass reads the fewest
-experts a cache of $C$ slots per layer can, so MIN's reads at the machine's probed read rate bound every system that
-executes the exact routing. Our llama.cpp expert cache, faster than two other systems at most configurations, runs at
-\dcShareMinLowMin--\dcShareMinLowMax\% of that bound's speed at the smallest gpt-oss budget on machines with consumer
-processors. Oracles built into the engine account for the rest. Caching the experts MIN would keep and reading each
-admitted expert once, instead of twice, close almost none of the gap alone but \dmNewTogetherLow\% together, on
-fast-link machines rented for a test we registered before they ran; online policies built from the engine's own
-mechanisms recover at most \olCapLowMax\% of the oracles' gain there. On a second card, an RTX 4090 behind slow links,
-a trend in the link-to-CPU ratio fitted on RTX 5090 machines predicted the oracles' speed within \cxDevLowMax\%. Half of foresight's value needs the routing of
-about \dcMed$\,C$ distinct experts per layer ahead, \vmHalfLow{} tokens at the smallest gpt-oss budget.
+remaining time goes, and price knowledge of the future routing. The bound is the host reads of Belady's MIN with bypass,
+the fewest that any cache holding $C$ experts per layer can make, at the machine's probed read rate. Our llama.cpp
+expert cache, faster than two other systems at most configurations, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of
+the bound's speed on machines with consumer processors at the smallest budget we test. Oracles inside the engine
+account for the rest of the time: caching the experts MIN would keep pays only if each admitted expert is also read
+once instead of twice, and the two changes together close \dmNewTogetherLow\% of the gap in a test registered before
+its machines were rented. Policies without foresight recover at most \olCapLowMax\% of the oracles' gain. Half of
+foresight's value needs the routing of about \dcMed$\,C$ distinct experts per layer ahead.
 \end{abstract}
 ]
 \printAffiliationsAndNotice{}
@@ -108,19 +107,21 @@ bound's speed at the smallest gpt-oss budget on machines with consumer processor
 \audInclassMed\%.
 
 \textbf{What is cached and how it is read pay only together} (\cref{sec:gap}). At the smallest gpt-oss budget, caching
-MIN's set while still reading each admission twice closes almost none of the gap, and so does reading once while caching
-the deployed set. Doing both closes \dmAllTogetherLow\% of the gap on \dmMachines{} panel machines and
-\dmNewTogetherLow\% on \olN{} fast-link machines rented later for a registered test. What the oracles leave we
-attribute to the GPU's own work in series with the reads and to the oracle's extra reads (\cref{tab:gap}).
+MIN's set on the deployed read path, where the CPU serves a miss and a background copy fills its slot, closes almost none
+of the gap; fetching the deployed set into its slots in the step closes none either. Doing both closes
+\dmAllTogetherLow\% of the gap on \dmMachines{} panel machines, and \dmNewTogetherLow\% on \olN{} machines rented
+later for a registered test. %JOB112-INTRO
+What the oracles leave we attribute to the GPU's own work in series with the reads and to the oracles' extra reads
+(\cref{tab:gap}).
 
-\textbf{Without foresight, little of it is reachable} (\cref{sec:online}). Online policies built from the engine's
-admission margin and its layer-ahead prediction recover at most \olCapLowMax\% of the oracles' gain on those machines:
-they still read as many experts as the deployed cache.
+\textbf{Without foresight, little of it is reachable} (\cref{sec:online}). Four variants of the deployed cache built
+from the engine's admission margin and its layer-ahead prediction recover at most \olCapLowMax\% of the read-ahead
+oracle's gain on those machines: they still read as many experts as the deployed cache.
 
-\textbf{The machine decides how foresight should be spent} (\cref{sec:foresight}). Each admitted expert should be
-read once, with as few admissions as optimality allows, on the read path the link-to-CPU ratio favours. A trend in that
-ratio, fitted on RTX 5090 machines, predicted the oracles' speed on slow-link RTX 4090 machines within \cxDevLowMax\%;
-on fast links, machines scatter more around it.
+\textbf{The machine decides how foresight should be spent} (\cref{sec:foresight,sec:secondcard}). Each admitted
+expert should be read once, with as few admissions as optimality allows, on the read path the link-to-CPU ratio
+favours. A trend in that ratio, fitted on RTX 5090 machines, predicted the oracles' speed on three slow-link RTX 4090
+machines within \cxDevLowMax\%; on fast links, machines scatter more around it. %JOB112-CARD
 
 \textbf{Foresight has a price} (\cref{sec:horizon}). Half of its value needs the routing of about \dcMed$\,C$ distinct
 experts per layer ahead, on \fsModels{} models; exact routing of the next token recovers at most a third of it on our
@@ -129,19 +130,20 @@ workload.
 \Cref{sec:builders} turns these results into rules for system builders.
 
 \begin{table}[t]\centering\footnotesize
-\caption{Our claims, how each was tested, and on how many machines. \emph{Pre-specified}: predicted in a job script
-committed before the machines started, with the outcome (\cref{app:prereg}); \emph{post hoc}: found in the data it
-describes; \emph{derived}: follows from the definitions.}\label{tab:claims}
+\caption{Our claims, how each was tested, and on how many machines. \emph{Pre-specified}: predicted, with its threshold,
+in a job script committed before the machines started (\cref{app:prereg} scores every one); \emph{post hoc}: found in
+the data it describes; \emph{derived}: follows from the definitions. \emph{Mach.}: machines that passed every check;
+``15${}+{}$5'' is the panel and, separately, the machines rented later for the registered test.}\label{tab:claims}
 \setlength\tabcolsep{2.5pt}
 \begin{tabular}{@{}p{0.41\linewidth}p{0.375\linewidth}rr@{}}\toprule
 Claim & Test and outcome & Mach. & \S \\\midrule
 MIN's reads at the probed rate bound any exact-routing cache with $C$ slots per layer & derived & -- & \ref{sec:limit} \\
-The bound's read time is nearly reachable & pre-specified bands; \jdFailed{} of \jdClauses{} clauses failed & \jdHosts & \ref{sec:limit} \\
-Our cache leads FreeToken and llama.cpp at most configurations & pre-specified; held on host B, failed on host S & B, S & \ref{sec:limit} \\
-MIN's set and one read pay only together (11\%, fast links) & pre-specified sign: held on \dmRegHeld{} of \dmRegN{} panel machines, and on \dmNewInteractionPosLow{} of \olN{} new ones & \dmMachines${}+{}$\olN & \ref{sec:gap} \\
-Online policies recover little of the oracles' gain & pre-specified ($\le$\,35\% per machine); at most \olCapLowMax\% & \olN & \ref{sec:online} \\
-The link-to-CPU ratio predicts the oracles' speed, on slow links on two cards & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s: within \cxDevLowMax\%; misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \dmMachines${}+{}$\cxN & \ref{sec:secondcard} \\
-MIN's fewest-admission schedule gains on every machine that ran it stably & pre-specified on \rbPlanRegMachines{} machines, held & \rbPlanMachines & \ref{sec:foresight} \\
+The bound's read time is nearly reachable & pre-specified: $\ge$\,50\% of it per layer; \jdFailed{} of \jdClauses{} clauses failed & \jdHosts & \ref{sec:limit} \\
+Our cache is faster than FreeToken and llama.cpp at most configurations & pre-specified ratios on host B, held; repeated on host S they fell outside $\pm$0.06 of B's at \scRatioFailCells{} of six configurations, still faster at \bothLeadCells{} of \bothCells{} in all & B, S & \ref{sec:limit} \\
+MIN's set and one read pay only together (gpt-oss 11\%, fast links) & pre-specified: interaction $>$\,0 on every machine; held on \dmRegHeld{} of \dmRegN{} panel machines and on \dmNewInteractionPosLow{} of \olN{} new ones & \dmMachines${}+{}$\olN & \ref{sec:gap} \\
+Policies without foresight recover little of the oracles' gain & pre-specified: capture $\le$\,35\% per machine; at most \olCapLowMax\% & \olN & \ref{sec:online} \\
+The link-to-CPU ratio predicts the oracles' speed on a second card & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s at ratios \cxRatioMin--\cxRatioMax: within 0.10 in log, held (\cxDevLowMax\%); misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \cxN & \ref{sec:secondcard} \\
+MIN's fewest-admission schedule gains on every machine that ran it stably & pre-specified on \rbPlanRegMachines{} machines: $>$\,1, held & \rbPlanMachines & \ref{sec:foresight} \\
 Half of foresight's value needs $\approx$\dcMed$\,C$ distinct experts ahead & post hoc, on \fsModels{} models' traces & -- & \ref{sec:horizon} \\
 A closed-form account of the time & post hoc; \rtFailedN{} of \rtN{} pre-specified tests failed & -- & \ref{app:relation} \\
 \bottomrule
@@ -155,9 +157,9 @@ A closed-form account of the time & post hoc; \rtFailedN{} of \rtN{} pre-specifi
 in its read time, and the distance of our cache and of published systems from it (\cref{sec:limit}).
 \item \textbf{A measured decomposition of the gap} with oracles inside a real engine, on \dmMachines{} machines and
 replicated on \olN{} more under a registered test (\cref{sec:gap}).
-\item \textbf{How foresight must be spent, and what online policies recover}: read once, with the fewest admissions,
-on the path the machine favours, with a trend in the link-to-CPU ratio that predicted a second card's oracles on slow
-links; online, the engine's own mechanisms recover little (\cref{sec:foresight}).
+\item \textbf{How foresight must be spent}: read once, with the fewest admissions, on the path the machine favours
+(\cref{sec:foresight}); without foresight, the engine's own mechanisms recover little, and a trend in the link-to-CPU
+ratio predicted a second card's oracles on slow links (\cref{sec:transfer}).
 \item \textbf{A price on foresight} by horizon and accuracy, and a horizon rule in distinct experts across \fsModels{}
 models (\cref{sec:horizon}).
 \item \textbf{An open record}: every prediction committed before the machine it concerns started, including the ones
@@ -170,9 +172,11 @@ expert). Qwen3-30B-A3B has 48 layers of 128 experts, top-8, in BF16 (9.44\,MB pe
 problems, and the cache carries over between problems, as in one user's session. The system comparison decodes 256
 tokens of each of the 30 problems through each system's server. The engine experiments replay the model's own greedy
 output, teacher-forced, so that every configuration sees the same routing. A \emph{budget} is the share $C/E$ of each
-layer's experts that fit in GPU slots. The two smallest budgets of each model are \emph{host-bound}: host reads, not
-the GPU, limit their speed in \cref{eq:limit}, except at gpt-oss 25\% on the few machines with the fastest host memory,
-where the GPU term binds. Most results are at the two host-bound gpt-oss budgets, 11\% and 25\%.
+layer's experts that fit in GPU slots: gpt-oss 11\% and 25\% are $C{=}14$ and $C{=}32$ of 128. The two smallest budgets
+of each model are \emph{host-bound}: at the GPU's datasheet rate, host reads, not the GPU, limit their speed in
+\cref{eq:limit}, except at gpt-oss 25\% on the few machines with the fastest host memory. At the GPU's measured batch-1
+rate the GPU term also binds at gpt-oss 25\% on both hosts of \cref{tab:headline}. Most results are at gpt-oss 11\% and
+25\%.
 
 \paragraph{The engine.} Our cache is a 3{,}500-line patch to llama.cpp \citep{llamacpp}. Each MoE layer has $C$ GPU
 slots. A \emph{miss} is read from host memory in one of two ways: CPU helper threads run it, or it is \emph{fetched}
@@ -191,18 +195,22 @@ the same expert.}\label{fig:step}
 \paragraph{Terms.} \emph{MIN} is Belady's optimum with bypass \citep{belady1966study,bypassopt}: it \emph{admits} a miss
 only if some resident is needed later than the miss, which gives the most hits possible with $C$ slots
 \citep{carlisle1995kcoloring,jain2016hawkeye}. Many schedules reach that optimum. The \emph{greedy} one admits whenever
-it may; the \emph{fewest-admission} one admits as rarely as any of them. An admitted expert is read \emph{once}, copied
-into its slot before the GPU runs it, or \emph{twice}, served by the CPU and copied in the background. It is read
-\emph{late} if the copy waits for the router, and \emph{ahead} if the copy is issued a few steps early. \emph{Oracles}
-read the future routing from a trace recorded on the same machine. \Cref{tab:configs} lists every configuration;
-\cref{app:names} maps the codes of the appendix tables to these names.
+it may; the \emph{fewest-admission} one admits as rarely as any of them. An admitted expert is read \emph{once}
+(\cfg{1R}), fetched into its slot in the step that needs it, or \emph{twice} (\cfg{2R}), served by the CPU in that step
+and copied in the background; the engine publishes a background copy at the start of the second step after the one that
+admitted it. A copy issued a few steps before the expert's use is read \emph{ahead}. \emph{Oracles} read the future
+routing from a trace recorded on the same machine. Configurations are named by set and reads: \MinOne{} is MIN's greedy
+set read once, \MinTwo{} the same set read twice, \DepOne{} the deployed set read once; \cref{tab:configs} lists every
+configuration, and \cref{app:names} maps the codes of the appendix tables to these names.
 
 \paragraph{Machines.} Every machine is a rented host with one RTX 5090 (an RTX 4090 in \cref{sec:secondcard}). Each
 runs our bandwidth probe before any model run. It reads host memory from CPU threads, at the number of helper threads
 the engine uses ($B_c$), and over PCIe into the GPU, at the rate the engine's copies use ($B_p$); $B_{\mathrm{host}}$ is
-its highest reading by any method. The \emph{link-to-CPU ratio} is $B_p/B_c$, and a link is \emph{fast} when the ratio
-is at least 0.5, \emph{slow} otherwise. Ryzen, Core and Threadripper parts are
-\emph{consumer} processors; EPYC, Xeon and engineering-sample parts are \emph{server} processors.
+its highest reading by any method. The \emph{link-to-CPU ratio} is $B_p/B_c$. We call a link \emph{fast} when the ratio
+is at least 0.5 and \emph{slow} otherwise; the term compares the link with the CPU, not with other links, and we drew
+the 0.5 line after the panel's data, before the registered tests of \cref{sec:transfer}. Ryzen, Core and
+Threadripper parts, high-end desktop ones included, are \emph{consumer} processors; EPYC, Xeon and engineering-sample
+parts are \emph{server} processors.
 
 \input{tab_configs}
 
@@ -210,17 +218,17 @@ is at least 0.5, \emph{slow} otherwise. Ryzen, Core and Threadripper parts are
 times. Machines differ far more than problems: two panel machines with the same CPU model differ by up to
 \pnSameCpuDiffMax\% in the deployed cache's time, while machines rented again came within \jiRelaunchMax\% (RTX 5090) and \cxRelaunchMax\% (RTX 4090) of
 their earlier runs. The machine is therefore the unit. Claims are about orderings that hold on every machine of a stated class, and
-summaries over machines are bootstrapped over machines \citep{kalibera2013rigorous}. A \emph{launch} is one rental; in
+summaries over machines carry 95\% $t$-intervals over machines, since with 3 to 15 machines a percentile bootstrap over machines is too narrow \citep{kalibera2013rigorous}; comparisons on one machine carry 95\% intervals over problems (a paired bootstrap). A \emph{launch} is one rental; in
 the later experiments each configuration also ran in two or three separate processes per launch. A machine
 \emph{ran stably} when its outputs matched the reference and, where it ran more than one process, their times agreed
 within 2\%; jobs 104 and 105 ran each configuration in a single process, so only the first condition applies to them. Every experiment's predictions were committed to a public branch before its machine started;
 \cref{app:prereg} scores all of them.
 
-\paragraph{Yardsticks.} Four recur, one per section. \Cref{sec:limit} gives a system's speed as a share of the speed
-of \cref{eq:limit}, \emph{the bound}; the two other bounds it derives are named where they are used. \Cref{sec:gap} splits the \emph{gap}, the deployed cache's time beyond \cref{eq:limit}, into shares.
-\Cref{sec:foresight} gives speeds relative to the deployed cache on the same machine, and an online policy's
-\emph{capture}, its share of the read-ahead oracle's gain. \Cref{sec:horizon} gives a window's
-share of what full foresight saves over admitting every miss.
+\paragraph{Yardsticks.} The common one is speed relative to the deployed cache on the same machine (``1.22$\times$'').
+Three others are shares: \cref{sec:limit} gives a system's speed as a share of the speed of \cref{eq:limit}, \emph{the
+bound}; \cref{sec:gap} splits the \emph{gap}, the deployed cache's time beyond \cref{eq:limit}, into shares; and
+\cref{sec:transfer} gives a policy's \emph{capture}, its share of the read-ahead oracle's gain over the deployed cache.
+\Cref{sec:horizon} also gives a window's share of what full foresight saves over admitting every miss, and says when.
 
 \section{How Fast Could It Be?}\label{sec:limit}
 Consider any system that executes the model's exact routing with at most $C$ experts of each layer resident on the
@@ -284,8 +292,8 @@ bound's reads and so the published percentages.
 
 \section{Where the Seconds Go}\label{sec:gap}
 The gap is the deployed cache's time beyond \cref{eq:limit}. Oracles in the engine remove three parts of it: what is
-cached (MIN's set instead of the deployed one), how it is read (each admitted expert once instead of twice), and when
-(the read-ahead oracle issues its copies a few steps early). We change the first two alone and together, on the
+cached (MIN's set instead of the deployed one), how it is read (each admitted expert fetched once in the step, instead of
+served by the CPU and copied in the background), and when (the read-ahead oracle issues its copies a few steps early). We change the first two alone and together, on the
 \dmMachines{} panel machines that ran every state and, under a test registered before they started, on \olN{} machines
 rented for it (\cref{fig:staircase,tab:gap}).
 
@@ -301,14 +309,16 @@ machines of the registered test. Thick dark lines: medians over the fast-link pa
 \end{figure*}
 \input{tab_dm}
 
-\paragraph{What is cached and how it is read pay only together (registered).} At gpt-oss 11\%, caching MIN's set while
-still reading each admission twice closes \dmAllSetaloneLow\% of the gap, and reading each admission once while caching
-the deployed set closes \dmAllOncealoneLow\%. Doing both closes \dmAllTogetherLow\% on the panel and
-\dmNewTogetherLow\% on the new machines. MIN's set admits more experts than the deployed one, and each extra admission
-costs a second read unless it is read once; read twice, its admissions also land late, so that arm misses more. We
-registered the sign of this interaction on the \dmRegN{} machines of the panel's main job (it held on \dmRegHeld) and again on
-the new machines (it held on \dmNewInteractionPosLow{} of \olN). At 25\%, where admissions are fewer, MIN's set alone
-already closes \dmAllSetaloneMid\%.
+\paragraph{What is cached and how it is read pay only together (registered: a positive interaction on every
+machine).} At gpt-oss 11\%, \MinTwo, MIN's set on the deployed read path, closes \dmAllSetaloneLow\% of the gap, and
+\DepOne, the deployed set read once, closes \dmAllOncealoneLow\%. \MinOne, both changes, closes \dmAllTogetherLow\% on the
+panel and \dmNewTogetherLow\% on the new machines. MIN's set admits more experts than the deployed one, and on the
+deployed path each extra admission costs a second read. Its copies also land two steps after the admission, so
+\MinTwo{} misses more than \MinOne: the factor is the read path, which sets both the number of reads and when a copy
+lands. %JOB112-GAP
+We registered the sign of this interaction on the \dmRegN{} machines of the panel's main job (it held on \dmRegHeld) and
+again on the new machines (it held on \dmNewInteractionPosLow{} of \olN). At 25\%, where admissions are fewer, MIN's set
+alone already closes \dmAllSetaloneMid\%.
 
 \paragraph{What is left.} The read-ahead oracle closes another \dmAllAheadLow\% at 11\%, and \dmAllLeftLow\% of the gap
 remains (\cref{tab:gap}). On fast links, two named parts account for it. The oracle still reads its remaining misses after their router
@@ -326,7 +336,7 @@ a plainer form, before \rtN{} experiments: \rtFailedN{} failed and \rtInconclN{}
 \section{How Foresight Must Be Spent}\label{sec:foresight}
 This section measures each way of spending foresight as a speed relative to the deployed cache on the same machine. A
 running example: on a Ryzen 9 9950X at gpt-oss 11\%, \cref{eq:limit} gives \slExBoundMs\,ms per token and
-\cref{eq:demand} \slExDemandMs. The deployed cache takes \fsExBaseMs, MIN, 1 read, \fsExFetchMs, and the read-ahead
+\cref{eq:demand} \slExDemandMs. The deployed cache takes \fsExBaseMs\,ms, \MinOne{} \fsExFetchMs, and the read-ahead
 oracle \fsExPacedMs.
 
 \begin{figure*}[t]\centering
@@ -334,68 +344,75 @@ oracle \fsExPacedMs.
 \caption{What foresight is worth, by how it is spent: speed of each configuration of \cref{tab:configs} relative to the
 deployed cache on the same machine, at the six budgets ($^\dagger$host-bound). Three machines at every budget (O3--O5:
 two Ryzen 9 9950X and a 9950X3D); the \pnHosts{} panel machines (grey ticks) at the two host-bound gpt-oss budgets, and
-\pnHostsQlow{} of them at Qwen3 12.5\%. \emph{MIN, 1 read} gains at every budget on these machines; reading twice or
+\pnHostsQlow{} of them at Qwen3 12.5\%. \MinOne{} gains at every budget on these machines; reading twice or
 admitting what MIN bypasses gains at some budgets and loses at others.}
 \label{fig:factorial}
 \end{figure*}
 
-\paragraph{Read each admitted expert once (registered).} MIN, 1 read, is faster than the deployed cache at
-every budget on the three factorial machines (\cref{fig:factorial}). The usual ways of spending foresight waste reads.
-Prefetching without bypass, Belady's original rule, admits experts MIN would bypass. Serving a miss on the CPU before
-copying it reads every admission twice. At the smallest budget of each model these gain at most \fxUsualLowGainMax\% or
-lose, a trade-off known for disks \citep{cao1995prefetching} and CPU caches \citep{jain2018prefetch}.
+\paragraph{Read each admitted expert once (registered: gain bands per budget on two of the machines).} \MinOne{} is
+faster than the deployed cache at every budget on the three factorial machines (\cref{fig:factorial}). The usual ways of
+spending foresight waste reads. Prefetching without bypass, Belady's original rule, admits experts MIN would bypass.
+Serving a miss on the CPU before copying it reads every admission twice. At the smallest budget of each model these gain
+at most \fxUsualLowGainMax\% or lose, a trade-off known for disks \citep{cao1995prefetching} and CPU caches
+\citep{jain2018prefetch}.
 
-\paragraph{Admit as rarely as optimality allows (registered).} The greedy schedule admits whenever MIN allows and may
-evict an expert again before its next use. The fewest-admission schedule makes \jfCopyRatioMin--\jfCopyRatioMax{} of
-the greedy one's copies for the same hits in replay. Read once in the step at gpt-oss 11\%, it beat the deployed cache on all
-\rbPlanMachines{} machines that ran it stably, by a geometric mean of \rbPlanMean$\times$ (registered on
-\rbPlanRegMachines{} of them). Counting the machines that ran unsteadily as well, it lost on \rbPlanUnstLost{}, the two
-with the slowest links (\cref{app:more}).
+\paragraph{Admit as rarely as optimality allows (registered: faster than the deployed cache).} The greedy schedule
+admits whenever MIN allows and may evict an expert again before its next use. The fewest-admission schedule makes
+\jfCopyRatioMin--\jfCopyRatioMax{} of the greedy one's copies for the same hits in replay. Read once in the step at
+gpt-oss 11\% (\FewOne), it beat the deployed cache on all \rbPlanMachines{} machines that ran it stably, by a geometric
+mean of \rbPlanMean$\times$ (registered on \rbPlanRegMachines{} of them). Counting the machines that ran unsteadily as
+well, it lost on \rbPlanUnstLost{}, the two with the slowest links (\cref{app:more}).
+%JOB112-TIMING
 
-\paragraph{The link-to-CPU ratio predicts the oracles' speed on a second card (registered).}\label{sec:secondcard}
+\section{Without Foresight, and on a Second Card}\label{sec:transfer}
+The oracles show what foresight is worth on the machines that measured it. Two questions follow: how much of it a
+policy without foresight can reach, and whether the machine's link-to-CPU ratio predicts the oracles' speed on hardware
+the trend was not fitted on. Both were registered before their machines were rented (\cref{tab:job109}).
+
+\subsection{The engine's own mechanisms recover little}\label{sec:online}
+Two of the engine's mechanisms act on the same levers without foresight. \Margin, a larger admission margin, admits
+less: it cuts the deployed cache's host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at 11\%. \LA, the layer-ahead
+copy, applies layer $l{+}1$'s router to layer $l$'s input and copies the top predicted expert ahead, so that an
+admission is read once, by the GPU. \LAOne{} adds fetching every admission in the step, and \LAOneM{} also admits less.
+We registered that none of the four would run faster than 1.10$\times$ the deployed cache or capture more than 35\% of
+the read-ahead oracle's gain on any machine. At 11\% the best of them runs \olBestLowMin--\olBestLowMax$\times$ the
+deployed cache, at most \olCapLowMax\% of the read-ahead oracle's gain. The counters say why: they still read
+\olReadsOnlineLowMin--\olReadsOnlineLowMax$\,R^\star$ host experts per token, as many as the deployed cache. A prediction
+one layer ahead moves reads earlier but does not avoid them. On the slow-link RTX 4090s of \cref{sec:secondcard}, the
+variants built on the layer-ahead copy lose time (\cxLayerLowMin--\cxLayerLowMax$\times$ at 11\%), as registered, and
+\Margin{} is the best, at \cxBestLowMin--\cxBestLowMax$\times$: up to \cxCapLowMax\% of an oracle gain that is smaller
+there.
+
+\input{tab_job109}
+
+\subsection{The link-to-CPU ratio on a second card}\label{sec:secondcard}
 On the RTX 5090 machines, the gain of every configuration that moves reads from the CPU to the link follows the
-link-to-CPU ratio: for MIN, 1 read, Spearman \rcFetchRatio{} [\rcFetchRatioLo, \rcFetchRatioHi] over \rcFetchRatioN{}
+link-to-CPU ratio: for \MinOne, Spearman \rcFetchRatio{} [\rcFetchRatioLo, \rcFetchRatioHi] over \rcFetchRatioN{}
 machines (\cref{fig:hostdep}). We froze that trend on the \dmMachines{} panel machines, one line in the log of the ratio
-for each of MIN, 1 and 2 reads, the deployed cache read once, and the read-ahead oracle, and predicted from it their
-speed on RTX 4090 machines, a slower card behind a PCIe 4.0 link, before any of them ran. On the \cxNWord{} that passed
-every check, at ratios \cxRatioMin--\cxRatioMax, MIN, 1 read, and the read-ahead oracle came within \cxDevLowMax\% of the
-prediction at 11\% and \cxDevMidMax\% at 25\% (\cref{tab:job109}). Applied after the fact to the new RTX 5090s of
-\cref{sec:gap}, all fast-linked, the same trend misses \olTrendMissWord{} of their \olTrendCells{} cells by more than the
-test's band, by up to \olTrendDevMax\%: on fast links the ratio sets the direction of the gain, not its size. At the RTX
-4090s' ratios MIN, 1 read, runs \cxFetchLowMin--\cxFetchLowMax$\times$ the deployed cache at 11\%; on slow-link RTX 5090s,
-MIN's fewest-admission set paid instead when the CPU served it and the copies ran in the background
-(\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ over the two budgets on those with ratios of
-\jkSlowRatioMin--\jkSlowRatioMax), a path we did not run on the RTX 4090s. The
-first launch of these three machines stopped after one round, because its output check used the RTX 5090's reference
-loss and the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration; we relaunched them with the card's
-own reference and the same predictions (\cref{app:prereg}).
+for each of \MinOne, \MinTwo, \DepOne{} and the read-ahead oracle, and registered that their speed on RTX 4090 machines,
+a slower card behind a PCIe 4.0 link, would fall within 0.10 of it in log. On the \cxNWord{} machines that passed every
+check, all at ratios \cxRatioMin--\cxRatioMax, \MinOne{} and the read-ahead oracle came within \cxDevLowMax\% of the
+prediction at 11\% and \cxDevMidMax\% at 25\% (\cref{tab:job109}), and every machine's 95\% interval over problems lies
+inside the band.\footnote{The first launch of these machines stopped after one round: its output check used the RTX
+5090's reference loss, and the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration. We relaunched them
+with the card's own reference and unchanged predictions; the first rounds, in the repository by then, had come within
+\cxFirstDevLowMax\% of the trend (\cref{app:prereg}).} %JOB112-CARD2
+Applied after the fact to the new RTX 5090s of \cref{sec:gap}, all fast-linked, the same trend misses
+\olTrendMissWord{} of their \olTrendCells{} cells by more than the band, by up to \olTrendDevMax\%: on fast links the
+ratio sets the direction of the gain, not its size. At the RTX 4090s' ratios \MinOne{} runs
+\cxFetchLowMin--\cxFetchLowMax$\times$ the deployed cache at 11\%; on slow-link RTX 5090s, \FewTwo{} paid instead
+(\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ over the two budgets on those with ratios
+\jkSlowRatioMin--\jkSlowRatioMax).
 
 \begin{figure*}[t]\centering
 \includegraphics[width=\textwidth]{figs/hostdep.pdf}
 \caption{The machine decides which way of spending foresight pays: speed relative to the deployed cache on the same
 machine against the machine's link-to-CPU ratio, at the two host-bound gpt-oss budgets. Every marker is a machine that
-passed our checks. Stars: MIN, fewest admissions, 1 read. Circles and triangles: MIN, 1 read (in the step) and MIN,
-2 reads (by the CPU, then copied), both on the greedy schedule. Crosses: the layer-ahead copy. Hollow markers: the RTX 4090 machines of the registered second-card test (\cref{sec:secondcard}), not
-used in the fits. Lines: least-squares fits in the log of the ratio, drawn for the trend only.}
+passed our checks. Stars: \FewOne. Circles and triangles: \MinOne{} and \MinTwo, both on the greedy schedule. Crosses:
+\LA. Purple markers: the RTX 4090 machines of the registered second-card test (\cref{sec:secondcard}), not used in the fits.
+Lines: least-squares fits in the log of the ratio, drawn for the trend only.}
 \label{fig:hostdep}
 \end{figure*}
-
-\paragraph{Without foresight, the engine's own mechanisms recover little (registered).}\label{sec:online} Two of the
-engine's mechanisms act on these levers without foresight. A higher admission margin admits less: it cuts the deployed
-cache's host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at 11\%. The layer-ahead copy applies layer $l{+}1$'s
-router to layer $l$'s input and copies the top predicted expert ahead, so that an admission is read once, by the GPU.
-Two online policies combine them with reading each admission once: the layer-ahead copy alone, and the layer-ahead copy
-with admitting less. We ran these and the two mechanisms alone beside the oracles on \olNWord{} machines rented for the
-test (\cref{tab:job109}). At 11\% the best of them runs
-\olBestLowMin--\olBestLowMax$\times$ the deployed cache: at most \olCapLowMax\% of the read-ahead oracle's gain
-(registered: at most 35\%). The counters say why. The online policies still read
-\olReadsOnlineLowMin--\olReadsOnlineLowMax$\,R^\star$ host experts per token, as many as the deployed cache: a prediction
-one layer ahead moves reads earlier but does not avoid them. On the slow-link RTX 4090s above, the
-policies built on the layer-ahead copy lose time (\cxLayerLowMin--\cxLayerLowMax$\times$ at 11\%), as registered, and
-admitting less is the best online policy, at \cxBestLowMin--\cxBestLowMax$\times$: up to \cxCapLowMax\% of an oracle gain
-that is smaller there.
-
-\input{tab_job109}
 
 \section{How Much Foresight Is Needed}\label{sec:horizon}
 The oracles know the whole future; a predictor would know part of it, imperfectly. We give the cache a \emph{window},
@@ -433,7 +450,7 @@ most \lfShareMaxGpt\% of the read gap on gpt-oss: their precision falls with the
 online cache about a tenth of its reads at 90\% draft acceptance and cost reads at 80\%
 \citep{spmoe,moespac2026,cascade2025} (\cref{app:traces}). Layer-ahead predictors
 \citep{hwang2024pregated,zhu2025preattention} reach \laRecallK\% recall in our engine but see less than one token ahead;
-built into an online policy, they recover at most \olCapLowMax\% of the oracle's gain (\cref{sec:online}).
+built into a policy without foresight, they recover at most \olCapLowMax\% of the oracle's gain (\cref{sec:online}).
 
 \section{What This Means for System Builders}\label{sec:builders}
 \begin{enumerate}\setlength\itemsep{1pt}
@@ -443,9 +460,9 @@ built into an online policy, they recover at most \olCapLowMax\% of the oracle's
 \item \textbf{Change what is cached and how it is read together.} Serving a miss on the CPU and then copying it into a
 slot reads it twice. A better set read twice, or the same set read once, closes almost none of the gap; where the link reads at least half as
 fast as the CPU, a better set read once closes about a third of it.
-\item \textbf{Do not expect an online policy to get there.} Admitting less and predicting one layer ahead recover at
-most \olCapLowMax\% of what foresight is worth where it is worth most, and the layer-ahead copy loses time on slow links;
-the reads they leave are the ones only foresight avoids.
+\item \textbf{Do not expect a policy without foresight to get there.} Admitting less and predicting one layer ahead
+recover at most \olCapLowMax\% of what foresight is worth where it is worth most, and the layer-ahead copy loses time on
+slow links; the reads they leave are the ones only foresight avoids.
 \item \textbf{Choose the read path by the link-to-CPU ratio.} Where the link is fast, copy misses into slots in the
 step; where it is slow, serve them on the CPU and copy in the background. On a second card the ratio predicted the
 oracles' speed at slow links. The probe that measures the
@@ -526,8 +543,8 @@ MIN's host reads at a machine's probed rate bound batch-1 MoE decode with expert
 time is nearly reachable. Our cache runs at \dcShareMinLowMin--\dcShareMinLowMax\% of it at the smallest gpt-oss
 budget on machines with consumer processors, and the other systems we measured run further from it. Oracles inside the engine show where the rest goes:
 caching MIN's set and reading each admitted expert once pay only together, a result we registered and replicated on
-machines rented for the test. Online policies built from the engine's own mechanisms recover little of it, because they
-read as much as the deployed cache. Which read path pays is set by the machine's link-to-CPU ratio, and a trend in that ratio
+machines rented for the test. Policies without foresight built from the engine's own mechanisms recover little of it,
+because they read as much as the deployed cache. Which read path pays is set by the machine's link-to-CPU ratio, and a trend in that ratio
 predicted the oracles' speed on a second card at slow links. What the oracles leave we attribute to the GPU's own work,
 in series with reads that wait for routing, and to the oracle's extra reads. Foresight's
 value has a price: half of it needs the routing of about \dcMed$\,C$ distinct experts per layer ahead, \vmHalfLow{}

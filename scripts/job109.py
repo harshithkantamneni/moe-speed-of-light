@@ -27,7 +27,7 @@ TGPU = 2.9402065        # the smallest profiled T_GPU, ms (scripts/decomp_measur
 RSTAR = {14: 38.315364583333334, 32: 15.340364583333333}
 LAB = {14: "11\\%", 32: "25\\%"}
 REQUIRED, WANTED = 4, 5
-A_NAMES = ("base", "foa", "bypass", "fetch", "both3p", "dk", "pf")
+A_NAMES = ("base", "foa", "bypass", "fetch", "both3p", "dk", "pf", "fetchplan", "bypassplan", "bypassplanS")
 B_NAMES = ("base", "R1", "R2")
 REAL = ("dk", "pf", "R1", "R2")
 num = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
@@ -73,7 +73,8 @@ def counters(d, C, rd, pr, n):
 
 def boot_cell(pp, nb=2000, seed=109):
     """95% intervals over problems (resampled once per draw, paired across configurations and rounds) of each speed
-    ratio vs its process's base (geometric mean over rounds), of the best online policy's ratio, and of its capture"""
+    ratio vs its process's base (geometric mean over rounds), of the best online policy's ratio, and of its capture.
+    Vectorised over the draws (the same draws as the loop it replaced)."""
     rng = np.random.default_rng(seed)
     seqs = sorted(set.intersection(*[set(by["base"]) for ba, bb in pp.values() for by in (ba, bb)]))
     if len(seqs) < 2:
@@ -85,17 +86,25 @@ def boot_cell(pp, nb=2000, seed=109):
             for n in names:
                 if n != "base" and n in by and all(q in by[n] for q in seqs):
                     arr.setdefault(n, []).append((base, np.array([by[n][q][0] for q in seqs])))
-    draws = {n: [] for n in arr}
-    draws["best"], draws["capture"] = [], []
     idx = rng.integers(0, len(seqs), size=(nb, len(seqs)))
-    for i in range(nb):
-        r = {n: float(np.exp(np.mean([np.log(b[idx[i]].mean() / x[idx[i]].mean()) for b, x in v]))) for n, v in arr.items()}
-        for n, v in r.items():
-            draws[n].append(v)
-        real = [r[k] for k in REAL if k in r]
-        if real and "both3p" in r:
-            best = max(real); draws["best"].append(best); draws["capture"].append((best - 1) / (r["both3p"] - 1))
-    return {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in draws.items() if v}
+    draws = {n: np.exp(np.mean([np.log(b[idx].mean(axis=1) / x[idx].mean(axis=1)) for b, x in v], axis=0))
+             for n, v in arr.items()}
+    real = [draws[k] for k in REAL if k in draws]
+    if real and "both3p" in draws:
+        draws["best"] = np.max(real, axis=0)
+        draws["capture"] = (draws["best"] - 1) / (draws["both3p"] - 1)
+    return {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in draws.items() if len(v)}
+
+
+def tint(v, level=0.95):
+    """mean over machines and its t-interval (the machine is the unit; with 3-15 machines a percentile bootstrap is too
+    narrow); None for fewer than two values"""
+    from scipy.stats import t as tdist
+    v = np.asarray([x for x in v if x is not None], float)
+    if len(v) < 2:
+        return None
+    h = tdist.ppf(0.5 + level / 2, len(v) - 1) * v.std(ddof=1) / math.sqrt(len(v))
+    return float(v.mean() - h), float(v.mean() + h)
 
 
 def load(d, cells=(14, 32), min_ratio=0.5):
@@ -256,6 +265,15 @@ def trend_dev(h, C, n):
     return math.log(h["cells"][C]["ratio"][n]) - (a + b * math.log(h["ratio"]))
 
 
+def trend_dev_ci(h, C, n):
+    """the deviation's 95% interval over problems (the ratio's paired bootstrap; the trend is fixed)"""
+    ci = h["cells"][C].get("ci", {}).get(n)
+    if not ci:
+        return None
+    a, b = TREND[C][n]
+    return tuple(math.log(x) - (a + b * math.log(h["ratio"])) for x in ci)
+
+
 def predictions110(V, cells=(14, 32)):
     """job 110's registered predictions over its valid hosts (RTX 4090)"""
     lo, mid = cells
@@ -342,12 +360,14 @@ def clauses109(V, cells=(14, 32)):
     add("109-P4-g11", "both3p beats fetch at 11% on all but at most one", sum(not b for b in beat_lo), lambda v: v <= 1, "<= 1 miss", "pooled")
     for C, (a, b) in ((lo, (0.25, 0.55)), (mid, (0.20, 0.50))):
         v = [h["cells"][C]["together"] for h in V if "together" in h["cells"][C]]
-        add(f"109-P3-{G[C]}", f"mean together share in [{a}, {b}]", float(np.mean(v)) if v else None, lambda x, a=a, b=b: a <= x <= b, f"{a} to {b}", "pooled")
+        add(f"109-P3-{G[C]}", f"mean together share in [{a}, {b}]", float(np.mean(v)) if v else None, lambda x, a=a, b=b: a <= x <= b, f"{a} to {b}", "pooled",
+            tint(v))
     for C, lim in ((lo, 0.10), (mid, 0.15)):
         v = [h["cells"][C]["residual"] for h in V if "residual" in h["cells"][C]]
-        add(f"109-P6-{G[C]}", f"mean residual within +-{lim}", float(np.mean(v)) if v else None, lambda x, lim=lim: abs(x) <= lim, f"|x| <= {lim}", "pooled")
+        add(f"109-P6-{G[C]}", f"mean residual within +-{lim}", float(np.mean(v)) if v else None, lambda x, lim=lim: abs(x) <= lim, f"|x| <= {lim}", "pooled",
+            tint(v))
     v = [h["cells"][lo]["capture"] for h in V if "capture" in h["cells"][lo]]
-    add("109-P7-mean", "mean capture at 11% at most 0.25", float(np.mean(v)) if v else None, lambda x: x <= 0.25, "<= 0.25", "pooled")
+    add("109-P7-mean", "mean capture at 11% at most 0.25", float(np.mean(v)) if v else None, lambda x: x <= 0.25, "<= 0.25", "pooled", tint(v))
     add("109-valid", f"at least {REQUIRED} valid machines", len(V), lambda x: x >= REQUIRED, f">= {REQUIRED}", "pooled")
     return out
 
@@ -364,11 +384,11 @@ def clauses110(V, cells=(14, 32)):
     for h in V:
         nm = f"{h['job']} {h['cpu']}"; c = h["cells"]
         for n in ("fetch", "both3p"):
-            add(f"{h['job']}-Q1-{n}-g11", f"{n}/base within 0.10 (log) of the 5090 trend at 11% ({nm})", abs(trend_dev(h, lo, n)),
-                lambda v: v <= 0.10, "<= 0.10", nm)
+            add(f"{h['job']}-Q1-{n}-g11", f"{n}/base within 0.10 (log) of the 5090 trend at 11% ({nm})", trend_dev(h, lo, n),
+                lambda v: abs(v) <= 0.10, "|x| <= 0.10", nm, trend_dev_ci(h, lo, n))
         for n in ("foa", "bypass"):
-            add(f"{h['job']}-Q1-{n}-g11", f"{n}/base within 0.06 (log) of the 5090 trend at 11% ({nm})", abs(trend_dev(h, lo, n)),
-                lambda v: v <= 0.06, "<= 0.06", nm)
+            add(f"{h['job']}-Q1-{n}-g11", f"{n}/base within 0.06 (log) of the 5090 trend at 11% ({nm})", trend_dev(h, lo, n),
+                lambda v: abs(v) <= 0.06, "|x| <= 0.06", nm, trend_dev_ci(h, lo, n))
         if h["ratio"] < 0.75:
             for n in ("pf", "R1"):
                 add(f"{h['job']}-Q2-{n}", f"{n}/base below 1 at 11% ({nm})", c[lo]["ratio"].get(n), lambda v: v < 1.0, "< 1.00", nm,
@@ -526,20 +546,28 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         f.write("% generated by scripts/job109.py from jobs 109 (RTX 5090), 110 and 111 (RTX 4090)\n")
         for k in sorted(M):
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
+    def hw(c, n, pct=False):
+        """the 95% interval's half-width over problems, as a subscript"""
+        ci = c.get("ci", {}).get(n)
+        if not ci:
+            return ""
+        w = (ci[1] - ci[0]) / 2
+        return f"$_{{\\pm{int(round(100 * w))}}}$" if pct else f"$_{{\\pm{w:.2f}}}$".replace("0.", ".", 1)
     # the table: one row per valid machine, both cards
     with open(P("paper", "tab_job109.tex"), "w") as f:
         f.write("% generated by scripts/job109.py\n\\begin{table*}[t]\\centering\\footnotesize\n")
         f.write("\\caption{The registered tests on machines rented for them: speed relative to the deployed cache on the same "
-                "machine (geometric mean of its rounds) of MIN read once in the step (\\emph{1 read}), the read-ahead oracle "
-                "(\\emph{ahead}), and the best of the four online policies (\\emph{online}: admitting less, the layer-ahead "
-                "copy, and the layer-ahead copy with each admission read once, alone and with admitting less; "
-                "\\cref{sec:online}), and that policy's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
+                "machine (geometric mean of its rounds) of \\MinOne, the read-ahead oracle "
+                "(\\emph{ahead}), and the best of the four variants without foresight (\\emph{none}: \\Margin, \\LA, "
+                "\\LAOne, \\LAOneM; "
+                "\\cref{sec:online}), and that variant's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
                 "whose population (desktop-class, link-to-CPU ratio at least 0.5) was fixed before any machine started. RTX "
                 "4090: job 111 (job 110's predictions, committed before any RTX 4090 ran); in brackets, what the RTX 5090 "
-                "machines' trend in the link-to-CPU ratio predicted for that machine.}\\label{tab:job109}\n")
-        f.write("\\setlength\\tabcolsep{4pt}\\begin{tabular}{@{}lr" + "rrrr" * 2 + "@{}}\\toprule\n")
+                "machines' trend in the link-to-CPU ratio predicted for that machine. Subscripts: half-width of the 95\\% interval over "
+                "problems (paired bootstrap within the machine).}\\label{tab:job109}\n")
+        f.write("\\setlength\\tabcolsep{3pt}\\begin{tabular}{@{}lr" + "rrrr" * 2 + "@{}}\\toprule\n")
         f.write(" & & \\multicolumn{4}{c}{gpt-oss 11\\%} & \\multicolumn{4}{c}{gpt-oss 25\\%} \\\\\\cmidrule(lr){3-6}\\cmidrule(l){7-10}\n")
-        f.write("Machine & Ratio & 1 read & Ahead & Online & Capture & 1 read & Ahead & Online & Capture \\\\\\midrule\n")
+        f.write("Machine & Ratio & \\MinOne & Ahead & None & Capture & \\MinOne & Ahead & None & Capture \\\\\\midrule\n")
         for card, VV, pred in (("RTX 5090, job 109", V, False), ("RTX 4090, job 111", V3, True)):
             if not VV:
                 continue
@@ -552,11 +580,11 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
                         row += ["--"] * 4
                         continue
                     for n in ("fetch", "both3p"):
-                        v = f"{c['ratio'][n]:.2f}"
+                        v = f"{c['ratio'][n]:.2f}" + hw(c, n)
                         if pred:
-                            v += f" [{trend_pred(h, C, n):.2f}]"
+                            v += f" {{\\scriptsize[{trend_pred(h, C, n):.2f}]}}"
                         row.append(v)
-                    row.append(f"{c['best']:.2f}"); row.append(pc(c["capture"]) + "\\%")
+                    row.append(f"{c['best']:.2f}" + hw(c, "best")); row.append(pc(c["capture"]) + hw(c, "capture", pct=True) + "\\%")
                 f.write(" & ".join(row) + " \\\\\n")
             if card.startswith("RTX 5090"):
                 f.write("\\addlinespace\n")

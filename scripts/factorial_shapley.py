@@ -313,14 +313,14 @@ percentages of the gap (ms per token). The engine ran both choices of what to ca
 or MIN's) with both ways to load a cached expert (two reads: the CPU serves it, then a copy; one read: a copy in the
 step). \emph{Load alone} and \emph{cache alone} are each choice's effect with the other at the deployed level; the
 \emph{interaction} is how much more MIN's set is worth loaded once than loaded twice. The Shapley values average each
-choice's effect over the other's two levels and add up, with the prefetch (nested under MIN's set, since it needs
-foresight) and the rest, to 100\%. Panel: mean over its hosts (number
-in parentheses) and, in small type, the range over its hosts (not an interval); a fast link reads at least half as fast as
-the host's CPU, a slow one less. Last rows: the new machines of the follow-up launches, with their link-to-CPU ratio.}\label{tab:shapley}
+choice's effect over the other's two levels and add up, with reading ahead (the read-ahead oracle over \MinOne, nested
+under MIN's set, since it needs foresight) and the rest, to 100\%. Panel: mean over its machines (number
+in parentheses) and, in small type, the range over its machines (not an interval); a fast link reads at least half as fast as
+the machine's CPU, a slow one less. Last rows: the new machines of the follow-up launches, with their link-to-CPU ratio.}\label{tab:shapley}
 \setlength\tabcolsep{3pt}\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrrrr}\toprule
- & & Gap & Load & Cache & Inter- & \multicolumn{2}{c}{Shapley value} & Prefetch & Rest \\
-Host & Budget & (ms) & alone & alone & action & cache & load & & \\\midrule
+ & & Gap & Load & Cache & Inter- & \multicolumn{2}{c}{Shapley value} & Read- & Rest \\
+Machine & Budget & (ms) & alone & alone & action & cache & load & ahead & \\\midrule
 """)
         f.write("\n".join(rows) + "\n\\bottomrule\\end{tabular}}\\end{table*}\n")
     with open(P("paper", "wsg_shapley.tex"), "w") as f:

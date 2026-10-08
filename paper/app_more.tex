@@ -1,31 +1,31 @@
 \section{MIN's schedules and the machine, in detail}\label{app:more}
-\paragraph{The fewest-admission schedule, host by host.} \Cref{tab:job104,tab:job105} list jobs 104 and 105: MIN's set
-loaded by the CPU or in the step, as the greedy rule picks it or as the schedule with the fewest admissions does. On the
+\paragraph{The fewest-admission schedule, machine by machine.} \Cref{tab:job104,tab:job105} list jobs 104 and 105: MIN's set
+loaded by the CPU (\MinTwo, \FewTwo) or in the step (\MinOne, \FewOne), as the greedy rule picks it or as the schedule with the fewest admissions does. On the
 engine's 20 problems the fewest-admission schedule copies \jfCopyRatioMin--\jfCopyRatioMax{} times as many experts in
 the step as the greedy one, for \jfMissDevMin--\jfMissDevMax\% more misses (more than its replay predicts; its measured
 gains include that cost). On every launch it gains over the deployed cache with either load and at both budgets, each
-95\% interval above 1; loaded by the CPU on the machine with the fastest link, it is \jhFastBypassMidBehind{} behind the
-greedy set at 25\%.
+95\% interval above 1; on the machine with the fastest link, \FewTwo{} is \jhFastBypassMidBehind{} behind
+\MinTwo{} at 25\%.
 
 \input{tab_job104}
 \input{tab_job105}
 \input{tab_job106_all}
 
-\paragraph{Job 106, every host.} \Cref{tab:job106all} adds the two server machines new to job 106. On the
-\jiNllBadName{} host the engine computed wrong outputs: its teacher-forced loss on the deployed cache was
+\paragraph{Job 106, every machine.} \Cref{tab:job106all} adds the two server machines new to job 106. On the
+\jiNllBadName{} machine the engine computed wrong outputs: its teacher-forced loss on the deployed cache was
 \jiNllBadMin--\jiNllBadMax{} nats per token across rounds and models, against \jiNllGood{} (gpt-oss) and \jiNllGoodQ{}
-(Qwen3) on every other host and in its own untimed routing pass, and its counters changed between rounds. On the Xeon
-8347C host the deployed cache ran its gpt-oss 11\% rounds \jiUnstableSpreadMax\% apart (slowest over fastest), against at most 2\%
+(Qwen3) on every other machine and in its own untimed routing pass, and its counters changed between rounds. On the Xeon
+8347C machine the deployed cache ran its gpt-oss 11\% rounds \jiUnstableSpreadMax\% apart (slowest over fastest), against at most 2\%
 registered, and the greedy copy gained in two of its three rounds where we had predicted it would lose. When their jobs
 reached the gate, before any download, \texttt{free} reported \jiUsedUnstMin--\jiUsedUnstMax\,GB of host memory in use
-(\jiUsedStableMin--\jiUsedStableMax\,GB on the other hosts), and their probes' CPU read rates fell when more threads
+(\jiUsedStableMin--\jiUsedStableMax\,GB on the other machines), and their probes' CPU read rates fell when more threads
 read than the container had usable physical cores. On both, \cref{eq:sum} under-predicted the deployed cache by
 \jiUnstErrMin--\jiUnstErrMax\%. We report their clauses (in the supplement) and draw nothing from them about the relation on those runs; both are servers, and job 107's one valid server was under-predicted as well (\cref{app:relation}). The three
 machines that ran stably were all rented before: Pf, the Threadripper 9960X of job 105, and panel host Pe (same GPU).
 
 \input{tab_job107}
 
-\paragraph{Job 107, every host.} \Cref{tab:job107} lists the \jlRanWord{} machines that passed the gate before any
+\paragraph{Job 107, every machine.} \Cref{tab:job107} lists the \jlRanWord{} machines that passed the gate before any
 download. The EPYC 9754 and the EPYC 7663 ran their gpt-oss 11\% rounds \jlSpreadc\% and \jlSpreade\% apart, beyond the
 registered 2\%, and stopped there, as registered; the relation under-predicted them by \jlErrGc\% and \jlErrGe\%. The
 others stopped at the gate with \jlUsedGateMin--\jlUsedGateMax\,GB of host memory in use. The registration replaced
@@ -37,15 +37,15 @@ each started (the cheapest verified offer not rented before with cheap traffic a
 900\,Mb/s), and both stopped at the gate. On the \jlValidWord{} valid machines, the relation predicted the admission
 margin's speed from its own counters within a median \jlDkPredMed{} (up to \jlDkPredMax, on the server), against
 \jlDkNoChangeMed{} for predicting no change. The profiled GPU compute was \jlGMin--\jlGMax\,ms on gpt-oss and
-\jlGQMin--\jlGQMax\,ms on Qwen3, within the range of earlier hosts.
+\jlGQMin--\jlGQMax\,ms on Qwen3, within the range of earlier machines.
 
 \input{tab_job108}
 
-\paragraph{Job 108, every host.} \Cref{tab:job108} lists the machines that ran. The EPYC 7K62 ran its two gpt-oss 11\%
+\paragraph{Job 108, every machine.} \Cref{tab:job108} lists the machines that ran. The EPYC 7K62 ran its two gpt-oss 11\%
 rounds \jmInvSpreadMin\% apart and stopped, as registered; the relation under-predicted it by \jmErrbLow\%. The gate
-stopped a Ryzen 7 5700X3D whose GPU job 100 had rented, and an EPYC 9354 host with \jmUsedGateMin\,GB of memory in use.
-Machines were rented from the registered list in order until \jmRequiredWord{} were valid. On both EPYC hosts the Nsight
-trace held almost no kernels (driver 570; the Ryzen hosts ran drivers 580 and later), so their $G$ is the median of
+stopped a Ryzen 7 5700X3D whose GPU job 100 had rented, and an EPYC 9354 machine with \jmUsedGateMin\,GB of memory in use.
+Machines were rented from the registered list in order until \jmRequiredWord{} were valid. On both EPYC machines the Nsight
+trace held almost no kernels (driver 570; the Ryzen machines ran drivers 580 and later), so their $G$ is the median of
 the \jmFallbackHosts{} profiles of jobs 069c and 105, as everywhere else (\jmFallbackGLow{} and \jmFallbackGMid\,ms). This is a deviation from the registration that does not change the outcome: without the EPYC 7543 the median error
 over the \jmProfOnlyCells{} cells is \jmProfOnlyMed\% and all are within 8\%, but two pooled clauses still fail. The registered offer list said none of its offers was in the rental ledger, but three were: the 5700X3D's (job 100; the gate turned it away), the 9950X3D's (rented for a few minutes in job 099 without producing data; its GPU matched no earlier launch's) and an i9-13900KF's that was never reached.
 
@@ -59,11 +59,10 @@ run. Its second-highest reading is a median \rbSecondGapMed\% lower and more tha
 gpt-oss 11\%; with the best CPU-only reading, which ignores that the link reads at the same time, on
 \rbWithinSixCpu. By \cref{eq:sum}'s own accounting the engine reads more than 5\% faster than the highest reading on
 \rbAboveMax{} of \rbLaunchBudgets{} launch-budgets (up to \rbAboveMaxMax$\times$), so the bounds are relative to the probe.
-Taking the machine as the unit, one value per machine: the fewest-admission schedule copied in the step gains a mean
-\rbPlanMean$\times$ (95\% interval over machines \rbPlanLo--\rbPlanHi) on the \rbPlanMachines{} machines that ran stably;
-the admission margin, each machine's mean over the two gpt-oss budgets, \rbDkMean$\times$ (\rbDkLo--\rbDkHi) on
-\rbDkMachines. With so few machines the percentile interval is narrow; the $t$-intervals on the same values are
-\rbPlanTLo--\rbPlanTHi{} and \rbDkTLo--\rbDkTHi. \Cref{eq:sum}'s error is a mean \rbErrMean\% (\rbErrLo{} to
+Taking the machine as the unit, one value per machine: \FewOne{} gains a mean
+\rbPlanMean$\times$ (95\% $t$-interval over machines \rbPlanLo--\rbPlanHi) on the \rbPlanMachines{} machines that ran stably;
+\Margin, each machine's mean over the two gpt-oss budgets, \rbDkMean$\times$ (\rbDkLo--\rbDkHi) on
+\rbDkMachines. \Cref{eq:sum}'s error is a mean \rbErrMean\% (\rbErrLo{} to
 \rbErrHi\%) at gpt-oss 11\% over the \rbErrMachines{} consumer machines, and +\rbErrMidMean\% (\rbErrMidLo{} to
 \rbErrMidHi\%) at 25\%; on the \rbErrFoundMachines{} machines it was found on, \rbErrFoundMean\% (\rbErrFoundLo{} to
 \rbErrFoundHi\%) at 11\%: of the \rbFoundN{} launches it was found on, it under-predicts \rbFoundUnder{} at 11\% and
@@ -71,12 +70,12 @@ over-predicts \rbFoundOverMid{} at 25\%. $G$ was profiled on the machine for \rb
 launches; the others use the median of the profiles. The median $|$error$|$ is \rbProfErrMed\% on the launches with
 their own $G$ and \rbMedGErrMed\% on the others, but the profiled launches all come from the registered tests.
 
-\paragraph{Admitting less, in detail.} The margin $\kappa$ was chosen as the value that minimises the deployed path's
+\paragraph{Admitting less, in detail.} The margin $\kappa$ of \Margin{} was chosen as the value that minimises the deployed path's
 reads on each model's mixed-domain text, not the AIME text (\texttt{scripts/online\_admit.py}): 3 at the smallest budget
 and 2 at 25\%. It cuts the deployed cache's host reads by \jiDkReadsGLowMin--\jiDkReadsGLowMax\% at gpt-oss 11\% and
 \jiDkReadsGMidMin--\jiDkReadsGMidMax\% at 25\%. On the three machines of job 106 that ran stably it ran
 \jiDkGLowMin--\jiDkGLowMax$\times$ and \jiDkGMidMin--\jiDkGMidMax$\times$ the deployed cache (Qwen3:
-\jiDkQLowMin--\jiDkQMidMax$\times$; \cref{tab:job106all}). We had registered at least 1.01 at gpt-oss on every host: it
+\jiDkQLowMin--\jiDkQMidMax$\times$; \cref{tab:job106all}). We had registered at least 1.01 at gpt-oss on every machine: it
 fell short on two of the three stable ones, and the registered pooled median of at least 1.02 held only through the
 two unstable machines (\jiDkPooled{} on the stable ones). On the \jlValidWord{} valid machines of job 107 it ran
 \jlDkMin--\jlDkMax$\times$ (median \jlDkMed), below the registered 0.995 at \jlDkFailWord{} cell, the server at gpt-oss
@@ -87,25 +86,25 @@ of margin (job 097's, fitted on other text) reads less still (\jiLrnReadsGLowMin
 \jiLrnUsGMin--\jiLrnUsGMax\,$\mu$s of host time per token on gpt-oss and runs \jiLrnGLowMin--\jiLrnGMidMax$\times$: it pays
 where host memory is slow and loses where it is fast, against the registered prediction that it would not lose.
 
-\paragraph{The slowest link.} On the EPYC 7302 host of job 106, whose link moves \jiVsLink\,GB/s, the fewest-admission
-set copied in the step lost in each round (\jiVsPlanMin--\jiVsPlanMax$\times$); that host computed wrong outputs
+\paragraph{The slowest link.} On the EPYC 7302 machine of job 106, whose link moves \jiVsLink\,GB/s,
+\FewOne{} lost in each round (\jiVsPlanMin--\jiVsPlanMax$\times$); that machine computed wrong outputs
 throughout, so we draw nothing from it, but below some link rate even the fewest-admission set should not be copied in
 the step.
 
 \paragraph{The machine decides how much.} Across machines, the gain of every state that moves reads from the CPU to
 the link follows the link-to-CPU ratio (Spearman over the machines that ran it through job 104, 95\% bootstrap
-interval): MIN copied in the step \rcFetchRatio{} [\rcFetchRatioLo, \rcFetchRatioHi] (\rcFetchRatioN{} machines), copied
-ahead \rcPacedRatio{} [\rcPacedRatioLo, \rcPacedRatioHi] (\rcPacedRatioN), admitting every miss \rcAaRatio{}
-[\rcAaRatioLo, \rcAaRatioHi] (\rcAaRatioN). MIN loaded by the CPU, which reads every admission twice and copies it in
+interval): \MinOne{} \rcFetchRatio{} [\rcFetchRatioLo, \rcFetchRatioHi] (\rcFetchRatioN{} machines), the read-ahead
+oracle \rcPacedRatio{} [\rcPacedRatioLo, \rcPacedRatioHi] (\rcPacedRatioN), admitting every miss \rcAaRatio{}
+[\rcAaRatioLo, \rcAaRatioHi] (\rcAaRatioN). \MinTwo, which reads every admission twice and copies it in
 the background, tracks the link's absolute rate more closely (\rcBypassBp{} [\rcBypassBpLo, \rcBypassBpHi],
 \rcBypassBpN{} machines, against \rcBypassRatio{} for the ratio; the two intervals overlap, and the feature was picked
-from a search over all probe features). The greedy schedule copied in the step gains
+from a search over all probe features). \MinOne{} gains
 \jeNewFetchLowMin--\jeNewFetchLowMax$\times$ at 11\% on \jeNewN{} further machines with ratios \jeNewRatioMin{} and
-\jeNewRatioMax{}, and loses only on the machines whose link reads at under a third of their CPU rate; made ahead of use,
-the same copies lose beyond their interval on no machine they ran on (at worst \jbPfPaced$\times$, on Pf).
+\jeNewRatioMax{}, and loses only on the machines whose link reads at under a third of their CPU rate; issued ahead of use,
+as in the read-ahead oracle, the same copies lose beyond their interval on no machine they ran on (at worst \jbPfPaced$\times$, on Pf).
 
 \paragraph{Machines differ more than problems.} Problems rank largely the same on every machine: Kendall's coefficient
-of concordance of MIN-copied-in-the-step's per-problem gain over \ppMachines{} machines and \ppProblems{} problems is
+of concordance of \MinOne's per-problem gain over \ppMachines{} machines and \ppProblems{} problems is
 \ppWFetchLow{} at 11\% and \ppWFetchMid{} at 25\%, and a problem's gain follows how far the deployed policy's reads
 exceed MIN's on its trace (Spearman \ppRhoFetchLow{} at 11\%, \ppRhoFetchMid{} at 25\%). Yet machines carry
 \ppVarHostsFetchMax\% of the variance of its log gain and problems \ppVarProbFetchMin--\ppVarProbFetchMax\%.

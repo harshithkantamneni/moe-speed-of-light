@@ -163,7 +163,7 @@ def main():
                 + M.get("jdRepMax", "--") + "\\%.}\\label{tab:readsched}\n")
         f.write("\\setlength\\tabcolsep{3pt}\\resizebox{\\linewidth}{!}{%\n\\begin{tabular}{@{}lrrrrrrrr@{}}\\toprule\n")
         f.write(" & Link/ & & Term & \\multicolumn{2}{c}{Split} & Link & CPU & \\\\\n")
-        f.write("Host & CPU & $C$ & (ms) & per layer & per token & only & only & Model \\\\\\midrule\n")
+        f.write("Machine & CPU & $C$ & (ms) & per layer & per token & only & only & Model \\\\\\midrule\n")
         for job, h in hosts.items():
             for C in sorted(h["cells"]):
                 c = h["cells"][C]

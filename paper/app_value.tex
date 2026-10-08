@@ -9,7 +9,7 @@ requested now that is not seen in the window (lowest decayed score), or, if ever
 furthest; a miss seen in the window is admitted unless the victim is seen sooner, and a miss not seen is admitted if
 the victim is not seen either (admit every miss beyond the window; with the deployed margin $\kappa{=}1$, only if its
 score beats the victim's by one). On the panel admissions are fetched in the step, so every miss is read once; on the
-deployed path of the follow-up the host's fetch table splits the misses between the CPU and an in-step copy, and an
+deployed path of the follow-up the machine's fetch table splits the misses between the CPU and an in-step copy, and an
 admission served by the CPU is copied afterwards, a second read. In a degraded view each
 expert of a future record is kept with probability $r$, decided by a hash of (seed, $g$, record, layer, position), so
 step $g$ sees one view throughout and step $g{+}1$ an independent one; a dropped expert is replaced by a uniformly drawn
@@ -17,14 +17,14 @@ one (fill: precision and recall $r$) or left out (drop: recall $r$, precision 1)
 replays the plan bit for bit: on a CPU build the engine's reads equal the replay's in 30 configurations at three budgets
 (\texttt{cputest099}), and on the panel's GPUs, where the routing in the run can differ from the recorded trace by
 numerics, within \pnReplayMax\% at both gpt-oss budgets. The panel ran the first \pnProblems{} of the 30 problems; the
-table's reads are on all 30. \Cref{tab:window100} lists the windows on the deployed path and in the step on the hosts of
+table's reads are on all 30. \Cref{tab:window100} lists the windows on the deployed path and in the step on the machines of
 job 100. Copied in the step, a window beats the deployed path where the link reads at least \jaPathHighRatioMin{} of the
 CPU rate and loses to it at \jaPathLowRatioMax{} or below; on the deployed path the engine misses
 \jaReplayDevMin--\jaReplayDevMax\% more than an instant replay (the deployed state matches its replay within
 \jaBaseReplayDevMax\%), and background copies that land late are the likely cause.
 
 \paragraph{What the table says.} Horizon and accuracy trade: at gpt-oss 11\% an 8-token window at recall 0.5 closes
-\vmEightHalfLow{} of the gap, about what two exact tokens close (\vmShareTwoLow), and the whole future at recall 0.5
+\vmEightHalfLow{} of the gap between admitting every miss and $R^\star_{\mathrm{eng}}$, about what two exact tokens close (\vmShareTwoLow), and the whole future at recall 0.5
 closes \vmAllHalfLow. Fill and drop cost about the same for windows of up to 16 tokens; with the whole future in view
 at low recall, dropping costs less (the largest difference, \vmFillDropMax, is there). A larger
 cache needs a longer window: at 25\% the same exact 4-token window closes \vmShareFourMid{} of the gap, against
@@ -33,7 +33,7 @@ cache needs a longer window: at 25\% the same exact 4-token window closes \vmSha
 \paragraph{A realisable forecaster.} Ridge regression from the all-layer routing of step $t$ to that of step $t{+}h$
 ($h{=}1..8$), fitted on each model's mixed-domain own text and applied to the AIME routing, forecasts the top $k$ experts
 of each layer with a precision of \lfPrecOneGpt{} one token ahead and \lfPrecFourGpt{} four ahead on gpt-oss
-(\lfPrecOneQwen{} and \lfPrecFourQwen{} on Qwen3); a decayed request count, the online policy's own signal, scores
+(\lfPrecOneQwen{} and \lfPrecFourQwen{} on Qwen3); a decayed request count, the deployed cache's own signal, scores
 \lfPrecDecOneGpt{} and \lfPrecDecFourGpt. Driving the window policy, the ridge forecasts close
 \lfShareMinGpt--\lfShareMaxGpt\% of the gap on gpt-oss and \lfShareMinQwen--\lfShareMaxQwen\% on Qwen3 over windows
 of 1--8 tokens (\texttt{prereg/forecaster\_linear.json}). Its precision falls with the horizon, so over a window it

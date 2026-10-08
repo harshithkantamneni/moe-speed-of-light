@@ -27,8 +27,8 @@ HOSTS = [("095", "O3", "#2a78d6", "o"), ("096a", "O4", "#eb6834", "s"), ("096b",
          ("097a", "O4, job 097", "#eb6834", "D"), ("097b", "O6, job 097", "#4a3aa7", "v")]
 ONLY_LEARNED = {"097a", "097b"}   # job 097's hosts are drawn on the learned row only (their other states repeat job 096's)
 # the learned order and the prefetched Belady are left to the appendices, to keep the figure readable
-ROWS = [("foa", "deployed, 1 read"), ("aa", "admit every miss"), ("bypass", "MIN, 2 reads"),
-        ("hitopt", "no bypass, 2 reads"), ("nb2", "no bypass, 1 read"), ("fetch", "MIN, 1 read"),
+ROWS = [("foa", "Dep-1R"), ("aa", "admit every miss"), ("bypass", "MIN-2R"),
+        ("hitopt", "Belady-2R"), ("nb2", "Belady-1R"), ("fetch", "MIN-1R"),
         ("both3p", "read-ahead oracle")]
 PANEL_KEYS = {"foa": "foa/base", "aa": "aa/base", "bypass": "bypass/base", "fetch": "fetch/base", "both3p": "both3p/base"}
 CELLS = ["gpt-oss 11%", "gpt-oss 25%", "gpt-oss 40%", "Qwen3 12.5%", "Qwen3 25%", "Qwen3 43.75%"]
@@ -59,9 +59,9 @@ def main():
                     continue
                 if key in c["runs"]:
                     r = c["runs"][key]["ratio_to_base"]
-                    off = (k - (len(present) - 1) / 2) * 0.15
+                    off = (k - (len(present) - 1) / 2) * 0.2
                     ax.plot([r[1], r[2]], [y + off, y + off], color=col, lw=1.0, zorder=2)
-                    ax.plot(r[0], y + off, mk, ms=4.2, mfc=col, mec="#fcfcfb", mew=0.6, zorder=3)
+                    ax.plot(r[0], y + off, mk, ms=5.6, mfc=col, mec="#fcfcfb", mew=0.6, zorder=3)
         for h in panel:   # the panel's hosts: small grey markers, one per host
             c = h["cells"].get(lab)
             if not c:
@@ -80,11 +80,11 @@ def main():
     axes[0].set_yticks(range(len(rows)))
     axes[0].set_yticklabels([r[1] for r in rows], fontsize=6.5)
     axes[0].set_ylim(-0.6, len(rows) - 0.4)
-    fig.text(0.6, 0.015, "speed relative to the deployed cache on the same host (95% interval; grey ticks: panel hosts)", ha="center", fontsize=7)
+    fig.text(0.6, 0.015, "speed relative to the deployed cache on the same machine (95% intervals, mostly narrower than the markers; grey ticks: panel machines)", ha="center", fontsize=7)
     handles = [Line2D([0], [0], marker=mk, color=col, lw=0, ms=5, mec="#fcfcfb", label=name)
                for job, name, col, mk in HOSTS if job in data and not (job in ONLY_LEARNED and "learned" not in [r[0] for r in rows])]
     if panel:
-        handles.append(Line2D([0], [0], marker="|", color="#7a7974", lw=0, ms=6, mew=1.0, label=f"panel ({len(panel)} hosts)"))
+        handles.append(Line2D([0], [0], marker="|", color="#7a7974", lw=0, ms=6, mew=1.0, label=f"panel ({len(panel)} machines)"))
     fig.legend(handles=handles, loc="upper right", ncol=len(handles), fontsize=6.5, frameon=False, bbox_to_anchor=(0.995, 1.02))
     fig.subplots_adjust(left=0.215, right=0.995, top=0.84, bottom=0.15, wspace=0.12)
     os.makedirs(P("paper", "figs"), exist_ok=True)

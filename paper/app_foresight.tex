@@ -1,0 +1,132 @@
+\section{Foresight in the engine}\label{app:foresight}
+Four jobs ran oracle policies in the engine, each on a rented RTX 5090 machine with weaker host memory than host B's. Jobs 093--097 report ratios of mean speeds rather than of mean times per token; recomputed either way, no ratio
+moves by more than \fxMeanKindDiffMax.
+The fourth (096) is the confirmatory factorial of \cref{fig:factorial}: ten configurations per cell, each in a fresh
+context, in an order shuffled per cell with a recorded seed, on hosts O4 (Ryzen 9 9950X: \fxCpuFour, \fxLinkFour{} and
+\fxBestFour\,GB/s by the CPU, over the link and at best) and O5 (Ryzen 9 9950X3D: \fxCpuFive, \fxLinkFive{} and
+\fxBestFive\,GB/s), with ten predictions per machine committed before either started
+(\texttt{prereg/foresight\_outcome\_096.md}). They held at most cells. The failures: \MinOne's gain above the predicted band at Qwen3 25\% on O4 and different
+between the two machines by up to \fxFetchSpreadMax{} against the 0.15 predicted; \cfg{Belady-1R} faster than
+predicted at Qwen3 12.5\% on O4, with reads below the predicted 1.25--1.9$\times$ those of the \emph{ahead-only} oracle (below) at Qwen3 12.5\% on
+both machines and at gpt-oss 11\% on O4 (down to \fxNbReadsOverLeadMin$\times$); the bytes share at Qwen3 12.5\% on O4
+(\amBytesHostMax\% of the gap against a predicted 25--55\%); and the reads \DepOne{} saves at gpt-oss 40\% on O5,
+just above the predicted 22\%. \DepOne{} came to \fxFoaHostMin--\fxFoaHostMax$\times$ the deployed cache at the host-bound cells, at the bottom of the predicted 0.97--1.12$\times$ although its reads fell as predicted, and to \fxFoaGpuFiveMin--\fxFoaGpuFourMax$\times$ at the GPU-bound cells.
+\Cref{tab:single_read} lists every cell of the single-read factorial of \cref{sec:foresight} on host O3 (a Ryzen 9 9950X
+whose probe reads \fsfHostCpu\,GB/s by the CPU at the helper count, \fsfHostLink{} over the link, \fsfHostBoth{} with
+both and \fsfHostMax{} at best; the model's FETCH tables \texttt{0,0,1,2,2} for gpt-oss and \texttt{0,0,1,1,2,3,4,4,5}
+for Qwen3), and \cref{tab:accounting_measured} the milliseconds per token of the engine states the three jobs
+realised beside each machine's bound and the model's values. \Cref{tab:foresight} lists the first job (093),
+\cfg{Belady-2R} with a window sweep on host O1 (a Ryzen 9 9950X: \fsmHostCpu, \fsmHostLink, \fsmHostBoth{} and
+\fsmHostMax\,GB/s; tables \texttt{0,0,1,2,3} and \texttt{0,0,1,2,3,4,5,6,7}), and \cref{tab:foresight_bytes} the
+second (094), \MinTwo{} beside \cfg{Belady-2R} on host O2 (a Ryzen 9 7950X:
+\fsbHostCpu, \fsbHostLink, \fsbHostBoth{} and \fsbHostMax\,GB/s; the same tables). On O1 and O2 every cell but
+gpt-oss 40\% and Qwen3 43.75\% is host-bound in \cref{eq:limit}; on O3, whose memory is stronger, the same four.
+
+\paragraph{The single-read oracles.} In \MinOne{} the step's plan is computed before the layer runs from the
+trace's record of the current step: the misses MIN with bypass would admit are fetched by the engine's FETCH
+operation into their victims' slots and run from there, and every other miss runs on the CPU; the oracle refuses an
+admission when no resident's next use is further than the candidate's. Reading ahead admits, each step,
+the non-resident experts whose first use is at least $d$ steps away ($d{=}2$ unpaced, 3 paced), provided the victim's
+next use is further than the candidate's use after that first one; an expert used sooner than $d$ steps away misses
+on the CPU (the \emph{ahead-only} oracle), or is fetched as in \MinOne{} (the read-ahead oracle; paced with $d{=}3$, the form of
+\cref{tab:configs}). The same policies simulated on the trace with the engine's
+semantics (the lookahead within the sequence, residents carried over with their next use recomputed at each sequence
+start) predict the engine's reads and hit rates: \MinOne's hit rate within \fsfSimHitDiffMax{} points and its
+reads within \fsfSimReadsDiffMin{} to \fsfSimReadsDiffMax\%, the read-ahead oracle's hits within two points
+(\cref{tab:single_read}). Simulated, \MinOne{} reads $R^\star_{\mathrm{eng}}$ experts per token, MIN's count in the
+engine: its window ends at the problem's end, and an expert served in a step stays for that step. The simulator the job's predictions were registered against gave a resident carried over
+from the previous sequence no next use, so it was evicted first; that over-counted \MinOne's reads by 17\%
+at the two GPU-bound cells, which is why two of its reads clauses failed (\cref{app:prereg}). Each configuration of
+\texttt{llama-ec-bench} starts with a cold cache in a fresh context. The paced copy path copies one 16\,MB piece at a time on a single copier thread and
+publishes a landed copy at the start of the next step; the unpaced path copies each admission as one transfer. The
+background admissions of \cfg{Belady-2R} drive host memory at \fshHostUtilMin--\fshHostUtilMax\% of the probe's best
+rate at the host-bound cells, the single-read oracles that read ahead at \fsPrefetchHostUtilMin--\fsPrefetchHostUtilMax\%
+(the paced read-ahead oracle \fsbpHostUtilMin--\fsbpHostUtilMax\%), the deployed cache itself at \fsBaseHostUtilMin--\fsBaseHostUtilMax\%,
+\MinOne{} at \fsfHostUtilMin--\fsfHostUtilMax\%. The predictions and their outcomes are in
+\texttt{prereg/foresight\_outcome\_095.md}: of 56 clauses, 44 held and 12 failed, all of size (\cref{app:prereg}).
+
+\input{tab_single_read}
+\input{tab_accounting_measured}
+
+\begin{figure}[t]\centering
+\includegraphics[width=0.5\linewidth]{figs/foresight.pdf}
+\caption{The first oracle job (093, host O1): speed as a percentage of this machine's bound against the window $W$ of
+future routing \cfg{Belady-2R} sees, at the four host-bound cells. ``none'' is the deployed cache; ``all'' the
+whole sequence; points are connected for the trend only. The tick at the right is the model's foresight-only term for
+the cell, the speed it predicts with that one fix; the oracle's host traffic sits at \fsmUtilWinMin--\fsmUtilWinMax\%
+of the probe's best rate at every window, so its speed is $R^\star$ over its reads times that utilisation,
+\fsmHostFracMin--\fsmHostFracMax\% of the bound with the whole sequence in view.}
+\label{fig:foresight}
+\end{figure}
+
+\paragraph{The double-reading oracles.} \cfg{Belady-2R} and \MinTwo{} read the routing of the next $W$ decode steps; their copies ride the
+paced admission path, and an expert still in flight at its step runs on the CPU like any other miss. \cfg{Belady-2R},
+the \emph{hit-optimal} oracle, admits the experts those steps will route to, soonest first, evicting the resident whose
+next use is furthest (Belady within the window), for one future use as readily as for ten. \MinTwo, the \emph{bytes-optimal}
+oracle, is MIN with bypass with its admissions made through the background path: a miss is served where it is, by the
+CPU or a demand copy, and admitted only if its next use comes before the furthest next use among the residents. With
+the whole sequence in view \cfg{Belady-2R} runs \fsmRatioGMid$\times$ [\fsmRatioLoGMid, \fsmRatioHiGMid] the
+deployed cache at gpt-oss 25\% and \fsmRatioQMid$\times$ [\fsmRatioLoQMid, \fsmRatioHiQMid] at Qwen3 25\% on host O1,
+\fspRatioGMid$\times$ and \fspRatioQMid$\times$ on O2, and \fsHitGpuMin--\fsHitGpuMax$\times$ at the two GPU-bound
+cells; half of its gain at gpt-oss 25\% arrives between $W{=}4$ and 16 (\fsmWfiftyGMid{} tokens by log
+interpolation; Qwen3 25\%: \fsmWfiftyQMid{} against the trace's 3.9). Where the host binds hardest it loses,
+\fsHitLossMin--\fsHitLossMax\% at gpt-oss 11\% and Qwen3 12.5\% on both machines, and at every window on O1
+(\fsmNegWinMin--\fsmNegWinMax$\times$): it reads more host bytes than the deployed cache (\fsmReadsOracleGLow{} and
+\fsmReadsOracleQLow{} experts per token against \fsmReadsBaseGLow{} and \fsmReadsBaseQLow),
+\fsmTotalReadsOptMin--\fsmTotalReadsOptMax$\times$ $R^\star$, because Belady admits an expert used once
+where the optimum bypasses it and re-copies what it evicts (its admissions, each one read, are most of its reads; a
+miss served on the CPU before its copy lands is the second read of that expert). An unpaced copy path, run at the
+four host-bound cells of O1, reaches 98--99\% hits at three of them and still loses at gpt-oss 11\% and Qwen3 12.5\%
+(where it hits 75\%), so copies that arrive in time do not remove the loss there: the extra bytes cause it. \MinTwo{} gains
+\fsbGainHighMin--\fsbGainHighMax\% at the four cells of 25\% and above and \fsbGainLowMin--\fsbGainLowMax\% at the two
+below (\fsbGainLowMaxAny\% with a 16-token window); its misses fall (\fsbMissesBaseGMid{} to \fsbMissesGMid{} and
+\fsbMissesBaseQMid{} to \fsbMissesQMid{} per token at 25\%) but its total reads, misses plus the admissions that read
+each admitted expert again, are \fsbTotalReadsOptMin--\fsbTotalReadsOptMax$\times$ $R^\star$ and exceed the deployed
+cache's by \fsbLowReadsVsBaseMin--\fsbLowReadsVsBaseMax\% at the two lowest budgets; the model on its own counters
+predicts its time within \fsbLawErrMax\% at every cell, and the bytes it saves account for
+\fsbLawGainHighMin--\fsbLawGainHighMax{} points of its \fsbGainHighMin--\fsbGainHighMax\% gain at the four cells
+(most of it at gpt-oss 40\% and Qwen3 43.75\%, a third at Qwen3 25\%). \cfg{Belady-2R} reads
+\fspVsBypassBytesMin--\fspVsBypassBytesMax$\times$ the host bytes of \MinTwo{} on O2 and gains
+\fspGainHighMin--\fspGainHighMax\% at the same four cells, and the model, with its GPU term calibrated on the deployed cache's run,
+over-predicts those runs' time per token by \fspLawErrHighMin--\fspLawErrHighMax\% (on O1, \fsmLawErrPosMin--\fsmLawErrPosMax\%): its gain
+is the overlap of copies issued ahead of their use with the step, which the model charges in sequence. Pacing the
+deployed cache's own copies changes it by under 1\% (\fsmPacedMin--\fsmPacedMax$\times$). With no FETCH table (every
+miss on the CPU) the deployed cache runs \fsmAllcpuMin--\fsmAllcpuMax\% slower at the four host-bound cells; with the
+engine's within-layer overlap of a layer's CPU misses with its GPU hits turned off it changes by under 1\% at every
+cell (0.5\% faster to 0.6\% slower), so the overlap the accounting charges is across the step and in rebalancing, not
+within a layer. \MinTwo{} with a 16-token window keeps \fsbSixteenShareMin--\fsbSixteenShareMax\% of
+the whole-sequence gain at the five cells where that gain's interval excludes zero (more than all of it at gpt-oss
+11\%, where the shorter window admits less).
+
+\paragraph{Why the misses of \MinTwo{} stay above $R^\star$.} Besides the second read, its misses alone are
+\fsbReadsRatioHostMin--\fsbReadsRatioHostMax$\times$ $R^\star$ at the four host-bound cells (at the two
+GPU-bound ones the ideal simulation below is itself \fslIdealOverGpuMin--\fslIdealOverGpuMax\% above $R^\star$,
+which sees across sequences). The engine's paced copy path moves one 16\,MB piece at a time from pageable host
+memory on a single copier thread, behind the demand copies, publishes a landed copy at the start of the next step, and
+admits nothing while 64 copies are queued; at the 16--30 admissions per token (210--285\,MB) of the two lowest
+budgets it lags the admissions by steps, and an expert still in flight is a miss the CPU reads again. The last four columns of \cref{tab:foresight_bytes}
+simulate \MinTwo{} on the measured routing trace with the engine's own semantics (the lookahead within the
+sequence, residents carried over, no queue cap) and a copy that lands $d$ steps after it is issued, during which the
+expert misses and is not re-admitted: at $d{=}1$, the ideal, the misses come within
+\fslIdealOverMin--\fslIdealOverMax\% of $R^\star$ at the host-bound cells; the engine's misses meet the
+simulation at $d{=}$\fslFitHostMin--\fslFitHostMax{} there and at \fslFitGpuMin--\fslFitGpuMax{} at the GPU-bound
+cells, three to five steps. At the fitted latency the simulation admits \fsbSimAdmitMin--\fsbSimAdmitMax$\times$ what
+the engine admitted, so the queue cap, not only the latency, keeps the engine's misses above the ideal. The predictions and their outcomes are in
+\texttt{prereg/foresight\_outcome\_093.md} and \texttt{094.md}: of 36 clauses for the first job, 9 held, 2 held on
+the point estimate, 21 failed and 4 were untested; of 38 for the second, 12 held, 1 on the point estimate, 24 failed
+and 1 was untested (\cref{app:prereg}). The second job's failures are of size, not direction: the misses of \MinTwo{}
+were predicted within 15\% of $R^\star$ and came 29--47\% above (the copy latency and the queue
+cap); its hit rate was predicted within 4 points of the optimum's and fell 5--11 points short at three cells; its gain
+was predicted at 10--45\% at the host-bound cells and came below that at the two lowest budgets; the model was predicted
+to over-predict it by 10--40\% at the host-bound cells and over-predicted by 5--9\%; and the two oracles were
+predicted within 15\% of each other at 25\% and above, where \cfg{Belady-2R} was 1.24--1.38$\times$ faster.
+
+\paragraph{Where a token's time goes at a GPU-bound budget.} On Qwen3 at 43.75\% Nsight Systems splits a token of
+our cache (FreeToken in parentheses) into 4.93 (5.20)\,ms of expert copies over PCIe, 2.29 (2.21) of resident-expert
+products, 1.65 (1.34) of attention projections, 0.49 (0.37) of attention, 0.38 of output head and 0.97 (0.40) of norms,
+small kernels and cache control, with neither system overlapping its copies with GPU compute. Turning off the
+within-layer overlap of a layer's CPU misses with its GPU hits changes speed by under 1\% at every budget, and
+predicting the next layer's experts \citep{hwang2024pregated,zhu2025preattention} never lowers host bytes.
+
+\input{tab_foresight}
+\input{tab_foresight_bytes}

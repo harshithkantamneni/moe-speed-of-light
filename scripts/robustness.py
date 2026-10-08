@@ -43,10 +43,11 @@ def readings(txt):
     return cpu, pcie, sums
 
 
-def boot_machines(vals, stat=np.mean, nb=10000):
-    v = np.array(vals, float)
-    bs = [stat(v[RNG.integers(0, len(v), len(v))]) for _ in range(nb)]
-    return float(stat(v)), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+def boot_machines(vals, stat=np.mean):
+    """the summary over machines and its 95% t-interval (on the log scale for a geometric mean); the name is kept from
+    the percentile bootstrap it replaced, which is too narrow with a handful of machines"""
+    lo, hi = t_interval(vals, geo=stat is GMEAN)
+    return float(stat(np.array(vals, float))), lo, hi
 
 
 def t_interval(vals, geo=False):

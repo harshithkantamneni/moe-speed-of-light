@@ -23,14 +23,14 @@ Rule & Where and how \\\midrule\endhead
 2. Explain subsets of benchmarks or resources. & Two models chosen for size and precision (MXFP4, BF16), a third that is FreeToken's own headline model; budgets span what fits a 32\,GB card; the 43.75\% budget is omitted where it does not fit. All 30 AIME-25 problems are used. \\
 3. Arithmetic mean for costs, harmonic mean for rates. & The accounting, the panel and the value of foresight average time per token over problems (a cost) and quote speeds as the harmonic mean this implies; \cref{tab:headline} averages per-problem rates arithmetically, which departs from this rule; every problem decodes the same number of tokens, so the harmonic mean is the right summary, and ratios of total time agree with the reported ratios of mean rates within 0.003. \\
 4. Avoid summarising ratios. & Ratios of means are never averaged across budgets or models; ranges list the per-budget values, and the medians reported across models (\cref{tab:policy}) or across published rows (\cref{app:audit}) are medians of per-cell quantities, labelled as such. \\
-5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval over problems; the panel (job 099) adds intervals over hosts, the unit that varies most. \\
-6. Do not assume normality. & Intervals are bootstrap percentile intervals (10{,}000 resamples, paired by problem); no distributional assumption. \\
-7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means within a host; across the panel's hosts, a two-stage bootstrap (hosts, then problems) \citep{kalibera2013rigorous}; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
+5. Report whether measurements are deterministic; give confidence intervals. & Decode is greedy and deterministic per engine; timing is not. Every comparison has a 95\% interval over problems; the panel (job 099) adds intervals over machines, the unit that varies most. \\
+6. Do not assume normality. & Intervals over problems are bootstrap percentile intervals (10{,}000 resamples, paired by problem), with no distributional assumption. Intervals over machines (3 to 15 of them) are $t$-intervals, which assume the per-machine values are roughly normal; the per-machine values are given beside them (\cref{tab:job109}, the supplement). \\
+7. Compare nondeterministic data soundly. & Paired bootstrap of the ratio of means within a machine; across the panel's machines, a two-stage bootstrap (machines, then problems) \citep{kalibera2013rigorous}; the variant a system is scored with is picked on a separate launch (except the Qwen3 25\% row of \cref{tab:headline}). \\
 8. Check that central tendency is the right summary. & Mean speed over 256 tokens is FreeToken's own metric; per-token p50 and p99 latencies are recorded for every problem in the released rows. \\
 9. Document all factors and the setup. & Machines, probes, power limits, memory clocks (\cref{sec:setting}), software commits (llama.cpp 4da6337, FreeToken 0d652e7), flags and job scripts are released; \cref{app:artifact}. \\
 10. Report measurement, synchronisation and summarisation. & One client times every system of \cref{tab:headline} from streamed token arrivals; the oracle comparisons of \cref{sec:foresight} are timed in process by \texttt{llama-ec-bench} over teacher-forced text, every policy by the same timer (\cref{sec:setting}). \\
 11. Show upper performance bounds. & The bound (\cref{sec:limit}) is a column of \cref{tab:headline}; \cref{tab:limit} tightens it four ways; \cref{sec:limit} applies it to the published literature and to our cache with the same procedure. \\
-12. Plot enough to interpret; connect points only for trends. & \Cref{fig:factorial} plots every host's ratio with its interval; \cref{fig:value} connects measured windows for the trend only and marks engine measurements separately; \cref{fig:ablation} is a bar chart and \cref{fig:audit,fig:hostdep} are scatter plots; the supplement holds the rest. \\
+12. Plot enough to interpret; connect points only for trends. & \Cref{fig:factorial} plots every machine's ratio with its interval; \cref{fig:value} connects measured windows for the trend only and marks engine measurements separately; \cref{fig:ablation} is a bar chart and \cref{fig:audit,fig:hostdep} are scatter plots; the supplement holds the rest. \\
 \bottomrule
 \end{longtable}
 
@@ -41,314 +41,9 @@ of the main text; \cref{tab:glossary} defines the other terms.
 \input{tab_names}
 \input{tab_glossary}
 
-\section{Prediction log}\label{app:prereg}
-Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the
-machine started; each machine cloned the published branch at boot and ran the header as committed, so git history
-orders every prediction before its measurement (for \rtNear{} of the \rtRentals{} rentals of jobs 093--111 the push and the rental's creation fall within a
-second of each other, and for \rtAfter{} GitHub records the push up to \rtAfterMax\,s after the rental was created; every
-commit preceded its rental by at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the
-push; \texttt{scripts/reg\_timing.py}).
-\Cref{tab:prereg} summarises every job's clauses; the notes below give the failures that matter. Outcome notes with the
-statistics are in \texttt{prereg/}. The scorecard, generated from \texttt{prereg/scorecard\_clauses.json},
-splits every prediction of jobs 073--\scLastJob{} into its separable clauses and scores each under one rule (jobs before
-073, which built and debugged the engine, also registered predictions in their headers; their outcome notes are in
-\texttt{prereg/}, and they are not scored here; job 072's, for one, failed or did not apply on two of its three): \emph{held} only
-when the point estimate is on the predicted side and the 95\% paired-bootstrap interval excludes the threshold (for a
-band, lies inside it); \emph{held (point)} when only the point estimate is, or no interval exists (except in the hand
-scoring of jobs 073--098, which holds deterministic counts such as reads outright, since they have no sampling error);
-\emph{failed} when
-the point estimate is on the wrong side; \emph{untested} when the clause could not be evaluated; \emph{void} when the
-job was voided. Of \scClauses{} clauses, \scHeld{} held, \scHeldPoint{} held on the point estimate, \scFailed{} failed,
-\scUntested{} were untested and \scVoid{} void: \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075,
-when the system was being built, \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions
-made after a same-host pilot, \scLateHeld{} of \scLateScored{} in jobs 082--087, and \scRevHeld{} of \scRevScored{} in jobs 088 onward, where \scRevSignHeld{} of \scRevSignClauses{} sign clauses held (\scRevSignHeldAny{} on the point estimate) and \scRevFailBand{} of
-\scRevBandClauses{} bands failed.
+\input{app_prereg}
 
-\input{tab_prereg}
-
-\paragraph{Failures, jobs 073--098.} Most bands that failed are the sizes of effects whose direction held: our slow-link
-lead landed at 1.51--1.58$\times$ against a predicted 1.10--1.50; the rerun of \cref{tab:headline} on a second host
-(job 089) gave ratios \scRatioFailMin--\scRatioFailMax{} below host B's at \scRatioFailCells{} of six
-cells against a predicted $\pm$0.06, host-bound speeds \scOursHybDropMin--\scOursHybDropMax\% lower against a
-predicted $\pm$12\%, and LRU \scLruFailMin--\scLruFailMax\% slower than decayed frequency at the two GPU-heavy
-cells against a predicted 10--30\%; on the 4090 and 3090 hosts (jobs 091, 092; the supplement) our lead over
-FreeToken and its fraction of the limit overshot their bands, FreeToken's carried-over backend fell far below its
-band, and two launch-order checks exceeded 3\% (7\% and, at gpt-oss 11\% on the 3090 host, 11\%); in the first oracle job (093; \cref{sec:foresight}) the oracle's gain fell
-outside 20--80\% at the two lowest budgets (it lost), its speed fell just below the predicted 45--65\% of the limit
-at all four host-bound cells (43.7--44.8\%), its hit rate and admissions missed the optimum's by more than the
-predicted 3 points and 30\% at three and two of the four, no-overlap cost 0\% against a predicted 5--25\%, and all-CPU cost 15\% on Qwen3
-against a predicted 0--10\%; in the bytes-oracle job (094) the bands missed as \cref{app:foresight} describes; in
-the single-read job (095) 44 of 56 clauses held, and the 12 that failed are of size: the model on the fetch oracle's
-counters was predicted within 10\% and missed by 13--17\% at four cells, the fetch oracle's reads were predicted within
-10\% of the simulation's and came 17\% below at the two GPU-bound cells (the registered simulator left a resident
-carried over from the previous sequence with no next use, and so evicted it first; corrected, the simulation is within
-\fsfSimReadsDiffMax\% of the engine's reads at every cell, \cref{app:foresight}), the read-ahead oracle was predicted at 55--85\% of the limit at the host-bound cells and reached
-44 and 51\% at the two 25\% cells, the model's over-prediction of it was predicted at 15--50\% and came to 7 and 13\% at
-the two lowest budgets, and the paced variant, predicted within 10\% of the unpaced one, was 12--13\% faster at the
-two 25\% cells; in the confirmatory factorial (096) the clauses held at most cells of both hosts and the failures are
-listed in \cref{app:foresight}, the largest being the difference between the hosts; and in the FreeToken tuning job
-(098) its best setting stayed within the predicted 10\% of its default and our ratios within the predicted bands, while
-the fixed fetch caps, the thread count and the CPU-only comparison missed as \texttt{prereg/freetoken\_outcome\_098.md}
-describes.
-Among the \scRevFailThr{} threshold failures are ours at 1.56--1.78$\times$ llama.cpp on the
-slow hosts against a predicted 1.8, the Mixtral tie against a predicted 1.3$\times$, the hit-optimal oracle's gain
-at the two GPU-bound cells (48 and 56\%) against a predicted ceiling of 15\%, the bytes-optimal oracle short of
-beating the hit-optimal one by 15\% at the two lowest budgets, and its 16-token window short of keeping 70\% of its
-gain at three cells, fetch's gain differing between hosts O4 and O5 by more than 0.15 at five cells, Belady's
-single-read prefetch above 1.05$\times$ the online policy at Qwen3 12.5\% on O4, and FreeToken's CPU backend running
-close to stock llama.cpp's where we predicted at least 2$\times$ and 1.2$\times$; the \scRevFailEq{} equality failures
-are two of the 4090 host's FETCH tables, which copy one more expert than predicted, and FreeToken's best backend at
-gpt-oss 25\% in job 098 (offload, not hybrid); the \scRevFailSign{} sign failures are LRU behind FreeToken at gpt-oss 11\%, where we
-predicted it would still lead, and the hit-optimal oracle slower than the online policy at gpt-oss 11\% and Qwen3
-12.5\%.
-
-\paragraph{Changes against the running log.} Against the running log kept during the study, two clauses are downgraded (a llama.cpp clause of job 074b that the log counted as
-held was never run; job 085b's own restatement of its fourth prediction, ``at least 2 of 3'', failed at 1 of 3,
-though the pooled 4 of 6 held), job 073's ``identical outputs'' is scored on fully identical outputs (0--3\%) rather
-than on agreement of the first 160 characters (27--47\%), and ten clauses the log counted as held, among them job
-087's first, hold on the point estimate only under the interval rule; \texttt{prereg/scorecard\_outcome.md} lists
-every change. Job 085's Qwen3 half ran as 085b on a second machine with a slow link after a hung conversion. Job 084 ran on
-a throttled card and was rerun, with its predictions unchanged, as 084b/084c. The batched-verification variants of
-\cref{sec:horizon} (rejected drafts free, routed like the true token, or routed at random) are in
-\texttt{prereg/batchk\_outcome.md}.
-
-\paragraph{Scoring checks.} The clauses were scored by hand from the outcome notes. A script (\texttt{scripts/scorecard\_auto.py}) re-scores every clause
-whose measured value is a number and whose threshold parses, \scaAuto{} of \scaN: it agrees with the hand score on
-\scaAgree; of the \scaDisagree{} differences, \scaDet{} are the deterministic counts (reads, divergences, table
-entries) that the hand scoring holds outright and the script scores held (point), and \scaOther{} is a boundary value
-the hand scoring read unrounded (1.249 against a band starting at 1.25). Of the clauses the script scores held on the
-point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one that crosses the threshold.
-
-\paragraph{Jobs 099--104.} Job 099's clauses are scored by machine from the start
-(\texttt{scripts/panel\_099.py}): of \scbN, \scbHeld{} held, \scbPoint{} held on the point estimate, \scbFailed{}
-failed and \scbUntested{} were untested (\texttt{prereg/scorecard\_099.json}); the two untested clauses are one host's
-replay check, whose step failed when a Python package did not install. The failures concentrate on the two hosts whose
-link reads at less than half their CPU's rate, where the bands, set from four earlier hosts none of which was
-link-starved, did not encode host dependence; and on the planning time of the noisy whole-future window (\texttt{prereg/panel\_outcome\_099.md}).
-Job 100 (\texttt{scripts/job100.py}; its header gained a ninth prediction, about the two replacement machines, after the first four machines had started; it compares the replacements with values one of which was already measured): of \sccN, \sccHeld{} held, \sccPoint{} held on the point estimate, \sccFailed{} failed and
-\sccUntested{} were untested. Most failures are one prediction, that the deployed-path windows miss within 10\% as often
-as a replay that admits at once (their copies land late); the rest are the probe-only model on the half-width-link
-host and four band or ordering edges. The untested clauses are the planning time of the deployed-path windows, which the engine
-does not time, and the paired prediction for a host that never reached a timed step (\texttt{prereg/window\_outcome\_100.md}).
-Job 101 (\texttt{scripts/job101.py}; the lowest-ratio panel machine relaunched, and a second Ryzen 7 9800X3D behind a slower
-link): of \jbClauses, \jbHeld{} held, \jbPoint{} held on the point estimate, \jbFailed{} failed and \jbUntested{} were
-untested (\texttt{prereg/crossover\_outcome\_101.md}).
-Job 102 (\texttt{scripts/job102.py}; the read-schedule microbenchmark on three hosts): of \jdClauses, \jdHeld{} held,
-\jdPoint{} held on the point estimate (none has an interval), \jdFailed{} failed and \jdUntested{} were untested. Four
-failures are one prediction, that waiting per layer would cost at least 0.03 of the host term against the analytic
-schedule; on two of the three hosts it costs nothing measurable. The fifth is the ordering of the two budgets on the
-Intel host (\texttt{prereg/readsched\_outcome\_102.md}).
-Rentals that produced no results were destroyed and are in the rental ledger (\texttt{gpu/vast\_ledger.json}): two of
-job 097's four rentals; the first two for 099a and the first for 099d, replaced before any measurement; 100d, which
-stalled downloading the model; 100e, which never reached its job; and 103c, which never started its job (105c, 105d and
-105g below). Job 103 (\texttt{scripts/job103.py}; MIN's fewest-admission schedule against the greedy one): the hosts could not install
-the plan's solver beside Debian's numpy, so the engine ran the greedy schedule in the plan configurations, as it logs;
-of \jeClauses{} clauses \jePoint{} held on the point estimate (the relaunch of Pf) and \jeUntested{} are untested. Job 104
-repeated it with the plan in its own environment on three of the same machines (Pf, a second Core Ultra 9 285K
-whose link reads at 0.49 of its CPU rate, and Pg, whose second launch job 103's 5950X turned out to be): of \jfClauses, \jfHeld{} held,
-\jfPoint{} held on the point estimate and \jfFailed{} failed. Most speed predictions held (the fewest-admission set gains
-on Pf, and gains at least 0.03 over the greedy set at gpt-oss 11\% on every machine; with two reads it is at most 0.01
-behind the greedy set at 5 of 6 cells, and 0.047 behind on Pg at gpt-oss 25\%); the other failures are the counters at
-gpt-oss 25\% (copies 0.73 of greedy's against at most 0.70, misses 5\% more against at most 3\%), the engine's misses
-against the host's replay, the two-read reads, and the interaction, which we predicted would shrink with the plan's
-set and which grew (\texttt{prereg/minadm\_outcome\_104.md}).
-\paragraph{Jobs 105--108: the time relation.} Job 105 (\texttt{scripts/job105.py}; the plain form of \cref{eq:sum} with $G$ profiled on each host before its timed runs, the engine's
-layer-ahead copy, and the fewest-admission set, on an EPYC 7402P, a Threadripper 9960X, Pf and O4): of \jgClauses,
-\jgHeld{} held, \jgPoint{} held on the point estimate and \jgFailed{} failed. Every failure is the relation at gpt-oss 25\%,
-which over-predicts the deployed cache by \jgErrMidFailMin--\jgErrMidFailMax\% (against at most 6\%) on \jgErrMidFailN{} of
-the four hosts (\jgErrMidHeldMin\% on Pf) and so takes the pooled median error (\jgErrMed\%) past the 4\% registered; at 11\% it is within \jgErrLowMin{} to
-\jgErrLowMax\%. Every speed prediction held: the layer-ahead copy gains at least 3\% on the host with a ratio above 0.8
-and loses on both below 0.4, and the fewest-admission set beats the deployed cache on every host, beats the greedy set
-by at least 0.03 on the three with a ratio under 0.7, and copies at most 0.65 of the greedy set's experts
-(\texttt{prereg/sumlaw\_outcome\_105.md}). Two clauses predicted quantities already measured, the profiled $G$ (job
-069c) and the plan's copies, which are a property of the trace (job 104); they test that the engine reproduces them.
-Three more launched hosts produced no results: 105c never started its
-job, and the job's bandwidth gate stopped 105d and 105g, whose cards were throttled, before any timed run.
-Job 106 (\texttt{scripts/job106.py}; \cref{eq:sum} with its overlap term on both models at two budgets, the two online
-admission rules, and MIN's sets launch by launch, on five hosts): of \jiClauses, \jiHeld{} held, \jiPoint{} held on the
-point estimate and \jiFailed{} failed. \jiFailedUnst{} of the failures are on the two server machines new to the job, one
-of which computed wrong outputs and the other of which varied by more than the registered 2\% between rounds
-(\cref{app:more}); the three stable hosts are Pf, the Threadripper 9960X of job 105 and panel host Pe, all rented
-before. On the \jiStable{} stable hosts the relation held on every
-cell; the \jiFailedStable{} failures there are the margin rule's speed-up of at least 1.01 at gpt-oss on two hosts, the
-learned order's speed-up of at least 1.00 on the fast-memory host, its host-time caps on the fastest-link host, and the
-relation's prediction of both rules' ratios on Pf at 25\% (off by 0.030 and 0.045 against at most 0.03). The pooled clauses:
-the relation's median error over all hosts failed (\jiFailedPooled), and the margin rule's pooled median of at least 1.02 held
-only because of the two unstable machines (on the stable ones it is \jiDkPooled) (\texttt{prereg/onlineadmit\_outcome\_106.md}).
-Job 107 (\texttt{scripts/job107.py}; the same relation, the admission margin and MIN's fewest-admission set loaded both
-ways, on machines never rented before, with validity gates registered before launch): \jlLaunched{} machines rented,
-\jlGated{} stopped at the gate, \jlInvalid{} failed the round check, and the test had \jlValidWord{} valid machines of the
-\jlRequiredWord{} it required, which by its registered rule makes it inconclusive; its per-cell clauses failed on both.
-On them, of \jlClauses{} clauses, \jlHeld{} held, \jlPoint{} held on the point estimate and \jlFailed{} failed. The
-failures are the relation (\jlFailCells{} of \jlCells{} cells beyond 6\%, the pooled median error, and the overlap form
-against the plain one), the margin rule at \jlDkFailWord{} cell, the relation's prediction of the margin rule's speed at
-\jlDkPredFailN{} cells on the server, and the count of valid machines. The profiled GPU compute, the margin rule's
-reads and pooled median, both fewest-admission loads and the crossover between them held. Replacing machines that
-failed the round check, and the rules that chose the last two machines, were amendments committed before each machine
-started (\texttt{prereg/newhosts\_outcome\_107.md}). Jobs 102, 105 and 106 also had their headers edited after launch, each time to
-substitute a host, with the predictions unchanged and marked so in the header.
-Job 108 (\texttt{scripts/job108.py}; the relation on machines never rented before, with the class drawn after job 107
-gated before any download, gpt-oss only, and an 8\% band): \jmLaunched{} machines rented, \jmGated{} stopped at the
-gate, \jmInvalid{} failed the round check, and \jmValidWord{} were valid. Of \jmClauses{} clauses, \jmPoint{} held on the
-point estimate, \jmFailed{} failed and the rest could not be tested. The failures are the EPYC 7543's two cells and its
-implied read rate at both budgets, and the two pooled clauses (\jmWithinSix{} of \jmCells{} cells within 6\%, median
-error \jmErrMed\%); the profiled $G$ of that host could not be tested (\texttt{prereg/smallhosts\_outcome\_108.md}).
-Job 109 (\texttt{scripts/job109.py}; the 2$\times$2 of \cref{sec:gap}, the read-ahead oracle and four online
-policies on desktop-class machines never rented before, with the population, link-to-CPU ratio at least 0.5, fixed
-before any started; \cref{tab:job109}): \olStartedWord{} machines started, and all \olNWord{} passed every gate and round check. Of its \olPredN{}
-predictions \olPredHeld{} held (one clause of P8, for ratios of at least 0.9, had no machine to test it); of
-\olClauses{} clauses, \olClausesHeldCI{} held with a 95\% interval over problems, \olClausesPoint{} on the point estimate, and
-\olClausesFailed{} failed. A smoke run on gpt-oss-20b, on a machine outside the sample, first checked that the two new
-combinations run and compute the same model. One listed offer was no longer offered and was skipped as registered, and the job's deadline cut the 25\% round of
-the Ryzen 9 5950X, the slowest machine.
-The header's statement that no listed offer was in the rental ledger was wrong for one: the Core i9-13900KF's offer had
-been rented twice before (job 099's first host d and job 100's host e), both times without a result; its GPU had never
-been measured, and it passed the identity gate. Job 110 (the RTX 5090 trend of \cref{sec:secondcard}, frozen in its
-header, on RTX 4090 machines): \cxTenStarted{} machines started, \cxTenGated{} stopped at its ratio gate (at \cxTenGatedRatio,
-below 0.25), and every other one failed its output check after one round. That check used the RTX 5090's reference
-loss; the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration of every process, so the check failed by
-design rather than by fault, and job 110 is void as registered. Job 111 relaunched three of the four machines that had run a round, with the card's own reference (its first
-round's loss on one of them) and job 110's predictions unchanged; the fourth, job 110's host e, was not relaunched,
-because its GPU was left out of the relaunch list, an oversight we found after the job; the predictions were committed
-before any RTX 4090 data, the corrected reference after one round on these machines. Of its first launches,
-\cxElevenNoModel{} failed to download the model, before any model run, and were relaunched once by an amendment committed
-before the relaunch. Of job 110's clauses scored on job 111's \cxNWord{} valid machines, \cxClausesHeld{} held with an
-interval, \cxClausesPoint{} on the point estimate, and \cxClausesFailed{} failed; its sixth prediction, for machines
-with a ratio of at least 0.5, had none to test.
-
-The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100, \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{} for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109, \cxClauses{} for jobs 110 and 111) are in the supplement
-(\texttt{paper/supplement.pdf}), generated by the same scripts.
-
-\section{Foresight in the engine}\label{app:foresight}
-Four jobs ran oracle policies in the engine, each on a rented RTX 5090 host with weaker host memory than host B's. Jobs 093--097 report ratios of mean speeds rather than of mean times per token; recomputed either way, no ratio
-moves by more than \fxMeanKindDiffMax.
-The fourth (096) is the confirmatory factorial of \cref{fig:factorial}: ten configurations per cell, each in a fresh
-context, in an order shuffled per cell with a recorded seed, on hosts O4 (Ryzen 9 9950X: \fxCpuFour, \fxLinkFour{} and
-\fxBestFour\,GB/s by the CPU, over the link and at best) and O5 (Ryzen 9 9950X3D: \fxCpuFive, \fxLinkFive{} and
-\fxBestFive\,GB/s), with ten predictions per host committed before either started
-(\texttt{prereg/foresight\_outcome\_096.md}). They held at most cells. The failures: fetch's gain above the predicted band at Qwen3 25\% on O4 and different
-between the hosts by up to \fxFetchSpreadMax{} against the 0.15 predicted; Belady's single-read prefetch faster than
-predicted at Qwen3 12.5\% on O4, with reads below the predicted 1.25--1.9$\times$ the MIN prefetch's at Qwen3 12.5\% on
-both hosts and at gpt-oss 11\% on O4 (down to \fxNbReadsOverLeadMin$\times$); the bytes share at Qwen3 12.5\% on O4
-(\amBytesHostMax\% of the gap against a predicted 25--55\%); and the reads fetch-on-admit saves at gpt-oss 40\% on O5,
-just above the predicted 22\%. Reading the online policy's admissions once came to \fxFoaHostMin--\fxFoaHostMax$\times$ at the host-bound cells, at the bottom of the predicted 0.97--1.12$\times$ although its reads fell as predicted, and to \fxFoaGpuFiveMin--\fxFoaGpuFourMax$\times$ at the GPU-bound cells.
-\Cref{tab:single_read} lists every cell of the single-read factorial of \cref{sec:foresight} on host O3 (a Ryzen 9 9950X
-whose probe reads \fsfHostCpu\,GB/s by the CPU at the helper count, \fsfHostLink{} over the link, \fsfHostBoth{} with
-both and \fsfHostMax{} at best; the model's FETCH tables \texttt{0,0,1,2,2} for gpt-oss and \texttt{0,0,1,1,2,3,4,4,5}
-for Qwen3), and \cref{tab:accounting_measured} the milliseconds per token of the engine states the three jobs
-realised beside each host's limit and the model's values. \Cref{tab:foresight} lists the first job (093), the
-hit-optimal oracle with a window sweep on host O1 (a Ryzen 9 9950X: \fsmHostCpu, \fsmHostLink, \fsmHostBoth{} and
-\fsmHostMax\,GB/s; tables \texttt{0,0,1,2,3} and \texttt{0,0,1,2,3,4,5,6,7}), and \cref{tab:foresight_bytes} the
-second (094), MIN with bypass with background admissions beside the hit-optimal oracle on host O2 (a Ryzen 9 7950X:
-\fsbHostCpu, \fsbHostLink, \fsbHostBoth{} and \fsbHostMax\,GB/s; the same tables). On O1 and O2 every cell but
-gpt-oss 40\% and Qwen3 43.75\% is host-bound at the limit; on O3, whose memory is stronger, the same four.
-
-\paragraph{The single-read oracles.} In the fetch oracle the step's plan is computed before the layer runs from the
-trace's record of the current step: the misses MIN with bypass would admit are fetched by the engine's FETCH
-operation into their victims' slots and run from there, and every other miss runs on the CPU; the oracle refuses an
-admission when no resident's next use is further than the candidate's. The single-read prefetch admits, each step,
-the non-resident experts whose first use is at least $d$ steps away ($d{=}2$ unpaced, 3 paced), provided the victim's
-next use is further than the candidate's use after that first one; an expert used sooner than $d$ steps away misses
-on the CPU, or is fetched when the two are combined. The same policies simulated on the trace with the engine's
-semantics (the lookahead within the sequence, residents carried over with their next use recomputed at each sequence
-start) predict the engine's reads and hit rates: the fetch oracle's hit rate within \fsfSimHitDiffMax{} points and its
-reads within \fsfSimReadsDiffMin{} to \fsfSimReadsDiffMax\%, the combined oracle's hits within two points
-(\cref{tab:single_read}). The simulator the job's predictions were registered against gave a resident carried over
-from the previous sequence no next use, so it was evicted first; that over-counted the fetch oracle's reads by 17\%
-at the two GPU-bound cells, which is why two of its reads clauses failed (\cref{app:prereg}). Each configuration of
-\texttt{llama-ec-bench} starts with a cold cache in a fresh context. The paced copy path copies one 16\,MB piece at a time on a single copier thread and
-publishes a landed copy at the start of the next step; the unpaced path copies each admission as one transfer. The
-hit-optimal oracle's background admissions drive host memory at \fshHostUtilMin--\fshHostUtilMax\% of the probe's best
-rate at the host-bound cells, the prefetching single-read oracles at \fsPrefetchHostUtilMin--\fsPrefetchHostUtilMax\%
-(the paced one \fsbpHostUtilMin--\fsbpHostUtilMax\%), the online policy itself at \fsBaseHostUtilMin--\fsBaseHostUtilMax\%, the fetch
-oracle at \fsfHostUtilMin--\fsfHostUtilMax\%. The predictions and their outcomes are in
-\texttt{prereg/foresight\_outcome\_095.md}: of 56 clauses, 44 held and 12 failed, all of size (\cref{app:prereg}).
-
-\input{tab_single_read}
-\input{tab_accounting_measured}
-
-\begin{figure}[t]\centering
-\includegraphics[width=0.5\linewidth]{figs/foresight.pdf}
-\caption{The first oracle job (093, host O1): speed as a percentage of this host's limit against the window $W$ of
-future routing the hit-optimal oracle sees, at the four host-bound cells. ``none'' is the online policy; ``all'' the
-whole sequence; points are connected for the trend only. The tick at the right is the model's foresight-only term for
-the cell, the speed it predicts with that one fix; the oracle's host traffic sits at \fsmUtilWinMin--\fsmUtilWinMax\%
-of the probe's best rate at every window, so its speed is $R^\star$ over its reads times that utilisation,
-\fsmHostFracMin--\fsmHostFracMax\% of the limit with the whole sequence in view.}
-\label{fig:foresight}
-\end{figure}
-
-\paragraph{The double-reading oracles.} Both read the routing of the next $W$ decode steps; their copies ride the
-paced admission path, and an expert still in flight at its step runs on the CPU like any other miss. The
-\emph{hit-optimal} oracle admits the experts those steps will route to, soonest first, evicting the resident whose
-next use is furthest (Belady within the window), for one future use as readily as for ten. The \emph{bytes-optimal}
-oracle is MIN with bypass with its admissions made through the background path: a miss is served where it is, by the
-CPU or a demand copy, and admitted only if its next use comes before the furthest next use among the residents. With
-the whole sequence in view the hit-optimal oracle runs \fsmRatioGMid$\times$ [\fsmRatioLoGMid, \fsmRatioHiGMid] the
-online policy at gpt-oss 25\% and \fsmRatioQMid$\times$ [\fsmRatioLoQMid, \fsmRatioHiQMid] at Qwen3 25\% on host O1,
-\fspRatioGMid$\times$ and \fspRatioQMid$\times$ on O2, and \fsHitGpuMin--\fsHitGpuMax$\times$ at the two GPU-bound
-cells; half of its gain at gpt-oss 25\% arrives between $W{=}4$ and 16 (\fsmWfiftyGMid{} tokens by log
-interpolation; Qwen3 25\%: \fsmWfiftyQMid{} against the trace's 3.9). Where the host binds hardest it loses,
-\fsHitLossMin--\fsHitLossMax\% at gpt-oss 11\% and Qwen3 12.5\% on both hosts, and at every window on O1
-(\fsmNegWinMin--\fsmNegWinMax$\times$): it reads more host bytes than the online policy (\fsmReadsOracleGLow{} and
-\fsmReadsOracleQLow{} experts per token against \fsmReadsBaseGLow{} and \fsmReadsBaseQLow),
-\fsmTotalReadsOptMin--\fsmTotalReadsOptMax$\times$ the optimum's $R^\star$, because Belady admits an expert used once
-where the optimum bypasses it and re-copies what it evicts (its admissions, each one read, are most of its reads; a
-miss served on the CPU before its copy lands is the second read of that expert). An unpaced copy path, run at the
-four host-bound cells of O1, reaches 98--99\% hits at three of them and still loses at gpt-oss 11\% and Qwen3 12.5\%
-(where it hits 75\%), so copies that arrive in time do not remove the loss there: the extra bytes cause it. The bytes-optimal oracle gains
-\fsbGainHighMin--\fsbGainHighMax\% at the four cells of 25\% and above and \fsbGainLowMin--\fsbGainLowMax\% at the two
-below (\fsbGainLowMaxAny\% with a 16-token window); its misses fall (\fsbMissesBaseGMid{} to \fsbMissesGMid{} and
-\fsbMissesBaseQMid{} to \fsbMissesQMid{} per token at 25\%) but its total reads, misses plus the admissions that read
-each admitted expert again, are \fsbTotalReadsOptMin--\fsbTotalReadsOptMax$\times$ $R^\star$ and exceed the online
-policy's by \fsbLowReadsVsBaseMin--\fsbLowReadsVsBaseMax\% at the two lowest budgets; the model on its own counters
-predicts its time within \fsbLawErrMax\% at every cell, and the bytes it saves account for
-\fsbLawGainHighMin--\fsbLawGainHighMax{} points of its \fsbGainHighMin--\fsbGainHighMax\% gain at the four cells
-(most of it at gpt-oss 40\% and Qwen3 43.75\%, a third at Qwen3 25\%). The hit-optimal oracle reads
-\fspVsBypassBytesMin--\fspVsBypassBytesMax$\times$ the bytes-optimal one's host bytes on O2 and gains
-\fspGainHighMin--\fspGainHighMax\% at the same four cells, and the model, with its GPU term calibrated on the online run,
-over-predicts those runs' time per token by \fspLawErrHighMin--\fspLawErrHighMax\% (on O1, \fsmLawErrPosMin--\fsmLawErrPosMax\%): its gain
-is the overlap of copies issued ahead of their use with the step, which the model charges in sequence. Pacing the
-online policy's own copies changes it by under 1\% (\fsmPacedMin--\fsmPacedMax$\times$). With no FETCH table (every
-miss on the CPU) the online policy runs \fsmAllcpuMin--\fsmAllcpuMax\% slower at the four host-bound cells; with the
-engine's within-layer overlap of a layer's CPU misses with its GPU hits turned off it changes by under 1\% at every
-cell (0.5\% faster to 0.6\% slower), so the overlap the accounting charges is across the step and in rebalancing, not
-within a layer. The bytes-optimal oracle with a 16-token window keeps \fsbSixteenShareMin--\fsbSixteenShareMax\% of
-the whole-sequence gain at the five cells where that gain's interval excludes zero (more than all of it at gpt-oss
-11\%, where the shorter window admits less).
-
-\paragraph{Why the bytes-optimal oracle's misses stay above the optimum's reads.} Besides the second read, its misses alone are
-\fsbReadsRatioHostMin--\fsbReadsRatioHostMax$\times$ the optimum's reads at the four host-bound cells (at the two
-GPU-bound ones the ideal simulation below is itself \fslIdealOverGpuMin--\fslIdealOverGpuMax\% above the optimum,
-which sees across sequences). The engine's paced copy path moves one 16\,MB piece at a time from pageable host
-memory on a single copier thread, behind the demand copies, publishes a landed copy at the start of the next step, and
-admits nothing while 64 copies are queued; at the 16--30 admissions per token (210--285\,MB) of the two lowest
-budgets it lags the admissions by steps, and an expert still in flight is a miss the CPU reads again. The last four columns of \cref{tab:foresight_bytes}
-simulate MIN with bypass on the measured routing trace with the engine's own semantics (the lookahead within the
-sequence, residents carried over, no queue cap) and a copy that lands $d$ steps after it is issued, during which the
-expert misses and is not re-admitted: at $d{=}1$, the ideal, the misses come within
-\fslIdealOverMin--\fslIdealOverMax\% of the limit's optimum at the host-bound cells; the engine's misses meet the
-simulation at $d{=}$\fslFitHostMin--\fslFitHostMax{} there and at \fslFitGpuMin--\fslFitGpuMax{} at the GPU-bound
-cells, three to five steps. At the fitted latency the simulation admits \fsbSimAdmitMin--\fsbSimAdmitMax$\times$ what
-the engine admitted, so the queue cap, not only the latency, keeps the engine's misses above the ideal. The predictions and their outcomes are in
-\texttt{prereg/foresight\_outcome\_093.md} and \texttt{094.md}: of 36 clauses for the first job, 9 held, 2 held on
-the point estimate, 21 failed and 4 were untested; of 38 for the second, 12 held, 1 on the point estimate, 24 failed
-and 1 was untested (\cref{app:prereg}). The second job's failures are of size, not direction: the bypass oracle's
-misses were predicted within 15\% of the optimum's reads and came 29--47\% above (the copy latency and the queue
-cap); its hit rate was predicted within 4 points of the optimum's and fell 5--11 points short at three cells; its gain
-was predicted at 10--45\% at the host-bound cells and came below that at the two lowest budgets; the model was predicted
-to over-predict it by 10--40\% at the host-bound cells and over-predicted by 5--9\%; and the two oracles were
-predicted within 15\% of each other at 25\% and above, where the hit-optimal one was 1.24--1.38$\times$ faster.
-
-\paragraph{Where a token's time goes at a GPU-bound budget.} On Qwen3 at 43.75\% Nsight Systems splits a token of
-our cache (FreeToken in parentheses) into 4.93 (5.20)\,ms of expert copies over PCIe, 2.29 (2.21) of resident-expert
-products, 1.65 (1.34) of attention projections, 0.49 (0.37) of attention, 0.38 of output head and 0.97 (0.40) of norms,
-small kernels and cache control, with neither system overlapping its copies with GPU compute. Turning off the
-within-layer overlap of a layer's CPU misses with its GPU hits changes speed by under 1\% at every budget, and
-predicting the next layer's experts \citep{hwang2024pregated,zhu2025preattention} never lowers host bytes.
-
-\input{tab_foresight}
-\input{tab_foresight_bytes}
+\input{app_foresight}
 
 \input{app_traces}
 \input{app_value}
@@ -358,7 +53,7 @@ predicting the next layer's experts \citep{hwang2024pregated,zhu2025preattention
 
 \section{The expert cache in more detail}\label{app:system}
 This section holds the measurements of \cref{sec:setting} that the main text summarises: where the cache's gain
-comes from, the choice of the FETCH split, the hosts with half the link, long outputs, FreeToken's own headline
+comes from, the choice of the FETCH split, the machines with half the link, long outputs, FreeToken's own headline
 model, two other llama.cpp-based systems, output parity, and the cost of prompts and batches. Job numbers refer to
 the scripts on the \texttt{gpu} branch.
 
@@ -390,11 +85,11 @@ model's FETCH table 5--8\% over the fixed one. The full system runs \ablGptX$\ti
 (Qwen3) stock llama.cpp.
 
 \paragraph{How tight is the bound?} \Cref{tab:limit} changes one assumption at a time on host B. Pooled slots need
-\globalReadsMin--\globalReadsMax\% fewer reads and raise the host-bound limits by 5--10\%; starting MIN warm changes it by
-at most 1.4\%; the median probe sample instead of the highest lowers the host-bound limits by 8\%. The GPU term moves
+\globalReadsMin--\globalReadsMax\% fewer reads and raise the bound at the host-bound budgets by 5--10\%; starting MIN warm changes it by
+at most 1.4\%; the median probe sample instead of the highest lowers it there by 8\%. The GPU term moves
 most: at batch size 1 the all-in-VRAM runs reach only \gpuEffPctGpt\% (gpt-oss) and \gpuEffPctQwen\% (Qwen3) of the
-datasheet rate, and with the measured rate the limits at 25\% and above fall to \limMeasGpuGpt{} and
-\limMeasGpuQwen\,tok/s, 8--9\% above the all-in-VRAM speed. In the running example (gpt-oss at 25\%) the limit on host B
+datasheet rate, and with the measured rate the bounds at 25\% and above fall to \limMeasGpuGpt{} and
+\limMeasGpuQwen\,tok/s, 8--9\% above the all-in-VRAM speed. In the running example (gpt-oss at 25\%) the bound on host B
 is \limExMidG\,tok/s (\limMeasGpuGpt{} with the measured GPU rate) and the cache runs 109\,tok/s. With every expert in
 its slots the cache matches stock llama.cpp (\cOneTwoEight$\times$ and \cOneTwoEightQ$\times$). The bound assumes an
 expert run on the CPU is read from DRAM (MIN's shortest re-read distance is \lthreeReuseMin\,GB of host traffic) and
@@ -411,9 +106,9 @@ read their share of host memory from an ordinary buffer, as the engine's helpers
 rest, 13.25\,MB at a time, from pinned memory into GPU slots; both buffers rotate through 4\,GiB so that no cache holds
 them. \emph{Per layer} splits each layer's experts, whole, between the two paths at the probe's rates and waits for
 both before the next layer; \emph{per token} sums the same split over the token and waits once; \emph{link only} sends
-every read over PCIe, as admitting every miss does (MIN with one read sends only its admissions); \emph{CPU only} reads everything on the CPU. \Cref{tab:readsched}
-gives each host. Waiting per layer instead of per token costs at most \jdWaitCostAmdMax{} point of the host term on the
-two AMD hosts and \jdWaitCostMax{} on the Intel host, whose link is the slowest; there, reading everything on the CPU
+every read over PCIe, as admitting every miss does (\MinOne{} sends only its admissions); \emph{CPU only} reads everything on the CPU. \Cref{tab:readsched}
+gives each machine. Waiting per layer instead of per token costs at most \jdWaitCostAmdMax{} point of the host term on the
+two AMD machines and \jdWaitCostMax{} on the Intel machine, whose link is the slowest; there, reading everything on the CPU
 beats the per-layer split.
 The split ignores which reads are admissions; the link-aware bound sends every
 admission over the link and raises the bound by at most \laOverLowMax\% at 11\% (\texttt{scripts/linkaware.py}, \texttt{prereg/linkaware.json}).
@@ -482,7 +177,7 @@ the better of them (job 077). KTransformers \citep{ktransformers} (kt-kernel 0.7
 number of experts statically on the GPU) ran Qwen3 in BF16 at \ktOverLlamaMin--\ktOverLlamaMax$\times$ stock
 llama.cpp on an RTX 5090 with a Ryzen 9 9950X, and ours at \ktOursOverMin--\ktOursOverMax$\times$ it (job 078); both
 static placements read the same CPU expert bytes from the same DRAM. Its published speeds rely on AMX Xeons and
-INT4/INT8 CPU weights, which that host lacks and which change the model, so this is not its best setting. Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
+INT4/INT8 CPU weights, which that machine lacks and which change the model, so this is not its best setting. Teacher-forced on fixed text (\klStepsGpt{} steps per model) against stock llama.cpp with every weight in the
 VRAM of an RTX PRO 6000 (job 090), our cache at 25\% has a mean KL divergence over the full vocabulary of
 \klMeanGpt{} nats on gpt-oss and \klMeanQwen{} on Qwen3 (99.9th percentile \klNinetyNineGpt{} and \klNinetyNineQwen,
 maximum \klMaxGpt{} and \klMaxQwen), picks the same next token on \klTopGpt\% and \klTopQwen\% of steps, and changes
@@ -505,7 +200,7 @@ own bound, computed from the paper's hardware at datasheet rates and, where a ro
 exists, the per-layer Belady optimum (filled); hollow points assume uniform routing, which overstates the optimum's
 reads and so the percentage; the dotted lines are the class medians (no GPU expert capacity, \audNocapMed\%; every
 expert resident, \audAllfitMed\%). Right: our cache, FreeToken and stock llama.cpp on host B against the probed
-per-layer limit of \cref{tab:headline} (the pooled bound FreeToken's and llama.cpp's designs allow is
+per-layer bound of \cref{tab:headline} (the pooled bound FreeToken's and llama.cpp's designs allow is
 \poolOverLayerMin--\poolOverLayerMax\% higher).}\label{fig:audit}
 \end{figure}
 \Cref{tab:audit} lists the \audAllN{} published measurements of \cref{sec:limit} with their bounds. The sources are
@@ -534,7 +229,7 @@ heartbeat, fetches the results and only then destroys the instance.
 \item \textbf{Analysis.} \texttt{scripts/*\_stats.py} compute every interval from the raw rows;
 \texttt{scripts/perlayer\_model.py}, \texttt{speed\_limit\_v2.py}, \texttt{shapley\_gap.py}, \texttt{policy\_study.py},
 \texttt{foresight\_exact.py}, \texttt{batchk\_trace.py}, \texttt{fig\_audit\_sol.py} and \texttt{scorecard.py} produce the
-model comparison, the limit, the accounting, the trace studies, the audit figure and the scorecard;
+model comparison, the bound, the accounting, the trace studies, the audit figure and the scorecard;
 \texttt{scripts/wsg\_tables.py} and \texttt{wsg\_numbers2.py} generate every table, figure and number in this paper from
 their outputs. The audit's \audAllN{} published rows and the physical speed-of-light model they are scored against are
 \texttt{data/published\_measurements.json}, \texttt{data/audit/} and \texttt{scripts/audit.py}.

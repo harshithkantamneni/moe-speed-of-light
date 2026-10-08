@@ -126,10 +126,10 @@ def main():
             lines.append("Mixtral-8x7B Q4\\_K\\_M & $C{=}%d$ (%d\\%%) & %.2f & -- & %.2f & -- & %.3f [%.3f, %.3f] & -- & -- & -- \\\\" % (
                 m["C"], 100 * m["C"] // 8, m["llama"], m["ours"], m["ours_over_llama"][0], m["ours_over_llama"][1], m["ours_over_llama"][2]))
     tex = r"""\begin{table*}[t]\centering\small
-\caption{The grid: \cref{tab:headline}'s protocol on every card and host we measured, each cell against its own
-machine's limit (the exact optimum's reads on the same trace, the machine's highest probed host rate, the card's
-datasheet rate). \emph{Bound}: what binds the limit; \emph{host} when the optimum's reads alone take longer than the
-GPU's whole read, so the GPU has slack, \emph{both} when the limit runs experts on the CPU until the two paths take
+\caption{The grid: \cref{tab:headline}'s protocol on every card and machine we measured, each cell against its own
+machine's bound (the exact optimum's reads on the same trace, the machine's highest probed host rate, the card's
+datasheet rate). \emph{Binds}: what binds the bound; \emph{host} when the optimum's reads alone take longer than the
+GPU's whole read, so the GPU has slack, \emph{both} when the bound runs experts on the CPU until the two paths take
 equally long, which is where the all-in-VRAM speed can be exceeded. Ours and
 FreeToken are launch 2 (FreeToken's backend carried over from host B's selection); the 40 and 43.75\%
 budgets do not fit a 24\,GB card. $^\dagger$On the RTX 3090 FreeToken's carried-over hybrid backend ran below
@@ -138,8 +138,8 @@ and no ratio against it is printed. Mixtral-8x7B (26\,GB of experts, top-2 of 8)
 launch 1.}\label{tab:grid}
 \setlength\tabcolsep{3pt}\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrcr}\toprule
-Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Limit & Bound & Ours, \% \\
- & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & (tok/s) & & of limit \\
+Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & Bound & Binds & Ours, \% \\
+ & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & (tok/s) & & of bound \\
 """ + "\n".join(lines) + r"""
 \bottomrule\end{tabular}}\end{table*}
 """
@@ -221,7 +221,7 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
                 ax.scatter(x + 0.12, 100 * r["frac_ft"], marker=mk[c["card"]], s=18, facecolors="none", edgecolors=col.get(c["host"], "k"), linewidths=0.9, zorder=3)
     ax.set_xticks(range(len(ORDER)))
     ax.set_xticklabels([f"{'gpt-oss' if m.startswith('gpt') else 'Qwen3'}\n{b}" for m, b in ORDER], fontsize=6)
-    ax.set_ylabel("% of the machine's limit", fontsize=6.5)
+    ax.set_ylabel("% of the machine's bound", fontsize=6.5)
     ax.tick_params(labelsize=6)
     ax.set_ylim(0, None)
     for sp in ("top", "right"):

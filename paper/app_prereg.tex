@@ -1,0 +1,124 @@
+\section{Prediction log}\label{app:prereg}
+Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the machine
+started. Each machine cloned the published branch at boot and ran the header as committed, so git history orders every
+prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--111, every commit preceded its rental by
+at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the push. For \rtNear{} of
+them the push and the rental's creation fall within a second of each other, and for \rtAfter{} GitHub records the push
+up to \rtAfterMax\,s after the rental was created (\texttt{scripts/reg\_timing.py}). \Cref{tab:prereg} summarises
+every job's clauses, and \cref{tab:failures} gives the failures. Outcome notes with the statistics are in
+\texttt{prereg/}; the batched-verification variants of \cref{sec:horizon} (rejected drafts free, routed like the true
+token, or routed at random) are in \texttt{prereg/batchk\_outcome.md}. Jobs before 073, which built and debugged the
+engine, also registered predictions in their headers. Their outcome notes are in \texttt{prereg/}, and they are not
+scored here; job 072's, for one, failed or did not apply on two of its three.
+
+\paragraph{Scoring.} Every prediction of jobs 073--111 is split into its separable clauses, and each clause is scored
+under one rule: \emph{held} when its point estimate is on the predicted side and the 95\% paired-bootstrap interval
+excludes the threshold (for a band, lies inside it); \emph{held (point)} when the point estimate is on the predicted
+side but no interval exists or the interval crosses the threshold; \emph{failed} when the point estimate is on the
+wrong side; \emph{untested} when the clause could not be evaluated; and \emph{void} when its job was voided. Jobs
+073--\scLastJob{} were scored by hand from the outcome notes, into \texttt{prereg/scorecard\_clauses.json}, which
+generates the scorecard. The hand scoring makes one exception: deterministic counts such as reads have no sampling
+error, so it holds them outright, not held (point). From job 099 on, a script scores each job's clauses, without that
+exception.
+
+\paragraph{Two tallies.} The hand-scored tally covers the \scClauses{} clauses of jobs 073--\scLastJob: \scHeld{}
+held, \scHeldPoint{} held on the point estimate, \scFailed{} failed, \scUntested{} were untested and \scVoid{} void.
+By era, \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075, when the system was being built;
+\scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions made after a same-machine
+pilot; \scLateHeld{} of \scLateScored{} in jobs 082--087; and \scRevHeld{} of \scRevScored{} in jobs 088--\scLastJob.
+The last row of \cref{tab:prereg} is the overall tally, for jobs 073--111. The hand-scored tally is a subset of it:
+the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--111 make up the rest.
+In the overall row, a deterministic count is therefore held in jobs 073--\scLastJob{} and held (point) after.
+
+\paragraph{Scoring checks.} A script (\texttt{scripts/scorecard\_auto.py}) re-scores every hand-scored clause whose
+measured value is a number and whose threshold parses, \scaAuto{} of \scaN. It agrees with the hand score on
+\scaAgree. Of the \scaDisagree{} differences, \scaDet{} are the deterministic counts (reads, divergences, table
+entries) that the hand scoring holds outright and the script scores held (point), and \scaOther{} is a boundary value
+the hand scoring read unrounded (1.249 against a band starting at 1.25). Of the clauses the script scores held on the
+point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one that crosses the threshold. The
+re-scoring is a check; neither tally uses it.
+
+\input{tab_prereg}
+
+\paragraph{Failed predictions.} Most bands that failed in jobs 073--\scLastJob{} are the sizes of effects whose
+direction held. In jobs 088--\scLastJob, \scRevFailBand{} of \scRevBandClauses{} bands failed, as did \scRevFailThr{}
+threshold, \scRevFailEq{} equality and \scRevFailSign{} sign clauses; \scRevSignHeld{} of \scRevSignClauses{} sign
+clauses held with an interval, and \scRevSignHeldAny{} held at least on the point estimate. \Cref{tab:failures} gives
+the failures job by job: those that matter for jobs 073--\scLastJob{} (the supplement lists all \scFailed), and the
+families of failures of jobs 099--111.
+
+\input{tab_failures}
+
+\paragraph{Changes against the running log.} Against the running log kept during the study, two clauses are
+downgraded. A llama.cpp clause of job 074b that the log counted as held was never run, and job 085b's own restatement
+of its fourth prediction, ``at least 2 of 3'', failed at 1 of 3, though the pooled 4 of 6 held. Job 073's ``identical
+outputs'' is scored on fully identical outputs (0--3\%) rather than on agreement of the first 160 characters
+(27--47\%). Ten clauses the log counted as held, among them job 087's first, hold on the point estimate only under the
+interval rule. The file \texttt{prereg/scorecard\_outcome.md} lists every change.
+
+\paragraph{Reruns and rentals without results.} Job 084 ran on a throttled card and was rerun, with its predictions
+unchanged, as 084b/084c. Job 085's Qwen3 half ran as 085b on a second machine with a slow link after a hung
+conversion. Rentals that produced no results were destroyed and are in the rental ledger
+(\texttt{gpu/vast\_ledger.json}): two of job 097's four rentals; the first two for 099a and the first for 099d,
+replaced before any measurement; 100d, which stalled downloading the model; 100e, which never reached its job; 103c,
+which never started its job; and 105c, 105d and 105g below.
+
+\paragraph{Jobs 099--104.} Job 099's two untested clauses are one machine's replay check, whose step failed when a
+Python package did not install. Job 100's header gained a ninth prediction, about the two replacement machines, after
+the first four machines had started; it compares the replacements with values one of which was already measured. Job
+100's untested clauses are the planning time of the deployed-path windows, which the engine does not time, and the
+paired prediction for a machine that never reached a timed step. Job 101 relaunched the lowest-ratio panel machine and
+added a second Ryzen 7 9800X3D behind a slower link. In job 103 the machines could not install the plan's solver
+beside Debian's numpy, so the engine ran the greedy schedule in the plan configurations, as it logs. Job 104 repeated
+job 103 with the plan in its own environment on three of the same machines: Pf; a second Core Ultra 9 285K, whose link
+reads at 0.49 of its CPU rate; and Pg. Job 103's 5950X had turned out to be Pg's second launch. Most of job 104's
+speed predictions held: \FewOne{} gains on Pf, and gains at least 0.03 over \MinOne{} at gpt-oss 11\% on every
+machine.
+
+\paragraph{Jobs 105 and 106.} Two of job 105's clauses predicted quantities already measured: the profiled $G$ (job
+069c) and the plan's copies, which are a property of the trace (job 104). They test that the engine reproduces them.
+Every speed prediction of job 105 held: \LA{} gains at least 3\% on the machine with a ratio above 0.8 and loses on
+both below 0.4, and \FewOne{} beats the deployed cache on every machine, beats \MinOne{} by at least 0.03 on the three
+with a ratio under 0.7, and copies at most 0.65 of \MinOne{}'s experts. Three more launched machines produced no
+results: 105c never started its job, and the job's bandwidth gate stopped 105d and 105g, whose cards were throttled,
+before any timed run. Job 106 ran on five machines. Two server machines were new to the job; one computed wrong
+outputs, and the other varied by more than the registered 2\% between rounds (\cref{app:more}). The \jiStable{} stable
+machines are Pf, the Threadripper 9960X of job 105 and panel machine Pe, all rented before, and on them the relation
+held on every cell. \Margin{}'s pooled median speed-up of at least 1.02 held only because of the two unstable
+machines; on the stable ones it is \jiDkPooled.
+
+\paragraph{Jobs 107 and 108.} Job 107 had validity gates registered before launch. Of \jlLaunched{} machines rented,
+\jlGated{} stopped at the gate and \jlInvalid{} failed the round check. The test had \jlValidWord{} valid machines of
+the \jlRequiredWord{} it required, which by its registered rule makes it inconclusive; its per-cell clauses failed on
+both. The profiled GPU compute, \Margin{}'s reads and pooled median, both fewest-admission loads and the crossover
+between them held. Replacing machines that failed the round check, and the rules that chose the last two machines,
+were amendments committed before each machine started. Jobs 102, 105 and 106 also had their headers edited after
+launch, each time to substitute a machine, with the predictions unchanged and marked so in the header. Job 108 tested
+the relation on machines never rented before, with the class drawn after job 107 gated before any download, gpt-oss
+only, and an 8\% band. Of \jmLaunched{} machines rented, \jmGated{} stopped at the gate, \jmInvalid{} failed the round
+check, and \jmValidWord{} were valid. The profiled $G$ of the EPYC 7543 could not be tested.
+
+\paragraph{Job 109.} The job fixed its population, machines never rented before with a link-to-CPU ratio of at least
+0.5, before any started; \olStartedWord{} machines started, and all \olNWord{} passed every gate and round check. A
+smoke run on gpt-oss-20b, on a machine outside the sample, first checked that the two new combinations run and compute
+the same model. One listed offer was no longer offered and was skipped as registered. The job's deadline cut the 25\%
+round of the Ryzen 9 5950X, the slowest machine. The header's statement that no listed offer was in the rental ledger
+was wrong for one: the Core i9-13900KF's offer had been rented twice before (the first rental for 099d, and 100e),
+both times without a result. Its GPU had never been measured, and it passed the identity gate.
+
+\paragraph{Jobs 110 and 111.} Job 110 tested the RTX 5090 trend of \cref{sec:secondcard}, frozen in its header, on RTX
+4090 machines; \cxTenStarted{} machines started. Of these, \cxTenGated{} stopped at its ratio gate (at
+\cxTenGatedRatio, below 0.25), and every other one failed its output check after one round. That check used the RTX
+5090's reference loss. The RTX 4090 computes a loss \cxLossDiff\% higher in every configuration of every process, so
+the check failed by design rather than by fault, and job 110 is void as registered. Job 111 relaunched three of the
+four machines that had run a round, with the card's own reference (its first round's loss on one of them) and job
+110's predictions unchanged. The fourth, 110e, was not relaunched: its GPU was left out of the relaunch list, an
+oversight we found after the job. The predictions were committed before any RTX 4090 data, and the corrected reference
+after one round on these machines. Of job 111's first launches, \cxElevenNoModel{} failed to download the model,
+before any model run; they were relaunched once, by an amendment committed before the relaunch.
+
+The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100,
+\jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{}
+for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109,
+\cxClauses{} for jobs 110 and 111) are in the supplement (\texttt{paper/supplement.pdf}), generated by the same
+scripts.

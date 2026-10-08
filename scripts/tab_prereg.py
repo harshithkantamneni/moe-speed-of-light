@@ -27,7 +27,7 @@ WHAT = {
     "103": "fewest-admission schedule (plan not run)", "104": "fewest-admission schedule",
     "105": "\\cref{eq:sum}, plain form; layer-ahead copy; fewest-admission set", "106": "\\cref{eq:sum} with overlap; admitting less; slow links by round",
     "107": "\\cref{eq:sum} on new machines; admitting less; fewest-admission loads", "108": "\\cref{eq:sum} on new desktop-class machines",
-    "109": "the 2$\\times$2 and online policies on new machines", "110": "the RTX 5090 trend on RTX 4090s (stopped by V1)",
+    "109": "the 2$\\times$2 and policies without foresight on new machines", "110": "the RTX 5090 trend on RTX 4090s (stopped by V1)",
     "111": "job 110 relaunched, V1 corrected",
 }
 

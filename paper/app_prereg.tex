@@ -1,7 +1,7 @@
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the machine
 started. Each machine cloned the published branch at boot and ran the header as committed, so git history orders every
-prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--111, every commit preceded its rental by
+prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--112, every commit preceded its rental by
 at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the push. For \rtNear{} of
 them the push and the rental's creation fall within a second of each other, and for \rtAfter{} GitHub records the push
 up to \rtAfterMax\,s after the rental was created (\texttt{scripts/reg\_timing.py}). \Cref{tab:prereg} summarises
@@ -11,7 +11,7 @@ token, or routed at random) are in \texttt{prereg/batchk\_outcome.md}. Jobs befo
 engine, also registered predictions in their headers. Their outcome notes are in \texttt{prereg/}, and they are not
 scored here; job 072's, for one, failed or did not apply on two of its three.
 
-\paragraph{Scoring.} Every prediction of jobs 073--111 is split into its separable clauses, and each clause is scored
+\paragraph{Scoring.} Every prediction of jobs 073--112 is split into its separable clauses, and each clause is scored
 under one rule: \emph{held} when its point estimate is on the predicted side and the 95\% paired-bootstrap interval
 excludes the threshold (for a band, lies inside it); \emph{held (point)} when the point estimate is on the predicted
 side but no interval exists or the interval crosses the threshold; \emph{failed} when the point estimate is on the
@@ -26,8 +26,8 @@ held, \scHeldPoint{} held on the point estimate, \scFailed{} failed, \scUntested
 By era, \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075, when the system was being built;
 \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions made after a same-machine
 pilot; \scLateHeld{} of \scLateScored{} in jobs 082--087; and \scRevHeld{} of \scRevScored{} in jobs 088--\scLastJob.
-The last row of \cref{tab:prereg} is the overall tally, for jobs 073--111. The hand-scored tally is a subset of it:
-the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--111 make up the rest.
+The last row of \cref{tab:prereg} is the overall tally, for jobs 073--112. The hand-scored tally is a subset of it:
+the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--112 make up the rest.
 In the overall row, a deterministic count is therefore held in jobs 073--\scLastJob{} and held (point) after.
 
 \paragraph{Scoring checks.} A script (\texttt{scripts/scorecard\_auto.py}) re-scores every hand-scored clause whose
@@ -45,7 +45,7 @@ direction held. In jobs 088--\scLastJob, \scRevFailBand{} of \scRevBandClauses{}
 threshold, \scRevFailEq{} equality and \scRevFailSign{} sign clauses; \scRevSignHeld{} of \scRevSignClauses{} sign
 clauses held with an interval, and \scRevSignHeldAny{} held at least on the point estimate. \Cref{tab:failures} gives
 the failures job by job: those that matter for jobs 073--\scLastJob{} (the supplement lists all \scFailed), and the
-families of failures of jobs 099--111.
+families of failures of jobs 099--112.
 
 \input{tab_failures}
 
@@ -104,7 +104,12 @@ smoke run on gpt-oss-20b, on a machine outside the sample, first checked that th
 the same model. One listed offer was no longer offered and was skipped as registered. The job's deadline cut the 25\%
 round of the Ryzen 9 5950X, the slowest machine. The header's statement that no listed offer was in the rental ledger
 was wrong for one: the Core i9-13900KF's offer had been rented twice before (the first rental for 099d, and 100e),
-both times without a result. Its GPU had never been measured, and it passed the identity gate.
+both times without a result. Its GPU had never been measured, and it passed the identity gate. Several of the job's
+bands were wide against what earlier jobs had shown: the mean share closed by \MinOne{} (0.25 to 0.55, where the panel
+had shown \dmAllTogetherLow\%), the margin's speed (0.98 to 1.06, where it had run \rbDkMean$\times$ the deployed cache) and the capture bound
+(at most 0.35). These held, but could hardly have failed. The clauses that could have failed are the interaction's sign
+on every machine and the per-machine bounds on the variants without foresight; job 110's predictions 3 to 5 are
+range checks of the same kind.
 
 \paragraph{Jobs 110 and 111.} Job 110 tested the RTX 5090 trend of \cref{sec:secondcard}, frozen in its header, on RTX
 4090 machines; \cxTenStarted{} machines started. Of these, \cxTenGated{} stopped at its ratio gate (at

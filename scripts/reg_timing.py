@@ -1,4 +1,4 @@
-"""Registration timing: for every rental of jobs 093-111 in the ledger, the commit that last changed the job's header
+"""Registration timing: for every rental of jobs 093-112 in the ledger, the commit that last changed the job's header
 script and its per-host wrapper before the rental, the GitHub push that first published it (prereg/gpu_pushes.json,
 the push events of refs/heads/gpu from the GitHub activity API), the rental's creation (gpu/vast_ledger.json, written
 just after the rental request returns) and the job's start on the machine (manifest.json start_utc).
@@ -47,7 +47,7 @@ def main():
     rows = []
     for r in L:
         j = r.get("job") or ""
-        if not j[:3].isdigit() or not ("093" <= j[:3] <= "111"):
+        if not j[:3].isdigit() or not ("093" <= j[:3] <= "112"):
             continue
         base = j[:3] + "_" + j.split("_", 1)[1] if j[3].isalpha() else j
         st, pushes, commit_gap = r["start"], [], []

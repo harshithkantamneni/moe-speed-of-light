@@ -93,7 +93,10 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                  "110": "RTX 4090 hosts a--e; a stopped at the ratio gate, the others at the output check after one round (the "
                         "RTX 5090 reference loss): no host is valid, as registered.",
                  "111": "The RTX 4090 machines of job 110 relaunched with the card's reference loss; job 110's clauses scored "
-                        "on its valid hosts. Intervals are over problems."}[job]
+                        "on its valid hosts. Intervals are over problems.",
+                 "112": "Job 110's clauses (Q, ids 112-Q) on new RTX 4090 machines at higher ratios; the timing control (T1--T4), "
+                        "the second probe (T5) and the relaunches of job 109's RTX 5090 machines (T6, T7). Intervals are over "
+                        "problems."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -174,6 +177,11 @@ def main():
         if os.path.exists(pj):
             write_099(json.load(open(pj))["clauses"], P("paper", f"tab_scorecard_{jb}.tex"), job=jb, title=title,
                       script="job109.py", label=f"scorecard{jb}")
+    p112 = P("prereg", "scorecard_112.json")
+    if os.path.exists(p112):
+        write_099(json.load(open(p112))["clauses"], P("paper", "tab_scorecard_112.tex"), job="112",
+                  title="the last measurements: a second card at higher ratios, the timing control, a second probe",
+                  script="job112.py", label="scorecard112")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

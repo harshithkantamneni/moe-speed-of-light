@@ -1,7 +1,7 @@
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the machine
 started. Each machine cloned the published branch at boot and ran the header as committed, so git history orders every
-prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--112, every commit preceded its rental by
+prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--113, every commit preceded its rental by
 at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the push. For \rtNear{} of
 them the push and the rental's creation fall within a second of each other, and for \rtAfter{} GitHub records the push
 up to \rtAfterMax\,s after the rental was created (\texttt{scripts/reg\_timing.py}). \Cref{tab:prereg} summarises
@@ -11,7 +11,7 @@ token, or routed at random) are in \texttt{prereg/batchk\_outcome.md}. Jobs befo
 engine, also registered predictions in their headers. Their outcome notes are in \texttt{prereg/}, and they are not
 scored here; job 072's, for one, failed or did not apply on two of its three.
 
-\paragraph{Scoring.} Every prediction of jobs 073--112 is split into its separable clauses, and each clause is scored
+\paragraph{Scoring.} Every prediction of jobs 073--113 is split into its separable clauses, and each clause is scored
 under one rule: \emph{held} when its point estimate is on the predicted side and the 95\% paired-bootstrap interval
 excludes the threshold (for a band, lies inside it); \emph{held (point)} when the point estimate is on the predicted
 side but no interval exists or the interval crosses the threshold; \emph{failed} when the point estimate is on the
@@ -23,14 +23,14 @@ exception.
 
 \begin{table}[h]\centering\footnotesize
 \caption{Where each pre-specified claim of \cref{tab:claims} is scored: the jobs, their predictions (P, Q, T numbers
-in each job's header) and the clause identifiers in the supplement's tables (\emph{x}: the machine's letter).}\label{tab:claimindex}
+in each job's header) and the clause identifiers in the scorecard supplement's tables (\texttt{supplement.pdf}) (\emph{x}: the machine's letter).}\label{tab:claimindex}
 \setlength\tabcolsep{3pt}
 \begin{tabular}{@{}p{0.36\linewidth}p{0.6\linewidth}@{}}\toprule
 Claim of \cref{tab:claims} & Jobs, predictions and clause identifiers \\\midrule
 The bound's read time is nearly reachable & job 102, P2 (layer mode at least 0.50): \texttt{102x-P2floor-C14/C32} \\
 Faster than FreeToken and llama.cpp & jobs 081 (host B) and 089 (host S), hand-scored (\cref{tab:prereg}) \\
 MIN's set and one read pay only together & job 099, P5a: \texttt{099Px-P5a-g11/g25}; job 109, P1: \texttt{109x-P1-int-g11/g25} \\
-Issuing the copies a step earlier does not rescue the two-read path & job 112, T1--T4: \texttt{112x-T1}, \texttt{112x-T2}, \texttt{112x-T3}, \texttt{112x-T4} \\
+Control: issuing the copies a step earlier & job 112, T1--T4: \texttt{112x-T1}, \texttt{112x-T2}, \texttt{112x-T3}, \texttt{112x-T4} \\
 Policies without foresight recover little & job 109, P7: \texttt{109x-P7-best}, \texttt{109x-P7-cap}; jobs 111 and 112, Q3 \\
 The ratio predicts the oracles on a second card & jobs 111 and 112, Q1 (and Q6 for the interaction): \texttt{111x-Q1-*}, \texttt{112x-Q1-*} \\
 The fewest-admission schedule gains & job 104, P3 (machine a); job 105, P4; job 106, P6 and P7; job 107, P5: \texttt{104a-P3-g11}, \texttt{105x-P4-g11}, \texttt{106x-P6-*}, \texttt{106x-P7-*}, \texttt{107x-P5-fetchplan} \\
@@ -44,8 +44,8 @@ held, \scHeldPoint{} held on the point estimate, \scFailed{} failed, \scUntested
 By era, \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075, when the system was being built;
 \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions made after a same-machine
 pilot; \scLateHeld{} of \scLateScored{} in jobs 082--087; and \scRevHeld{} of \scRevScored{} in jobs 088--\scLastJob.
-The last row of \cref{tab:prereg} is the overall tally, for jobs 073--112. The hand-scored tally is a subset of it:
-the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--112 make up the rest.
+The last row of \cref{tab:prereg} is the overall tally, for jobs 073--113. The hand-scored tally is a subset of it:
+the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--113 make up the rest.
 In the overall row, a deterministic count is therefore held in jobs 073--\scLastJob{} and held (point) after.
 
 \paragraph{Scoring checks.} A script (\texttt{scripts/scorecard\_auto.py}) re-scores every hand-scored clause whose
@@ -83,8 +83,9 @@ direction held. In jobs 088--\scLastJob, \scRevFailBand{} of \scRevBandClauses{}
 threshold, \scRevFailEq{} equality and \scRevFailSign{} sign clauses; \scRevSignHeld{} of \scRevSignClauses{} sign
 clauses held with an interval, and \scRevSignHeldAny{} held at least on the point estimate. \Cref{tab:failures} gives
 the failures job by job: those that matter for jobs 073--\scLastJob{} (the supplement lists all \scFailed), and the
-families of failures of jobs 099--112.
+families of failures of jobs 099--113.
 
+\clearpage   % keep the tables in number order: flush the floats above before the long table
 \input{tab_failures}
 
 \paragraph{Changes against the running log.} Against the running log kept during the study, two clauses are
@@ -165,7 +166,7 @@ read-ahead oracle; for the two single changes, whose band is $\pm$0.06 in log, \
 after one round on these machines. Of job 111's first launches, \cxElevenNoModel{} failed to download the model,
 before any model run; they were relaunched once, by an amendment committed before the relaunch.
 
-\paragraph{Job 112.} The last job's predictions were committed before any of its machines started. It asked whether
+\paragraph{Job 112.} The job's predictions were committed before any of its machines started. It asked whether
 the RTX 5090 trend carries to RTX 4090 machines at higher ratios (job 110's predictions unchanged, the ratio gate at
 0.45); whether landing the two-read arm's copies in time rescues it (\FewEarly, a new plan file for an engine path
 that had run before, so no smoke run); whether a second probe after the timed runs agrees with the first; and whether
@@ -176,14 +177,34 @@ system grid, a different protocol, and its UUID was allowed by name in the heade
 timing predictions came from a replay of the engine's publication rule; in the engine the early copies barely changed
 the misses (\tcMissRatioLowMin--\tcMissRatioLowMax{} of \FewTwo's at 11\%, against a registered 0.95 or less) and
 slowed the arm by up to \tcSlowLowMax{} of the deployed cache's speed (against a registered 0.01): the first clause
-failed on \tcTOneFailed{} of \tcTOneN{} machine-budgets and the second on \tcTTwoFailed{} of \tcTTwoN. The second
-read's cost exceeded the late landing's, and \FewEarly{} stayed at or below 1.10$\times$, as registered. The
+failed on \tcTOneFailed{} of \tcTOneN{} machine-budgets and the second on \tcTTwoFailed{} of \tcTTwoN. The clause
+that the second read costs more than the late landing (T3) held, but only because the early arm was slower than
+\FewTwo{} on every machine: once the manipulation failed, T3 could not fail, so it carries no evidence. \FewEarly{} stayed
+at or below 1.10$\times$, as registered. The
 first probe ran while the model downloaded on some machines and after it on others; the second ran on the idle machine.
 On the two relaunched RTX 5090 machines the deployed cache's time came within \tcRelaunchMax\% of job 109's, while the
-probe's link-to-CPU ratio moved by up to \tcRelaunchRatioDevMax\% between the two rentals.
+probe's link-to-CPU ratio moved by up to \tcRelaunchRatioDevMax\% between the two rentals. \Cref{tab:timing} gives the
+timing control machine by machine.
+
+\input{tab_job112}
+
+\paragraph{Job 113.} The control that job 112's counters called for: the two-read arms and a deployed cache with the
+in-step fetches off (\texttt{fetch=0}, every miss served by the CPU, as job 093's all-CPU arm), so that the two-read arms
+hold the scheduled set. The predictions came from a model of the probe (CPU reads at $B_c$ in series with the GPU's
+non-expert time, background copies overlapped, all host traffic at most the probe's concurrent rate) and were committed
+before any machine started. Two of the five listed offers were no longer listed and were skipped as registered; both
+machines that started, a Ryzen 9 5950X and a Core Ultra 9 285K, were new and valid (\hsRatioRng{} link-to-CPU ratio),
+and the credit left allowed no third. The manipulation held: \FewTwo's misses fell to \hsMissRatioLowRng{} of their
+value with the fetches at 11\% and \hsMissRatioMidRng{} at 25\% (registered 0.88 or less). MIN's set paid read twice
+(\FewTwo{} \hsPlanZeroLowRng$\times$ and \MinTwo{} \hsGreedyZeroLowRng$\times$ the deployed cache without fetches; registered
+at least 1.10 and 1.03), held on both machines with their intervals. Two clauses failed on the Core Ultra 9 285K: turning
+the fetches off made the deployed cache faster there, not slower (registered within 0.80--1.00), and reading once beat the
+fetch-free two-read arm by less than 0.05. At 25\%, which ran one round, the fetch-free \FewTwo{} ran
+\hsPlanZeroVsBaseMidRng$\times$ the deployed cache against \FewOne's \hsFewOneMidRng$\times$. With two machines the job
+is a pair of single-machine results, as its header says, not a test over a class.
 
 The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100,
 \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{}
 for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109,
-\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112) are in the supplement (\texttt{paper/supplement.pdf}), generated by the same
+\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112, \hsClauses{} for job 113) are in the scorecard supplement (\texttt{paper/supplement.pdf}), generated by the same
 scripts.

@@ -30,6 +30,7 @@ WHAT = {
     "109": "the 2$\\times$2 and policies without foresight on new machines", "110": "the RTX 5090 trend on RTX 4090s (stopped by V1)",
     "111": "job 110 relaunched, V1 corrected",
     "112": "higher-ratio RTX 4090s; timing control; second probe",
+    "113": "the two-read path with the in-step fetches off",
 }
 
 
@@ -39,7 +40,7 @@ def main():
         key = j["job"][:3] if j["job"][:3] in ("096", "097") else j["job"]
         jobs.setdefault(key, Counter()).update(c["status"] for c in j["clauses"])
     jobs = OrderedDict(sorted(jobs.items()))
-    for k in ("099", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112"):
+    for k in ("099", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113"):
         if not os.path.exists(P("prereg", f"scorecard_{k}.json")):
             continue
         jobs.setdefault(k, Counter()).update(c["status"] for c in json.load(open(P("prereg", f"scorecard_{k}.json")))["clauses"])

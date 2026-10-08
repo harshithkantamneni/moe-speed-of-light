@@ -90,6 +90,14 @@ def points():
             c = h["cells"].get("g14")
             if h.get("valid") and c and c["speed"].get("fetchplan"):
                 pts.append((h["job"], h["ratio"], "gpt-oss 11%", "fetchplan", c["speed"]["fetchplan"][0]))
+    # job 113: its two new RTX 5090 machines' fewest-admission set copied in the step (with the machine's fetch table)
+    pj = P("prereg", "job113.json")
+    if os.path.exists(pj):
+        for h in json.load(open(pj))["hosts"]:
+            for C, lab in (("14", "gpt-oss 11%"), ("32", "gpt-oss 25%")):
+                c = h["cells"].get(C) or {}
+                if h.get("valid") and c.get("ratio", {}).get("fetchplan"):
+                    pts.append((h["job"], h["ratio"], lab, "fetchplan", c["ratio"]["fetchplan"]))
     return pts
 
 

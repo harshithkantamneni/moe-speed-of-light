@@ -96,7 +96,10 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "on its valid hosts. Intervals are over problems.",
                  "112": "Job 110's clauses (Q, ids 112-Q) on new RTX 4090 machines at higher ratios; the timing control (T1--T4), "
                         "the second probe (T5) and the relaunches of job 109's RTX 5090 machines (T6, T7). Intervals are over "
-                        "problems."}[job]
+                        "problems.",
+                 "113": "Hosts b (Ryzen 9 5950X) and d (Core Ultra 9 285K); offers a and c were no longer listed. Cells gpt-oss "
+                        "11\\% (g11, two rounds) and 25\\% (g25, one). Intervals are over problems; the counter clauses (H1, H2) "
+                        "are deterministic counts."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -182,6 +185,10 @@ def main():
         write_099(json.load(open(p112))["clauses"], P("paper", "tab_scorecard_112.tex"), job="112",
                   title="the last measurements: a second card at higher ratios, the timing control, a second probe",
                   script="job112.py", label="scorecard112")
+    p113 = P("prereg", "scorecard_113.json")
+    if os.path.exists(p113):
+        write_099(json.load(open(p113))["clauses"], P("paper", "tab_scorecard_113.tex"), job="113",
+                  title="the two-read path with the in-step fetches off", script="job113.py", label="scorecard113")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

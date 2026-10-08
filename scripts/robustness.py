@@ -152,6 +152,13 @@ def main():
             c = h["cells"].get("14", {})
             if h.get("valid") and c.get("ratio", {}).get("fetchplan"):
                 fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["ratio"]["fetchplan"]))
+    # job 113's two valid machines (new RTX 5090s) ran the same schedule in the step, with the machine's fetch table
+    pj = P("prereg", "job113.json")
+    if os.path.exists(pj):
+        for h in json.load(open(pj))["hosts"]:
+            c = h["cells"].get("14", {})
+            if h.get("valid") and c.get("ratio", {}).get("fetchplan"):
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["ratio"]["fetchplan"]))
     per = [float(GMEAN([x for _, x in v])) for v in fp.values()]
     # what the machines are: RTX 4090s (from nvidia-smi) and server processors (the family table, else the CPU's name)
     def card_of(d):

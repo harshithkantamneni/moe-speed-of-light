@@ -1,13 +1,14 @@
 A Mixture-of-Experts model too large for one consumer GPU keeps most of its experts in host memory, and decoding one
 token at a time then waits on host reads. We ask how fast such decoding could be on a given machine, where the
 remaining time goes, and what knowing the future routing is worth. Our bound is the host reads of Belady's MIN with
-bypass, the fewest that any cache holding $C$ experts per layer can make, at the machine's probed read rate. Our
-llama.cpp expert cache, faster than two other systems at most configurations, reaches
-\dcShareMinLowMin--\dcShareMinLowMax\% of the bound's speed on machines with consumer processors at the smallest budget
-we test. We call its time beyond the bound the gap. Oracles built into the engine close about half of the gap; we
-attribute the rest without measuring it part by part. In our engine, at that budget and on machines whose link reads at
-least half as fast as the CPU, caching the experts MIN's greedy schedule keeps pays only if each admitted expert is read
-once, not twice. Together the two changes close \dmNewTogetherLow\% of the gap in a test registered before its machines were
-rented. There, policies without foresight, built from the engine's own mechanisms, recover at most \olCapLowMax\% of what an
-oracle that reads ahead gains. In host reads, half of foresight's value needs the routing of about \dcMed$\,C$ distinct
-experts per layer ahead.
+bypass, the fewest that any cache of a given size per layer can make, at the machine's probed read rate. Our llama.cpp
+expert cache, faster than two other systems at most configurations, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of
+the bound's speed on machines with consumer processors at the smallest budget we test. We call its time beyond the
+bound the gap. Oracles built into the engine close about half of the gap; we attribute the rest without measuring it
+part by part. In the engine as deployed, the experts MIN keeps pay only when each admitted expert is read once, not
+twice: then they close \dmNewTogetherLow\% of the gap, in a test registered before its machines were rented. A second
+registered test shows why: the engine's in-step fetches push MIN's set out of the cache. With them off, MIN's set read
+twice runs \hsPlanZeroLowRng{} times as fast as a deployed cache without them, and reading once adds only
+\hsOneReadMarginLowRng{} more. Policies without foresight, built from the engine's own mechanisms, recover at most
+\olCapLowMax\% of what an oracle that reads ahead gains. In host reads, half of foresight's value needs the routing of
+about \dcMed{} times as many distinct experts per layer as the cache holds.

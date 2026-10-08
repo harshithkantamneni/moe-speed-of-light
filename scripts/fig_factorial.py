@@ -80,7 +80,7 @@ def main():
     axes[0].set_yticks(range(len(rows)))
     axes[0].set_yticklabels([r[1] for r in rows], fontsize=6.5)
     axes[0].set_ylim(-0.6, len(rows) - 0.4)
-    fig.text(0.6, 0.015, "speed relative to the deployed cache on the same machine (95% intervals, mostly narrower than the markers; grey ticks: panel machines)", ha="center", fontsize=7)
+    fig.text(0.6, 0.02, "speed relative to the deployed cache on the same machine", ha="center", fontsize=7.5)
     handles = [Line2D([0], [0], marker=mk, color=col, lw=0, ms=5, mec="#fcfcfb", label=name)
                for job, name, col, mk in HOSTS if job in data and not (job in ONLY_LEARNED and "learned" not in [r[0] for r in rows])]
     if panel:

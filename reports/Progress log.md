@@ -3,6 +3,40 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October (evening): clarity pass, round and rental noise, number check 21, review round 24 (6, 6)
+
+**Status for Harshith (read this first).** Round 24, MLSys PC / professor: **6 / 6** (clarity 3 / 3; soundness 4 / 3;
+significance 3 / 3). The professor dropped from 7 to 6, on soundness. Both reproduced everything they recomputed
+(MLSys PC 38 of 40; professor all of 40). No GPU work; about $4 of Vast credit left. Nothing was pushed to `main`.
+
+### What changed (commits 7856f67 and the one after it)
+
+- **Clarity:** Table 2 is now a names table (configurations as a set x read-path grid, machine sets, yardsticks). Table 1
+  has Registered threshold and Result columns, with loose thresholds marked. The paragraph headings are plain, and Section 6
+  is split into Section 6 (no foresight) and Section 7 (second card). Generated tables have short captions with notes
+  below (`scripts/tabnote.py`). The abstract uses short sentences. Contributions paragraph removed (the findings carry it).
+- **Scope:** the builder rules open with their scope (one engine, batch 1, one prompt set, mostly one model); the 2x2
+  claim is limited to MIN's greedy set (Few-2R gains a little alone).
+- **Noise (`scripts/noise.py`):** a speed ratio moves by a median 0.2% (max 1.8%) between rounds and 0.5% (max 5.3%,
+  2.7% with the same fetch table) between rentals. Widened by round ranges, all 89 per-machine registered clauses that
+  held with an interval still do; widened by the largest rental difference, 49 do (29 of the other 40 are bands of
+  +-0.06 or narrower).
+- **IEEE:** `ieee-paper.pdf` (10 pages with references) and `ieee-supplement.pdf` (the appendices, numbered S1...),
+  cross-referenced with xr; built by `paper/build_ieee.sh`. Reference author lists completed (20 entries).
+- **Number check 21:** 28 defects, all fixed before the reviews.
+
+### What round 24 still flags (not done)
+
+1. **The 2x2's two-read arm never holds MIN's set** (MIN-2R reads 1.73 R*, more than the deployed cache); the timing
+   control failed its manipulation check, and T3 holds only because the early arm was slower. A control with the fetch
+   table off on the two-read arms would settle it (a GPU run).
+2. **"Held" is point-only** for several Table 1 rows; the 35% headline is [22, 48] over 5 machines; loose labels missing
+   on the 1.10x bound and the system thresholds.
+3. **Production defects:** Fig. 3's x-axis label is clipped; Table 11 comes before Table 10; the MLSys supplement prints
+   "Table 3paper.pdf" (xr-hyper with cleveref, the same bug fixed in the IEEE build); the IEEE supplement mentions
+   `paper/supplement.pdf`; Type 3 fonts in figures.
+4. **Clarity (3/5 from both):** still many names and numbers per sentence; forward references in Section 2.
+
 ## 8 October (afternoon): IEEE build, number check 20, review round 23 (6, 7), post-review fixes
 
 **Status for Harshith (read this first).** Round 23, MLSys PC / professor: **6 / 7** (clarity 3 / 3; soundness 4 / 4;

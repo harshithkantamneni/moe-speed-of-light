@@ -532,6 +532,20 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]
         if cp:
             M[f"cxCap{nm}Max"] = pc(max(cp)); M[f"cxCap{nm}Min"] = pc(min(cp))
+    # every valid RTX 4090 of the registered second-card tests (job 111 and job 112's higher-ratio machines)
+    VA = V3 + four112(cells)
+    M["cxAllN"] = str(len(VA)); M["cxAllNWord"] = word(len(VA))
+    rng("cxAllRatio", [h["ratio"] for h in VA])
+    for C in cells:
+        nm = NM[C]
+        sel = [h for h in VA if h["cells"][C]["rounds"]]
+        dv = [abs(math.exp(trend_dev(h, C, n)) - 1) for h in sel for n in ("fetch", "both3p")]
+        if dv:
+            M[f"cxAllDev{nm}Max"] = pc(max(dv))
+        ci = [trend_dev_ci(h, C, n) for h in sel for n in ("fetch", "both3p")]
+        ci = [x for x in ci if x]
+        if ci:
+            M[f"cxAllDevCI{nm}Max"] = pc(max(max(abs(math.exp(a) - 1), abs(math.exp(b) - 1)) for a, b in ci))
     # simpler predictors on the same RTX 4090s: no change (1.0x), and the mean of the slow-link panel machines
     dmj = P("prereg", "decomp_measured.json")
     if os.path.exists(dmj):
@@ -539,7 +553,7 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         for C in cells:
             nm = NM[C]
             slow = [m for m in dm[nm] if m["ratio"] < 0.5]
-            sel = [h for h in V3 if h["cells"][C]["rounds"]]
+            sel = [h for h in VA if h["cells"][C]["rounds"]]
             if not slow or not sel:
                 continue
             mean = {n: float(np.mean([m["times"]["base"] / m["times"][n] for m in slow])) for n in ("fetch", "both3p")}

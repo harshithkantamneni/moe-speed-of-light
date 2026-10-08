@@ -3,6 +3,7 @@
 # track, so the second pass forces a rerun (-g).
 set -e
 cd "$(dirname "$0")"
+python3 ../scripts/ieee_bib.py   # the bibliographies with IEEE's abbreviated venue names
 latexmk -pdf -interaction=nonstopmode ieee-supplement.tex >/dev/null 2>&1 || true
 latexmk -pdf -interaction=nonstopmode ieee-paper.tex >/dev/null 2>&1 || true
 latexmk -g -pdf -interaction=nonstopmode ieee-supplement.tex >/dev/null 2>&1 || true

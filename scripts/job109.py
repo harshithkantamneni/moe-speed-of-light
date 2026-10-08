@@ -593,6 +593,14 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     if dnr:
         x = max(dnr, key=abs)
         M["cxNotRelaunchedDev"] = f"{100 * x:+.1f}".replace("-", "$-$")
+    # its first round's capture by the larger margin, and the read-ahead oracle's gain it is a share of (capture is
+    # unstable where that gain is small)
+    cnr = [(h["cells"][lo]["ratio"].get("dk"), h["cells"][lo]["ratio"].get("both3p")) for h in nr if h["cells"][lo]["rounds"]]
+    cnr = [(a, b) for a, b in cnr if a and b and b > 1]
+    if cnr:
+        a, b = cnr[0]
+        M["cxNotRelaunchedCap"] = f"{100 * (a - 1) / (b - 1):.0f}"
+        M["cxNotRelaunchedGain"] = f"{100 * (b - 1):.1f}"
     dvf = [abs(math.exp(trend_dev(h, lo, n)) - 1) for h in first for n in ("fetch", "both3p")]
     if dvf:
         M["cxFirstDevLowMax"] = pc(max(dvf))
@@ -651,9 +659,9 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         f.write(" & & \\multicolumn{4}{c}{gpt-oss 11\\%} & \\multicolumn{4}{c}{gpt-oss 25\\%} \\\\\\cmidrule(lr){3-6}\\cmidrule(l){7-10}\n")
         f.write("Machine & Ratio & \\MinOne & Ahead & None & Capture & \\MinOne & Ahead & None & Capture \\\\\\midrule\n")
         V4 = four112(cells)
-        groups = [("RTX 5090, job 109", V, False), ("RTX 4090, job 111", V3, True)]
+        groups = [("RTX 5090, rented for the test of policies without foresight", V, False), ("RTX 4090, the second-card test", V3, True)]
         if V4:
-            groups.append(("RTX 4090, job 112 (higher ratios)", V4, True))
+            groups.append(("RTX 4090, the second-card test at higher ratios", V4, True))
         for card, VV, pred in groups:
             if not VV:
                 continue

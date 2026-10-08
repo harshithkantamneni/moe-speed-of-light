@@ -112,6 +112,33 @@ def rows_new(tlo):
     return out
 
 
+def rows_cpu(tlo):
+    """job 114's valid machines: the 2x2 on the CPU-only read path (the in-step fetches off) beside the deployed path,
+    registered; shares of each machine's gap (base - Eq. (1)), the CPU-only parts from scripts/job114.py"""
+    p = P("prereg", "job114.json")
+    if not os.path.exists(p):
+        return []
+    J = json.load(open(p))
+    rstar = {14: 38.315364583333334, 32: 15.340364583333333}
+    out = []
+    for h in J["hosts"]:
+        if not h["valid"]:
+            continue
+        for C, c in h["cells"].items():
+            C = int(C)
+            if "parts" not in c:
+                continue
+            t, eq1 = c["t"], c["eq1"]; gap = t["base"] - eq1
+            share = dict(c["parts"])
+            # the parts of what is left are the same on both paths: T_GPU, the oracle's extra reads, the residual
+            extra = (c["reads"]["both3p"] - rstar[C]) * S / (float(h["B_host"]) * 1e9) * 1e3
+            share["tgpu"] = tlo / gap; share["extra"] = extra / gap
+            share["resid"] = (t["both3p"] - eq1 - tlo - extra) / gap
+            out.append(dict(dir=h["dir"], C=C, ratio=float(h["ratio"]), cpu=h.get("cpu", ""), t=t, eq1=eq1, gap=gap,
+                            share=share, inter_ms=c.get("inter_ms"), inter_ms_ci=c.get("inter_ms_ci")))
+    return out
+
+
 def eq3_left(d, C, t, eq1, tgpu):
     """on one machine: Eq. (3), the ordered bound (CPU reads in series with the GPU's non-expert work, link copies free
     to go ahead; the probe's best CPU and link readings), and the share of the gap to it that the read-ahead oracle
@@ -140,66 +167,86 @@ def pct(x):
     return str(v).replace("-", "$-$")
 
 
-def figure(R, path, NEW=()):
+def figure(R, path, NEW=(), CPU=()):
+    """each machine's staircase relative to its deployed cache: the deployed read path (panel and job 109's machines,
+    grey; slow links orange) and the CPU-only read path (job 114's machines, blue), with medians; squares: Dep-1R"""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
-    labels = ["deployed", "MIN-2R\n(or Dep-1R)", "MIN-1R", "read-ahead\noracle", "Eq. (2)", "Eq. (1)"]
+    labels = ["deployed", "MIN's set,\nread twice", "MIN-1R", "read-ahead\noracle", "Eq. (2)", "Eq. (1)"]
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5), sharey=True)
-    blue, dark, orange, green = "#2a78d6", "#1b3f6b", "#eb6834", "#2e9e5b"
+    grey, dark, orange, blue, dblue = "#a9b4c2", "#1b2a3b", "#eb6834", "#2a78d6", "#0b3f8a"
+    X = [0, 0.92, 2, 3, 4, 5]
     for ax, (C, lab) in zip(axes, ((14, "gpt-oss 11%"), (32, "gpt-oss 25%"))):
-        sel = [r for r in R if r["C"] == C]
         A, B = [], []
-        for r in sel:
+        for r in [x for x in R if x["C"] == C] + [x for x in NEW if x["C"] == C]:
             t = r["t"]
-            ya = [1.0, t["bypass"] / t["base"], t["fetch"] / t["base"], t["both3p"] / t["base"], r["eq2"] / t["base"], r["eq1"] / t["base"]]
+            eq2 = r.get("eq2", r["eq1"] + TLO[0])
+            ya = [1.0, t["bypass"] / t["base"], t["fetch"] / t["base"], t["both3p"] / t["base"], eq2 / t["base"], r["eq1"] / t["base"]]
             fast = r["ratio"] >= FAST
-            col = blue if fast else orange
-            ax.plot([0, 0.88, 2, 3, 4, 5], ya, color=col, lw=0.8, alpha=0.5 if fast else 0.9, zorder=2 if fast else 3)
-            ax.plot([1.12], [t["foa"] / t["base"]], marker="s", ms=2.6, mfc="none", mec=col, mew=0.7, lw=0, zorder=3)
+            col = grey if fast else orange
+            ax.plot(X, ya, color=col, lw=0.7, alpha=0.8, zorder=2 if fast else 3)
+            ax.plot([1.08], [t["foa"] / t["base"]], marker="s", ms=2.4, mfc="none", mec=col, mew=0.6, lw=0, zorder=3)
             if fast:
                 A.append(ya); B.append(t["foa"] / t["base"])
-        for r in (x for x in NEW if x["C"] == C):
+        if A:
+            ax.plot(X, np.median(np.array(A), axis=0), color=dark, lw=1.9, marker="o", ms=3.2, zorder=5)
+            ax.plot([1.08], [float(np.median(B))], marker="s", ms=3.6, mfc="white", mec=dark, mew=1.0, lw=0, zorder=6)
+        Z, ZB = [], []
+        for r in (x for x in CPU if x["C"] == C):
             t = r["t"]
-            yn = [1.0, t["bypass"] / t["base"], t["fetch"] / t["base"], t["both3p"] / t["base"], (r["eq1"] + TLO[0]) / t["base"], r["eq1"] / t["base"]]
-            ax.plot([0, 0.88, 2, 3, 4, 5], yn, color=green, lw=1.1, alpha=0.95, zorder=4)
-            ax.plot([1.12], [t["foa"] / t["base"]], marker="s", ms=2.6, mfc="none", mec=green, mew=0.8, lw=0, zorder=4)
-        med = np.median(np.array(A), axis=0); mb = float(np.median(B))
-        ax.plot([0, 0.88, 2, 3, 4, 5], med, color=dark, lw=2.0, marker="o", ms=3.4, zorder=5)
-        ax.plot([0, 1.12, 2], [1.0, mb, med[2]], color=dark, lw=1.6, ls=(0, (3, 1.5)), marker="s", ms=3.4, mfc="white", zorder=5)
+            yz = [1.0, t["bypass0"] / t["base"], t["fetch"] / t["base"], t["both3p"] / t["base"], (r["eq1"] + TLO[0]) / t["base"], r["eq1"] / t["base"]]
+            ax.plot(X, yz, color=blue, lw=0.8, alpha=0.75, zorder=4)
+            ax.plot([1.08], [t["foa0"] / t["base"]], marker="s", ms=2.4, mfc="none", mec=blue, mew=0.6, lw=0, zorder=4)
+            ax.plot([-0.08], [t["base0"] / t["base"]], marker="D", ms=2.2, mfc="none", mec=blue, mew=0.6, lw=0, zorder=4)
+            Z.append(yz); ZB.append(t["foa0"] / t["base"])
+        if Z:
+            ax.plot(X, np.median(np.array(Z), axis=0), color=dblue, lw=1.9, marker="o", ms=3.2, zorder=6)
+            ax.plot([1.08], [float(np.median(ZB))], marker="s", ms=3.6, mfc="white", mec=dblue, mew=1.0, lw=0, zorder=6)
         ax.set_xticks(range(6)); ax.set_xticklabels(labels, fontsize=6.3)
         ax.set_title(lab, fontsize=8)
         ax.grid(axis="y", color="#e6e5e1", lw=0.6); ax.set_axisbelow(True)
-        for s in ("top", "right"):
-            ax.spines[s].set_visible(False)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
         ax.tick_params(labelsize=6.5, length=2)
         ax.set_ylim(0.2, 1.25)
     axes[0].set_ylabel("time per token / deployed", fontsize=7)
-    nf = sum(1 for r in R if r["C"] == 14 and r["ratio"] >= FAST); ns = sum(1 for r in R if r["C"] == 14 and r["ratio"] < FAST)
-    h = [Line2D([0], [0], color=dark, lw=2.0, marker="o", ms=3.4, label="median: MIN-2R first (MIN's set, deployed read path)"),
-         Line2D([0], [0], color=dark, lw=1.6, ls=(0, (3, 1.5)), marker="s", ms=3.4, mfc="white", label="median: Dep-1R first (deployed set, 1 read)"),
-         Line2D([0], [0], color=blue, lw=0.8, label=f"each machine, link/CPU $\\geq$ {FAST} ({nf})"),
+    nf = sum(1 for r in list(R) + list(NEW) if r["C"] == 14 and r["ratio"] >= FAST)
+    ns = sum(1 for r in R if r["C"] == 14 and r["ratio"] < FAST)
+    h = [Line2D([0], [0], color=grey, lw=0.8, label=f"fetch table on: each machine, link/CPU $\\geq$ {FAST} ({nf})"),
+         Line2D([0], [0], color=dark, lw=1.9, marker="o", ms=3.2, label="fetch table on: median"),
          Line2D([0], [0], color=orange, lw=0.8, label=f"link/CPU $<$ {FAST} ({ns})")]
-    if NEW:
-        n11 = len({r['dir'] for r in NEW if r['C'] == 14}); n25 = len({r['dir'] for r in NEW if r['C'] == 32})
-        h.append(Line2D([0], [0], color=green, lw=1.1, label=f"new machines, registered ({n11}; {n25} at 25%)"))
-    fig.legend(handles=h, loc="upper center", ncol=3 if NEW else 4, fontsize=6.2, frameon=False, bbox_to_anchor=(0.5, 1.06 if NEW else 1.03))
-    fig.tight_layout(rect=(0, 0, 1, 0.91))
+    if CPU:
+        nz = len({r["dir"] for r in CPU if r["C"] == 14})
+        h += [Line2D([0], [0], color=blue, lw=0.8, label=f"in-step fetches off: each machine ({nz})"),
+              Line2D([0], [0], color=dblue, lw=1.9, marker="o", ms=3.2, label="in-step fetches off: median"),
+              Line2D([0], [0], color=dark, lw=0, marker="s", ms=3.4, mfc="white", label="the deployed set, read once (Dep-1R)")]
+    fig.legend(handles=h, loc="upper center", ncol=3, fontsize=6.2, frameon=False, bbox_to_anchor=(0.5, 1.07))
+    fig.tight_layout(rect=(0, 0, 1, 0.9))
     fig.savefig(path, bbox_inches="tight"); fig.savefig(path.replace(".pdf", ".png"), dpi=160, bbox_inches="tight")
 
 
-def table(M, has_new=False):
-    meas = [("setalone", "MIN's set, deployed read path$^\\ast$ (\\MinTwo)"),
-            ("oncealone", "One read alone (\\DepOne)"),
-            ("together", "Both (\\MinOne)"),
-            ("ahead", "Then the read-ahead oracle"),
-            ("left", "Left after all three")]
-    attr = [("tgpu", "the GPU's non-expert time ($T_{\\text{GPU}}$)"),
-            ("extra", "the oracle's reads beyond MIN's, at $B_{\\mathrm{host}}$"),
-            ("resid", "residual")]
+def table(M, has_new=False, has_cpu=False):
+    # each row: its key on the deployed path (panel, new machines) and on the CPU-only path (job 114)
+    meas = [("setalone", "setalone0", "What is cached: MIN's set, read twice (\\MinTwo)$^\\ast$"),
+            ("oncealone", "oncealone0", "How it is read: the deployed set, read once (\\DepOne)"),
+            ("together", "together0", "Both: MIN's set, read once (\\MinOne)"),
+            ("ahead", "ahead", "Then the read-ahead oracle"),
+            ("left", "left", "Left after all three"),
+            (None, "table", "The in-step fetches themselves$^\\dagger$")]
+    attr = [("tgpu", "tgpu", "the GPU's non-expert time ($T_{\\text{GPU}}$)"),
+            ("extra", "extra", "the oracle's reads beyond MIN's, at $B_{\\mathrm{host}}$"),
+            ("resid", "resid", "residual")]
+
     def cell(pre, k, nm):
-        K = k.capitalize()
+        if k is None:
+            return "--"
+        K = k[0].upper() + k[1:]
+        if pre == "dmCpu":
+            K = K.replace("0", "Zero")
+        else:
+            K = k.capitalize()
         if pre + K + nm not in M:
             return "--"
         return f"{M[pre + K + nm]} [{M[pre + K + nm + 'Lo']}, {M[pre + K + nm + 'Hi']}]"
@@ -207,39 +254,45 @@ def table(M, has_new=False):
         f.write("% generated by scripts/decomp_measured.py\n\\begin{table*}[t]\\centering\\footnotesize\n")
         f.write("\\caption{The deployed cache's gap to \\cref{eq:limit}, split by oracles in the engine (\\cref{fig:staircase}): mean "
                 "share of the gap, in percent, with 95\\% $t$-intervals over machines. \\emph{Panel}: the " + M["dmMachines"] + " machines "
-                "of jobs 096--101 that ran every state. " + ("\\emph{New}: the " + M["dmNewN"] + " machines of job 109, rented for "
-                "this test, whose population (desktop-class, link-to-CPU ratio at least 0.5) and predictions were registered "
-                "before any of them started; the job's deadline cut one machine's 25\\% round. " if has_new else "") + "The first two rows each change one thing; the third "
-                "changes both. $^\\ast$On the deployed read path the in-step fetches displace MIN's set, so this row does not "
-                "measure MIN's set held (\\cref{tab:job113} does, with them off). \\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap. The last three "
-                "rows are attributed, not measured: they split \\emph{left} with $T_{\\text{GPU}}$ as in \\cref{eq:demand} "
-                "(" + M["dmTgpu"] + "\\,ms, the smallest profile) and the read-ahead oracle's reads beyond $R^\\star$ at "
-                "$B_{\\mathrm{host}}$; the residual is what they leave. Probe sensitivity: with every machine's $B_{\\mathrm{host}}$ 10\\% "
-                "(22\\%) higher, the shares on fast links move by at most " + M["dmProbeTenTogetherLowMax"] + " ("
-                + M["dmProbeTwentyTwoTogetherLowMax"] + ") points for \\emph{Both} and " + M["dmProbeTenLeftLowMax"] + " ("
-                + M["dmProbeTwentyTwoLeftLowMax"] + ") for \\emph{left} at 11\\%.}\\label{tab:gap}\n")
-        cols = "rrrr" if has_new else "rr"
-        f.write("\\setlength\\tabcolsep{4pt}\\begin{tabular}{@{}l" + cols + "@{}}\\toprule\n")
+                "of jobs 096--101 that ran every state. " + ("\\emph{New}: the " + M["dmNewN"] + " machines rented for the registered test "
+                "(population and predictions fixed before any started; the deadline cut one 25\\% round). " if has_new else "")
+                + ("\\emph{CPU only}: the machines of the second registered test (\\cref{tab:job114}), whose arms ran with the in-step "
+                   "fetches off. " if has_cpu else "")
+                + "$^\\ast$On the deployed path (Panel, New) the in-step fetches displace MIN's set, so this row measures MIN's "
+                "schedule with the fetch table, not the set held. "
+                + ("$^\\dagger$The deployed cache with its fetch table against without it. " if has_cpu else "")
+                + "\\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap"
+                + (" (in the CPU-only column, with $^\\dagger$)" if has_cpu else "") + ". The last three rows split \\emph{left} by "
+                "attribution: $T_{\\text{GPU}}$ (" + M["dmTgpu"] + "\\,ms) and the read-ahead oracle's reads beyond $R^\\star$ at "
+                "$B_{\\mathrm{host}}$; the residual is what they leave (\\cref{app:limits} gives the probe sensitivity).}\\label{tab:gap}\n")
+        groups = [("dmAll", "Panel (" + M["dmMachines"] + ")", {"Low": M["dmMachines"], "Mid": M["dmMachines"]})]
         if has_new:
-            f.write(" & \\multicolumn{2}{c}{gpt-oss 11\\%} & \\multicolumn{2}{c}{gpt-oss 25\\%} \\\\\\cmidrule(lr){2-3}\\cmidrule(l){4-5}\n")
-            f.write("Part of the gap & Panel (" + M["dmMachines"] + ") & New (" + M["dmNewNLow"] + ") & Panel (" + M["dmMachines"]
-                    + ") & New (" + M["dmNewNMid"] + ") \\\\\\midrule\n")
-        else:
-            f.write("Part of the gap & gpt-oss 11\\% & 25\\% \\\\\\midrule\n")
-        f.write("\\multicolumn{" + str(len(cols) + 1) + "}{@{}l}{\\emph{Measured}} \\\\\n")
+            groups.append(("dmNew", "New", {"Low": M["dmNewNLow"], "Mid": M["dmNewNMid"]}))
+        if has_cpu:
+            groups.append(("dmCpu", "CPU only", {"Low": M.get("dmCpuNLow", ""), "Mid": M.get("dmCpuNMid", "")}))
+        g = len(groups)
+        f.write("\\setlength\\tabcolsep{3.5pt}\\resizebox{\\textwidth}{!}{\\begin{tabular}{@{}l" + "r" * (2 * g) + "@{}}\\toprule\n")
+        f.write(" & \\multicolumn{" + str(g) + "}{c}{gpt-oss 11\\%} & \\multicolumn{" + str(g) + "}{c}{gpt-oss 25\\%} \\\\"
+                "\\cmidrule(lr){2-" + str(1 + g) + "}\\cmidrule(l){" + str(2 + g) + "-" + str(1 + 2 * g) + "}\n")
+        hdr = []
+        for nm in ("Low", "Mid"):
+            for pre, lab, n in groups:
+                hdr.append(f"{lab} ({n[nm]})" if pre != "dmAll" else lab)
+        f.write("Part of the gap & " + " & ".join(hdr) + " \\\\\\midrule\n")
+        f.write("\\multicolumn{" + str(1 + 2 * g) + "}{@{}l}{\\emph{Measured}} \\\\\n")
         for item in meas + [None] + attr:
             if item is None:
-                f.write("\\addlinespace\\multicolumn{" + str(len(cols) + 1) + "}{@{}l}{\\emph{Attributed: of what is left}} \\\\\n")
+                f.write("\\addlinespace\\multicolumn{" + str(1 + 2 * g) + "}{@{}l}{\\emph{Attributed: of what is left}} \\\\\n")
                 continue
-            k, text = item
-            row = [cell("dmAll", k, "Low")]
-            if has_new:
-                row.append(cell("dmNew", k, "Low"))
-            row.append(cell("dmAll", k, "Mid"))
-            if has_new:
-                row.append(cell("dmNew", k, "Mid"))
+            kd, kc, text = item
+            if kd is None and not has_cpu:
+                continue
+            row = []
+            for nm in ("Low", "Mid"):
+                for pre, _, _ in groups:
+                    row.append(cell(pre, kc if pre == "dmCpu" else kd, nm))
             f.write("\\quad " + text + " & " + " & ".join(row) + " \\\\\n")
-        f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
+        f.write("\\bottomrule\\end{tabular}}\\end{table*}\n")
 
 
 def main():
@@ -327,6 +380,23 @@ def main():
             v = [x for x in v if x is not None]
             if v:
                 M[f"dmEqThreeLeftCard{nm}Min"] = pct(min(v)); M[f"dmEqThreeLeftCard{nm}Max"] = pct(max(v))
+    # job 114: the 2x2 on the CPU-only path (registered), its shares as dz* macros (scripts/job114.py writes the per-host
+    # ratios); the attributed parts of what is left are computed here, with the same T_GPU as the other columns
+    CPU = rows_cpu(tlo)
+    for C, nm in ((14, "Low"), (32, "Mid")):
+        sel = [r for r in CPU if r["C"] == C]
+        M[f"dmCpuN{nm}"] = str(len(sel))
+        for k in ("table", "setalone0", "oncealone0", "together0", "interaction0", "ahead", "left", "tgpu", "extra", "resid"):
+            v = [r["share"][k] for r in sel]
+            if not v:
+                continue
+            m, a_, b_ = boot(v) if len(v) > 1 else (v[0], v[0], v[0])
+            K = (k[0].upper() + k[1:]).replace("0", "Zero")
+            M[f"dmCpu{K}{nm}"] = pct(m); M[f"dmCpu{K}{nm}Lo"] = pct(a_); M[f"dmCpu{K}{nm}Hi"] = pct(b_)
+        if sel:
+            out["Cpu" + nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"])
+                               for r in sel]
+    M["dmCpuN"] = str(len({r["dir"] for r in CPU}))
     M["dmNewRatioMin"] = f"{min(r['ratio'] for r in NEW):.2f}" if NEW else "--"
     M["dmNewRatioMax"] = f"{max(r['ratio'] for r in NEW):.2f}" if NEW else "--"
     reg = [r for r in lo if r["dir"][:3] == "099"]
@@ -345,8 +415,8 @@ def main():
         f.write("% generated by scripts/decomp_measured.py\n")
         for k in sorted(M):
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
-    figure(R, P("paper", "figs", "decomp_measured.pdf"), NEW)
-    table(M, bool(NEW))
+    figure(R, P("paper", "figs", "decomp_measured.pdf"), NEW, CPU)
+    table(M, bool(NEW), bool(CPU))
     from scripts.tabnote import split_caption
     split_caption(P("paper", "tab_dm.tex"))   # short caption, the rest as a note below the table
     for k in sorted(M):

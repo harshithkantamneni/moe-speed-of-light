@@ -99,7 +99,12 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "problems.",
                  "113": "Hosts b (Ryzen 9 5950X) and d (Core Ultra 9 285K); offers a and c were not listed at launch (results/113\\_offers\\_at\\_launch.txt). Cells gpt-oss "
                         "11\\% (g11, two rounds) and 25\\% (g25, one). Intervals are over problems; the counter clauses (H1, H2) "
-                        "are deterministic counts."}[job]
+                        "are deterministic counts.",
+                 "114": "Hosts b (Ryzen 9 5950X), c (Core Ultra 7 265K), e (Ryzen 9 9950X3D2) and f (Ryzen 9 5950X, job 109f's machine); "
+                        "a, d and g stopped at the first gate (GPUs rented before), and e's offer was skipped once while it was not listed "
+                        "(results/114\\_offers\\_at\\_*.txt). Cells gpt-oss 11\\% (g11, two rounds) and 25\\% (g25, one). Intervals are over "
+                        "problems; the counter clauses (H1) are deterministic counts; H5's interval is a paired bootstrap of the "
+                        "interaction in ms."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(j99)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested. {hosts} Measured: the point estimate and, where one "
@@ -189,6 +194,10 @@ def main():
     if os.path.exists(p113):
         write_099(json.load(open(p113))["clauses"], P("paper", "tab_scorecard_113.tex"), job="113",
                   title="the two-read path with the in-step fetches off", script="job113.py", label="scorecard113")
+    p114 = P("prereg", "scorecard_114.json")
+    if os.path.exists(p114):
+        write_099(json.load(open(p114))["clauses"], P("paper", "tab_scorecard_114.tex"), job="114",
+                  title="the 2$\\times$2 with the in-step fetches off", script="job114.py", label="scorecard114")
     p102 = P("prereg", "scorecard_102.json")
     if os.path.exists(p102):
         write_099(json.load(open(p102))["clauses"], P("paper", "tab_scorecard_102.tex"), job="102",

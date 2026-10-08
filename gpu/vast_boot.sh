@@ -5,6 +5,7 @@
 # Vast's log API and destroys the machine. Usage: vast_boot.sh <job name without .sh>
 JOB="$1"; W=/w; OUT="$W/results/$JOB"; export WORK=/work OUT JOB
 mkdir -p "$OUT" "$WORK"
+git -C "$W" rev-parse HEAD > "$OUT/branch_sha.txt" 2>/dev/null   # the gpu-branch commit this machine ran
 echo "@@START $JOB $(date -u +%FT%TZ) $(nproc) cpus"
 ( while true; do echo "@@HB $(date -u +%FT%TZ) $(tail -n 1 "$OUT/stdout.log" 2>/dev/null | cut -c1-160)"; sleep 60; done ) &
 HBP=$!

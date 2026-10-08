@@ -4,13 +4,35 @@
 % tracked; without it the build is anonymous.
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
-\usepackage[numbers,sort&compress]{natbib}
+\usepackage{cite}   % IEEE citation form: [3], [4]--[6], sorted and compressed
 \usepackage{graphicx,booktabs}
 \usepackage[stretch=10,shrink=10]{microtype}
 \usepackage{amsmath,amssymb,amsthm,xcolor,longtable,siunitx,multirow,array}
 \usepackage{needspace}
 \usepackage[hidelinks]{hyperref}
 \usepackage[capitalise]{cleveref}
+% The shared body cites with natbib's \citep and \citet; IEEE style cites by number only. \citep is \cite, and \citet
+% names the authors before the number (the five keys it is used with).
+\newcommand{\citep}[1]{\cite{#1}}
+\newcommand{\citet}[1]{\csname wsgauth@#1\endcsname~\cite{#1}}
+\expandafter\def\csname wsgauth@zhang2026reproducible\endcsname{Zhang}
+\expandafter\def\csname wsgauth@liang2026lrc\endcsname{Liang et~al.}
+\expandafter\def\csname wsgauth@angelopoulos2025cache\endcsname{Angelopoulos et~al.}
+\expandafter\def\csname wsgauth@hoefler2015benchmarking\endcsname{Hoefler and Belli}
+\expandafter\def\csname wsgauth@huang2025cpugpu\endcsname{Huang et~al.}
+% Run-in headings: the shared body ends each \paragraph title with a period, and IEEEtran adds a colon; drop the period.
+\ExplSyntaxOn
+\cs_new_eq:NN \__wsg_paragraph:w \paragraph
+\tl_new:N \l__wsg_para_tl
+\RenewDocumentCommand{\paragraph}{s m}
+  {
+    \tl_set:Nn \l__wsg_para_tl {#2}
+    \regex_replace_once:nnN { \.\Z } { } \l__wsg_para_tl
+    \IfBooleanTF{#1}
+      { \exp_args:NNo \__wsg_paragraph:w * { \l__wsg_para_tl } }
+      { \exp_args:No \__wsg_paragraph:w { \l__wsg_para_tl } }
+  }
+\ExplSyntaxOff
 \hypersetup{pdftitle={Where the Seconds Go: Bounding Mixture-of-Experts Decode from Host Memory, and Measuring What Foresight Is Worth},
   pdfkeywords={Mixture of Experts, Offloading, Caching, Performance Bounds}}
 \renewcommand{\dbltopfraction}{0.85}\setcounter{dbltopnumber}{2}
@@ -27,16 +49,17 @@
 \end{abstract}
 
 \begin{IEEEkeywords}
-Mixture of Experts, offloading, caching, performance bounds, foresight
+Caching, foresight, mixture of experts, offloading, performance bounds
 \end{IEEEkeywords}
 
 \input{main_body}
 
-\bibliographystyle{IEEEtranN}
+\bibliographystyle{IEEEtran}
 \bibliography{refs,refs_wsg}
 
 \clearpage
 \onecolumn
 \appendices
+\crefalias{section}{appendix}\crefalias{subsection}{subappendix}   % cross-references read ``Appendix D''
 \input{app_wsg}
 \end{document}

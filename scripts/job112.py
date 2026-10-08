@@ -179,6 +179,11 @@ def macros(H, V, V4, V5, pr4, cl4, cl):
         rng(f"tcSlow{nm}", [-c["lag_part"] for c in sel])
         rng(f"tcEarlyMinusFetchMiss{nm}", [c["misses"]["bypassplanS"] - c["misses"]["fetchplan"] for c in sel], "{:.1f}")
         rng(f"tcFetchesEarly{nm}", [c["fetches"]["bypassplanS"] for c in sel], "{:.1f}")
+        # admissions per token of the two two-read arms, and the early arm's host reads (misses + admissions) over Few-2R's
+        rng(f"tcAdmEarly{nm}", [c["admits"]["bypassplanS"] for c in sel], "{:.1f}")
+        rng(f"tcAdmTwo{nm}", [c["admits"]["bypassplan"] for c in sel], "{:.1f}")
+        hr = lambda c, n: c["misses"][n] + c["admits"][n]  # noqa: E731
+        rng(f"tcHostEarlyPct{nm}", [100 * (hr(c, "bypassplanS") / hr(c, "bypassplan") - 1) for c in sel], "{:.0f}")
     # the second probe
     dv = [h["B_host2"] / h["B_host"] - 1 for h in V if h.get("B_host") and h.get("B_host2")]
     if dv:

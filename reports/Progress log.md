@@ -3,6 +3,50 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October (afternoon): IEEE build, number check 20, review round 23 (6, 7), post-review fixes
+
+**Status for Harshith (read this first).** Round 23, MLSys PC / professor: **6 / 7** (clarity 3 / 3; soundness 4 / 4;
+significance 3 / 3), unchanged from round 22. Reviewer a checked 34 claims, reviewer b 31; every table cell they
+recomputed matched (Tables 3-6 and 30). The paper now also builds in IEEE conference format (`paper/paper_ieee.pdf`,
+38 pages: 9 pages of text and references, then the appendices). Nothing was pushed to `main`; no GPU work.
+
+### What changed
+
+- **IEEE build.** `paper_ieee.tex` (IEEEtran conference, numbered references with `cite`: "[3]-[5]", Index Terms in
+  order, run-in headings "Name:" without the doubled period, cross-references to appendices read "Appendix D"). The body
+  is shared with the MLSys build through `macros.tex`, `abstract_body.tex` and `main_body.tex`. The author block is in
+  `paper/authors_ieee.tex` (untracked, like `authors.tex`).
+- **Number check 20:** 11 defects, all fixed before the reviews.
+- **Fixed after the reviews (all from raw data, all script-generated macros):**
+  - The MLSys main text had run six lines onto page 11 (the round-22 entry below said it ended on page 10; the heading
+    did, the text did not). Now the Conclusion ends on page 10 and References start on page 11.
+  - Abstract: "oracles account for the rest of the time" overstated; now "close about half of the gap; we attribute the
+    rest, not measure it", and "the gap" and the oracle are defined where used.
+  - Job 112's control: new counters `tcAdm*`, `tcHostEarlyPct*` (job112.py). Few-2R-early admitted 11.7-11.8 experts
+    per token against Few-2R's 6.2-7.4 and read 4-7% more from the host. The text now says the control failed its own
+    check and cannot say how much of the two-read loss is late landing. (The morning entry's "the late landing is not
+    the cause" was too strong.)
+  - "They still read 1.66-1.68 R*" covered two of the four no-foresight policies; now all four, 1.57-1.76 R*
+    (`olReadsFour*`, job109.py).
+  - T_GPU: "the smallest of the 14 Nsight profiles we use" (2.9 ms either way; the smallest of all 47 is 2.87 ms).
+  - Spearman 0.89 is scoped to the 19 machines of jobs 093-104.
+  - Few-1R: the 13 machines include two RTX 4090s and two server processors (`rbPlanCardTwo`, `rbPlanServer`,
+    robustness.py), and the stability rule is said to leave out exactly the two slowest-link machines where it lost.
+  - "Panel" is defined once (15 RTX 5090 machines; 10 ran its main job) and used that way.
+  - Supplement: `\sloppy` for long file paths (overfull boxes 31 -> 29, largest 91 pt -> 4.6 pt).
+
+### What the reviewers still want (not done; needs a decision)
+
+1. **Scope.** The 2x2 comes from one engine, one model and AIME; the builder rules generalise past that. Either scope
+   the rules harder or add a second model or engine.
+2. **Registration strength.** Some registered bands were wide (0.25-0.55 for the 35%; >= 50% against an expected
+   85-99%). Say so next to each registered claim, or tighten in a future job.
+3. **Within-machine intervals** are over problems only; round-to-round and rental-to-rental variation is larger.
+4. **Clarity (3/5 from both):** five baselines and three bounds; about 15 configuration names and 8 machine sets; the
+   paper does too much for 10 pages (the literature audit, closed form and prediction log could move to the supplement).
+5. **IEEE build:** long one-column appendices (27 pages), long small-caps table captions, Table III small, Fig. 5 two
+   pages after its first citation, and some references end in "et al." because their entries list few authors.
+
 ## 8 October (morning): job 112, the closing clarity pass, number check 19, review round 22 (6, 7)
 
 **Status for Harshith (read this first).** Round 22, MLSys PC / professor: **6 / 7** (clarity 3 / 3; soundness 4 / 4;

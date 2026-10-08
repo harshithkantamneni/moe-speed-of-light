@@ -497,6 +497,10 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         rr = [h["cells"][C]["reads"][n] / RSTAR[C] for h in V if h["cells"][C]["rounds"] for n in ("R1", "R2")]
         if rr:
             M[f"olReadsOnline{nm}Min"] = f"{min(rr):.2f}"; M[f"olReadsOnline{nm}Max"] = f"{max(rr):.2f}"
+        # all four policies without foresight (LA, Margin, LA-1R, LA-1R-margin), and the deployed cache, over R*
+        r4 = [h["cells"][C]["reads"][n] / RSTAR[C] for h in V if h["cells"][C]["rounds"] for n in ("pf", "dk", "R1", "R2")]
+        if r4:
+            M[f"olReadsFour{nm}Min"] = f"{min(r4):.2f}"; M[f"olReadsFour{nm}Max"] = f"{max(r4):.2f}"
         # the deployed cache's share of Eq. (1)'s speed on these machines
         sh = [h["cells"][C]["eq1"] / h["cells"][C]["t"]["base"] for h in V if h["cells"][C]["rounds"]]
         if sh:

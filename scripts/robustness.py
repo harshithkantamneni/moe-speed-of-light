@@ -153,6 +153,22 @@ def main():
             if h.get("valid") and c.get("ratio", {}).get("fetchplan"):
                 fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["ratio"]["fetchplan"]))
     per = [float(GMEAN([x for _, x in v])) for v in fp.values()]
+    # what the machines are: RTX 4090s (from nvidia-smi) and server processors (the family table, else the CPU's name)
+    def card_of(d):
+        f = f"{RES}/{d}/nvidia-smi-q.txt"
+        return next((ln.split(":", 1)[1].strip() for ln in open(f) if "Product Name" in ln), "") if os.path.exists(f) else ""
+
+    def server_of(d):
+        e = fam.get(d)
+        if e:
+            return e["family"] == "server"
+        f = f"{RES}/{d}/lscpu.txt"
+        txt = open(f).read() if os.path.exists(f) else ""
+        return "EPYC" in txt or "Xeon" in txt
+    fam = {e["dir"]: e for e in json.load(open(P("prereg", "job108_families.json")))}
+    word = lambda n: ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][n] if n < 10 else str(n)  # noqa: E731
+    M["rbPlanCardTwo"] = word(sum(any("4090" in card_of(d) for d, _ in v) for v in fp.values()))
+    M["rbPlanServer"] = word(sum(any(server_of(d) for d, _ in v) for v in fp.values()))
     pt, lo, hi = boot_machines(per, stat=GMEAN)
     M["rbPlanMachines"] = str(len(per)); M["rbPlanMean"] = f"{pt:.2f}"; M["rbPlanLo"] = f"{lo:.2f}"; M["rbPlanHi"] = f"{hi:.2f}"
     M["rbPlanMin"] = f"{min(per):.2f}"

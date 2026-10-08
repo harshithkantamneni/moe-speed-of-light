@@ -3,6 +3,27 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 9 October (early): review round 26 (5, 6; clarity 3, 3)
+
+**Status for Harshith (read this first).** Round 26, MLSys PC / professor: **5 / 6** (soundness 3 / 3, clarity 3 / 3;
+the PC's novelty fell to 2). Both reproduced every number they checked (39 each). The clarity passes did not move the
+clarity score. The drop is about substance, not presentation. Job 113 showed that the decomposition's two-read arm
+(Table 4, Fig. 2) never held MIN's set. The control that does hold it covers two machines, and those two disagree on
+what reading once is worth, so both reviewers now call the paper's central decomposition confounded. Nothing was pushed
+to main; the gpu branch has job 113 and the offers record. Vast credit left: about $2.
+
+### What the reviewers still want (not done)
+
+1. **Re-run the decomposition with the in-step fetches off** on several fast-link machines: every cell of the 2x2 and
+   the read-ahead oracle, without the fetch table. This needs about 5 machines, $8-10.
+2. **Restructure Section 4** around the held-set result, instead of stating the deployed-path result first and then
+   correcting it (both reviewers' first clarity point).
+3. **Abstract and intro:** mark the post hoc numbers (31-54%, 0.65 C) and give the like-for-like audit comparison (our
+   27% against the median 13.6%). Also scope "at most 6%" to fast links.
+4. **Smaller items:** Table 1's "lost on the two unsteady ones" (the professor counts four unsteady or invalid machines
+   that ran Few-1R); "panel" meaning 10 in Table 1 and 15 in Table 4; the H6 failure placed at 25%; Table II placement
+   in the IEEE build.
+
 ## 9 October (early): review round 25 (6, 6; clarity 3, 3) and clarity pass 3
 
 Round 25 scored 6 / 6 (soundness 3 / 3, clarity 3 / 3). Both reproduced every number they checked. As asked, clarity

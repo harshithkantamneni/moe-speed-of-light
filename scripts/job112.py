@@ -61,6 +61,7 @@ def load112(d):
             c["ci"]["early_minus_two"] = tuple(float(x) for x in np.percentile(lag, [2.5, 97.5]))
         c["misses"] = {n: float(np.mean([x["misses"] for x in v])) for n, v in c["counters"].items()}
         c["admits"] = {n: float(np.mean([x["admits"] for x in v])) for n, v in c["counters"].items()}
+        c["fetches"] = {n: float(np.mean([x.get("fetches", 0) for x in v])) for n, v in c["counters"].items()}
         c.pop("_pp", None); c.pop("_draws", None)
     return h
 
@@ -173,6 +174,7 @@ def macros(H, V, V4, V5, pr4, cl4, cl):
         rng(f"tcMissRatio{nm}", [c["misses"]["bypassplanS"] / c["misses"]["bypassplan"] for c in sel])
         rng(f"tcLag{nm}", [c["lag_part"] for c in sel]); rng(f"tcRead{nm}", [c["read_part"] for c in sel])
         rng(f"tcEarlyMinusFetchMiss{nm}", [c["misses"]["bypassplanS"] - c["misses"]["fetchplan"] for c in sel], "{:.1f}")
+        rng(f"tcFetchesEarly{nm}", [c["fetches"]["bypassplanS"] for c in sel], "{:.1f}")
     # the second probe
     dv = [h["B_host2"] / h["B_host"] - 1 for h in V if h.get("B_host") and h.get("B_host2")]
     if dv:
@@ -213,11 +215,11 @@ def macros(H, V, V4, V5, pr4, cl4, cl):
     M["tcClausesFailed"] = str(st.get("failed", 0)); M["tcClausesUntested"] = str(st.get("untested", 0))
     failed = sorted({c["id"].split("-")[1] for c in cl4 + cl if c["status"] == "failed"})
     M["tcFailedList"] = ", ".join(failed) if failed else "none"
-    for t in ("T1", "T2", "T3", "T4", "T5", "T6", "T7"):
+    for t, tw in (("T1", "TOne"), ("T2", "TTwo"), ("T3", "TThree"), ("T4", "TFour"), ("T5", "TFive"), ("T6", "TSix"), ("T7", "TSeven")):
         cc = [c for c in cl if c["id"].split("-")[1] == t]
-        M[f"tc{t}Status"] = ("untested" if not cc else "failed" if any(c["status"] == "failed" for c in cc)
-                             else "held" if all(c["status"] == "held" for c in cc) else "held (point)")
-        M[f"tc{t}N"] = str(len(cc)); M[f"tc{t}Failed"] = str(sum(c["status"] == "failed" for c in cc))
+        M[f"tc{tw}Status"] = ("untested" if not cc else "failed" if any(c["status"] == "failed" for c in cc)
+                              else "held" if all(c["status"] == "held" for c in cc) else "held (point)")
+        M[f"tc{tw}N"] = str(len(cc)); M[f"tc{tw}Failed"] = str(sum(c["status"] == "failed" for c in cc))
     return M
 
 

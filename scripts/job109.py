@@ -66,7 +66,7 @@ def counters(d, C, rd, pr, n):
     x = json.load(open(p))
     s = max(1, x.get("steps", 1))
     return dict(reads=(x["misses"] + x["admits"] + x.get("prefetches", 0)) / s, misses=x["misses"] / s,
-                admits=x["admits"] / s, prefetches=x.get("prefetches", 0) / s,
+                admits=x["admits"] / s, prefetches=x.get("prefetches", 0) / s, fetches=x.get("fetches", 0) / s,
                 useful=x.get("prefetch_useful", 0) / s, fetch_on_admit=x.get("fetch_on_admit"),
                 prefetch_q=x.get("prefetch_q"), kappa=x.get("kappa"))
 
@@ -444,6 +444,18 @@ def trend_pred(h, C, n):
     return math.exp(a + b * math.log(h["ratio"]))
 
 
+def four112(cells):
+    """job 112's valid RTX 4090 machines (jobs/112_closing@vast.sh, CARD=4090: job 110's protocol at ratio >= 0.45)"""
+    out = []
+    for d in sorted(glob.glob(os.environ.get("MOSL_JOB112_GLOB", f"{RES}/112[a-g]_closing@vast"))):
+        if "CARD=4090" not in read(d, "mode.txt"):
+            continue
+        h = load(d, cells, 0.45)
+        if h["valid"]:
+            out.append(h)
+    return out
+
+
 def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     """macros (paper/wsg_job109.tex) and the table of both jobs' machines (paper/tab_job109.tex)"""
     from collections import Counter
@@ -586,13 +598,18 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
                 "\\LAOne, \\LAOneM; "
                 "\\cref{sec:online}), and that variant's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
                 "whose population (desktop-class, link-to-CPU ratio at least 0.5) was fixed before any machine started. RTX "
-                "4090: job 111 (job 110's predictions, committed before any RTX 4090 ran); in brackets, what the RTX 5090 "
+                "4090: job 111 (job 110's predictions, committed before any RTX 4090 ran)" + ("" if not four112(cells) else
+                " and job 112 (the same predictions, on machines at higher ratios)") + "; in brackets, what the RTX 5090 "
                 "machines' trend in the link-to-CPU ratio predicted for that machine. Subscripts: half-width of the 95\\% interval over "
                 "problems (paired bootstrap within the machine).}\\label{tab:job109}\n")
         f.write("\\setlength\\tabcolsep{3pt}\\begin{tabular}{@{}lr" + "rrrr" * 2 + "@{}}\\toprule\n")
         f.write(" & & \\multicolumn{4}{c}{gpt-oss 11\\%} & \\multicolumn{4}{c}{gpt-oss 25\\%} \\\\\\cmidrule(lr){3-6}\\cmidrule(l){7-10}\n")
         f.write("Machine & Ratio & \\MinOne & Ahead & None & Capture & \\MinOne & Ahead & None & Capture \\\\\\midrule\n")
-        for card, VV, pred in (("RTX 5090, job 109", V, False), ("RTX 4090, job 111", V3, True)):
+        V4 = four112(cells)
+        groups = [("RTX 5090, job 109", V, False), ("RTX 4090, job 111", V3, True)]
+        if V4:
+            groups.append(("RTX 4090, job 112 (higher ratios)", V4, True))
+        for card, VV, pred in groups:
             if not VV:
                 continue
             f.write("\\multicolumn{10}{@{}l}{\\emph{" + card + "}} \\\\\n")
@@ -610,7 +627,7 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
                         row.append(v)
                     row.append(f"{c['best']:.2f}" + hw(c, "best")); row.append(pc(c["capture"]) + hw(c, "capture", pct=True) + "\\%")
                 f.write(" & ".join(row) + " \\\\\n")
-            if card.startswith("RTX 5090"):
+            if card != groups[-1][0]:
                 f.write("\\addlinespace\n")
         f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
     return M

@@ -50,6 +50,7 @@
 \input{wsg_dm}
 \input{wsg_dcaime}
 \input{wsg_job109}
+\input{wsg_job112}
 \input{wsg_pending}
 
 \mlsystitlerunning{Where the Seconds Go}
@@ -110,7 +111,7 @@ bound's speed at the smallest gpt-oss budget on machines with consumer processor
 MIN's set on the deployed read path, where the CPU serves a miss and a background copy fills its slot, closes almost none
 of the gap; fetching the deployed set into its slots in the step closes none either. Doing both closes
 \dmAllTogetherLow\% of the gap on \dmMachines{} panel machines, and \dmNewTogetherLow\% on \olN{} machines rented
-later for a registered test. %JOB112-INTRO
+later for a registered test. Landing the copies in time, in a registered control, does not rescue the two-read path.
 What the oracles leave we attribute to the GPU's own work in series with the reads and to the oracles' extra reads
 (\cref{tab:gap}).
 
@@ -141,6 +142,7 @@ MIN's reads at the probed rate bound any exact-routing cache with $C$ slots per 
 The bound's read time is nearly reachable & pre-specified: $\ge$\,50\% of it per layer; \jdFailed{} of \jdClauses{} clauses failed & \jdHosts & \ref{sec:limit} \\
 Our cache is faster than FreeToken and llama.cpp at most configurations & pre-specified ratios on host B, held; repeated on host S they fell outside $\pm$0.06 of B's at \scRatioFailCells{} of six configurations, still faster at \bothLeadCells{} of \bothCells{} in all & B, S & \ref{sec:limit} \\
 MIN's set and one read pay only together (gpt-oss 11\%, fast links) & pre-specified: interaction $>$\,0 on every machine; held on \dmRegHeld{} of \dmRegN{} panel machines and on \dmNewInteractionPosLow{} of \olN{} new ones & \dmMachines${}+{}$\olN & \ref{sec:gap} \\
+Landing the copies in time does not rescue the two-read path & pre-specified: misses $\le$\,0.95$\times$ and no slowdown, \tcTOneStatus{} and \tcTTwoStatus; second read costs more than the landing, \tcTThreeStatus & \tcN & \ref{sec:gap} \\
 Policies without foresight recover little of the oracles' gain & pre-specified: capture $\le$\,35\% per machine; at most \olCapLowMax\% & \olN & \ref{sec:online} \\
 The link-to-CPU ratio predicts the oracles' speed on a second card & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s at ratios \cxRatioMin--\cxRatioMax: within 0.10 in log, held (\cxDevLowMax\%); misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \cxN & \ref{sec:secondcard} \\
 MIN's fewest-admission schedule gains on every machine that ran it stably & pre-specified on \rbPlanRegMachines{} machines: $>$\,1, held & \rbPlanMachines & \ref{sec:foresight} \\
@@ -312,6 +314,7 @@ machines of the registered test. Thick dark lines: medians over the fast-link pa
 \label{fig:staircase}
 \end{figure*}
 \input{tab_dm}
+\input{tab_job112}
 
 \paragraph{What is cached and how it is read pay only together (registered: a positive interaction on every
 machine).} At gpt-oss 11\%, \MinTwo, MIN's set on the deployed read path, closes \dmAllSetaloneLow\% of the gap, and
@@ -319,7 +322,15 @@ machine).} At gpt-oss 11\%, \MinTwo, MIN's set on the deployed read path, closes
 panel and \dmNewTogetherLow\% on the new machines. MIN's set admits more experts than the deployed one, and on the
 deployed path each extra admission costs a second read. Its copies also land two steps after the admission, so
 \MinTwo{} misses more than \MinOne: the factor is the read path, which sets both the number of reads and when a copy
-lands. %JOB112-GAP
+lands. A registered control separates the two (\cref{tab:timing}). Issuing each copy of MIN's fewest-admission set one
+step earlier, so that it lands for the next use, leaves the two-read arm where it was: at 11\%, \FewEarly{} runs
+\tcEarlyLowMin--\tcEarlyLowMax$\times$ the deployed cache and \FewTwo{} \tcTwoLowMin--\tcTwoLowMax$\times$, against
+\tcOneLowMin--\tcOneLowMax$\times$ for the same set read once (\FewOne). Its misses barely fall
+(\tcMissRatioLowMin--\tcMissRatioLowMax{} of \FewTwo's; registered: at most 0.95, which failed) and stay above
+\FewOne's by \tcEarlyMinusFetchMissLowMin--\tcEarlyMinusFetchMissLowMax{} per token. The counters point to the path
+itself: on it the machine's fetch table still fetches \tcFetchesEarlyLowMin--\tcFetchesEarlyLowMax{} of each token's
+misses in the step, into slots the schedule did not choose, so MIN's set is not kept even when its copies land in time.
+The late landing is not what holds the two-read arms back.
 We registered the sign of this interaction on the \dmRegN{} machines of the panel's main job (it held on \dmRegHeld) and
 again on the new machines (it held on \dmNewInteractionPosLow{} of \olN). At 25\%, where admissions are fewer, MIN's set
 alone already closes \dmAllSetaloneMid\%.
@@ -370,7 +381,6 @@ admits whenever MIN allows and may evict an expert again before its next use. Th
 gpt-oss 11\% (\FewOne), it beat the deployed cache on all \rbPlanMachines{} machines that ran it stably, by a geometric
 mean of \rbPlanMean$\times$ (registered on \rbPlanRegMachines{} of them). Counting the machines that ran unsteadily as
 well, it lost on \rbPlanUnstLost{}, the two with the slowest links (\cref{app:more}).
-%JOB112-TIMING
 
 \section{Without Foresight, and on a Second Card}\label{sec:transfer}
 The oracles show what foresight is worth on the machines that measured it. Two questions follow: how much of it a

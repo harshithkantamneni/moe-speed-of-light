@@ -221,7 +221,7 @@ their earlier runs. The machine is therefore the unit. Claims are about ordering
 summaries over machines carry 95\% $t$-intervals over machines, since with 3 to 15 machines a percentile bootstrap over machines is too narrow \citep{kalibera2013rigorous}; comparisons on one machine carry 95\% intervals over problems (a paired bootstrap). A \emph{launch} is one rental; in
 the later experiments each configuration also ran in two or three separate processes per launch. A machine
 \emph{ran stably} when its outputs matched the reference and, where it ran more than one process, their times agreed
-within 2\%; jobs 104 and 105 ran each configuration in a single process, so only the first condition applies to them. Every experiment's predictions were committed to a public branch before its machine started;
+within 2\%; two experiments ran each configuration in a single process, so only the first condition applies to them (\cref{app:prereg}). Every experiment's predictions were committed to a public branch before its machine started;
 \cref{app:prereg} scores all of them.
 
 \paragraph{Yardsticks.} The common one is speed relative to the deployed cache on the same machine (``1.22$\times$'').
@@ -326,7 +326,11 @@ runs, so the GPU's non-expert time stays in series with them, and it reads more 
 evict sooner. A system that issued every read before routing and read no more than MIN would remove both, but only copies
 over the link can be issued early (\cref{eq:dep}). On slow links the two parts fall short: a residual of
 \dmSlowResidLowMin--\dmSlowResidLowMax\% of the gap at 11\% stays unexplained on the two slow-link panel machines, and
-\cxResidLowMin--\cxResidLowMax\% on the RTX 4090s of \cref{sec:secondcard}.
+\cxResidLowMin--\cxResidLowMax\% on the RTX 4090s of \cref{sec:secondcard}. Measuring the gap to \cref{eq:dep}, the
+tighter bound there, does not remove it: the read-ahead oracle leaves \dmEqThreeLeftSlowLowMin--\dmEqThreeLeftSlowLowMax\%
+of that gap on the two machines and \dmEqThreeLeftCardLowMin--\dmEqThreeLeftCardLowMax\% on the RTX 4090s, against a
+median of \dmEqThreeLeftFastLowMed\% on fast links. The oracles fetch their misses over the link, which is the slow path
+on these machines, so their residual there reflects the read path they use.
 
 \paragraph{A closed-form account (exploratory, not confirmed).} On consumer processors, the deployed cache's time is
 close to the GPU's profiled kernel time plus its counted host reads at $B_{\mathrm{host}}$. We registered this, first in
@@ -396,13 +400,15 @@ prediction at 11\% and \cxDevMidMax\% at 25\% (\cref{tab:job109}), and every mac
 inside the band.\footnote{The first launch of these machines stopped after one round: its output check used the RTX
 5090's reference loss, and the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration. We relaunched them
 with the card's own reference and unchanged predictions; the first rounds, in the repository by then, had come within
-\cxFirstDevLowMax\% of the trend (\cref{app:prereg}).} %JOB112-CARD2
+\cxFirstDevLowMax\% of the trend (\cref{app:prereg}).} Simpler predictors do worse: no change (1.0$\times$) misses by up
+to \cxNoChangeDevLowMax\% at 11\% and \cxNoChangeDevMidMax\% at 25\%, and the mean of the \cxSlowPanelN{} slow-link panel
+machines by up to \cxSlowMeanDevLowMax\% and \cxSlowMeanDevMidMax\%. %JOB112-CARD2
 Applied after the fact to the new RTX 5090s of \cref{sec:gap}, all fast-linked, the same trend misses
 \olTrendMissWord{} of their \olTrendCells{} cells by more than the band, by up to \olTrendDevMax\%: on fast links the
 ratio sets the direction of the gain, not its size. At the RTX 4090s' ratios \MinOne{} runs
-\cxFetchLowMin--\cxFetchLowMax$\times$ the deployed cache at 11\%; on slow-link RTX 5090s, \FewTwo{} paid instead
-(\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ over the two budgets on those with ratios
-\jkSlowRatioMin--\jkSlowRatioMax).
+\cxFetchLowMin--\cxFetchLowMax$\times$ the deployed cache at 11\%; on the RTX 5090s whose link reads at under a third of their CPU rate (ratios
+\jkSlowRatioMin--\jkSlowRatioMax), \FewTwo{} paid instead (\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ over the
+two budgets).
 
 \begin{figure*}[t]\centering
 \includegraphics[width=\textwidth]{figs/hostdep.pdf}
@@ -433,7 +439,9 @@ engine runs. Markers: the same share in time per token on the panel machines (me
 \paragraph{Next-token prediction buys little.} Exact routing of the next token recovers at most \vmShareOneQlow{} of
 MIN's gain at any host-bound budget of our two models; half of the gain at gpt-oss 11\% needs \vmHalfLow{} tokens
 (\cref{fig:value}). In the engine, an exact 16-token window recovers \pnShareSixteenLowMin--\pnShareSixteenLowMax{} of
-the gain in time at 11\% (registered at 0.80 or more; the lowest machine missed).
+the gain in time at 11\% (registered at 0.80 or more; the lowest machine missed). Against the deployed cache, the
+yardstick of \cref{sec:foresight}, the same window copied in the step runs \jaWSixteenLowMin--\jaWSixteenLowMax$\times$ at
+11\% on \jaHosts{} machines, below 1 on a slow-link one: admitting every miss is a weak base on slow links.
 
 \paragraph{Accuracy matters as much as horizon.} An 8-token window that is right half the time recovers
 \vmEightHalfLow{} of the gain at 11\%, about what 2 exact tokens buy (\vmShareTwoLow).
@@ -516,7 +524,7 @@ registration in three ways: its output check used the RTX 5090's reference loss,
 the RTX 4090's; two relaunches that failed to download the model were repeated once; and one of the four machines
 eligible for relaunch was not relaunched (\cref{app:prereg}). The machines are a convenience sample of the cheapest offers that passed our checks, and few have a
 link slower than half their CPU rate, so where the crossovers lie rests on few points. Rented machines are often shared
-or unsteady: in the two tests of the time relation on new machines (jobs 107 and 108), \jlGated{} and \jmGated{}
+or unsteady: in the two tests of the time relation on new machines, \jlGated{} and \jmGated{}
 machines stopped at the gate and \jlInvalid{}
 and \jmInvalid{} ran unsteadily, and of \jmServAll{} launches on server processors only \jmServWord{} passed every check.
 \item \textbf{Workload.} Batch-1 decode of two models on AIME prompts, also used while developing the system,
@@ -527,7 +535,9 @@ it for the step raises the bound slightly (\cref{tab:limit}). $R^\star$ is count
 later experiments time, it changes by \rsDiffLow\%. The bounds drop latencies and are relative to one run of our probe, which on most machines ran while
 the model was downloading in the background: by the closed-form account
 of \cref{app:relation}, the engine's reads imply a rate more than 5\% above the probe's highest reading on \rbAboveMax{}
-of \rbLaunchBudgets{} launch-budgets (\cref{tab:robust}). $T_{\text{GPU}}$ is our engine's kernel time, not a property of the machine alone.
+of \rbLaunchBudgets{} launch-budgets (\cref{tab:robust}).
+%JOB112-PROBE
+$T_{\text{GPU}}$ is our engine's kernel time, not a property of the machine alone.
 \item \textbf{The decomposition.} The parts are measured at two budgets of one model. What the oracles leave is split
 by attribution, not measurement: the GPU's non-expert time is profiled, not removed. The machines pool runs of 20 and 30 problems and three versions of the engine. \Cref{eq:dep} assumes that the CPU
 reads an expert's weights when it runs the expert.

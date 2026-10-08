@@ -112,6 +112,20 @@ def rows_new(tlo):
     return out
 
 
+def eq3_left(d, C, t, eq1, tgpu):
+    """on one machine: Eq. (3), the ordered bound (CPU reads in series with the GPU's non-expert work, link copies free
+    to go ahead; the probe's best CPU and link readings), and the share of the gap to it that the read-ahead oracle
+    leaves: (read-ahead - Eq. 3) / (deployed - Eq. 3)"""
+    from scripts.fig_decomp import best_rates, dep_bound
+    f = os.path.join(RES, d, "concur.txt")
+    if not os.path.exists(f):
+        return None, None
+    bc, bp = best_rates(open(f).read())
+    rs = {14: 38.315364583333334, 32: 15.340364583333333}[int(C)] * S
+    eq3 = dep_bound(eq1, rs, bc, bp, tgpu)
+    return eq3, (t["both3p"] - eq3) / (t["base"] - eq3)
+
+
 def boot(v):
     """the mean over machines and its 95% t-interval (the machine is the unit; with 4-15 machines a percentile bootstrap
     over machines is too narrow: with 4 machines it has 35 distinct resamples)"""
@@ -279,6 +293,25 @@ def main():
         M[f"dmNewClosed{nm}"] = pct(m)
         M[f"dmNewPrefReads{nm}Min"] = f"{min(r['reads_both'] for r in sel):.2f}"; M[f"dmNewPrefReads{nm}Max"] = f"{max(r['reads_both'] for r in sel):.2f}"
         out["New" + nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"]) for r in sel]
+    # slow links: the gap measured to Eq. (3), the ordered bound, instead of Eq. (1)
+    for C, nm in ((14, "Low"), (32, "Mid")):
+        sel = [r for r in R if r["C"] == C]
+        for grp, rows_ in (("Slow", [r for r in sel if r["ratio"] < FAST]), ("Fast", [r for r in sel if r["ratio"] >= FAST])):
+            v = [eq3_left(r["dir"], C, r["t"], r["eq1"], tlo)[1] for r in rows_]
+            v = [x for x in v if x is not None]
+            if v:
+                M[f"dmEqThreeLeft{grp}{nm}Min"] = pct(min(v)); M[f"dmEqThreeLeft{grp}{nm}Max"] = pct(max(v))
+                M[f"dmEqThreeLeft{grp}{nm}Med"] = pct(float(np.median(v)))
+        p111 = P("prereg", "job111.json")
+        if os.path.exists(p111):
+            v = []
+            for h in json.load(open(p111))["hosts"]:
+                c = h["cells"].get(str(C), {})
+                if h.get("valid") and c.get("eq1") and all(k in c.get("t", {}) for k in ("base", "both3p")):
+                    v.append(eq3_left(h["dir"], C, c["t"], c["eq1"], tlo)[1])
+            v = [x for x in v if x is not None]
+            if v:
+                M[f"dmEqThreeLeftCard{nm}Min"] = pct(min(v)); M[f"dmEqThreeLeftCard{nm}Max"] = pct(max(v))
     M["dmNewRatioMin"] = f"{min(r['ratio'] for r in NEW):.2f}" if NEW else "--"
     M["dmNewRatioMax"] = f"{max(r['ratio'] for r in NEW):.2f}" if NEW else "--"
     reg = [r for r in lo if r["dir"][:3] == "099"]

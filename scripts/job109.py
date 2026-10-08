@@ -75,6 +75,12 @@ def boot_cell(pp, nb=2000, seed=109):
     """95% intervals over problems (resampled once per draw, paired across configurations and rounds) of each speed
     ratio vs its process's base (geometric mean over rounds), of the best online policy's ratio, and of its capture.
     Vectorised over the draws (the same draws as the loop it replaced)."""
+    draws = boot_draws(pp, nb, seed)
+    return {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in draws.items() if len(v)}
+
+
+def boot_draws(pp, nb=2000, seed=109):
+    """the bootstrap draws behind boot_cell: {configuration: array of nb speed ratios}, plus best and capture"""
     rng = np.random.default_rng(seed)
     seqs = sorted(set.intersection(*[set(by["base"]) for ba, bb in pp.values() for by in (ba, bb)]))
     if len(seqs) < 2:
@@ -93,7 +99,7 @@ def boot_cell(pp, nb=2000, seed=109):
     if real and "both3p" in draws:
         draws["best"] = np.max(real, axis=0)
         draws["capture"] = (draws["best"] - 1) / (draws["both3p"] - 1)
-    return {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in draws.items() if len(v)}
+    return draws
 
 
 def tint(v, level=0.95):
@@ -107,7 +113,7 @@ def tint(v, level=0.95):
     return float(v.mean() - h), float(v.mean() + h)
 
 
-def load(d, cells=(14, 32), min_ratio=0.5):
+def load(d, cells=(14, 32), min_ratio=0.5, need_b=True, keep_pp=False):
     """one host: its gates, its probe, and per budget the within-process speed ratios, times and counters"""
     v0, val = read(d, "v0.txt"), read(d, "validity.txt")
     m = re.search(r"Model name:\s*(.+)", read(d, "cpu.txt"))
@@ -137,9 +143,10 @@ def load(d, cells=(14, 32), min_ratio=0.5):
         c = dict(C=C, rounds=[], ratio={}, ratio_rounds={}, t={}, reads={}, counters={}, loss={})
         for rd in (1, 2):
             fa, fb = f"{d}/ec_g_C{C}_r{rd}A.jsonl", f"{d}/ec_g_C{C}_r{rd}B.jsonl"
-            if not (os.path.exists(fa) and os.path.exists(fb)):
+            if not (os.path.exists(fa) and (os.path.exists(fb) or not need_b)):
                 continue
-            ba, bb = rows_by_config(fa), rows_by_config(fb)
+            ba = rows_by_config(fa)
+            bb = rows_by_config(fb) if os.path.exists(fb) else {"base": ba.get("base", {})}
             if "base" not in ba or "base" not in bb:
                 continue
             c["rounds"].append(rd)
@@ -164,7 +171,10 @@ def load(d, cells=(14, 32), min_ratio=0.5):
         for n, v in c["ratio_rounds"].items():
             c["ratio"][n] = float(math.exp(np.mean(np.log(v))))
         if c["rounds"]:
-            c["ci"] = boot_cell(c.pop("_pp"))
+            c["_draws"] = boot_draws(c["_pp"])
+            c["ci"] = {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in c["_draws"].items() if len(v)}
+            if not keep_pp:
+                c.pop("_pp"); c.pop("_draws")
         if c["t"].get("base"):
             c["t_r1_base"] = c["t"]["base"][0]   # process A's base in the first round run
         c["t"] = {n: float(np.mean(v)) for n, v in c["t"].items()}
@@ -510,6 +520,20 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]
         if cp:
             M[f"cxCap{nm}Max"] = pc(max(cp)); M[f"cxCap{nm}Min"] = pc(min(cp))
+    # simpler predictors on the same RTX 4090s: no change (1.0x), and the mean of the slow-link panel machines
+    dmj = P("prereg", "decomp_measured.json")
+    if os.path.exists(dmj):
+        dm = json.load(open(dmj))["machines"]
+        for C in cells:
+            nm = NM[C]
+            slow = [m for m in dm[nm] if m["ratio"] < 0.5]
+            sel = [h for h in V3 if h["cells"][C]["rounds"]]
+            if not slow or not sel:
+                continue
+            mean = {n: float(np.mean([m["times"]["base"] / m["times"][n] for m in slow])) for n in ("fetch", "both3p")}
+            M[f"cxNoChangeDev{nm}Max"] = pc(max(abs(h["cells"][C]["ratio"][n] - 1) for h in sel for n in ("fetch", "both3p")))
+            M[f"cxSlowMeanDev{nm}Max"] = pc(max(abs(h["cells"][C]["ratio"][n] / mean[n] - 1) for h in sel for n in ("fetch", "both3p")))
+            M["cxSlowPanelN"] = word(len(slow))
     gr = [h.get("ratio") for h in H2 if h["gate"].startswith("VR") and h.get("ratio")]
     M["cxTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
     M["cxTenStarted"] = word(len(H2)); M["cxTenGated"] = word(sum(1 for h in H2 if h["gate"]))

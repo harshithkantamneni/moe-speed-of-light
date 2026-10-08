@@ -213,7 +213,10 @@ def table(M, has_new=False):
                 "changes both. \\emph{Both}, \\emph{then the read-ahead oracle} and \\emph{left} sum to the gap. The last three "
                 "rows are attributed, not measured: they split \\emph{left} with $T_{\\text{GPU}}$ as in \\cref{eq:demand} "
                 "(" + M["dmTgpu"] + "\\,ms, the smallest profile) and the read-ahead oracle's reads beyond $R^\\star$ at "
-                "$B_{\\mathrm{host}}$; the residual is what they leave.}\\label{tab:gap}\n")
+                "$B_{\\mathrm{host}}$; the residual is what they leave. Probe sensitivity: with every machine's $B_{\\mathrm{host}}$ 10\\% "
+                "(22\\%) higher, the shares on fast links move by at most " + M["dmProbeTenTogetherLowMax"] + " ("
+                + M["dmProbeTwentyTwoTogetherLowMax"] + ") points for \\emph{Both} and " + M["dmProbeTenLeftLowMax"] + " ("
+                + M["dmProbeTwentyTwoLeftLowMax"] + ") for \\emph{left} at 11\\%.}\\label{tab:gap}\n")
         cols = "rrrr" if has_new else "rr"
         f.write("\\setlength\\tabcolsep{4pt}\\begin{tabular}{@{}l" + cols + "@{}}\\toprule\n")
         if has_new:
@@ -293,6 +296,17 @@ def main():
         M[f"dmNewClosed{nm}"] = pct(m)
         M[f"dmNewPrefReads{nm}Min"] = f"{min(r['reads_both'] for r in sel):.2f}"; M[f"dmNewPrefReads{nm}Max"] = f"{max(r['reads_both'] for r in sel):.2f}"
         out["New" + nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"]) for r in sel]
+    # sensitivity to the probe: every machine's B_host raised by 10% and by 22% (the most the engine's own reads imply
+    # above a probe, Table robust), so Eq. (1) falls by the same factor; the change in the shares, in points
+    for C, nm in ((14, "Low"), (32, "Mid")):
+        sel = [r for r in R + NEW if r["C"] == C and r["ratio"] >= FAST]
+        for f, tag in ((1.10, "Ten"), (1.22, "TwentyTwo")):
+            for k, num in (("Together", lambda t, e: t["base"] - t["fetch"]), ("Left", lambda t, e: t["both3p"] - e)):
+                d = []
+                for r in sel:
+                    t, e = r["t"], r["eq1"]
+                    d.append(num(t, e / f) / (t["base"] - e / f) - num(t, e) / (t["base"] - e))
+                M[f"dmProbe{tag}{k}{nm}Max"] = f"{100 * max(abs(x) for x in d):.0f}"
     # slow links: the gap measured to Eq. (3), the ordered bound, instead of Eq. (1)
     for C, nm in ((14, "Low"), (32, "Mid")):
         sel = [r for r in R if r["C"] == C]

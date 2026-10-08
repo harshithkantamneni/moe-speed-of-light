@@ -173,6 +173,8 @@ def main():
         sv = [r for r in rows if r["server"]]
         if sv:
             M[f"dcServ{nm}N"] = str(len(sv))
+            ss = [r["min_ms"] / r["T"] for r in sv]
+            M[f"dcShareServ{nm}Min"] = f"{100 * min(ss):.0f}"; M[f"dcShareServ{nm}Max"] = f"{100 * max(ss):.0f}"
             M[f"dcServShort{nm}"] = "; ".join(f"{r['cpu']} {max(0, round(100 * (r['T'] - r['law']) / r['T']))}\\%" for r in sorted(sv, key=lambda r: r["T"] - r["law"]))
         g, mn, ex, rows = g[dk], mn[dk], ex[dk], [r for r, k in zip(rows, dk) if k]
         M[f"dcDeskShort{nm}Max"] = f"{100 * max(max(0.0, r['T'] - r['law']) / r['T'] for r in rows):.0f}"

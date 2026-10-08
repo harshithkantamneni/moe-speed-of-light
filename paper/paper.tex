@@ -144,6 +144,7 @@ MIN's set and one read pay only together (gpt-oss 11\%, fast links) & pre-specif
 Policies without foresight recover little of the oracles' gain & pre-specified: capture $\le$\,35\% per machine; at most \olCapLowMax\% & \olN & \ref{sec:online} \\
 The link-to-CPU ratio predicts the oracles' speed on a second card & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s at ratios \cxRatioMin--\cxRatioMax: within 0.10 in log, held (\cxDevLowMax\%); misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \cxN & \ref{sec:secondcard} \\
 MIN's fewest-admission schedule gains on every machine that ran it stably & pre-specified on \rbPlanRegMachines{} machines: $>$\,1, held & \rbPlanMachines & \ref{sec:foresight} \\
+Published systems reach a median \audInclassMed\% of their bound & post hoc; their papers' hardware at datasheet rates & -- & \ref{sec:limit} \\
 Half of foresight's value needs $\approx$\dcMed$\,C$ distinct experts ahead & post hoc, on \fsModels{} models' traces & -- & \ref{sec:horizon} \\
 A closed-form account of the time & post hoc; \rtFailedN{} of \rtN{} pre-specified tests failed & -- & \ref{app:relation} \\
 \bottomrule
@@ -282,11 +283,14 @@ of them (\cref{app:system}). Across \dcMachinesLow{} machines with consumer proc
 \olShareLowMin--\olShareLowMax\%. The top of that range is probably too high: on that machine the engine's reads imply, by the closed-form
 account of \cref{app:relation}, a rate above the probe's best reading (\cref{tab:robust}).
 
-\paragraph{The field leaves most of the machine unused.} To compare with published systems, we score each one against
-the same bound computed from its paper's own hardware at datasheet rates. Over \audInclassN{} published batch-1
-measurements, the median is \audInclassMed\% of the bound; our cache, scored the same way, reaches a median
-\audOursMed\% (\cref{app:audit}). Where we lack a model's routing trace, uniform routing stands in, which overstates the
-bound's reads and so the published percentages.
+\paragraph{The field leaves most of the machine unused (post hoc).} To compare with published systems, we score each
+one against the same bound computed from its paper's own hardware at datasheet rates, not probed ones. Over
+\audInclassN{} published batch-1 measurements, the median is \audInclassMed\% of the bound; our cache, scored the same
+way on our own hardware, reaches a median \audOursMed\% (\cref{app:audit}). Three caveats apply. Where we lack a
+model's routing trace, uniform routing stands in, which overstates the bound's reads and so the published percentages.
+The bound is per layer and one token per step, so designs that pool their cache across layers or verify several tokens
+per pass are scored against a bound they could in principle beat. And the comparison with our cache crosses
+hardware.
 
 \input{tab_headline}
 
@@ -544,6 +548,8 @@ reads an expert's weights when it runs the expert.
 \item \textbf{The oracles.} Oracles read a recorded trace. In the engine the fewest-admission schedule misses
 \jfMissDevMin--\jfMissDevMax\% more than the greedy one, more than its replay predicts; its measured gains include that
 cost. Degraded windows draw errors independently, while a real predictor's errors correlate with what the cache holds.
+The only predictor we built into the engine looks one layer ahead; the multi-token forecasters of \cref{sec:horizon}
+were evaluated offline, on host reads.
 \item \textbf{Outputs.} Parity is measured by teacher-forced KL divergence against an all-VRAM reference (mean
 \klMeanGpt{} and \klMeanQwen{} nats), not by task accuracy.
 \end{itemize}

@@ -463,7 +463,11 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         rng(f"scBest{nm}", [h["cells"][C]["best"] for h in sel if "best" in h["cells"][C]], "{:.3f}")
         rng(f"scDist{nm}", [h["cells"][C]["t"]["base"] / h["cells"][C]["eq1"] for h in sel], "{:.1f}")
         rng(f"scOracle{nm}", [h["cells"][C]["ratio"]["both3p"] for h in sel])
+        rng(f"scFetch{nm}", [h["cells"][C]["ratio"]["fetch"] for h in sel])
         rng(f"scPf{nm}", [h["cells"][C]["ratio"]["pf"] for h in sel]); rng(f"scRone{nm}", [h["cells"][C]["ratio"]["R1"] for h in sel])
+        cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]
+        if cp:
+            M[f"scCap{nm}Max"] = pc(max(cp)); M[f"scCap{nm}Min"] = pc(min(cp))
     gr = [h.get("ratio") for h in H2 if h["gate"].startswith("VR") and h.get("ratio")]
     M["scTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
     M["scTenStarted"] = word(len(H2)); M["scTenGated"] = word(sum(1 for h in H2 if h["gate"]))

@@ -354,8 +354,8 @@ link-to-CPU ratio: for MIN read once in the step, Spearman \rcFetchRatio{} [\rcF
 and predicted from it each configuration's gain on RTX 4090 machines, a slower card behind a PCIe 4.0 link, before any
 of them ran. On the \scNWord{} that passed every check, at ratios \scRatioMin--\scRatioMax, MIN read once and the
 read-ahead oracle came within \scDevLowMax\% of the prediction at 11\% and \scDevMidMax\% at 25\% (\cref{tab:job109}).
-At these ratios reading once in the step costs time; MIN's fewest-admission set pays instead when the CPU serves it and
-the copies run in the background (\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ on the slow-link RTX 5090s).
+At these ratios MIN read once in the step runs \scFetchLowMin--\scFetchLowMax$\times$ the deployed cache at 11\%; MIN's
+fewest-admission set pays instead when the CPU serves it and the copies run in the background (\jkSlowBypassPlanMin--\jkSlowBypassPlanMax$\times$ on the slow-link RTX 5090s).
 The RTX 4090s' first launch stopped after one round, because its output check used the RTX 5090's reference loss and
 the RTX 4090 computes a loss \scLossDiff\% higher in every configuration; we relaunched them with the card's own
 reference and the same predictions (\cref{app:prereg}).
@@ -366,7 +366,8 @@ reference and the same predictions (\cref{app:prereg}).
 machine against the machine's link-to-CPU ratio, at the two host-bound gpt-oss budgets. Every marker is a machine that
 passed our checks. Stars: MIN's fewest-admission schedule read once in the step. Circles and triangles: MIN's greedy
 schedule read once (in the step) or twice (by the CPU, then copied). Crosses: the deployed cache with the engine's
-layer-ahead copy. Lines: least-squares fits in the log of the ratio, for the trend only.}
+layer-ahead copy. Hollow markers: the RTX 4090 machines of the registered second-card test (\cref{sec:secondcard}), not
+used in the fits. Lines: least-squares fits in the log of the ratio, drawn for the trend only.}
 \label{fig:hostdep}
 \end{figure*}
 
@@ -380,7 +381,10 @@ test (\cref{tab:job109}). At 11\% the best of them runs
 \olBestLowMin--\olBestLowMax$\times$ the deployed cache: at most \olCapLowMax\% of the read-ahead oracle's gain
 (registered: at most 35\%). The counters say why. The online policies still read
 \olReadsRoneLowMin--\olReadsRoneLowMax$\,R^\star$ host experts per token, as many as the deployed cache: a prediction
-one layer ahead moves reads earlier but does not avoid them.
+one layer ahead moves reads earlier but does not avoid them. On the slow-link RTX 4090s of \cref{sec:secondcard}, the
+policies built on the layer-ahead copy lose time (\scRoneLowMin--\scRoneLowMax$\times$ at 11\%), as registered, and
+admitting less is the best online policy, at \scBestLowMin--\scBestLowMax$\times$: up to \scCapLowMax\% of an oracle gain
+that is smaller there.
 
 \input{tab_job109}
 
@@ -430,8 +434,9 @@ built into an online policy, they recover at most \olCapLowMax\% of the oracle's
 \item \textbf{Change what is cached and how it is read together.} Serving a miss on the CPU and then copying it into a
 slot reads it twice. A better set read twice, or the same set read once, closes almost none of the gap; a better set
 read once closes about a third of it.
-\item \textbf{Do not expect an online policy to get there.} Admitting less and predicting one layer ahead recover a few
-percent of what foresight is worth; the reads they leave are the ones only foresight avoids.
+\item \textbf{Do not expect an online policy to get there.} Admitting less and predicting one layer ahead recover at
+most \olCapLowMax\% of what foresight is worth where it is worth most, and the layer-ahead copy loses time on slow links;
+the reads they leave are the ones only foresight avoids.
 \item \textbf{Choose the read path by the link-to-CPU ratio, on any card.} Where the link is fast, copy misses into
 slots in the step; where it is slow, serve them on the CPU and copy in the background. The probe that measures the
 ratio takes seconds.

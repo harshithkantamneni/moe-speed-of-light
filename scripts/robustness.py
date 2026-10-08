@@ -145,6 +145,13 @@ def main():
             c = h["cells"].get("g14")
             if c and c["speed"].get("fetchplan"):
                 fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["speed"]["fetchplan"][0]))
+    # job 112's valid machines (two RTX 4090s and two relaunched RTX 5090s of job 109) ran the same schedule in the step
+    pj = P("prereg", "job112.json")
+    if os.path.exists(pj):
+        for h in json.load(open(pj))["hosts"]:
+            c = h["cells"].get("14", {})
+            if h.get("valid") and c.get("ratio", {}).get("fetchplan"):
+                fp.setdefault(uuid_of(h["dir"]), []).append((h["dir"], c["ratio"]["fetchplan"]))
     per = [float(GMEAN([x for _, x in v])) for v in fp.values()]
     pt, lo, hi = boot_machines(per, stat=GMEAN)
     M["rbPlanMachines"] = str(len(per)); M["rbPlanMean"] = f"{pt:.2f}"; M["rbPlanLo"] = f"{lo:.2f}"; M["rbPlanHi"] = f"{hi:.2f}"
@@ -158,7 +165,7 @@ def main():
     ratio = lambda d: (lambda hi: hi["B_p"] / hi["B_c"])(host_info(f"{RES}/{d}"))  # noqa: E731
     rat = [min(ratio(j) for j, _ in v) for v in fp.values()]
     M["rbPlanRatioMin"] = f"{min(rat):.2f}"
-    M["rbPlanRegMachines"] = str(direct); M["rbPlanImplied"] = ["no", "one", "two", "three", "four"][len(per) - direct]
+    M["rbPlanRegMachines"] = str(direct); M["rbPlanImplied"] = (["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"] + [str(i) for i in range(10, 40)])[len(per) - direct]
     # the machines that ran unsteadily (or computed wrong outputs) and ran the same schedule
     un = []
     for pj, keep in (("job106.json", ("106c", "106d")), ("job107.json", None)):

@@ -564,6 +564,7 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     M["cxTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
     M["cxTenStarted"] = word(len(H2)); M["cxTenGated"] = word(sum(1 for h in H2 if h["gate"]))
     M["cxElevenStarted"] = word(len(H3)); M["cxElevenNoModel"] = word(sum(1 for h in H3 if not h["gate"] and not h["ran"]))
+    M["cxTenClauses"] = str(len(clauses110(V2, cells)))
     cl3 = clauses110(V3, cells); st3 = Counter(c["status"] for c in cl3)
     M["cxClauses"] = str(len(cl3)); M["cxClausesHeld"] = str(st3.get("held", 0)); M["cxClausesPoint"] = str(st3.get("held (point)", 0))
     M["cxClausesFailed"] = str(st3.get("failed", 0))

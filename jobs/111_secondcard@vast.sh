@@ -14,6 +14,10 @@
 # Hosts: the offers of job 110's hosts b, c, d and e (52126082, 53029171, 52125965, 53029117) as they are listed again
 # after job 110's instances were destroyed; an offer not listed again is skipped. One launch per machine. The test is
 # job 110's: at least three valid hosts.
+# Amended before the second launches of b and c (predictions, gates and the job unchanged): the first launches of 111b
+# and 111c stopped before any measurement, their model download failing at Hugging Face's CDN after about 460 s
+# (results/111b, 111c: dl_gguf.txt; exit 3, GGUF missing); 111d, on the same provider, downloaded normally. Each of the
+# two machines is launched once more; a second failure is final.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

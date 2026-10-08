@@ -121,8 +121,9 @@ oracle's gain on those machines: they still read as many experts as the deployed
 
 \textbf{The machine decides how foresight should be spent} (\cref{sec:foresight,sec:secondcard}). Each admitted
 expert should be read once, with as few admissions as optimality allows, on the read path the link-to-CPU ratio
-favours. A trend in that ratio, fitted on RTX 5090 machines, predicted the oracles' speed on three slow-link RTX 4090
-machines within \cxDevLowMax\%; on fast links, machines scatter more around it. %JOB112-CARD
+favours. A trend in that ratio, fitted on RTX 5090 machines, predicted the oracles' speed on \cxAllNWord{} RTX 4090
+machines at ratios \cxAllRatioMin--\cxAllRatioMax{} within \cxAllDevLowMax\%; new RTX 5090 machines with fast links
+scatter more around it.
 
 \textbf{Foresight has a price} (\cref{sec:horizon}). Half of its value needs the routing of about \dcMed$\,C$ distinct
 experts per layer ahead, on \fsModels{} models; exact routing of the next token recovers at most a third of it on our
@@ -144,7 +145,7 @@ Our cache is faster than FreeToken and llama.cpp at most configurations & pre-sp
 MIN's set and one read pay only together (gpt-oss 11\%, fast links) & pre-specified: interaction $>$\,0 on every machine; held on \dmRegHeld{} of \dmRegN{} panel machines and on \dmNewInteractionPosLow{} of \olN{} new ones & \dmMachines${}+{}$\olN & \ref{sec:gap} \\
 Landing the copies in time does not rescue the two-read path & pre-specified: misses $\le$\,0.95$\times$ and no slowdown, \tcTOneStatus{} and \tcTTwoStatus; second read costs more than the landing, \tcTThreeStatus & \tcN & \ref{sec:gap} \\
 Policies without foresight recover little of the oracles' gain & pre-specified: capture $\le$\,35\% per machine; at most \olCapLowMax\% & \olN & \ref{sec:online} \\
-The link-to-CPU ratio predicts the oracles' speed on a second card & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s at ratios \cxRatioMin--\cxRatioMax: within 0.10 in log, held (\cxDevLowMax\%); misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \cxN & \ref{sec:secondcard} \\
+The link-to-CPU ratio predicts the oracles' speed on a second card & trend fitted post hoc on RTX 5090s; pre-specified on RTX 4090s at ratios \cxAllRatioMin--\cxAllRatioMax: within 0.10 in log, held (\cxAllDevLowMax\%); misses new fast-link RTX 5090s by up to \olTrendDevMax\% & \cxAllN & \ref{sec:secondcard} \\
 MIN's fewest-admission schedule gains on every machine that ran it stably & pre-specified on \rbPlanRegMachines{} machines: $>$\,1, held & \rbPlanMachines & \ref{sec:foresight} \\
 Published systems reach a median \audInclassMed\% of their bound & post hoc; their papers' hardware at datasheet rates & -- & \ref{sec:limit} \\
 Half of foresight's value needs $\approx$\dcMed$\,C$ distinct experts ahead & post hoc, on \fsModels{} models' traces & -- & \ref{sec:horizon} \\
@@ -162,7 +163,7 @@ in its read time, and the distance of our cache and of published systems from it
 replicated on \olN{} more under a registered test (\cref{sec:gap}).
 \item \textbf{How foresight must be spent}: read once, with the fewest admissions, on the path the machine favours
 (\cref{sec:foresight}); without foresight, the engine's own mechanisms recover little, and a trend in the link-to-CPU
-ratio predicted a second card's oracles on slow links (\cref{sec:transfer}).
+ratio predicted a second card's oracles (\cref{sec:transfer}).
 \item \textbf{A price on foresight} by horizon and accuracy, and a horizon rule in distinct experts across \fsModels{}
 models (\cref{sec:horizon}).
 \item \textbf{An open record}: every prediction committed before the machine it concerns started, including the ones
@@ -323,14 +324,14 @@ panel and \dmNewTogetherLow\% on the new machines. MIN's set admits more experts
 deployed path each extra admission costs a second read. Its copies also land two steps after the admission, so
 \MinTwo{} misses more than \MinOne: the factor is the read path, which sets both the number of reads and when a copy
 lands. A registered control separates the two (\cref{tab:timing}). Issuing each copy of MIN's fewest-admission set one
-step earlier, so that it lands for the next use, leaves the two-read arm where it was: at 11\%, \FewEarly{} runs
-\tcEarlyLowMin--\tcEarlyLowMax$\times$ the deployed cache and \FewTwo{} \tcTwoLowMin--\tcTwoLowMax$\times$, against
-\tcOneLowMin--\tcOneLowMax$\times$ for the same set read once (\FewOne). Its misses barely fall
-(\tcMissRatioLowMin--\tcMissRatioLowMax{} of \FewTwo's; registered: at most 0.95, which failed) and stay above
-\FewOne's by \tcEarlyMinusFetchMissLowMin--\tcEarlyMinusFetchMissLowMax{} per token. The counters point to the path
-itself: on it the machine's fetch table still fetches \tcFetchesEarlyLowMin--\tcFetchesEarlyLowMax{} of each token's
-misses in the step, into slots the schedule did not choose, so MIN's set is not kept even when its copies land in time.
-The late landing is not what holds the two-read arms back.
+step earlier, so that it lands for the next use, leaves the two-read arm where it was. On \tcNWord{} machines (both
+cards, ratios \tcRatioRng) at 11\%, \FewEarly{} runs \tcEarlyLowRng$\times$ the deployed cache and \FewTwo{}
+\tcTwoLowRng$\times$, against \tcOneLowRng$\times$ for the same set read once (\FewOne). Its misses barely fall
+(\tcMissRatioLowRng{} of \FewTwo's, where we had registered at most 0.95 from a replay) and stay above \FewOne's by
+\tcEarlyMinusFetchMissLowRng{} per token. The counters point to the path itself: on it the machine's fetch table still
+fetches \tcFetchesEarlyLowRng{} of each token's \tcMissEarlyLowRng{} misses in the step, into slots the schedule did not
+choose, so MIN's set is not kept even when its copies land in time. The late landing is not what holds the two-read
+arms back.
 We registered the sign of this interaction on the \dmRegN{} machines of the panel's main job (it held on \dmRegHeld) and
 again on the new machines (it held on \dmNewInteractionPosLow{} of \olN). At 25\%, where admissions are fewer, MIN's set
 alone already closes \dmAllSetaloneMid\%.
@@ -408,15 +409,17 @@ On the RTX 5090 machines, the gain of every configuration that moves reads from 
 link-to-CPU ratio: for \MinOne, Spearman \rcFetchRatio{} [\rcFetchRatioLo, \rcFetchRatioHi] over \rcFetchRatioN{}
 machines (\cref{fig:hostdep}). We froze that trend on the \dmMachines{} panel machines, one line in the log of the ratio
 for each of \MinOne, \MinTwo, \DepOne{} and the read-ahead oracle, and registered that their speed on RTX 4090 machines,
-a slower card behind a PCIe 4.0 link, would fall within 0.10 of it in log. On the \cxNWord{} machines that passed every
-check, all at ratios \cxRatioMin--\cxRatioMax, \MinOne{} and the read-ahead oracle came within \cxDevLowMax\% of the
-prediction at 11\% and \cxDevMidMax\% at 25\% (\cref{tab:job109}), and every machine's 95\% interval over problems lies
-inside the band.\footnote{The first launch of these machines stopped after one round: its output check used the RTX
+a slower card behind a PCIe 4.0 link, would fall within 0.10 of it in log. The first test ran on \cxNWord{} machines,
+all at ratios \cxRatioMin--\cxRatioMax; a second, with the same predictions, added \tcFourNWord{} at
+\tcRatioFourRng. On all \cxAllNWord, \MinOne{} and the read-ahead oracle came within \cxAllDevLowMax\% of the
+prediction at 11\% and \cxAllDevMidMax\% at 25\% (\cref{tab:job109}), and every machine's 95\% interval over problems
+lies inside the band. On the \tcFourFastN{} with fast links the interaction of \cref{sec:gap} is positive, as
+registered.\footnote{The first launch of these machines stopped after one round: its output check used the RTX
 5090's reference loss, and the RTX 4090 computes a loss \cxLossDiff\% higher in every configuration. We relaunched them
 with the card's own reference and unchanged predictions; the first rounds, in the repository by then, had come within
-\cxFirstDevLowMax\% of the trend (\cref{app:prereg}).} Simpler predictors do worse: no change (1.0$\times$) misses by up
-to \cxNoChangeDevLowMax\% at 11\% and \cxNoChangeDevMidMax\% at 25\%, and the mean of the \cxSlowPanelN{} slow-link panel
-machines by up to \cxSlowMeanDevLowMax\% and \cxSlowMeanDevMidMax\%. %JOB112-CARD2
+\cxFirstDevLowMax\% of the trend (\cref{app:prereg}).} Simpler predictors do worse on the same machines: no change (1.0$\times$)
+misses by up to \cxNoChangeDevLowMax\% at 11\% and \cxNoChangeDevMidMax\% at 25\%, and the mean of the
+\cxSlowPanelN{} slow-link panel machines by up to \cxSlowMeanDevLowMax\% and \cxSlowMeanDevMidMax\%.
 Applied after the fact to the new RTX 5090s of \cref{sec:gap}, all fast-linked, the same trend misses
 \olTrendMissWord{} of their \olTrendCells{} cells by more than the band, by up to \olTrendDevMax\%: on fast links the
 ratio sets the direction of the gain, not its size. At the RTX 4090s' ratios \MinOne{} runs
@@ -487,8 +490,8 @@ recover at most \olCapLowMax\% of what foresight is worth where it is worth most
 slow links; the reads they leave are the ones only foresight avoids.
 \item \textbf{Choose the read path by the link-to-CPU ratio.} Where the link is fast, copy misses into slots in the
 step; where it is slow, serve them on the CPU and copy in the background. On a second card the ratio predicted the
-oracles' speed at slow links. The probe that measures the
-ratio takes seconds.
+oracles' speed within \cxAllDevLowMax\% over ratios \cxAllRatioMin--\cxAllRatioMax. The probe that measures the ratio
+takes seconds.
 \item \textbf{Issue reads before routing, and predict far enough ahead to save reads.} Even with full foresight, the
 GPU's non-expert time stays in series with every read that waits for the router. Only a prediction of the routing lets
 reads start earlier, and only over the link (\cref{eq:dep}). To save reads, predictors should target the next
@@ -533,10 +536,11 @@ engine. Learning-augmented paging is most robust with predictions of whether a p
 \section{Limitations}\label{sec:limits}
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{Hardware and sample.} One GPU model for most results, rented, mostly in desktop hosts, and a second (RTX
-4090) for one registered test; clocks could not be locked and power limits differed. That test deviated from its
-registration in three ways: its output check used the RTX 5090's reference loss, so its machines were relaunched with
-the RTX 4090's; two relaunches that failed to download the model were repeated once; and one of the four machines
-eligible for relaunch was not relaunched (\cref{app:prereg}). The machines are a convenience sample of the cheapest offers that passed our checks, and few have a
+4090) for two registered tests; clocks could not be locked and power limits differed. The first RTX 4090 test deviated
+from its registration in three ways: its output check used the RTX 5090's reference loss, so its machines were
+relaunched with the RTX 4090's; two relaunches that failed to download the model were repeated once; and one of the
+four machines eligible for relaunch was not relaunched. In the last experiment one machine never finished downloading
+the model, and its replacement started before it was given up (\cref{app:prereg}). The machines are a convenience sample of the cheapest offers that passed our checks, and few have a
 link slower than half their CPU rate, so where the crossovers lie rests on few points. Rented machines are often shared
 or unsteady: in the two tests of the time relation on new machines, \jlGated{} and \jmGated{}
 machines stopped at the gate and \jlInvalid{}
@@ -549,8 +553,8 @@ it for the step raises the bound slightly (\cref{tab:limit}). $R^\star$ is count
 later experiments time, it changes by \rsDiffLow\%. The bounds drop latencies and are relative to one run of our probe, which on most machines ran while
 the model was downloading in the background: by the closed-form account
 of \cref{app:relation}, the engine's reads imply a rate more than 5\% above the probe's highest reading on \rbAboveMax{}
-of \rbLaunchBudgets{} launch-budgets (\cref{tab:robust}).
-%JOB112-PROBE
+of \rbLaunchBudgets{} launch-budgets (\cref{tab:robust}). In the last experiment a second probe, run on the idle machine after the timed runs, came within
+\tcProbeDevMax\% of the first on all \tcProbeN{} machines.
 $T_{\text{GPU}}$ is our engine's kernel time, not a property of the machine alone.
 \item \textbf{The decomposition.} The parts are measured at two budgets of one model. What the oracles leave is split
 by attribution, not measurement: the GPU's non-expert time is profiled, not removed. The machines pool runs of 20 and 30 problems and three versions of the engine. \Cref{eq:dep} assumes that the CPU
@@ -571,7 +575,7 @@ budget on machines with consumer processors, and the other systems we measured r
 caching MIN's set and reading each admitted expert once pay only together, a result we registered and replicated on
 machines rented for the test. Policies without foresight built from the engine's own mechanisms recover little of it,
 because they read as much as the deployed cache. Which read path pays is set by the machine's link-to-CPU ratio, and a trend in that ratio
-predicted the oracles' speed on a second card at slow links. What the oracles leave we attribute to the GPU's own work,
+predicted the oracles' speed on a second card. What the oracles leave we attribute to the GPU's own work,
 in series with reads that wait for routing, and to the oracle's extra reads. Foresight's
 value has a price: half of it needs the routing of about \dcMed$\,C$ distinct experts per layer ahead, \vmHalfLow{}
 tokens on our workload at the smallest budget.

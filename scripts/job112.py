@@ -148,6 +148,8 @@ def main():
         for k in sorted(M):
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
     table(V)
+    from scripts.tabnote import split_caption
+    split_caption(P("paper", "tab_job112.tex"))   # short caption, the rest as a note below the table
     for k in sorted(M):
         print(k, M[k])
 

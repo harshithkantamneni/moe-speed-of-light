@@ -346,6 +346,8 @@ def main():
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
     figure(R, P("paper", "figs", "decomp_measured.pdf"), NEW)
     table(M, bool(NEW))
+    from scripts.tabnote import split_caption
+    split_caption(P("paper", "tab_dm.tex"))   # short caption, the rest as a note below the table
     for k in sorted(M):
         print(k, M[k])
 

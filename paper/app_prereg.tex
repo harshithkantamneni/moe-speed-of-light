@@ -30,11 +30,11 @@ Claim of \cref{tab:claims} & Jobs, predictions and clause identifiers \\\midrule
 The bound's read time is nearly reachable & job 102, P2 (layer mode at least 0.50): \texttt{102x-P2floor-C14/C32} \\
 Faster than FreeToken and llama.cpp & jobs 081 (host B) and 089 (host S), hand-scored (\cref{tab:prereg}) \\
 MIN's set and one read pay only together & job 099, P5a: \texttt{099Px-P5a-g11/g25}; job 109, P1: \texttt{109x-P1-int-g11/g25} \\
-Landing the copies in time does not rescue the two-read path & job 112, T1--T4: \texttt{112x-T1}, \texttt{112x-T2}, \texttt{112x-T3}, \texttt{112x-T4} \\
+Issuing the copies a step earlier does not rescue the two-read path & job 112, T1--T4: \texttt{112x-T1}, \texttt{112x-T2}, \texttt{112x-T3}, \texttt{112x-T4} \\
 Policies without foresight recover little & job 109, P7: \texttt{109x-P7-best}, \texttt{109x-P7-cap}; jobs 111 and 112, Q3 \\
 The ratio predicts the oracles on a second card & jobs 111 and 112, Q1 (and Q6 for the interaction): \texttt{111x-Q1-*}, \texttt{112x-Q1-*} \\
 The fewest-admission schedule gains & job 104, P3 (machine a); job 105, P4; job 106, P6 and P7; job 107, P5: \texttt{104a-P3-g11}, \texttt{105x-P4-g11}, \texttt{106x-P6-*}, \texttt{106x-P7-*}, \texttt{107x-P5-fetchplan} \\
-The closed-form account (post hoc, then tested) & jobs 105--108, P1: \texttt{105x-P1-*} to \texttt{108x-P1-*} \\
+The closed-form account (\cref{app:relation}; not in \cref{tab:claims}) & jobs 105--108, P1: \texttt{105x-P1-*} to \texttt{108x-P1-*} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -55,6 +55,26 @@ entries) that the hand scoring holds outright and the script scores held (point)
 the hand scoring read unrounded (1.249 against a band starting at 1.25). Of the clauses the script scores held on the
 point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one that crosses the threshold. The
 re-scoring is a check; neither tally uses it.
+
+\paragraph{Rounds and rentals.} A machine's intervals are over problems. To see what they leave out,
+\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111 and 112 that ran a configuration in two rounds
+(\nzRoundN{} machine-budget-configurations on \nzRoundMachines{} machines; 25\% ran one round in these jobs) and every
+machine measured with the same configurations in two launches (\nzRentalN{} comparisons from \nzRentalPairs{} pairs of
+launches on \nzRentalMachines{} machines: job 099's panel and its relaunches in jobs 100, 101 and 103, job 109 and job
+112, job 110 and job 111). The speed ratio moved by a median \nzRoundMed\% (at most \nzRoundMax\%) between rounds, against
+a median half-width of \nzHalfWidthMed\% for the interval over problems, and by a median \nzRentalMed\% (at most
+\nzRentalMax\%; above 5\% in \nzRentalOverFive{} comparisons) between launches. Each launch derives its fetch table from
+its own probe; the tables differed in \nzRentalTableDiff{} of the \nzRentalPairs{} pairs, which give the largest
+differences; over the \nzRentalSameN{} comparisons with the same table the median is \nzRentalSameMed\% and the largest
+\nzRentalSameMax\%. Each machine's interval for each configuration was then widened, on the log scale and on both sides,
+by that configuration's full round-to-round range on that machine (zero at 25\%), and the derived intervals (capture,
+job 112's differences) accordingly. All \nzHeldCI{} per-machine clauses of these jobs that held with an interval still
+hold; the \nzPooled{} pooled clauses, whose intervals are over machines, are not widened. With every interval widened
+further by the largest rental difference, \nzRentalStillHeld{} still hold and \nzRentalMoved{} hold on the point estimate
+only. Of those, \nzRentalMovedNarrow{} are the bands of $\pm$0.06 or narrower around configurations that barely change
+the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo); the other \nzRentalMovedOther{} are the
+second-card trend checks for \MinOne{} and the read-ahead oracle and the no-foresight bound (Q1 and Q3) on the RTX
+4090s, P8 on one machine and T3 on one. No clause changes to failed: failure is decided by the point estimate.
 
 \input{tab_prereg}
 
@@ -125,7 +145,8 @@ was wrong for one: the Core i9-13900KF's offer had been rented twice before (the
 both times without a result. Its GPU had never been measured, and it passed the identity gate. Several of the job's
 bands were wide against what earlier jobs had shown: the mean share closed by \MinOne{} (0.25 to 0.55, where the panel
 had shown \dmAllTogetherLow\%), the margin's speed (0.98 to 1.06, where it had run \rbDkMean$\times$ the deployed cache) and the capture bound
-(at most 0.35). These held, but could hardly have failed. The clauses that could have failed are the interaction's sign
+(at most 0.35). These held, but could hardly have failed. Job 102's floor of 0.50 for the per-layer read time was
+loose in the same way: its header's analytic estimate, before launch, was 0.85 to 0.99. The clauses that could have failed are the interaction's sign
 on every machine and the per-machine bounds on the variants without foresight; job 110's predictions 3 to 5 are
 range checks of the same kind.
 
@@ -138,7 +159,9 @@ four machines that had run a round, with the card's own reference (its first rou
 110's predictions unchanged. The fourth, 110e, was not relaunched: its GPU was left out of the relaunch list, an
 oversight we found after the job. Its first round deviated from the trend by \cxNotRelaunchedDev\% at 11\%, inside the band, so
 leaving it out does not change the outcome; the relaunched machines' first rounds were in the repository when the
-relaunch was committed. The predictions were committed before any RTX 4090 data, and the corrected reference
+relaunch was committed. Those first rounds had come within \cxFirstDevLowMax\% of the trend for \MinOne{} and the
+read-ahead oracle; for the two single changes, whose band is $\pm$0.06 in log, \cxFirstSixOut{} was outside it
+(\cxFirstSixName, \cxFirstSixMaxPct\% off, \cxFirstSixMaxLog{} in log). The predictions were committed before any RTX 4090 data, and the corrected reference
 after one round on these machines. Of job 111's first launches, \cxElevenNoModel{} failed to download the model,
 before any model run; they were relaunched once, by an amendment committed before the relaunch.
 

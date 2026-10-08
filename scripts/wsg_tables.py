@@ -84,34 +84,33 @@ def headline():
                           ratio=r["ours_over_ft_L2"], xl=r["ours_over_llama"][0], limit=r["limit"]["tok_s"], limit_meas=1 / tm, note=""))
 
     def line(x):
-        key = "gpt-oss-120b" if x["model"].startswith("gpt") else "Qwen3-30B-A3B"
+        key = "gpt-oss" if x["model"].startswith("gpt") else "Qwen3"
         lim = x["limit"]
         lead = x["ratio"][0] >= 1   # the faster of the two in bold
-        ft_s = (f"\\textbf{{{x['ft']:.1f}}}" if not lead else f"{x['ft']:.1f}") + f" {{\\scriptsize({x['ftb']})}}"
+        ft_s = (f"\\textbf{{{x['ft']:.1f}}}" if not lead else f"{x['ft']:.1f}") + f"$^{{\\mathrm{{{x['ftb'][0]}}}}}$"   # h: hybrid, o: offload
         ours_s = f"\\textbf{{{x['ours']:.1f}}}" if lead else f"{x['ours']:.1f}"
         return (f"{key} & {x['budget'].replace('%', chr(92) + '%')} & {x['llama']:.1f} & {ft_s} & "
-                f"{ours_s} & {ci(x['ratio'], 3)}{x['note']} & {x['xl']:.2f}$\\times$ & "
+                f"{ours_s} & {ci(x['ratio'], 2)}{x['note']} & {x['xl']:.2f}$\\times$ & "
                 + (f"{lim:.0f} & {100 * x['ours'] / lim:.0f}\\% & {x['limit_meas']:.0f} & {100 * x['ours'] / x['limit_meas']:.0f}\\%" if lim else "\\pend & \\pend & \\pend & \\pend") + " \\\\")
     hb = sc["hosts"]["listing B (081)"]; ha = sc["hosts"]["089 (9950X, stock clock)"]
     from scripts.speed_limit import host_rates as _hr
     _gb = os.environ.get("MOSL_GPU_BRANCH", "/home/claude/gpu-branch") + "/results/"
     bhB = _hr(open(_gb + "081_headline_law@vast/concur.txt").read()) / 1e9
     bhS = _hr(open(_gb + "089_headline_stockclock@vast/concur.txt").read()) / 1e9
-    head1 = (r"\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at %d\,MHz memory clock, CPU %.0f\,GB/s, link %.0f, together %.0f, highest (the bound's rate) %.0f} \\" %
+    head1 = (r"\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card memory %d\,MHz; CPU %.0f, link %.0f, together %.0f, highest %.0f\,GB/s (the bound's rate)} \\" %
              (hb["mem_clock_mhz"], hb["B_c"], hb["B_p"], hb["B_both"], bhB))
-    head2 = (r"\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at %d\,MHz, CPU %.0f\,GB/s, link %.0f, together %.0f, highest %.0f; FreeToken's backend carried over from host B} \\" %
+    head2 = (r"\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X, stock clock, card %d\,MHz; CPU %.0f, link %.0f, together %.0f, highest %.0f\,GB/s; FreeToken backends as on B} \\" %
              (ha["mem_clock_mhz"], ha["B_c"], ha["B_p"], ha["B_both"], bhS))
     body = head1 + "\n" + "\n".join(line(x) for x in rows[:3]) + "\n" + "\n".join(line(x) for x in rows[3:]) + "\n\\midrule\n" + head2 + "\n" + "\n".join(line(x) for x in rows2)
     vram = vr["vram"]
     tex = r"""\begin{table*}[t]\centering\small
 \caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts (30 AIME-25 problems, the first 256 greedy
 tokens, one session). Ratios are of mean speeds; the ratio over FreeToken is paired by problem within one launch, with a 95\% bootstrap interval over problems. Host B's rows come from three rentals of the same machine (the same GPU), so its ratios over llama.cpp compare launches. Our cache and FreeToken ran twice per cell and the second launch is shown (on host B both launches ran ours first); llama.cpp and the $^\dagger$ cell ran once. Each system decodes its own greedy text. Our cache uses each
-machine's fetch table; FreeToken uses its faster backend per budget, picked on host B on a separate launch.
+machine's fetch table; FreeToken uses its faster backend per budget ($^\mathrm{h}$ hybrid, $^\mathrm{o}$ offload), picked on host B on a separate launch.
+gpt-oss: gpt-oss-120b; Qwen3: Qwen3-30B-A3B.
 \emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
 rate, and at the rate all-in-VRAM decode measures at batch size 1 (\gpuEffPctGpt\% of datasheet for gpt-oss, \gpuEffPctQwen\% for Qwen3;
-\cref{tab:limit} varies the other assumptions). Against the pooled bound their designs allow, FreeToken (one cache for all layers) and
-llama.cpp (whole layers pinned) stand at \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every
-weight in GPU memory (an RTX PRO 6000) stock llama.cpp decodes gpt-oss at VRAMG and Qwen3 at VRAMQ\,tok/s.
+\cref{tab:limit} varies the other assumptions; \cref{app:system} gives the pooled bounds and all-in-VRAM speeds).
 $^\dagger$Selection launch only, which favours FreeToken.}\label{tab:headline}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrrrr}\toprule
@@ -121,6 +120,10 @@ Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\
 \bottomrule\end{tabular}}\end{table*}
 """
     open(P("paper", "tab_headline.tex"), "w").write(tex)
+    import sys as _s2
+    _s2.path.insert(0, ROOT)
+    from scripts.tabnote import split_caption
+    split_caption(P("paper", "tab_headline.tex"))   # short caption, the rest as a note below the table
     g = [x for x in rows if x["model"].startswith("gpt")]
     q = [x for x in rows if not x["model"].startswith("gpt")]
     M("ftLeadGptMin", f"{min(100 * (x['ratio'][0] - 1) for x in g):.0f}")

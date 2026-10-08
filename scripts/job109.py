@@ -596,6 +596,13 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     dvf = [abs(math.exp(trend_dev(h, lo, n)) - 1) for h in first for n in ("fetch", "both3p")]
     if dvf:
         M["cxFirstDevLowMax"] = pc(max(dvf))
+    # the same first rounds for the two single changes, whose band was +-0.06 in log
+    d6 = [(abs(trend_dev(h, lo, n)), h, n) for h in first for n in ("foa", "bypass") if n in h["cells"][lo]["ratio"]]
+    if d6:
+        x, hx, nx = max(d6, key=lambda t: t[0])
+        M["cxFirstSixMaxPct"] = f"{100 * (math.exp(x) - 1):.1f}"; M["cxFirstSixMaxLog"] = f"{x:.3f}"
+        M["cxFirstSixOut"] = word(sum(1 for t in d6 if t[0] > 0.06))
+        M["cxFirstSixName"] = {"foa": "\\DepOne", "bypass": "\\MinTwo"}[nx]
     # relaunch agreement: job 111's first round against job 110's first round on the same GPU (deployed cache's time)
     rel = []
     for h in V3:
@@ -697,6 +704,8 @@ def main():
         json.dump(dict(job=job, script=script, commit=commit, scored_by="scripts/job109.py (machine)", clauses=cl),
                   open(P("prereg", f"scorecard_{job}.json"), "w"), indent=1)
     M = write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells)
+    from scripts.tabnote import split_caption
+    split_caption(P("paper", "tab_job109.tex"))   # short caption, the rest as a note below the table
     for k in sorted(M):
         print(k, M[k])
     return (H, pr), (H2, pr2), (H3, pr3)

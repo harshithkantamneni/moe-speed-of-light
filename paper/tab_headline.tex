@@ -1,30 +1,29 @@
 \begin{table*}[t]\centering\small
 \caption{Decode speed at equal GPU expert memory on two RTX 5090 hosts (30 AIME-25 problems, the first 256 greedy
-tokens, one session). Ratios are of mean speeds; the ratio over FreeToken is paired by problem within one launch, with a 95\% bootstrap interval over problems. Host B's rows come from three rentals of the same machine (the same GPU), so its ratios over llama.cpp compare launches. Our cache and FreeToken ran twice per cell and the second launch is shown (on host B both launches ran ours first); llama.cpp and the $^\dagger$ cell ran once. Each system decodes its own greedy text. Our cache uses each
-machine's fetch table; FreeToken uses its faster backend per budget, picked on host B on a separate launch.
-\emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
-rate, and at the rate all-in-VRAM decode measures at batch size 1 (\gpuEffPctGpt\% of datasheet for gpt-oss, \gpuEffPctQwen\% for Qwen3;
-\cref{tab:limit} varies the other assumptions). Against the pooled bound their designs allow, FreeToken (one cache for all layers) and
-llama.cpp (whole layers pinned) stand at \ftPoolPctMin--\ftPoolPctMax\% and \llPoolPctMin--\llPoolPctMax\%. With every
-weight in GPU memory (an RTX PRO 6000) stock llama.cpp decodes gpt-oss at 255 and Qwen3 at 178\,tok/s.
-$^\dagger$Selection launch only, which favours FreeToken.}\label{tab:headline}
+tokens, one session).}\label{tab:headline}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrcrrrrr}\toprule
 Model & Experts & llama.cpp & FreeToken & Ours & Ours $\div$ FreeToken & Ours $\div$ & \multicolumn{2}{c}{Bound, datasheet GPU} & \multicolumn{2}{c}{Bound, measured GPU} \\
  & on GPU & (tok/s) & (tok/s) & (tok/s) & (95\% CI) & llama.cpp & tok/s & ours & tok/s & ours \\\midrule
-\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card at 17001\,MHz memory clock, CPU 72\,GB/s, link 53, together 78, highest (the bound's rate) 88} \\
-gpt-oss-120b & 11\% & 34.9 & 54.0 {\scriptsize(hybrid)} & \textbf{69.9} & 1.294 [1.278, 1.312] & 2.00$\times$ & 172 & 41\% & 172 & 41\% \\
-gpt-oss-120b & 25\% & 40.0 & 85.6 {\scriptsize(hybrid)} & \textbf{109.2} & 1.275 [1.254, 1.295] & 2.73$\times$ & 430 & 25\% & 279 & 39\% \\
-gpt-oss-120b & 40\% & 47.7 & 132.2 {\scriptsize(offload)} & \textbf{152.5} & 1.154 [1.134, 1.172] & 3.20$\times$ & 519 & 29\% & 279 & 55\% \\
-Qwen3-30B-A3B & 12.5\% & 19.5 & 38.7 {\scriptsize(hybrid)} & \textbf{40.0} & 1.032 [1.022, 1.042] & 2.05$\times$ & 96 & 42\% & 96 & 42\% \\
-Qwen3-30B-A3B & 25\% & 22.1 & 54.7 {\scriptsize(hybrid)} & \textbf{63.1} & 1.153 [1.134, 1.173]$^\dagger$ & 2.86$\times$ & 214 & 30\% & 192 & 33\% \\
-Qwen3-30B-A3B & 43.75\% & 28.4 & 103.1 {\scriptsize(offload)} & \textbf{108.2} & 1.049 [1.036, 1.064] & 3.81$\times$ & 308 & 35\% & 192 & 56\% \\
+\multicolumn{11}{l}{\textbf{Host B}: Ryzen 9 9950X3D, card memory 17001\,MHz; CPU 72, link 53, together 78, highest 88\,GB/s (the bound's rate)} \\
+gpt-oss & 11\% & 34.9 & 54.0$^{\mathrm{h}}$ & \textbf{69.9} & 1.29 [1.28, 1.31] & 2.00$\times$ & 172 & 41\% & 172 & 41\% \\
+gpt-oss & 25\% & 40.0 & 85.6$^{\mathrm{h}}$ & \textbf{109.2} & 1.27 [1.25, 1.29] & 2.73$\times$ & 430 & 25\% & 279 & 39\% \\
+gpt-oss & 40\% & 47.7 & 132.2$^{\mathrm{o}}$ & \textbf{152.5} & 1.15 [1.13, 1.17] & 3.20$\times$ & 519 & 29\% & 279 & 55\% \\
+Qwen3 & 12.5\% & 19.5 & 38.7$^{\mathrm{h}}$ & \textbf{40.0} & 1.03 [1.02, 1.04] & 2.05$\times$ & 96 & 42\% & 96 & 42\% \\
+Qwen3 & 25\% & 22.1 & 54.7$^{\mathrm{h}}$ & \textbf{63.1} & 1.15 [1.13, 1.17]$^\dagger$ & 2.86$\times$ & 214 & 30\% & 192 & 33\% \\
+Qwen3 & 43.75\% & 28.4 & 103.1$^{\mathrm{o}}$ & \textbf{108.2} & 1.05 [1.04, 1.06] & 3.81$\times$ & 308 & 35\% & 192 & 56\% \\
 \midrule
-\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X at the stock clock, card at 14001\,MHz, CPU 56\,GB/s, link 53, together 66, highest 71; FreeToken's backend carried over from host B} \\
-gpt-oss-120b & 11\% & 28.9 & 48.0 {\scriptsize(hybrid)} & \textbf{57.9} & 1.207 [1.195, 1.219] & 2.00$\times$ & 140 & 41\% & 140 & 41\% \\
-gpt-oss-120b & 25\% & 33.6 & 78.7 {\scriptsize(hybrid)} & \textbf{94.1} & 1.196 [1.163, 1.224] & 2.80$\times$ & 351 & 27\% & 275 & 34\% \\
-gpt-oss-120b & 40\% & 40.1 & 122.2 {\scriptsize(offload)} & \textbf{133.6} & 1.093 [1.077, 1.111] & 3.34$\times$ & 514 & 26\% & 275 & 49\% \\
-Qwen3-30B-A3B & 12.5\% & 16.1 & 32.7 {\scriptsize(hybrid)} & \textbf{33.5} & 1.027 [1.018, 1.036] & 2.08$\times$ & 78 & 43\% & 78 & 43\% \\
-Qwen3-30B-A3B & 25\% & 18.5 & 51.4 {\scriptsize(hybrid)} & \textbf{53.9} & 1.048 [1.037, 1.059] & 2.91$\times$ & 174 & 31\% & 174 & 31\% \\
-Qwen3-30B-A3B & 43.75\% & 23.8 & \textbf{98.3} {\scriptsize(offload)} & 95.8 & 0.974 [0.962, 0.987] & 4.02$\times$ & 305 & 31\% & 189 & 51\% \\
-\bottomrule\end{tabular}}\end{table*}
+\multicolumn{11}{l}{\textbf{Host S}: Ryzen 9 9950X, stock clock, card 14001\,MHz; CPU 56, link 53, together 66, highest 71\,GB/s; FreeToken backends as on B} \\
+gpt-oss & 11\% & 28.9 & 48.0$^{\mathrm{h}}$ & \textbf{57.9} & 1.21 [1.19, 1.22] & 2.00$\times$ & 140 & 41\% & 140 & 41\% \\
+gpt-oss & 25\% & 33.6 & 78.7$^{\mathrm{h}}$ & \textbf{94.1} & 1.20 [1.16, 1.22] & 2.80$\times$ & 351 & 27\% & 275 & 34\% \\
+gpt-oss & 40\% & 40.1 & 122.2$^{\mathrm{o}}$ & \textbf{133.6} & 1.09 [1.08, 1.11] & 3.34$\times$ & 514 & 26\% & 275 & 49\% \\
+Qwen3 & 12.5\% & 16.1 & 32.7$^{\mathrm{h}}$ & \textbf{33.5} & 1.03 [1.02, 1.04] & 2.08$\times$ & 78 & 43\% & 78 & 43\% \\
+Qwen3 & 25\% & 18.5 & 51.4$^{\mathrm{h}}$ & \textbf{53.9} & 1.05 [1.04, 1.06] & 2.91$\times$ & 174 & 31\% & 174 & 31\% \\
+Qwen3 & 43.75\% & 23.8 & \textbf{98.3}$^{\mathrm{o}}$ & 95.8 & 0.97 [0.96, 0.99] & 4.02$\times$ & 305 & 31\% & 189 & 51\% \\
+\bottomrule\end{tabular}}\tabnote{Ratios are of mean speeds; the ratio over FreeToken is paired by problem within one launch, with a 95\% bootstrap interval over problems. Host B's rows come from three rentals of the same machine (the same GPU), so its ratios over llama.cpp compare launches. Our cache and FreeToken ran twice per cell and the second launch is shown (on host B both launches ran ours first); llama.cpp and the $^\dagger$ cell ran once. Each system decodes its own greedy text. Our cache uses each
+machine's fetch table; FreeToken uses its faster backend per budget ($^\mathrm{h}$ hybrid, $^\mathrm{o}$ offload), picked on host B on a separate launch.
+gpt-oss: gpt-oss-120b; Qwen3: Qwen3-30B-A3B.
+\emph{Bound}: \cref{eq:limit} on that machine (MIN's reads, the host's highest probed rate) with the GPU at its datasheet
+rate, and at the rate all-in-VRAM decode measures at batch size 1 (\gpuEffPctGpt\% of datasheet for gpt-oss, \gpuEffPctQwen\% for Qwen3;
+\cref{tab:limit} varies the other assumptions; \cref{app:system} gives the pooled bounds and all-in-VRAM speeds).
+$^\dagger$Selection launch only, which favours FreeToken.}\end{table*}

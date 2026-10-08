@@ -253,6 +253,7 @@ def main():
         m, a, b = boot([r["closed"] for r in fast])
         M[f"dmClosed{nm}"] = pct(m); M[f"dmClosed{nm}Lo"] = pct(a); M[f"dmClosed{nm}Hi"] = pct(b)
         M[f"dmClosedSlow{nm}Max"] = pct(max(r["closed"] for r in slow))
+        M[f"dmSlowResid{nm}Min"] = pct(min(r["share"]["resid"] for r in slow)); M[f"dmSlowResid{nm}Max"] = pct(max(r["share"]["resid"] for r in slow))
         M[f"dmPrefEqTwo{nm}Min"] = f"{min(r['pref_over_eq2'] for r in fast):.2f}"
         M[f"dmPrefEqTwo{nm}Max"] = f"{max(r['pref_over_eq2'] for r in fast):.2f}"
         M[f"dmBoundShare{nm}Min"] = pct(min(r["bound_share"] for r in sel)); M[f"dmBoundShare{nm}Max"] = pct(max(r["bound_share"] for r in sel))

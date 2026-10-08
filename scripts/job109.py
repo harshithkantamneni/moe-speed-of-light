@@ -482,6 +482,9 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
         rng(f"cxDist{nm}", [h["cells"][C]["t"]["base"] / h["cells"][C]["eq1"] for h in sel], "{:.1f}")
         rng(f"cxOracle{nm}", [h["cells"][C]["ratio"]["both3p"] for h in sel])
         rng(f"cxFetch{nm}", [h["cells"][C]["ratio"]["fetch"] for h in sel])
+        rs = [h["cells"][C]["residual"] for h in sel if "residual" in h["cells"][C]]
+        if rs:
+            M[f"cxResid{nm}Min"] = pc(min(rs)); M[f"cxResid{nm}Max"] = pc(max(rs))
         rng(f"cxPf{nm}", [h["cells"][C]["ratio"]["pf"] for h in sel]); rng(f"cxRone{nm}", [h["cells"][C]["ratio"]["R1"] for h in sel])
         rng(f"cxLayer{nm}", [h["cells"][C]["ratio"][n] for h in sel for n in ("pf", "R1", "R2")])
         cp = [h["cells"][C]["capture"] for h in sel if "capture" in h["cells"][C]]

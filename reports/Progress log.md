@@ -3,6 +3,56 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October (night): the final run (jobs 109-111), the clarity pass, number check 18, review round 21 (6, 7)
+
+**Status for Harshith (read this first).** Scores by round, MLSys PC / professor (clarity in brackets): round 20 was
+6 / 7 (3, 3); round 21, after the new experiments and the clarity pass, is **6 / 7 (3, 3)**, with soundness 4 / 4 and
+significance 3 / 3. Every number either reviewer recomputed from raw data matched. All GPU work is done: no instances
+running, $6.33 of credit left. Nothing was pushed to `main`; the `gpu` branch holds every job and result.
+
+### (a) The final experiments
+
+| Job | What | Machines | Outcome |
+|---|---|---|---|
+| 109s | smoke run on gpt-oss-20b (all configurations, the two new online policies) | 1 (outside the sample) | everything ran; R1, R2 compute the same model (loss within 0.7%) |
+| 109 | RTX 5090, new desktop machines, link/CPU >= 0.5 fixed before launch: the 2x2, the read-ahead oracle, four online policies | 5 started, 5 valid | 11 of 11 predictions held; 0 of 91 clauses failed. "Together" closes 35% of the gap (panel: 33%). Best online policy 1.007-1.024x: at most 6% of the oracle's gain |
+| 110 | RTX 4090: the frozen RTX 5090 trend in the link/CPU ratio predicts the oracles | 5 started | void as registered: its output check used the 5090's reference loss (the 4090 computes 3% higher), so every host stopped after one round; one stopped at the ratio gate (0.2499) |
+| 111 | job 110 relaunched on the same machines, the 4090's reference loss, predictions unchanged | 3 valid (2 relaunched once after Hugging Face download failures) | 5 of 5 predictions held; 0 of 38 clauses failed; MIN 1 read and the read-ahead oracle within 6% (11%) and 5% (25%) of the trend's prediction |
+
+Disclosed in the paper: the V1 reference mistake and the relaunch; the two download relaunches (amendment committed
+first); job 110's host e was not relaunched (its GPU was left out of the relaunch list, an oversight); offer 51325952
+had been rented twice before without a result; the job deadline cut the 5950X's 25% round. Applied after the fact, the
+same trend misses the new fast-link RTX 5090s by up to 18% (5 of 18 cells), so the cross-card claim is scoped to slow
+links.
+
+### (b) The clarity pass
+
+- Abstract cut to about six numbers; "the bound" means Eq. (1) everywhere; Eq. (2) and (3) are the demand and ordered
+  bounds.
+- Table 1 rebuilt: claim, test and outcome, machines, section.
+- One name per configuration ("deployed, 1 read", "read-ahead oracle", "layer-ahead copy", "online policies").
+- Table 4 (the gap) has Panel and New (registered) columns and separates measured from attributed rows.
+- New paragraphs: online policies (Section 5) and the second card; Table 5 lists both cards' machines.
+- Builder rules carry one number each; float placement fixed; overfull boxes gone; main text ends on page 10.
+
+### Number check 18 and review round 21
+
+- Number check 18: 147 items, 26 defects (a duplicate macro that broke a clean build, the trend claim's scope, the
+  consumer scope of 31-54%, the attributed remainder, three deviations of the second-card test). All fixed.
+- Review 21a (MLSys PC): 6 / 10; soundness 4, significance 3, novelty 3, clarity 3. Top asks: the RTX 4090 test sits at
+  one point of the ratio axis; the 2x2's "1 read" arm is also an earlier read; the bound depends on one probe run.
+- Review 21b (professor): 7 / 10; soundness 4, methodology 4, significance 3, clarity 3. Top asks: same RTX 4090 scope;
+  small-sample bootstrap intervals; Section 5 bundles three questions; appendix prose.
+- Fixed after the reviews (wording only): the slow-link residual (35-47% panel, 31-36% RTX 4090) is now reported; the
+  GPU-term claim scoped to datasheet rates; the job 102 heading states what was registered; the horizon stated as 4
+  tokens on our workload instead of "far beyond the next token".
+
+### What would still raise the score
+
+1. RTX 4090 machines at fast link ratios (DDR4 hosts), or a third card, so the cross-card trend covers the ratio axis.
+2. A 2x2 arm that reads once but late (in the background), to separate "how many reads" from "when".
+3. A second probe run per machine (re-probe hygiene) and t-intervals for the small-machine summaries.
+
 ## 8 October: restructure for clarity and significance, review rounds 17 to 19
 
 **Status for Harshith (read this first).** Scores by round, MLSys PC / professor (clarity in brackets):

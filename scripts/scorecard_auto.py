@@ -97,7 +97,7 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                  "112": "Job 110's clauses (Q, ids 112-Q) on new RTX 4090 machines at higher ratios; the timing control (T1--T4), "
                         "the second probe (T5) and the relaunches of job 109's RTX 5090 machines (T6, T7). Intervals are over "
                         "problems.",
-                 "113": "Hosts b (Ryzen 9 5950X) and d (Core Ultra 9 285K); offers a and c were no longer listed. Cells gpt-oss "
+                 "113": "Hosts b (Ryzen 9 5950X) and d (Core Ultra 9 285K); offers a and c were not listed at launch (results/113\\_offers\\_at\\_launch.txt). Cells gpt-oss "
                         "11\\% (g11, two rounds) and 25\\% (g25, one). Intervals are over problems; the counter clauses (H1, H2) "
                         "are deterministic counts."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "

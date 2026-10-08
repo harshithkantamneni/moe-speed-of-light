@@ -34,6 +34,7 @@ Control: issuing the copies a step earlier & job 112, T1--T4: \texttt{112x-T1}, 
 Policies without foresight recover little & job 109, P7: \texttt{109x-P7-best}, \texttt{109x-P7-cap}; jobs 111 and 112, Q3 \\
 The ratio predicts the oracles on a second card & jobs 111 and 112, Q1 (and Q6 for the interaction): \texttt{111x-Q1-*}, \texttt{112x-Q1-*} \\
 The fewest-admission schedule gains & job 104, P3 (machine a); job 105, P4; job 106, P6 and P7; job 107, P5: \texttt{104a-P3-g11}, \texttt{105x-P4-g11}, \texttt{106x-P6-*}, \texttt{106x-P7-*}, \texttt{107x-P5-fetchplan} \\
+The in-step fetches, not the second read, keep MIN's set from paying read twice & job 113, H1--H6: \texttt{113x-H1-g11/g25}, \texttt{113x-H2} to \texttt{113x-H6} \\
 The closed-form account (\cref{app:relation}; not in \cref{tab:claims}) & jobs 105--108, P1: \texttt{105x-P1-*} to \texttt{108x-P1-*} \\
 \bottomrule
 \end{tabular}
@@ -57,8 +58,8 @@ point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one tha
 re-scoring is a check; neither tally uses it.
 
 \paragraph{Rounds and rentals.} A machine's intervals are over problems. To see what they leave out,
-\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111 and 112 that ran a configuration in two rounds
-(\nzRoundN{} machine-budget-configurations on \nzRoundMachines{} machines; 25\% ran one round in these jobs) and every
+\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111, 112 and 113 that ran a configuration in two
+rounds (\nzRoundN{} machine-budget-configurations on \nzRoundMachines{} machines; 25\% ran one round in these jobs) and every
 machine measured with the same configurations in two launches (\nzRentalN{} comparisons from \nzRentalPairs{} pairs of
 launches on \nzRentalMachines{} machines: job 099's panel and its relaunches in jobs 100, 101 and 103, job 109 and job
 112, job 110 and job 111). The speed ratio moved by a median \nzRoundMed\% (at most \nzRoundMax\%) between rounds, against
@@ -72,9 +73,9 @@ job 112's differences) accordingly. All \nzHeldCI{} per-machine clauses of these
 hold; the \nzPooled{} pooled clauses, whose intervals are over machines, are not widened. With every interval widened
 further by the largest rental difference, \nzRentalStillHeld{} still hold and \nzRentalMoved{} hold on the point estimate
 only. Of those, \nzRentalMovedNarrow{} are the bands of $\pm$0.06 or narrower around configurations that barely change
-the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo); the other \nzRentalMovedOther{} are the
-second-card trend checks for \MinOne{} and the read-ahead oracle and the no-foresight bound (Q1 and Q3) on the RTX
-4090s, P8 on one machine and T3 on one. No clause changes to failed: failure is decided by the point estimate.
+the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo, job 113's H3 on one machine); the other
+\nzRentalMovedOther{} are the second-card trend checks for \MinOne{} and the read-ahead oracle and the no-foresight bound
+(Q1 and Q3) on the RTX 4090s, P8 on one machine, T3 on one, and job 113's H5 and H6 on one machine each. No clause changes to failed: failure is decided by the point estimate.
 
 \input{tab_prereg}
 
@@ -177,7 +178,9 @@ system grid, a different protocol, and its UUID was allowed by name in the heade
 timing predictions came from a replay of the engine's publication rule; in the engine the early copies barely changed
 the misses (\tcMissRatioLowMin--\tcMissRatioLowMax{} of \FewTwo's at 11\%, against a registered 0.95 or less) and
 slowed the arm by up to \tcSlowLowMax{} of the deployed cache's speed (against a registered 0.01): the first clause
-failed on \tcTOneFailed{} of \tcTOneN{} machine-budgets and the second on \tcTTwoFailed{} of \tcTTwoN. The clause
+failed on \tcTOneFailed{} of \tcTOneN{} machine-budgets and the second on \tcTTwoFailed{} of \tcTTwoN. The early arm
+admitted \tcAdmEarlyLowRng{} experts per token at 11\% against \FewTwo's \tcAdmTwoLowRng{} and read
+\tcHostEarlyPctLowRng\% more from the host. The clause
 that the second read costs more than the late landing (T3) held, but only because the early arm was slower than
 \FewTwo{} on every machine: once the manipulation failed, T3 could not fail, so it carries no evidence. \FewEarly{} stayed
 at or below 1.10$\times$, as registered. The
@@ -194,14 +197,15 @@ hold the scheduled set. The predictions came from a model of the probe (CPU read
 non-expert time, background copies overlapped, all host traffic at most the probe's concurrent rate) and were committed
 before any machine started. Two of the five listed offers were no longer listed and were skipped as registered; both
 machines that started, a Ryzen 9 5950X and a Core Ultra 9 285K, were new and valid (\hsRatioRng{} link-to-CPU ratio),
-and the credit left allowed no third. The manipulation held: \FewTwo's misses fell to \hsMissRatioLowRng{} of their
+and the job stopped, as registered, once two machines were valid. The offers' absence at launch is recorded in
+\texttt{results/113\_offers\_at\_launch.txt} on the \texttt{gpu} branch. The manipulation held: \FewTwo's misses fell to \hsMissRatioLowRng{} of their
 value with the fetches at 11\% and \hsMissRatioMidRng{} at 25\% (registered 0.88 or less). MIN's set paid read twice
 (\FewTwo{} \hsPlanZeroLowRng$\times$ and \MinTwo{} \hsGreedyZeroLowRng$\times$ the deployed cache without fetches; registered
 at least 1.10 and 1.03), held on both machines with their intervals. Two clauses failed on the Core Ultra 9 285K: turning
 the fetches off made the deployed cache faster there, not slower (registered within 0.80--1.00), and reading once beat the
 fetch-free two-read arm by less than 0.05. At 25\%, which ran one round, the fetch-free \FewTwo{} ran
-\hsPlanZeroVsBaseMidRng$\times$ the deployed cache against \FewOne's \hsFewOneMidRng$\times$. With two machines the job
-is a pair of single-machine results, as its header says, not a test over a class.
+\hsPlanZeroVsBaseMidRng$\times$ the deployed cache against \FewOne's \hsFewOneMidRng$\times$. Its clauses are per machine; two
+machines show what can happen on this engine, not how often it happens across machines.
 
 The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100,
 \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{}

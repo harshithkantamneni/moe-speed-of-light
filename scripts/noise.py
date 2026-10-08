@@ -91,6 +91,24 @@ def widen(h, extra=0.0):
             u = dd("fetchplan") + 2 * dd("bypassplanS") + dd("bypassplan")
             new["read_minus_lag"] = (ci["read_minus_lag"][0] - u, ci["read_minus_lag"][1] + u)
         ci.update(new)
+        # job 113's ratios between two configurations (X/Y) and its one-read margin: each round's own X/Y, its range,
+        # plus extra
+        rr = c.get("ratio_rounds", {})
+        rel = c.get("rel_ci")
+        if rel:
+            for k, (lo, hi) in list(rel.items()):
+                if "/" in k:
+                    x, y = k.split("/")
+                    if y == "base":
+                        d = w(x)
+                    elif len(rr.get(x, [])) >= 2 and len(rr.get(y, [])) >= 2:
+                        lv = np.log(np.array(rr[x]) / np.array(rr[y])); d = float(lv.max() - lv.min()) + extra
+                    else:
+                        d = extra
+                    rel[k] = (lo * math.exp(-d), hi * math.exp(d))
+                elif k == "fetchplan-bypassplan0":
+                    u = dd("fetchplan") + dd("bypassplan0")
+                    rel[k] = (lo - u, hi + u)
 
 
 def widen_uniform(h, d):
@@ -171,15 +189,18 @@ def main():
     pairs, H112 = rental_pairs()
     V112 = [h for h in H112 if h["valid"]]
     V4 = [h for h in V112 if h["card"] == "4090"]; V5 = [h for h in V112 if h["card"] == "5090"]
+    from scripts import job113 as L
+    V113 = [h for h in (L.load113(d) for d in sorted(glob.glob(L.GLOB))) if h["valid"]]
+    J.A_NAMES = ("base", "foa", "bypass", "fetch", "both3p", "dk", "pf", "fetchplan", "bypassplan", "bypassplanS")
     # round-to-round
-    rr = [(h["job"], C, n, d) for h in V109 + V111 + V112 for (C, n), d in spreads(h).items()]
+    rr = [(h["job"], C, n, d) for h in V109 + V111 + V112 + V113 for (C, n), d in spreads(h).items()]
     dl = np.array([d for *_, d in rr])
     M["nzRoundN"] = str(len(rr)); M["nzRoundMachines"] = str(len({j for j, *_ in rr}))
     M["nzRoundMed"] = pc(np.median(dl)); M["nzRoundMax"] = pc(dl.max())
     M["nzRoundOverOne"] = str(int((dl > 0.01).sum())); M["nzRoundOverTwo"] = str(int((dl > 0.02).sum()))
     # how the round-to-round range compares with the half-width of the interval over problems
     hw = []
-    for h in V109 + V111 + V112:
+    for h in V109 + V111 + V112 + V113:
         sp = spreads(h)
         for C, c in h["cells"].items():
             for n, (lo, hi) in c.get("ci", {}).items():
@@ -201,13 +222,13 @@ def main():
     print("worst rental pair", worst)
     # rescoring
     before = J.clauses109(V109) + J.clauses110(V111) + K.clauses112(V112, V4, V5) + \
-        [c for c in J.clauses110(V4) if not c["id"].endswith("-valid")]
-    W109, W111, W112 = (copy.deepcopy(x) for x in (V109, V111, V112))
-    for h in W109 + W111 + W112:
+        [c for c in J.clauses110(V4) if not c["id"].endswith("-valid")] + L.clauses113(V113)
+    W109, W111, W112, W113 = (copy.deepcopy(x) for x in (V109, V111, V112, V113))
+    for h in W109 + W111 + W112 + W113:
         widen(h)
     W4 = [h for h in W112 if h["card"] == "4090"]; W5 = [h for h in W112 if h["card"] == "5090"]
     after = J.clauses109(W109) + J.clauses110(W111) + K.clauses112(W112, W4, W5) + \
-        [c for c in J.clauses110(W4) if not c["id"].endswith("-valid")]
+        [c for c in J.clauses110(W4) if not c["id"].endswith("-valid")] + L.clauses113(W113)
     with_ci, still, moved, changed_fail = rescore(before, after)
     assert not changed_fail, changed_fail
     M["nzHeldCI"] = str(len(with_ci)); M["nzStillHeld"] = str(len(still)); M["nzMoved"] = str(len(moved))
@@ -219,17 +240,17 @@ def main():
     M["nzMovedKinds"] = ", ".join(f"{k} ({v})" for k, v in sorted(kinds.items())) if kinds else "none"
     # the same with every interval widened by the largest rental-to-rental difference instead
     dmax = float(rl.max())
-    U109, U111, U112 = (copy.deepcopy(x) for x in (V109, V111, V112))
-    for h in U109 + U111 + U112:
+    U109, U111, U112, U113 = (copy.deepcopy(x) for x in (V109, V111, V112, V113))
+    for h in U109 + U111 + U112 + U113:
         widen_uniform(h, dmax)
     U4 = [h for h in U112 if h["card"] == "4090"]; U5 = [h for h in U112 if h["card"] == "5090"]
     after_u = J.clauses109(U109) + J.clauses110(U111) + K.clauses112(U112, U4, U5) + \
-        [c for c in J.clauses110(U4) if not c["id"].endswith("-valid")]
+        [c for c in J.clauses110(U4) if not c["id"].endswith("-valid")] + L.clauses113(U113)
     _, still_u, moved_u, fail_u = rescore(before, after_u)
     assert not fail_u, fail_u
     M["nzRentalStillHeld"] = str(len(still_u)); M["nzRentalMoved"] = str(len(moved_u))
     # of those, the bands of +-0.06 or narrower around configurations that barely change the speed (P2, P10, Q1 foa/bypass)
-    narrow = [k for k in moved_u if "-P2-" in k or "-P10-" in k or "-Q1-foa" in k or "-Q1-bypass" in k]
+    narrow = [k for k in moved_u if "-P2-" in k or "-P10-" in k or "-Q1-foa" in k or "-Q1-bypass" in k or "-H3" in k]
     M["nzRentalMovedNarrow"] = str(len(narrow)); M["nzRentalMovedOther"] = str(len(moved_u) - len(narrow))
     print("moved, not narrow:", [k for k in moved_u if k not in narrow])
     print("rental widening moves:", moved_u)

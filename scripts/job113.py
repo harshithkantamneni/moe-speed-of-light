@@ -127,10 +127,13 @@ def macros(H, V, cl):
                                   if "bypassplan0" in c["hostreads"] and "base0" in c["hostreads"]])
         rng(f"hsOneReadMargin{nm}", [c["rel"]["fetchplan/base"] - c["rel"]["bypassplan0/base"] for c in sel
                                      if "fetchplan/base" in c["rel"] and "bypassplan0/base" in c["rel"]])
+        # the share of reading once's gain that the fetch-free two-read arm gets: (Few-2R CPU only - 1) / (Few-1R - 1)
+        rng(f"hsShareOfOne{nm}", [100 * (c["rel"]["bypassplan0/base"] - 1) / (c["rel"]["fetchplan/base"] - 1) for c in sel
+                                  if "fetchplan/base" in c["rel"] and "bypassplan0/base" in c["rel"] and c["rel"]["fetchplan/base"] > 1], "{:.0f}")
         rng(f"hsReadsRstar{nm}", [c["hostreads"]["bypassplan0"] / J.RSTAR[C] for c in sel if "bypassplan0" in c["hostreads"]])
-    pm = [c for c in cl if c["host"] != "pooled"]
-    M["hsClauses"] = str(len(pm)); M["hsClausesHeld"] = str(sum(c["status"] == "held" for c in pm))
-    M["hsClausesPoint"] = str(sum(c["status"] == "held (point)" for c in pm)); M["hsClausesFailed"] = str(sum(c["status"] == "failed" for c in pm))
+    # every clause, the pooled count included (as the tally of Table 10 and the scorecard count them)
+    M["hsClauses"] = str(len(cl)); M["hsClausesHeld"] = str(sum(c["status"] == "held" for c in cl))
+    M["hsClausesPoint"] = str(sum(c["status"] == "held (point)" for c in cl)); M["hsClausesFailed"] = str(sum(c["status"] == "failed" for c in cl))
     for t, w in (("One", "H1"), ("Two", "H2"), ("Three", "H3"), ("Four", "H4"), ("Five", "H5"), ("Six", "H6")):
         cs = [c for c in cl if f"-{w}" in c["id"] and c["host"] != "pooled"]
         if cs:

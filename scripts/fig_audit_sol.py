@@ -138,7 +138,7 @@ def main():
               + (f"  FreeToken {p['freetoken_pct']:4.1f}% ({p['freetoken_variant']})" if p.get("freetoken_pct") else "")
               + (f"  llama.cpp {p['llama_pct']:4.1f}%" if p.get("llama_pct") else "") + f"  [{p.get('competitor_source', '-')}]")
 
-    plt.rcParams.update({"font.size": 7, "font.family": "serif", "font.serif": ["Latin Modern Roman"], "mathtext.fontset": "cm",
+    plt.rcParams.update({"font.size": 7, "font.family": "serif", "font.serif": ["DejaVu Serif"], "mathtext.fontset": "dejavuserif",
                          "axes.linewidth": 0.6})
     fig, ax = plt.subplots(figsize=(3.4, 2.7))
     col = "#1f6f8b"

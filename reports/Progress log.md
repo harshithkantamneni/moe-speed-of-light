@@ -3,6 +3,28 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 8 October (night): job 113, the two-read path without in-step fetches; clarity pass 2; number check 22
+
+**Status for Harshith (read this first).** Job 113 (registered, gpu f174e0a, pushed 32 s before the rentals) ran on
+two new fast-link RTX 5090s (Ryzen 9 5950X, ratio 0.74; Core Ultra 9 285K, 0.56); both valid; cost about $1.70; credit
+left $1.98. It overturns the 2x2's reading: with the engine's in-step fetches off, MIN's fewest-admission set read twice
+runs 1.23-1.26x a deployed cache likewise without them (MIN's greedy set 1.09-1.12x), and reading once adds only
+0.02-0.16 of the deployed cache's speed (59-93% of reading once's gain is kept). "Pays only together" is a property of the
+deployed read path, whose in-step fetches displace MIN's set; the paper now says so (abstract, intro, Section 4, Table 1,
+builder rule 2, conclusion). H1, H2, H4, H5 held on both machines; H3 and H6 failed on the 285K (fetches off made the
+deployed cache 7% faster there; one read beat the fetch-free two-read arm by only 0.02).
+
+### Other changes
+
+- Number check 22: 24 defects (scope, consistency, production), all fixed. The noise rescoring now includes job 113
+  (95 per-machine clauses held with an interval; all still hold under round widening; 52 under the largest rental
+  difference).
+- Clarity pass 2: Sections 2, 3, 6, 7 lighter (fewer names and numbers per sentence); the timing-control table moved to
+  the prediction log; "What is left" lighter with its Eq. (3) details in the limitations appendix; the MLSys supplement
+  numbers its own floats S1...; TrueType fonts in every figure; Fig. 3's label no longer clipped.
+- The registered offers listed at job 113's launch are recorded on the gpu branch (results/113_offers_at_launch.txt,
+  transcribed after the job).
+
 ## 8 October (evening): clarity pass, round and rental noise, number check 21, review round 24 (6, 6)
 
 **Status for Harshith (read this first).** Round 24, MLSys PC / professor: **6 / 6** (clarity 3 / 3; soundness 4 / 3;

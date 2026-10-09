@@ -3,6 +3,44 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 9 October: job 114 and review round 27 (6, 7; clarity 3, 3)
+
+**Status for Harshith (read this first).** Round 27, MLSys PC / professor: **6 / 7** (soundness 4 / 4, up from 3 / 3;
+the PC's novelty back to 3; clarity 3 / 3). Both reproduced every number they checked (about 40 and 37). Job 114 ran
+Table 4's 2x2 with the in-step fetches off: 7 machines started, 3 valid (b, c, f), $6.30 spent, $5.61 left. Main was
+committed here and not pushed; the gpu branch has job 114 (registration cf0112c, results through e0dae29).
+
+### What job 114 found (gpt-oss 11%, CPU-only path, 3 machines)
+
+- MIN's set read twice closes 15-22% of the gap on its own (0-2% with the fetch table); the deployed set read once
+  closes 4-13%; both together 22-56%. The interaction stays positive on all three (0.4-3.2 ms per token, intervals above
+  zero) and is about zero at 25%.
+- On the two machines with a nonzero table, the deployed-path interaction (31-52% of the gap) falls to 3-21% without the
+  fetches; on 114b the probe gave an all-zero table, so both paths were the same there (two manipulation clauses failed
+  for that reason).
+- Deviation, disclosed in Appendix D: the replacements skipped a cheaper listed Core Ultra 9 285K each time, and one
+  replacement was job 109f's already-measured machine.
+
+### What changed in the paper
+
+- Section 4 rebuilt around the two read paths; Table 4 gains a CPU-only column; Table 5 is job 114's; Fig. 2 redrawn
+  (deployed path grey, fetch-free path blue); job 113's table moved to Appendix D.
+- Abstract, intro, Table 1, rules 2 and 4, Limitations and Conclusion rewritten for the new result, with post hoc marks
+  and scopes (consumer range, trace replay, five fast-link machines, the trend's 18% miss, like-for-like 27% vs 13.6%).
+- Validity conditions are counted apart in every job's tally; job 114 is in the round and rental rescoring; 110e's 78%
+  capture of a 5.6% gain is reported; Margin per budget; scorecard renamed so "supplement" means one thing.
+- IEEE: unlettered run-in heads, abbreviated venues (scripts/ieee_bib.py), Tables I and II near their first mention,
+  supplement opening note, stacked long-table captions, no file name in the footnote.
+
+### What the reviewers still want
+
+1. More machines for the fetch-free 2x2 (two of the three are Ryzen 9 5950Xs from one provider; "both" is 44% [-3, 92]).
+2. Clarity: terms used in the abstract before they are defined; too many names; "fetch" means several things; Table 1
+   needs a one-word verdict column; Section 4 still leads with the history.
+3. The bound and the fetch table hang on one probe run (an idle best-of-N probe would help).
+4. Job 109's interaction intervals (post hoc, all above zero per the professor), loose labels where thresholds sat below
+   earlier data (job 114's H3 now marked).
+
 ## 9 October (early): review round 26 (5, 6; clarity 3, 3)
 
 **Status for Harshith (read this first).** Round 26, MLSys PC / professor: **5 / 6** (soundness 3 / 3, clarity 3 / 3;

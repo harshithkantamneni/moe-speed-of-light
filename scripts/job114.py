@@ -172,6 +172,10 @@ def macros(H, V, cl):
     M["dzRoundFailN"] = word(len(RF)); M["dzRoundFailCpu"] = ", ".join(h["cpu"] for h in RF) or "none"
     sp = [float(m.group(1)) for h in RF for m in [re.search(r"spread ([0-9.]+)%", h["V2_line"])] if m]
     M["dzRoundFailSpread"] = f"{max(sp):.1f}" if sp else "--"
+    # its interaction in each round at 11% (not scored), reported as the excluded machines of other jobs are
+    ir = [x for h in RF for x in h["cells"][14].get("inter_rounds", [])]
+    if ir:
+        M["dzRoundFailInterMin"] = f"{min(ir):.1f}".replace("-", "$-$"); M["dzRoundFailInterMax"] = f"{max(ir):.1f}".replace("-", "$-$")
     rng("dzRatio", [h["ratio"] for h in V])
     T = [h for h in V if h["has_table"]]
     M["dzTabN"] = str(len(T)); M["dzTabNWord"] = word(len(T))

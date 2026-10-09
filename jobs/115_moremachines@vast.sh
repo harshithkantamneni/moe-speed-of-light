@@ -39,6 +39,11 @@
 # two that qualify; both start together. A host that fails a gate is replaced by the cheapest qualifying offer in a new
 # listing committed and pushed before that launch, until three hosts are valid, six have started, or the credit left is
 # below the running hosts' needs plus $0.50 (the account holds $10.61).
+# AMENDMENT (decided and pushed in commit 5d62eb3, with host d's wrapper and listing, while hosts b and c ran their first
+# rounds and before any of their timed results existed; this header text was meant to be in that commit but the edit
+# failed and is added here, after host d started): one more host starts from a new committed listing, by the same rule
+# (cheapest qualifying offer, then the next on a gate failure), so that three machines can be valid if b and c both are;
+# still at most six started.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

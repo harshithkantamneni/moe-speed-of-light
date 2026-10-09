@@ -331,7 +331,8 @@ def macros(H, V, cl, pre="dz"):
         rng("dzProbeIdleSpread", [h["probe"]["spread"] for h in PR], "{:.3f}")
         M["dzProbeN"] = word(len(PR))
         M["dzProbeDuringDlN"] = word(sum(1 for h in PR if h["probe1_dl"]))
-        M["dzProbeIdleDevMax"] = f"{100 * max(abs(h['probe']['ratio'] - 1) for h in PR):.1f}"
+        # rounded up, so "within" stays true (1.04% prints as 1.1)
+        M["dzProbeIdleDevMax"] = f"{math.ceil(1000 * max(abs(h['probe']['ratio'] - 1) for h in PR) - 1e-9) / 10:.1f}"
         M["dzProbeIdleSpreadPctMax"] = f"{100 * max(h['probe']['spread'] - 1 for h in PR):.1f}"
         M["dzProbeTableChanged"] = word(sum(1 for h in PR if h["probe"].get("idle_table") and h["probe"]["idle_table"] != h["table"]))
     # job 115's H8 (pooled over both jobs' valid machines): the mean share and its t-interval's lower end, in percent

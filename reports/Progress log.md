@@ -3,6 +3,47 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 9 October (morning): job 115, review round 28 (5, 6; clarity 3, 3)
+
+**Status for Harshith (read this first).** Round 28, MLSys PC / professor: **5 / 6** (down from 6 / 7; soundness 3 / 4,
+clarity 3 / 3). Both reproduced every number they checked (38 and 35; two rounding-level differences). Job 115 ran job
+114's 2x2 on more machines with three idle probe reruns: 6 machines started (the registered cap), 2 valid (Core i9-14900K,
+Core Ultra 9 285K), 3 stopped at the ratio gate, 1 at the new-GPU gate. Vast credit left: $6.74. Main is committed here
+and not pushed; the gpu branch has job 115 (registration 4b69328, results through 3a196aa).
+
+### What job 115 found (gpt-oss 11%, fetches off)
+
+- MIN's set read twice: 1.09x and 1.16x the deployed cache on the same path; pooled over the five valid machines of jobs
+  114 and 115 it closes 19% of the gap [13, 25] (registered: at least 10%, held).
+- The interaction failed on the Core i9-14900K (-0.3 ms, interval [-0.7, 0.1]; its two rounds gave +0.6 and -1.2 ms).
+  Post hoc: the extra from reading once is 21% of the gap on the two Ryzen 9 5950Xs (ratio 0.78) and -3 to 3% on the
+  three Intel machines (0.54-0.57).
+- Probe: three idle reruns came within 1.1% of the first run's best reading on both machines, and gave the same fetch
+  table.
+
+### What changed in the paper
+
+- Job 115 in Table 1, Section 4, Appendix D (paragraph, claim index, failures row), Limitations; fetches-off results now
+  pooled over five machines; the claim is "MIN's set pays alone", with the interaction reported by machine.
+- Scoring: the deployed-path interaction (jobs 109, 111, 112) and job 109's P1 margin now carry paired intervals (held
+  instead of held (point)); job 115's pooled clause has its t-interval.
+- Clarity from round 27: absolute ms in Table 5; consumer share median and quartiles (47%, 44-48%); MIN's step semantics
+  and T_GPU's kernels defined; "like-for-like" dropped; FreeToken threshold marked loose; Few-1R verdict mixed; abstract
+  scoped and trimmed; IEEE references balanced; number check 24's 18 fixes.
+
+### What the reviewers still want
+
+1. New finding (28a): at gpt-oss 25% with the fetches off, MIN-1R runs 0.96-0.97x MIN-2R on the three Intel machines
+   (job 113's 285K agrees). This contradicts "reading each admitted expert once pays most" and rule 4 as written.
+2. Both: the fetch table is engine-specific and flips on probe differences under 1%; the deployed baseline is not tuned
+   (turning the table off makes it 1.06-1.08x faster on the Intel hybrids).
+3. 28b: a direct bound check is missing (no gpt-oss run in jobs 093-115 goes below Eq. (1); the closest is 1.33x); Table
+   1 checks the bound with Eq. (4), which failed its tests.
+4. Job 115's pooled test is mostly in-sample (three of its five machines set its threshold); clustered machines (two
+   5950X twins, one GPU in three jobs).
+5. Clarity: Table 1 is too dense and merges two tests' thresholds; too many names; Fig. 2 overloaded; one quantity
+   quoted for several machine subsets.
+
 ## 9 October: job 114 and review round 27 (6, 7; clarity 3, 3)
 
 **Status for Harshith (read this first).** Round 27, MLSys PC / professor: **6 / 7** (soundness 4 / 4, up from 3 / 3;

@@ -70,7 +70,7 @@ def load114(d):
         c["rel"], c["rel_ci"] = {}, {}
         for x, y in (("bypass0", "bypass"), ("bypass0", "base0"), ("foa0", "base0"), ("base0", "base"), ("fetch", "base0"),
                      ("foa0", "foa"), ("bypass", "base"), ("foa", "base"), ("fetch", "base"), ("both3p", "base"),
-                     ("bypass0", "base"), ("foa0", "base")):
+                     ("bypass0", "base"), ("foa0", "base"), ("fetch", "bypass0")):
             k = f"{x}/{y}"
             rx = c["ratio"].get(x) if x != "base" else 1.0
             ry = c["ratio"].get(y) if y != "base" else 1.0
@@ -280,6 +280,10 @@ def macros(H, V, cl, pre="dz"):
             rng(f"dzAdm{k}{nm}", [c["admits"].get(n) for c in sel], "{:.1f}")
             rng(f"dzFetch{k}{nm}", [c["fetches"].get(n) for c in sel], "{:.1f}")
         rng(f"dzInterMs{nm}", [c.get("inter_ms") for c in sel], "{:.1f}")
+        rng(f"dzOneOverTwoZero{nm}", [c["rel"].get("fetch/bypass0") for c in sel])
+        # how many machines MIN's set read once beats it read twice (fetches off) with the interval above 1
+        M[f"dzOneBeatsTwoZero{nm}"] = word(sum(1 for c in sel if c["rel_ci"].get("fetch/bypass0", (0, 0))[0] > 1))
+        M[f"dzOneLosesTwoZero{nm}"] = word(sum(1 for c in sel if c["rel_ci"].get("fetch/bypass0", (2, 2))[1] < 1))
         M[f"dzInterPos{nm}"] = word(sum(1 for c in sel if c.get("inter_ms", 0) > 0))
         M[f"dzInterPosCI{nm}"] = word(sum(1 for c in sel if c.get("inter_ms_ci") and c["inter_ms_ci"][0] > 0))
         # shares of the gap, per host (range) and their mean with a t-interval over hosts
@@ -300,6 +304,9 @@ def macros(H, V, cl, pre="dz"):
     # post hoc: the interaction at 11% on the CPU-only path by the link-to-CPU ratio (split at 0.7), and the machines
     # where it was not above zero
     for tag, sel in (("HiRatio", [h for h in V if h["ratio"] >= 0.7]), ("LoRatio", [h for h in V if h["ratio"] < 0.7])):
+        # MIN's set read once over read twice, both with the fetches off, per budget (post hoc)
+        for C in CELLS:
+            rng(f"dzOneOverTwoZero{NM[C]}{tag}", [h["cells"][C]["rel"].get("fetch/bypass0") for h in sel if h["cells"][C]["rounds"]], "{:.2f}")
         cs = [h["cells"][14] for h in sel if "parts" in h["cells"][14]]
         M[f"dz{tag}N"] = word(len(cs))
         rng(f"dzRatio{tag}", [h["ratio"] for h in sel])

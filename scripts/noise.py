@@ -230,13 +230,13 @@ def main():
     print("worst rental pair", worst)
     # rescoring
     before = J.clauses109(V109) + J.clauses110(V111) + K.clauses112(V112, V4, V5) + \
-        [c for c in J.clauses110(V4) if not c["id"].endswith("-valid")] + L.clauses113(V113) + Z.clauses114(V114)
+        [c for c in J.clauses110(V4) if not c["id"].endswith("-valid")] + L.clauses113(V113) + Z.clauses114([h for h in V114 if h['jobno'] == '114'], '114') + Z.clauses114([h for h in V114 if h['jobno'] == '115'], '115')
     W109, W111, W112, W113, W114 = (copy.deepcopy(x) for x in (V109, V111, V112, V113, V114))
     for h in W109 + W111 + W112 + W113 + W114:
         widen(h)
     W4 = [h for h in W112 if h["card"] == "4090"]; W5 = [h for h in W112 if h["card"] == "5090"]
     after = J.clauses109(W109) + J.clauses110(W111) + K.clauses112(W112, W4, W5) + \
-        [c for c in J.clauses110(W4) if not c["id"].endswith("-valid")] + L.clauses113(W113) + Z.clauses114(W114)
+        [c for c in J.clauses110(W4) if not c["id"].endswith("-valid")] + L.clauses113(W113) + Z.clauses114([h for h in W114 if h['jobno'] == '114'], '114') + Z.clauses114([h for h in W114 if h['jobno'] == '115'], '115')
     with_ci, still, moved, changed_fail = rescore(before, after)
     assert not changed_fail, changed_fail
     M["nzHeldCI"] = str(len(with_ci)); M["nzStillHeld"] = str(len(still)); M["nzMoved"] = str(len(moved))
@@ -253,13 +253,13 @@ def main():
         widen_uniform(h, dmax)
     U4 = [h for h in U112 if h["card"] == "4090"]; U5 = [h for h in U112 if h["card"] == "5090"]
     after_u = J.clauses109(U109) + J.clauses110(U111) + K.clauses112(U112, U4, U5) + \
-        [c for c in J.clauses110(U4) if not c["id"].endswith("-valid")] + L.clauses113(U113) + Z.clauses114(U114)
+        [c for c in J.clauses110(U4) if not c["id"].endswith("-valid")] + L.clauses113(U113) + Z.clauses114([h for h in U114 if h['jobno'] == '114'], '114') + Z.clauses114([h for h in U114 if h['jobno'] == '115'], '115')
     _, still_u, moved_u, fail_u = rescore(before, after_u)
     assert not fail_u, fail_u
     M["nzRentalStillHeld"] = str(len(still_u)); M["nzRentalMoved"] = str(len(moved_u))
     # of those, the bands of +-0.06 or narrower around configurations that barely change the speed (P2, P10, Q1 foa/bypass)
     narrow = [k for k in moved_u if "-P2-" in k or "-P10-" in k or "-Q1-foa" in k or "-Q1-bypass" in k
-              or (k.startswith("113") and "-H3" in k) or (k.startswith("114") and ("-H4" in k or "-H6" in k))]
+              or (k.startswith("113") and "-H3" in k) or (k[:3] in ("114", "115") and ("-H4" in k or "-H6" in k))]
     M["nzRentalMovedNarrow"] = str(len(narrow)); M["nzRentalMovedOther"] = str(len(moved_u) - len(narrow))
     print("moved, not narrow:", [k for k in moved_u if k not in narrow])
     print("rental widening moves:", moved_u)

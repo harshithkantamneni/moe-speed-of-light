@@ -32,6 +32,7 @@ WHAT = {
     "112": "higher-ratio RTX 4090s; timing control; second probe",
     "113": "the two-read path with the in-step fetches off",
     "114": "the 2$\\times$2 with the in-step fetches off",
+    "115": "the same on more machines; idle probe runs",
 }
 
 
@@ -42,7 +43,7 @@ def main():
         jobs.setdefault(key, Counter()).update(c["status"] for c in j["clauses"])
     jobs = OrderedDict(sorted(jobs.items()))
     cond = {}   # validity conditions ("at least k valid hosts"): operational, not predictions, so counted apart
-    for k in ("099", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114"):
+    for k in ("099", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115"):
         if not os.path.exists(P("prereg", f"scorecard_{k}.json")):
             continue
         cl = json.load(open(P("prereg", f"scorecard_{k}.json")))["clauses"]

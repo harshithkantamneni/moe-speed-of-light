@@ -109,7 +109,10 @@ def write_099(j99, path, job="099", title="the host panel", script="panel\\_099.
                         "the round check and is not scored "
                         "(results/114\\_offers\\_at\\_*.txt). Cells gpt-oss 11\\% (g11, two rounds) and 25\\% (g25, one). Intervals are over "
                         "problems; the counter clauses (H1) are deterministic counts; H5's interval is a paired bootstrap of the "
-                        "interaction in ms."}[job]
+                        "interaction in ms.",
+                 "115": "Hosts and gates as listed in Appendix D (job 115). Cells gpt-oss 11\\% (g11, two rounds) and 25\\% (g25, one). "
+                        "Intervals are over problems; H1 and H7 are deterministic counts and probe readings; H8 is pooled over the valid "
+                        "machines of jobs 114 and 115."}[job]
         f.write(f"\\caption{{Job {job} ({title}), scored by machine by \\texttt{{scripts/{script}}} under the same rule. "
                 f"Totals: {len(pc)} clauses, {st.get('held', 0)} held, {st.get('held (point)', 0)} held (point), "
                 f"{st.get('failed', 0)} failed, {st.get('untested', 0)} untested.{cond} {hosts} Measured: the point estimate and, where one "
@@ -199,6 +202,11 @@ def main():
     if os.path.exists(p113):
         write_099(json.load(open(p113))["clauses"], P("paper", "tab_scorecard_113.tex"), job="113",
                   title="the two-read path with the in-step fetches off", script="job113.py", label="scorecard113")
+    p115 = P("prereg", "scorecard_115.json")
+    if os.path.exists(p115):
+        write_099(json.load(open(p115))["clauses"], P("paper", "tab_scorecard_115.tex"), job="115",
+                  title="the 2$\\times$2 with the in-step fetches off on more machines, with idle probe runs", script="job114.py",
+                  label="scorecard115")
     p114 = P("prereg", "scorecard_114.json")
     if os.path.exists(p114):
         write_099(json.load(open(p114))["clauses"], P("paper", "tab_scorecard_114.tex"), job="114",

@@ -649,10 +649,10 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
                 "machine (geometric mean of its rounds) of \\MinOne, the read-ahead oracle "
                 "(\\emph{ahead}), and the best of the four variants without foresight (\\emph{none}: \\Margin, \\LA, "
                 "\\LAOne, \\LAOneM; "
-                "\\cref{sec:online}), and that variant's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090: job 109, "
-                "whose population (desktop-class, link-to-CPU ratio at least 0.5) was fixed before any machine started. RTX "
-                "4090: job 111 (job 110's predictions, committed before any RTX 4090 ran)" + ("" if not four112(cells) else
-                " and job 112 (the same predictions, on machines at higher ratios)") + "; in brackets, what the RTX 5090 "
+                "\\cref{sec:online}), and that variant's capture, its share of the read-ahead oracle's gain. \\emph{Ratio}: link-to-CPU. RTX 5090s: "
+                "their population (desktop-class, link-to-CPU ratio at least 0.5) was fixed before any of them started. RTX "
+                "4090s: the predictions were committed before any RTX 4090 ran" + ("" if not four112(cells) else
+                ", and the same predictions were tested again on machines at higher ratios") + "; in brackets, what the RTX 5090 "
                 "machines' trend in the link-to-CPU ratio predicted for that machine. Subscripts: half-width of the 95\\% interval over "
                 "problems (paired bootstrap within the machine).}\\label{tab:job109}\n")
         f.write("\\setlength\\tabcolsep{3pt}\\begin{tabular}{@{}lr" + "rrrr" * 2 + "@{}}\\toprule\n")

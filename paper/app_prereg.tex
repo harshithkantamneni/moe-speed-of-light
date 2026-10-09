@@ -1,18 +1,20 @@
 \section{Prediction log}\label{app:prereg}
 Each job's predictions are in the header of its script on the public \texttt{gpu} branch, committed before the machine
 started. Each machine cloned the published branch at boot and ran the header as committed, so git history orders every
-prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--114, every commit preceded its rental by
+prediction before its measurement. Of the \rtRentals{} rentals of jobs 093--115, every commit preceded its rental by
 at least \rtCommitMin\,s, and every machine started its job at least \rtMinLag\,s after the push. For \rtNear{} of
 them the push and the rental's creation fall within a second of each other, and for \rtAfter{} GitHub records the push
 up to \rtAfterMax\,s after the rental was created (\texttt{scripts/reg\_timing.py}). The results of jobs up to 114 do
-not record which commit of the branch a machine ran; its boot script now writes it into the results. \Cref{tab:prereg} summarises
+not record which commit of the branch a machine ran; from job 115 on, the boot script writes it into the results. Each of
+job 115's machines ran the branch as of its boot; for two, that was a commit pushed in the minutes after the rental,
+which added another machine's wrapper or the amendment's header text and changed no line the job executes. \Cref{tab:prereg} summarises
 every job's clauses, and \cref{tab:failures} gives the failures. Outcome notes with the statistics are in
 \texttt{prereg/}; the batched-verification variants of \cref{sec:horizon} (rejected drafts free, routed like the true
 token, or routed at random) are in \texttt{prereg/batchk\_outcome.md}. Jobs before 073, which built and debugged the
 engine, also registered predictions in their headers. Their outcome notes are in \texttt{prereg/}, and they are not
 scored here; job 072's, for one, failed or did not apply on two of its three.
 
-\paragraph{Scoring.} Every prediction of jobs 073--114 is split into its separable clauses, and each clause is scored
+\paragraph{Scoring.} Every prediction of jobs 073--115 is split into its separable clauses, and each clause is scored
 under one rule: \emph{held} when its point estimate is on the predicted side and the 95\% paired-bootstrap interval
 excludes the threshold (for a band, lies inside it); \emph{held (point)} when the point estimate is on the predicted
 side but no interval exists or the interval crosses the threshold; \emph{failed} when the point estimate is on the
@@ -33,7 +35,7 @@ The bound's read time is nearly reachable & \cref{tab:readsched} & job 102, P2 (
 Faster than FreeToken and llama.cpp & \cref{tab:headline}, \cref{app:system} & jobs 081 (host B) and 089 (host S), hand-scored (\cref{tab:prereg}) \\
 On the deployed read path, MIN's set pays only together with one read & \cref{tab:gap}, \cref{fig:staircase} & job 099, P5a: \texttt{099Px-P5a-g11/g25}; job 109, P1: \texttt{109x-P1-int-g11/g25} \\
 Control: issuing the copies a step earlier & \cref{tab:timing} & job 112, T1--T4: \texttt{112x-T1} to \texttt{112x-T4} \\
-With the in-step fetches off, MIN's set pays alone, and more with one read & \cref{tab:job114}, \cref{tab:gap} & job 114, H1--H6: \texttt{114x-H1a-g11/g25}, \texttt{114x-H1b-*}, \texttt{114x-H1c}, \texttt{114x-H2} to \texttt{114x-H6} \\
+With the in-step fetches off, MIN's set pays alone & \cref{tab:job114}, \cref{tab:gap} & job 114, H1--H6: \texttt{114x-H1a-g11/g25}, \texttt{114x-H1b-*}, \texttt{114x-H1c}, \texttt{114x-H2} to \texttt{114x-H6}; job 115, H1--H8: the same, \texttt{115x-H7a/b}, \texttt{115-H8a/b} \\
 Without the fetches, the fewest-admission set pays read twice & \cref{tab:job113} & job 113, H1--H6: \texttt{113x-H1-g11/g25}, \texttt{113x-H2} to \texttt{113x-H6} \\
 Policies without foresight recover little & \cref{tab:job109} & job 109, P7: \texttt{109x-P7-best}, \texttt{109x-P7-cap}; jobs 111 and 112, Q3 \\
 The fewest-admission set read once gains & \cref{fig:hostdep}, \cref{app:more} & job 104, P3 (machine a); job 105, P4; job 106, P6 and P7; job 107, P5: \texttt{104a-P3-g11}, \texttt{105x-P4-g11}, \texttt{106x-P6-*}, \texttt{106x-P7-*}, \texttt{107x-P5-fetchplan} \\
@@ -48,8 +50,8 @@ held, \scHeldPoint{} held on the point estimate, \scFailed{} failed, \scUntested
 By era, \scEarlyHeld{} of \scEarlyScored{} scored clauses held in jobs 073--075, when the system was being built;
 \scMidHeld{} of \scMidScored{} in jobs 076--081, \scMidSign{} of them sign-only predictions made after a same-machine
 pilot; \scLateHeld{} of \scLateScored{} in jobs 082--087; and \scRevHeld{} of \scRevScored{} in jobs 088--\scLastJob.
-The last row of \cref{tab:prereg} is the overall tally, for jobs 073--114. The hand-scored tally is a subset of it:
-the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--114 make up the rest.
+The last row of \cref{tab:prereg} is the overall tally, for jobs 073--115. The hand-scored tally is a subset of it:
+the table's rows for jobs 073--\scLastJob{} are the hand scores, and the script-scored jobs 099--115 make up the rest.
 In the overall row, a deterministic count is therefore held in jobs 073--\scLastJob{} and held (point) after.
 
 \paragraph{Scoring checks.} A script (\texttt{scripts/scorecard\_auto.py}) re-scores every hand-scored clause whose
@@ -61,7 +63,7 @@ point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one tha
 re-scoring is a check; neither tally uses it.
 
 \paragraph{Rounds and rentals.} A machine's intervals are over problems. To see what they leave out,
-\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111, 112, 113 and 114 that ran a configuration in two
+\texttt{scripts/noise.py} takes every valid machine of jobs 109 and 111--115 that ran a configuration in two
 rounds (\nzRoundN{} machine-budget-configurations on \nzRoundMachines{} machines; 25\% ran one round in these jobs) and every
 machine measured with the same configurations in two launches (\nzRentalN{} comparisons from \nzRentalPairs{} pairs of
 launches on \nzRentalMachines{} machines: job 099's panel and its relaunches in jobs 100, 101 and 103, job 109 and job
@@ -72,15 +74,18 @@ its own probe; the tables differed in \nzRentalTableDiff{} of the \nzRentalPairs
 differences; over the \nzRentalSameN{} comparisons with the same table the median is \nzRentalSameMed\% and the largest
 \nzRentalSameMax\%. Each machine's interval for each configuration was then widened, on the log scale and on both sides,
 by that configuration's full round-to-round range on that machine (zero at 25\%), and the derived intervals (capture,
-job 112's differences, job 114's interaction in ms) accordingly. All \nzHeldCI{} per-machine clauses of these jobs that held with an interval still
-hold; the \nzPooled{} pooled clauses, whose intervals are over machines, are not widened. With every interval widened
+job 112's differences, the interaction in ms of jobs 114 and 115) accordingly. Of the \nzHeldCI{} per-machine clauses
+of these jobs that held with an interval, \nzStillHeld{} still hold and \nzMovedWord{} hold on the point estimate only:
+job 115's \nzMovedKinds{} on the Core i9-14900K, whose fetch-free deployed cache moved \dqInterNegBaseZeroMove\%
+between rounds. The \nzPooled{} pooled clauses, whose intervals are over machines, are not widened. With every interval widened
 further by the largest rental difference, \nzRentalStillHeld{} still hold and \nzRentalMoved{} hold on the point estimate
 only. Of those, \nzRentalMovedNarrow{} are the bands of $\pm$0.06 or narrower around configurations that barely change
-the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo, job 113's H3 on one machine, job 114's H4 and
-H6); the other
+the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo, job 113's H3 on one machine, the H4 and H6
+of jobs 114 and 115); the other
 \nzRentalMovedOther{} are the second-card trend checks for \MinOne{} and the read-ahead oracle and the no-foresight bound
-(Q1 and Q3) on the RTX 4090s, P8 on one machine, T3 on one, job 113's H5 and H6 on one machine each, and job 114's H3
-at 11\% on two machines and its interaction on all three. No clause changes to failed: failure is decided by the point estimate.
+(Q1 and Q3) on the RTX 4090s, P8 on one machine, T3 on one, job 113's H5 and H6 on one machine each, job 114's H3
+at 11\% on two machines and its interaction on all three, and job 115's H2 on one machine, H3 on both and the
+interaction where it held. No clause changes to failed: failure is decided by the point estimate.
 
 \input{tab_prereg}
 
@@ -89,7 +94,7 @@ direction held. In jobs 088--\scLastJob, \scRevFailBand{} of \scRevBandClauses{}
 threshold, \scRevFailEq{} equality and \scRevFailSign{} sign clauses; \scRevSignHeld{} of \scRevSignClauses{} sign
 clauses held with an interval, and \scRevSignHeldAny{} held at least on the point estimate. \Cref{tab:failures} gives
 the failures job by job: those that matter for jobs 073--\scLastJob{} (the scorecard lists all \scFailed), and the
-families of failures of jobs 099--114.
+families of failures of jobs 099--115.
 
 \clearpage   % keep the tables in number order: flush the floats above before the long table
 \input{tab_failures}
@@ -241,8 +246,32 @@ validity condition, at least two valid machines, was met. The
 interaction now has an interval over problems: on the CPU-only path at 11\% it was \dzInterMsLowRng\,ms per token,
 above zero on all \dzN{} machines; at 25\% it was \dzInterMsMidMin{} to \dzInterMsMidMax\,ms, above zero on \dzInterPosCIMid.
 
+\paragraph{Job 115.} Job 114's protocol on more machines, which the reviews of job 114 asked for, with two changes: the
+probe ran three more times on the idle machine after the model had downloaded (the fetch table and the gates still came
+from its first run, so the deployed cache is defined as before), and the first gate admitted only GPUs never rented
+before. Its thresholds came from job 114's valid machines, and its last prediction pools the valid machines of both
+jobs. The header and an offer listing were committed before any machine started. The two qualifying offers started
+together; each machine that failed a gate was replaced by the cheapest qualifying offer in a new listing, committed and
+pushed before that launch, up to the registered six. One more machine was added by an amendment pushed while the first
+two ran their first rounds, before any of their timed results existed; its text reached the header only after that
+machine had started, because the edit had failed. Of the \dqStartedWord{} machines, \dqVRFailN{} stopped at the ratio
+gate (\dqVRFailCpu; ratios \dqVRFailRatioRng, below 0.5) and \dqVZeroFailN{} at the first gate, its GPU rented before;
+the \dqNWord{} valid ones, a Core i9-14900K and a Core Ultra 9 285K, both had a ratio of \dqRatioRng, so the validity
+condition (two valid machines) was \dqValidStatus{} but the spread of machines the reviews asked for was not reached. Of
+the job's \dqClauses{} clauses, \dqClausesHeld{} held with their intervals, \dqClausesPoint{} on the point estimate
+(the counter checks, the probe and the pooled prediction) and \dqClausesFailed{} failed: the interaction on the
+\dqInterNegCpu, \dqInterNegMsRng\,ms per token (interval \dqInterNegCI). Its two rounds gave \dqInterNegRounds\,ms;
+between them the fetch-free deployed cache's speed against the deployed one moved \dqInterNegBaseZeroMove\%, which the
+round check, on the deployed cache alone, does not cover. Pooled over the \dqHEightN{} valid machines of jobs 114 and
+115, MIN's set alone, read twice, closed a mean \dqHEightMean\% of the gap at 11\%, with the lower end of its 95\%
+interval over machines at \dqHEightLo\% (registered: at least 10\%, above zero). The idle probe runs agreed with the
+first, on the machine where the first had overlapped the download as on the other: the best idle reading was
+\dqProbeIdleRatioRng{} of the first run's (registered 0.95 to 1.15), the three idle runs were within
+\dqProbeIdleSpreadPctMax\% of each other (registered 5\%), and the fetch table the best idle run gives differed from the
+first run's on \dqProbeTableChanged{} machine.
+
 The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100,
 \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{}
 for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109,
-\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112, \hsClauses{} for job 113, \dzClauses{} for job 114; from job 107 on, plus each job's validity condition) are in the
+\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112, \hsClauses{} for job 113, \dzClauses{} for job 114, \dqClauses{} for job 115; from job 107 on, plus each job's validity condition) are in the
 scorecard, a separate document (\texttt{paper/supplement.pdf}), generated by the same scripts.

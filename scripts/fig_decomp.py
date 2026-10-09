@@ -126,7 +126,10 @@ def machines(C):
         server = bool(re.search(r"EPYC|Xeon|Eng Sample", cpu_of(d)))   # server processors (after jobs 107-108)
         new = os.path.basename(d)[:4] in NEW_IN_TEST
         Bc, Bp = best_rates(open(f"{d}/concur.txt").read())
-        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, T=T, G=Gh, prof=prof, min_ms=lim, law=tl,
+        # the rate the engine's own reads imply (the relation's accounting, as Table robust): an envelope takes the larger
+        # of it and the probe's best reading, so the bound never sits below a rate the engine was seen to reach
+        Bimp = (Mi + A * (1 - Gh / T)) * S / ((T - Gh) * 1e-3) / 1e9
+        rows.append(dict(dir=os.path.basename(d), cpu=short(cpu_of(d)), B=B, Bimp=Bimp, T=T, G=Gh, prof=prof, min_ms=lim, law=tl,
                          excess_ms=tl - Gh - lim, server=server, new=new, dep=dep_bound(lim, rs, Bc, Bp, tgpu),
                          eq2=tgpu + rs / (B * 1e9) * 1e3, ratio=Bp / Bc))
     return rows
@@ -183,6 +186,13 @@ def main():
         M[f"dcMachines{nm}"] = str(len(rows))
         M[f"dcShareG{nm}Min"] = f"{100 * np.min(g / T):.0f}"; M[f"dcShareG{nm}Max"] = f"{100 * np.max(g / T):.0f}"
         M[f"dcShareMin{nm}Min"] = f"{100 * np.min(mn / T):.0f}"; M[f"dcShareMin{nm}Max"] = f"{100 * np.max(mn / T):.0f}"
+        # the envelope: the bound at max(probe, engine-implied rate); MIN's read time scales as 1 / rate
+        Bv = np.array([r["B"] for r in rows]); Bi = np.array([r["Bimp"] for r in rows])
+        env = mn * Bv / np.maximum(Bv, Bi)
+        M[f"dcShareEnv{nm}Min"] = f"{100 * np.min(env / T):.0f}"; M[f"dcShareEnv{nm}Max"] = f"{100 * np.max(env / T):.0f}"
+        M[f"dcEnvRaised{nm}"] = str(int(np.sum(Bi > Bv)))
+        M[f"dcEnvRaisedFive{nm}"] = str(int(np.sum(Bi > 1.05 * Bv)))
+        M[f"dcEnvRaiseMax{nm}"] = f"{np.max(Bi / Bv):.2f}"
         dep = np.array([r["dep"] for r in rows]); eq2 = np.array([r["eq2"] for r in rows])
         M[f"dcShareDep{nm}Min"] = f"{100 * np.min(dep / T):.0f}"; M[f"dcShareDep{nm}Max"] = f"{100 * np.max(dep / T):.0f}"
         M[f"dcShareDem{nm}Min"] = f"{100 * np.min(eq2 / T):.0f}"; M[f"dcShareDem{nm}Max"] = f"{100 * np.max(eq2 / T):.0f}"

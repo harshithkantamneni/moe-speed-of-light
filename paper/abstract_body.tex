@@ -3,11 +3,12 @@ token at a time then waits on host reads. We bound how fast such decoding can be
 remaining time goes, and price knowledge of the future routing. The bound is the fewest host reads any expert cache of
 a given size can make (Belady's MIN with bypass) at the machine's probed read rate. Our llama.cpp expert cache,
 faster than two other systems at most settings, reaches \dcShareMinLowMin--\dcShareMinLowMax\% of the bound's speed on
-consumer machines at the smallest cache we test. Oracles built into the engine split the remaining time by what is
-cached, how it is read and when. The engine's fetch table, which copies misses into cache slots the policy did not
-choose, hides the value of caching MIN's set: with it, the set pays only if each admitted expert is also read once;
-without it, on \dzNWord{} machines, the set alone closes \dmCpuSetaloneZeroLow\% of the gap and both changes together
-\dmCpuTogetherZeroLow\%. Even the read-ahead oracle leaves about half of the gap. On five fast-link machines, policies
-without foresight recover at most \olCapLowMax\% of its gain. In trace replay, half of foresight's value needs the
-routing of about \dcMed{} cache-fulls of distinct experts ahead. Registered predictions were committed before their
-machines were rented; the consumer range and the replay result are post hoc.
+consumer machines at the smallest cache we test. Oracles in the engine then change what is cached (the experts MIN
+keeps instead of ours), how each admitted expert is read (once, copied straight into its GPU slot, instead of twice, by
+the CPU and then by a background copy), and when. A per-machine table that also copies misses into slots the cache did
+not choose hides the first change: with it, MIN's set pays only when read once; without it, on \dpNWord{} machines,
+MIN's set alone closes \dmCpuSetaloneZeroLow\% of the gap and both changes together \dmCpuTogetherZeroLow\%. Even
+reading ahead leaves about half of the gap. On five fast-link machines, policies without foresight recover at most
+\olCapLowMax\% of an oracle's gain. In trace replay, half of foresight's value needs the routing of as many distinct
+experts as \dcMed{} of a full cache. Registered predictions were committed before their machines were rented; the
+consumer range and the replay result are post hoc.

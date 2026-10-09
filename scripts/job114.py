@@ -1,7 +1,10 @@
-"""Job 114 (jobs/114_decomp0@vast.sh on the gpu branch): Table 4's 2x2 on the CPU-only read path (the in-step fetches
-off), beside Table 4's own cells, in one process per round. Scores the registered predictions H1-H6 per valid host from
-the raw rows and counters, computes the decomposition of each host's gap on the CPU-only path, and writes
-prereg/job114.json, prereg/scorecard_114.json, paper/wsg_job114.tex and paper/tab_job114.tex.
+"""Jobs 114 and 115 (jobs/114_decomp0@vast.sh and jobs/115_moremachines@vast.sh on the gpu branch): Table 4's 2x2 on
+the CPU-only read path (the in-step fetches off), beside Table 4's own cells, in one process per round; job 115 adds
+three idle probe runs after the download. Scores each job's registered predictions per valid host from the raw rows and
+counters (job 114: H1-H6; job 115: H1-H8, its own thresholds), computes the decomposition of each host's gap on the
+CPU-only path, and writes prereg/job114.json (both jobs' hosts), prereg/scorecard_114.json, prereg/scorecard_115.json,
+paper/wsg_job114.tex (macros dz* for job 114, dq* for job 115, dp* pooled over both jobs' valid machines) and
+paper/tab_job114.tex.
 
     python scripts/job114.py
 """
@@ -18,7 +21,7 @@ sys.path.insert(0, ROOT)
 from scripts import job109 as J  # noqa: E402
 
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-GLOB = os.environ.get("MOSL_JOB114_GLOB", f"{J.RES}/114[a-z]_decomp0@vast")
+GLOB = os.environ.get("MOSL_JOB114_GLOB", f"{J.RES}/11[45][a-z]_*@vast")
 CELLS = (14, 32)
 G = {14: "g11", 32: "g25"}
 NM = {14: "Low", 32: "Mid"}
@@ -51,6 +54,17 @@ def load114(d):
     m = re.search(r"gpt-oss ([0-9,]+)", J.read(d, "tables.txt"))
     h["table"] = m.group(1) if m else ""
     h["has_table"] = any(int(x) for x in h["table"].split(",") if x) if h["table"] else None
+    h["jobno"] = h["job"][:3]
+    # job 115: the first probe's highest reading against the three idle runs' (probe_compare.txt), and the fetch table
+    # the best idle run would give (recorded only)
+    h["probe1_dl"] = "download running: yes" in J.read(d, "probe1_when.txt")
+    pc = J.read(d, "probe_compare.txt")
+    m = re.search(r"first probe highest ([\d.]+) GB/s; idle runs ([\d. ]+); idle best / first ([\d.]+); idle spread ([\d.]+)", pc)
+    if m:
+        h["probe"] = dict(first=float(m.group(1)), idle=[float(x) for x in m.group(2).split()], ratio=float(m.group(3)),
+                          spread=float(m.group(4)))
+        mi = re.search(r"idle law table \(from [^)]*\): gpt-oss ([0-9,]+)", J.read(d, "tables.txt"))
+        h["probe"]["idle_table"] = mi.group(1) if mi else ""
     for C, c in h["cells"].items():
         dr = c.get("_draws", {})
         c["rel"], c["rel_ci"] = {}, {}
@@ -99,8 +113,13 @@ def load114(d):
     return h
 
 
-def clauses114(V):
+TH = {"114": dict(ref1="jobs 109/112", ref="job 113's", h1c_all=True, h2=1.03, h2_all=True, h3=(1.05, 1.15), h4=(0.95, 1.10), h6=(0.92, 1.10), h7=False),
+      "115": dict(ref1="jobs 109-114", ref="job 114's", h1c_all=False, h2=1.05, h2_all=False, h3=(1.07, 1.20), h4=(0.98, 1.10), h6=(0.92, 1.10), h7=True)}
+
+
+def clauses114(V, job="114"):
     out = []
+    th = TH[job]
 
     def add(cid, short, meas, ok, thr, host, ci=None):
         out.append(dict(id=cid, short=short, type="band", measured=None if meas is None else round(float(meas), 4),
@@ -116,7 +135,7 @@ def clauses114(V):
             if "fetch" in cc["misses"]:
                 m0, f0 = REF["fetch"][C]
                 dev = max(abs(cc["misses"]["fetch"] / m0 - 1), abs(cc["fetches"]["fetch"] / f0 - 1))
-                add(f"{h['job']}-H1a-{G[C]}", f"MIN-1R misses and fetches within 1% of jobs 109/112 ({nm}, {G[C]})", dev,
+                add(f"{h['job']}-H1a-{G[C]}", f"MIN-1R misses and fetches within 1% of {th['ref1']} ({nm}, {G[C]})", dev,
                     lambda v: v <= 0.01, "<= 0.01 (largest relative deviation)", nm)
         lo = c[14]
         if not lo["rounds"]:
@@ -125,33 +144,58 @@ def clauses114(V):
             if n in lo["misses"]:
                 m0, a0 = REF[n][14]
                 dev = max(abs(lo["misses"][n] / m0 - 1), abs(lo["admits"][n] / a0 - 1))
-                add(f"{h['job']}-H1b-{n}", f"{n}: no in-step fetch; misses and admissions within 1% of job 113's at 11% ({nm})",
+                add(f"{h['job']}-H1b-{n}", f"{n}: no in-step fetch; misses and admissions within 1% of {th['ref']} at 11% ({nm})",
                     dev if lo["fetches"][n] == 0 else 9.99, lambda v: v <= 0.01, "<= 0.01 and no fetch", nm)
-        if "foa0" in lo["fetches"] and "foa" in lo["fetches"]:
+        if "foa0" in lo["fetches"] and "foa" in lo["fetches"] and (th["h1c_all"] or h["has_table"]):
             add(f"{h['job']}-H1c", f"foa0's in-step fetches <= 0.5x foa's at 11% ({nm})", lo["fetches"]["foa0"] / lo["fetches"]["foa"],
                 lambda v: v <= 0.5, "<= 0.5", nm)
         r, ci = lo["rel"], lo["rel_ci"]
-        if "bypass0/bypass" in r:
-            add(f"{h['job']}-H2", f"bypass0/bypass >= 1.03 at 11% ({nm})", r["bypass0/bypass"], lambda v: v >= 1.03, ">= 1.03", nm,
+        if "bypass0/bypass" in r and (th["h2_all"] or h["has_table"]):
+            t2 = th["h2"]
+            add(f"{h['job']}-H2", f"bypass0/bypass >= {t2:.2f} at 11% ({nm})", r["bypass0/bypass"], lambda v: v >= t2, f">= {t2:.2f}", nm,
                 ci.get("bypass0/bypass"))
-        for C, thr in ((14, 1.05), (32, 1.15)):
+        for C, thr in zip((14, 32), th["h3"]):
             rc, cic = c[C]["rel"], c[C]["rel_ci"]
             if c[C]["rounds"] and "bypass0/base0" in rc:
                 add(f"{h['job']}-H3-{G[C]}", f"bypass0/base0 >= {thr:.2f} at {G[C]} ({nm})", rc["bypass0/base0"],
                     lambda v, thr=thr: v >= thr, f">= {thr:.2f}", nm, cic.get("bypass0/base0"))
         if "foa0/base0" in r:
-            add(f"{h['job']}-H4", f"foa0/base0 within [0.95, 1.10] at 11% ({nm})", r["foa0/base0"], lambda v: 0.95 <= v <= 1.10,
-                "0.95 to 1.10", nm, ci.get("foa0/base0"))
+            a4, b4 = th["h4"]
+            add(f"{h['job']}-H4", f"foa0/base0 within [{a4:.2f}, {b4:.2f}] at 11% ({nm})", r["foa0/base0"], lambda v: a4 <= v <= b4,
+                f"{a4:.2f} to {b4:.2f}", nm, ci.get("foa0/base0"))
         if "inter_ms" in lo:
             add(f"{h['job']}-H5", f"interaction > 0 on the CPU-only path at 11% ({nm}; ms per token)", lo["inter_ms"],
                 lambda v: v > 0, "> 0", nm, lo.get("inter_ms_ci"))
         if "base0/base" in r:
-            add(f"{h['job']}-H6", f"base0/base within [0.92, 1.10] at 11% ({nm})", r["base0/base"], lambda v: 0.92 <= v <= 1.10,
-                "0.92 to 1.10", nm, ci.get("base0/base"))
+            a6, b6 = th["h6"]
+            add(f"{h['job']}-H6", f"base0/base within [{a6:.2f}, {b6:.2f}] at 11% ({nm})", r["base0/base"], lambda v: a6 <= v <= b6,
+                f"{a6:.2f} to {b6:.2f}", nm, ci.get("base0/base"))
+        if th["h7"] and h.get("probe"):
+            pr = h["probe"]
+            add(f"{h['job']}-H7a", f"best idle probe reading within [0.95, 1.15] of the first probe's ({nm})", pr["ratio"],
+                lambda v: 0.95 <= v <= 1.15, "0.95 to 1.15", nm)
+            add(f"{h['job']}-H7b", f"the three idle runs' highest readings within 5% of each other ({nm})", pr["spread"],
+                lambda v: v <= 1.05, "<= 1.05", nm)
     return out
 
 
-def macros(H, V, cl):
+def clause_pooled(Vall):
+    """job 115's H8: MIN's set alone (CPU-only path, read twice) closes a mean share of the gap at 11% of at least 0.10
+    over the valid machines of jobs 114 and 115, with its 95% t-interval over machines above zero"""
+    from scipy.stats import t as tdist
+    v = [h["cells"][14]["parts"]["setalone0"] for h in Vall if "parts" in h["cells"][14]]
+    if len(v) < 2:
+        return []
+    m = float(np.mean(v)); hw = float(tdist.ppf(0.975, len(v) - 1) * np.std(v, ddof=1) / math.sqrt(len(v)))
+    return [dict(id="115-H8a", short=f"mean share of the gap closed by MIN's set alone, CPU only, 11%, over {len(v)} machines >= 0.10",
+                 type="band", measured=round(m, 4), ci=None, threshold=">= 0.10", status="held (point)" if m >= 0.10 else "failed",
+                 why="pooled over machines", host="pooled"),
+            dict(id="115-H8b", short="its 95% t-interval over machines above zero (lower end)", type="band", measured=round(m - hw, 4),
+                 ci=None, threshold="> 0", status="held (point)" if m - hw > 0 else "failed", why="pooled over machines", host="pooled")]
+
+
+def macros(H, V, cl, pre="dz"):
+    """the macros of one set of machines, written with the prefix pre (dz job 114, dq job 115, dp both jobs' valid ones)"""
     M = {}
 
     def rng(k, vals, fmt="{:.2f}"):
@@ -166,8 +210,14 @@ def macros(H, V, cl):
     M["dzStarted"] = str(len(H)); M["dzStartedWord"] = word(len(H)); M["dzN"] = str(len(V)); M["dzNWord"] = word(len(V))
     M["dzGated"] = word(sum(1 for h in H if h["gate"])); M["dzGatedNum"] = str(sum(1 for h in H if h["gate"]))
     M["dzKnown"] = word(sum(1 for h in V if h["known"]))
-    # machines that passed the gates but failed the registered round check (V2): not scored
+    # the gate failures by gate: V0 (a GPU rented before) and VR (link/CPU ratio below 0.5, with the ratios)
     import re
+    vz = [h for h in H if h["gate"].startswith("V0 FAIL")]
+    vr = [h for h in H if h["gate"].startswith("VR FAIL")]
+    M["dzVZeroFailN"] = word(len(vz)); M["dzVRFailN"] = word(len(vr))
+    M["dzVRFailCpu"] = ", ".join(sorted({h["cpu"] for h in vr})) or "none"
+    rng("dzVRFailRatio", [float(m.group(1)) for h in vr for m in [re.search(r"ratio ([0-9.]+)", h["gate"])] if m])
+    # machines that passed the gates but failed the registered round check (V2): not scored
     RF = [h for h in H if not h["gate"] and h["V2_fail"]]
     M["dzRoundFailN"] = word(len(RF)); M["dzRoundFailCpu"] = ", ".join(h["cpu"] for h in RF) or "none"
     sp = [float(m.group(1)) for h in RF for m in [re.search(r"spread ([0-9.]+)%", h["V2_line"])] if m]
@@ -189,6 +239,7 @@ def macros(H, V, cl):
         M["dzNoTabGreedyHeld"] = f"{c['rel'].get('bypass0/bypass', float('nan')):.2f}"
         if "parts" in c:
             M["dzShInteractionZeroNoTabLow"] = f"{100 * c['parts']['interaction0']:.0f}"
+        rng("dzShInteractionZeroNoTabLow", [100 * h["cells"][14]["parts"]["interaction0"] for h in Z if "parts" in h["cells"][14]], "{:.0f}")
     for C in CELLS:
         nm = NM[C]
         selt = [h["cells"][C] for h in T if h["cells"][C]["rounds"]]
@@ -232,10 +283,51 @@ def macros(H, V, cl):
         # the share of "together" (on the CPU-only path) that MIN's set alone, read twice, gets
         rng(f"dzSetShareOfTogether{nm}", [100 * c["parts_ms"]["setalone0"] / c["parts_ms"]["together0"] for c in sel
                                          if "parts_ms" in c and c["parts_ms"]["together0"] > 0], "{:.0f}")
+    # post hoc: the interaction at 11% on the CPU-only path by the link-to-CPU ratio (split at 0.7), and the machines
+    # where it was not above zero
+    for tag, sel in (("HiRatio", [h for h in V if h["ratio"] >= 0.7]), ("LoRatio", [h for h in V if h["ratio"] < 0.7])):
+        cs = [h["cells"][14] for h in sel if "parts" in h["cells"][14]]
+        M[f"dz{tag}N"] = word(len(cs))
+        rng(f"dzRatio{tag}", [h["ratio"] for h in sel])
+        rng(f"dzInterMs{tag}", [c.get("inter_ms") for c in cs], "{:.1f}")
+        rng(f"dzShInteractionZero{tag}", [100 * c["parts"]["interaction0"] for c in cs], "{:.0f}")
+    NP = [h for h in V if h["cells"][14].get("inter_ms") is not None and h["cells"][14]["inter_ms"] <= 0]
+    M["dzInterNegN"] = word(len(NP)); M["dzInterNegCpu"] = ", ".join(h["cpu"] for h in NP) or "none"
+    rng("dzInterNegMs", [h["cells"][14]["inter_ms"] for h in NP], "{:.1f}")
+    for h in NP:
+        lo, hi = h["cells"][14]["inter_ms_ci"]
+        M["dzInterNegCI"] = f"[{lo:.1f}, {hi:.1f}]".replace("-", "$-$")
+        # its two rounds, and how far the fetch-free deployed cache's speed moved between them
+        ir = h["cells"][14].get("inter_rounds", [])
+        M["dzInterNegRounds"] = " and ".join(f"{x:+.1f}".replace("-", "$-$") for x in ir)
+        rr = h["cells"][14].get("ratio_rounds", {}).get("base0")
+        if rr and len(rr) == 2:
+            M["dzInterNegBaseZeroMove"] = f"{100 * abs(rr[1] / rr[0] - 1):.0f}"
     pcl = [c for c in cl if not c["id"].endswith("-valid")]   # the predictions; the validity condition apart
     M["dzClauses"] = str(len(pcl)); M["dzClausesHeld"] = str(sum(c["status"] == "held" for c in pcl))
     M["dzClausesPoint"] = str(sum(c["status"] == "held (point)" for c in pcl)); M["dzClausesFailed"] = str(sum(c["status"] == "failed" for c in pcl))
-    for t, w in (("One", "H1"), ("Two", "H2"), ("Three", "H3"), ("Four", "H4"), ("Five", "H5"), ("Six", "H6")):
+    M["dzVerdict"] = "mixed" if any(c["status"] == "failed" for c in pcl) else "held"
+    vc = [c for c in cl if c["id"].endswith("-valid")]
+    if vc:
+        M["dzValidStatus"] = vc[0]["status"]
+    # the probe (job 115): the best idle run over the first probe, the idle runs' spread, how often the idle table differs
+    PR = [h for h in V if h.get("probe")]
+    if PR:
+        rng("dzProbeIdleRatio", [h["probe"]["ratio"] for h in PR], "{:.3f}")
+        rng("dzProbeIdleSpread", [h["probe"]["spread"] for h in PR], "{:.3f}")
+        M["dzProbeN"] = word(len(PR))
+        M["dzProbeDuringDlN"] = word(sum(1 for h in PR if h["probe1_dl"]))
+        M["dzProbeIdleDevMax"] = f"{100 * max(abs(h['probe']['ratio'] - 1) for h in PR):.1f}"
+        M["dzProbeIdleSpreadPctMax"] = f"{100 * max(h['probe']['spread'] - 1 for h in PR):.1f}"
+        M["dzProbeTableChanged"] = word(sum(1 for h in PR if h["probe"].get("idle_table") and h["probe"]["idle_table"] != h["table"]))
+    # job 115's H8 (pooled over both jobs' valid machines): the mean share and its t-interval's lower end, in percent
+    for c in cl:
+        if c["id"] == "115-H8a":
+            M["dzHEightMean"] = pct(c["measured"]); M["dzHEightNum"] = re.search(r"over (\d+) machines", c["short"]).group(1)
+            M["dzHEightN"] = word(int(M["dzHEightNum"]))
+        if c["id"] == "115-H8b":
+            M["dzHEightLo"] = pct(c["measured"])
+    for t, w in (("One", "H1"), ("Two", "H2"), ("Three", "H3"), ("Four", "H4"), ("Five", "H5"), ("Six", "H6"), ("Seven", "H7"), ("Eight", "H8")):
         cs = [c for c in cl if f"-{w}" in c["id"] and c["host"] != "pooled"]
         if cs:
             M[f"dzH{t}N"] = str(len(cs)); M[f"dzH{t}Failed"] = str(sum(c["status"] == "failed" for c in cs))
@@ -243,41 +335,44 @@ def macros(H, V, cl):
             M[f"dzH{t}FailedOn"] = ", ".join(sorted({c["host"].split(" ", 1)[1] for c in cs if c["status"] == "failed"})) or "none"
             M[f"dzH{t}Status"] = "failed" if any(c["status"] == "failed" for c in cs) else (
                 "held" if all(c["status"] == "held" for c in cs) else "held (point)")
-    return M
+    return {pre + k[2:]: v for k, v in M.items()}
 
 
 def table(V):
-    """per valid host, at 11%: each change's speed on both read paths, and the interaction in ms"""
+    """per valid host, at 11%: each change's speed on both read paths, and the interaction in ms; grouped by test"""
     hw = lambda c, k: (c["rel_ci"][k][1] - c["rel_ci"][k][0]) / 2 if k in c["rel_ci"] else None  # noqa: E731
     with open(P("paper", "tab_job114.tex"), "w") as f:
         f.write("% generated by scripts/job114.py\n\\begin{table*}[t]\\centering\\footnotesize\n")
-        f.write("\\caption{The 2$\\times$2 on both read paths, registered (gpt-oss 11\\%). Speeds relative to the deployed "
-                "cache on the same machine and read path (\\emph{fetch table}: deployed; \\emph{CPU only}: in-step fetches off); "
-                "\\MinOne{} ignores the table and is given against the CPU-only deployed cache. Subscripts: half-widths of 95\\% "
-                "intervals over problems. Interaction: \\MinTwo's plus \\DepOne's time minus the deployed cache's and \\MinOne's "
-                "(CPU only, ms per token, 95\\% interval). $^\\ddagger$An all-zero fetch table: no in-step fetches on either "
-                "path.}\\label{tab:job114}\n")
+        f.write("\\caption{The 2$\\times$2 with the fetch table on and with the in-step fetches off, registered (gpt-oss 11\\%). "
+                "Speeds relative to the deployed cache on the same machine and read path (\\emph{on}: the deployed read path, "
+                "with the fetch table; \\emph{off}: the in-step fetches off). \\MinOne's forced plans replace the table, so it "
+                "is the same on both paths; its column is against the deployed cache with the fetches off. Subscripts: "
+                "half-widths of 95\\% intervals over problems. Interaction: \\MinTwo's plus \\DepOne's time minus the deployed "
+                "cache's and \\MinOne's, fetches off, in ms per token, with its 95\\% interval. $^\\ddagger$An all-zero fetch table: "
+                "no in-step fetches on either path. $^\\S$The second test.}\\label{tab:job114}\n")
         f.write("\\setlength\\tabcolsep{4.5pt}\n\\begin{tabular}{@{}lrrrrrrrr@{}}\\toprule\n")
-        f.write(" & & & \\multicolumn{2}{c}{\\MinTwo} & \\multicolumn{2}{c}{\\DepOne} & & \\\\\n")
-        f.write("\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}\n")
-        f.write(" & & CPU only & fetch & CPU & fetch & CPU & & Interaction \\\\\n")
-        f.write("Machine & Ratio & vs table & table & only & table & only & \\MinOne & (ms) \\\\\\midrule\n")
-        for h in V:
-            c = h["cells"][14]
-            if not c["rounds"]:
+        f.write(" & & \\multicolumn{1}{c}{Deployed} & \\multicolumn{2}{c}{\\MinTwo} & \\multicolumn{2}{c}{\\DepOne} & & \\\\\n")
+        f.write("\\cmidrule(lr){3-3}\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}\n")
+        f.write("Machine & Ratio & off\\,/\\,on & on & off & on & off & \\MinOne & Interaction (ms) \\\\\\midrule\n")
+        groups = (("114", "First test"), ("115", "Second test (three idle probe runs; job 109's machines not admitted)"))
+        for job, lab in groups:
+            VV = [h for h in V if h["jobno"] == job and h["cells"][14]["rounds"]]
+            if not VV:
                 continue
-            r = c["rel"]
+            for h in VV:
+                c = h["cells"][14]
+                r = c["rel"]
 
-            def cell(k):
-                if k not in r:
-                    return "--"
-                w = hw(c, k)
-                return f"{r[k]:.2f}" + (f"$_{{\\pm{w:.2f}}}$".replace("0.", ".", 1) if w is not None else "")
-            im = c.get("inter_ms"); ic = c.get("inter_ms_ci")
-            inter = "--" if im is None else (f"{im:.1f}".replace("-", "$-$") + (f" [{ic[0]:.1f}, {ic[1]:.1f}]".replace("-", "$-$") if ic else ""))
-            mark = "$^\\ddagger$" if h["has_table"] is False else ""
-            f.write(f"{h['cpu']}{mark} & {h['ratio']:.2f} & {cell('base0/base')} & {cell('bypass/base')} & {cell('bypass0/base0')} & "
-                    f"{cell('foa/base')} & {cell('foa0/base0')} & {cell('fetch/base0')} & {inter} \\\\\n")
+                def cell(k):
+                    if k not in r:
+                        return "--"
+                    w = hw(c, k)
+                    return f"{r[k]:.2f}" + (f"$_{{\\pm{w:.2f}}}$".replace("0.", ".", 1) if w is not None else "")
+                im = c.get("inter_ms"); ic = c.get("inter_ms_ci")
+                inter = "--" if im is None else (f"{im:.1f}".replace("-", "$-$") + (f" [{ic[0]:.1f}, {ic[1]:.1f}]".replace("-", "$-$") if ic else ""))
+                mark = ("$^\\ddagger$" if h["has_table"] is False else "") + ("$^\\S$" if job == "115" else "")
+                f.write(f"{h['cpu']}{mark} & {h['ratio']:.2f} & {cell('base0/base')} & {cell('bypass/base')} & {cell('bypass0/base0')} & "
+                        f"{cell('foa/base')} & {cell('foa0/base0')} & {cell('fetch/base0')} & {inter} \\\\\n")
         f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
     from scripts.tabnote import split_caption
     split_caption(P("paper", "tab_job114.tex"))
@@ -285,10 +380,9 @@ def table(V):
 
 def main():
     H = [load114(d) for d in sorted(glob.glob(GLOB))]
-    V = [h for h in H if h["valid"]]
     for h in H:
         print(f"{h['job']} {h['cpu'][:24]:24s} known={h['known']} ratio {h.get('ratio', float('nan')):.2f} valid {h['valid']} "
-              f"gate '{h['gate']}' {h['V2_line']} V3 {h['V3_fail']}")
+              f"gate '{h['gate']}' {h['V2_line']} V3 {h['V3_fail']} table {h['table']} probe {h.get('probe')}")
         for C, c in h["cells"].items():
             if c.get("rounds"):
                 print(f"   C{C} rounds {c['rounds']} " + " ".join(f"{k} {v:.3f}" for k, v in sorted(c["rel"].items())))
@@ -297,20 +391,31 @@ def main():
                 if "parts" in c:
                     print("      shares " + " ".join(f"{k} {100 * v:.0f}" for k, v in c["parts"].items()))
                     print(f"      interaction {c.get('inter_ms')} {c.get('inter_ms_ci')} gap {c['gap_ms']:.2f} ms eq1 {c['eq1']:.2f}")
-    cl = clauses114(V)
-    cl.append(dict(id="114-valid", short="at least two valid hosts (else single-machine results)", type="condition",
-                   measured=len(V), ci=None, threshold=">= 2", status="met" if len(V) >= 2 else "not met", why="", host="pooled"))
-    for c in cl:
-        print(c["id"], c["measured"], c["ci"], c["threshold"], c["status"])
-    json.dump(dict(hosts=H, valid=[h["job"] for h in V]), open(P("prereg", "job114.json"), "w"), indent=1, default=float)
-    json.dump(dict(job="114", script="jobs/114_decomp0@vast.sh", commit="cf0112c", scored_by="scripts/job114.py (machine)",
-                   clauses=cl), open(P("prereg", "scorecard_114.json"), "w"), indent=1)
-    M = macros(H, V, cl)
+    Vall = [h for h in H if h["valid"]]
+    M = {}
+    for job, pre, commit, script in (("114", "dz", "cf0112c", "jobs/114_decomp0@vast.sh"), ("115", "dq", "4b69328", "jobs/115_moremachines@vast.sh")):
+        Hj = [h for h in H if h["jobno"] == job]
+        if not Hj:
+            continue
+        Vj = [h for h in Hj if h["valid"]]
+        cl = clauses114(Vj, job) + (clause_pooled(Vall) if job == "115" else [])
+        cl.append(dict(id=f"{job}-valid", short="at least two valid hosts (else single-machine results)", type="condition",
+                       measured=len(Vj), ci=None, threshold=">= 2", status="met" if len(Vj) >= 2 else "not met", why="", host="pooled"))
+        for c in cl:
+            print(c["id"], c["measured"], c["ci"], c["threshold"], c["status"])
+        json.dump(dict(job=job, script=script, commit=commit, scored_by="scripts/job114.py (machine)", clauses=cl),
+                  open(P("prereg", f"scorecard_{job}.json"), "w"), indent=1)
+        M.update(macros(Hj, Vj, cl, pre))
+    # pooled over both jobs' valid machines: the paper's CPU-only results (no clauses of their own)
+    clall = [c for job in ("114", "115") if os.path.exists(P("prereg", f"scorecard_{job}.json"))
+             for c in json.load(open(P("prereg", f"scorecard_{job}.json")))["clauses"]]
+    M.update(macros(H, Vall, clall, "dp"))
+    json.dump(dict(hosts=H, valid=[h["job"] for h in Vall]), open(P("prereg", "job114.json"), "w"), indent=1, default=float)
     with open(P("paper", "wsg_job114.tex"), "w") as f:
-        f.write("% generated by scripts/job114.py from job 114\n")
+        f.write("% generated by scripts/job114.py from jobs 114 and 115\n")
         for k in sorted(M):
             f.write(f"\\newcommand{{\\{k}}}{{{M[k]}}}\n")
-    table(V)
+    table(Vall)
     for k in sorted(M):
         print(k, M[k])
 

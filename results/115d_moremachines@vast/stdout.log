@@ -1,0 +1,254 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ CARD=5090
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ BMIN=160
++ NA='base base0 foa foa0 bypass bypass0 fetch both3p'
++ NB=
++ PROF=0
++ V1REF=0.190
++ DRMIN=1500
++ VRMIN=0.5
++ KA=3
++ KB=2
++ echo 'CARD=5090 SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256 A=[base base0 foa foa0 bypass bypass0 fetch both3p] B=[]'
++ tee /w/results/115d_moremachines@vast/mode.txt
+CARD=5090 SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 problems 20 steps 256 A=[base base0 foa foa0 bypass bypass0 fetch both3p] B=[]
++++ dirname /w/jobs/115_moremachines@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-535a5f96-3e34-6034-653b-cb54b6779d4f
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/115d_moremachines@vast/free.txt
++ USEDGB=4
++ echo 'GPU UUID GPU-535a5f96-3e34-6034-653b-cb54b6779d4f; host memory in use 4 GB'
++ tee /w/results/115d_moremachines@vast/v0.txt
+GPU UUID GPU-535a5f96-3e34-6034-653b-cb54b6779d4f; host memory in use 4 GB
++ grep -qx GPU-535a5f96-3e34-6034-653b-cb54b6779d4f /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'V0: a GPU in no earlier launch'
++ tee -a /w/results/115d_moremachines@vast/v0.txt
+V0: a GPU in no earlier launch
++ '[' 4 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/115d_moremachines@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=64
+++ NPROC=64
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32'
++ PROF_KEEP_TAIL='G14 G32'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791523882
++ BUDGET=9600
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=23882
++ echo 'order seed base 23882'
++ tee /w/results/115d_moremachines@vast/order_seed.txt
+order seed base 23882
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/115d_moremachines@vast/cpu.txt
+CPU(s):                                  64
+Model name:                              AMD Ryzen Threadripper 3970X 32-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      60%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=32
++ tee /w/results/115d_moremachines@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 32 (nproc 64); NUMA nodes 1'
+usable physical cores 32 (nproc 64); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 32 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/115d_moremachines@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/115d_moremachines@vast/bw_gate.txt
++ DR=1695
++ echo 'device read 1695 GB/s'
++ tee -a /w/results/115d_moremachines@vast/gate.txt
+device read 1695 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 5090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=32607
++ echo 'card NVIDIA GeForce RTX 5090, 32607 MiB'
++ tee -a /w/results/115d_moremachines@vast/gate.txt
+card NVIDIA GeForce RTX 5090, 32607 MiB
++ case "$GNAME" in
++ '[' 5090 = 4090 ']'
++ '[' 1695 -ge 1500 ']'
+++ awk '/Mem:/{print $2}' /w/results/115d_moremachines@vast/free.txt
++ RAMGB=125
++ echo 'host RAM 125 GB, in use 4 GB'
++ tee -a /w/results/115d_moremachines@vast/gate.txt
+host RAM 125 GB, in use 4 GB
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=150
++ echo 'disk free 150 GB'
++ tee -a /w/results/115d_moremachines@vast/gate.txt
+disk free 150 GB
++ '[' 150 -ge 100 ']'
++ echo 'V0c checked'
++ tee -a /w/results/115d_moremachines@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip python3-venv
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet numpy scipy
++ mkdir -p /work/models
++ DLG=6373
++ '[' 0 = 1 ']'
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j64 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/115d_moremachines@vast/build_lc-ec.txt
++ '[' 0 = 1 ']'
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct  9 05:33 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/minadm_plan.py /w/jobs/ec2/known_gpu_uuids.txt /w/jobs/ec2/job109_uuids.txt
++ tee /w/results/115d_moremachines@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+2bb6d5eb5528c4a1e0a28e882ade702dad7aef0dbca8b5e40ea1dc44436fb481  /w/jobs/ec2/minadm_plan.py
+29d5d57b2f9b04a137bc803d83889ac3b95abd19740e440d927f39ff4cc75036  /w/jobs/ec2/known_gpu_uuids.txt
+df3fcfb66b4db6dbe3ec587b96e5f0ab9be10f581079189ff72b11eb4c66d827  /w/jobs/ec2/job109_uuids.txt
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=30
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/115d_moremachines@vast/concur.txt
++ tee /w/results/115d_moremachines@vast/probe1_when.txt
+++ date -u +%FT%TZ
+++ kill -0 6373
+++ echo yes
++ echo 'probe 1 ended 2026-10-09T05:34:18Z; download running: yes'
+probe 1 ended 2026-10-09T05:34:18Z; download running: yes
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/115d_moremachines@vast/concur.txt 30 13253760 4 /w/results/115d_moremachines@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,1,1
++ tee /w/results/115d_moremachines@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-09T05:34:18Z): gpt-oss 0,0,0,1,1'
+law table (2026-10-09T05:34:18Z): gpt-oss 0,0,0,1,1
++ '[' -n 0,0,0,1,1 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/115d_moremachines@vast/fetch_table_law_gptoss.json
++ RATIO=0.3931
++ echo 'VR: B_p / B_c = 0.3931'
++ tee -a /w/results/115d_moremachines@vast/gate.txt
+VR: B_p / B_c = 0.3931
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.3931 0.5
++ '[' 0 '!=' 1 ']'
++ pkill -P 6373
++ kill 6373
++ gate_fail 10 'VR FAIL: link/CPU ratio 0.3931 below 0.5, stopping'
++ local code=10
++ shift
++ echo 'VR FAIL: link/CPU ratio 0.3931 below 0.5, stopping'
++ tee -a /w/results/115d_moremachines@vast/v0.txt
+VR FAIL: link/CPU ratio 0.3931 below 0.5, stopping
++ '[' 0 = 1 ']'
++ exit 10

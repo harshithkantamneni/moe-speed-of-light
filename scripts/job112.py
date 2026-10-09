@@ -225,8 +225,9 @@ def macros(H, V, V4, V5, pr4, cl4, cl):
     q_failed = [k for k, (ok, _) in pr4.items() if k.startswith("Q") and ok is False]
     M["tcQN"] = str(sum(1 for k in pr4 if k.startswith("Q") and pr4[k][0] is not None)); M["tcQHeld"] = str(len(q_held))
     M["tcQFailed"] = str(len(q_failed)); M["tcQFailedList"] = ", ".join(q_failed) if q_failed else "none"
-    st = Counter(c["status"] for c in cl4 + cl)
-    M["tcClauses"] = str(len(cl4) + len(cl)); M["tcClausesHeld"] = str(st.get("held", 0)); M["tcClausesPoint"] = str(st.get("held (point)", 0))
+    pcl = [c for c in cl4 + cl if not c["id"].endswith("-valid")]   # the predictions; the validity condition apart
+    st = Counter(c["status"] for c in pcl)
+    M["tcClauses"] = str(len(pcl)); M["tcClausesHeld"] = str(st.get("held", 0)); M["tcClausesPoint"] = str(st.get("held (point)", 0))
     M["tcClausesFailed"] = str(st.get("failed", 0)); M["tcClausesUntested"] = str(st.get("untested", 0))
     failed = sorted({c["id"].split("-")[1] for c in cl4 + cl if c["status"] == "failed"})
     M["tcFailedList"] = ", ".join(failed) if failed else "none"

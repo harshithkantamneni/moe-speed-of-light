@@ -61,7 +61,7 @@ point estimate, \scaNoInterval{} have no interval and \scaCrosses{} have one tha
 re-scoring is a check; neither tally uses it.
 
 \paragraph{Rounds and rentals.} A machine's intervals are over problems. To see what they leave out,
-\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111, 112 and 113 that ran a configuration in two
+\texttt{scripts/noise.py} takes every valid machine of jobs 109, 111, 112, 113 and 114 that ran a configuration in two
 rounds (\nzRoundN{} machine-budget-configurations on \nzRoundMachines{} machines; 25\% ran one round in these jobs) and every
 machine measured with the same configurations in two launches (\nzRentalN{} comparisons from \nzRentalPairs{} pairs of
 launches on \nzRentalMachines{} machines: job 099's panel and its relaunches in jobs 100, 101 and 103, job 109 and job
@@ -72,13 +72,15 @@ its own probe; the tables differed in \nzRentalTableDiff{} of the \nzRentalPairs
 differences; over the \nzRentalSameN{} comparisons with the same table the median is \nzRentalSameMed\% and the largest
 \nzRentalSameMax\%. Each machine's interval for each configuration was then widened, on the log scale and on both sides,
 by that configuration's full round-to-round range on that machine (zero at 25\%), and the derived intervals (capture,
-job 112's differences) accordingly. All \nzHeldCI{} per-machine clauses of these jobs that held with an interval still
+job 112's differences, job 114's interaction in ms) accordingly. All \nzHeldCI{} per-machine clauses of these jobs that held with an interval still
 hold; the \nzPooled{} pooled clauses, whose intervals are over machines, are not widened. With every interval widened
 further by the largest rental difference, \nzRentalStillHeld{} still hold and \nzRentalMoved{} hold on the point estimate
 only. Of those, \nzRentalMovedNarrow{} are the bands of $\pm$0.06 or narrower around configurations that barely change
-the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo, job 113's H3 on one machine); the other
+the speed (job 109's P2 and P10, job 110's Q1 for \DepOne{} and \MinTwo, job 113's H3 on one machine, job 114's H4 and
+H6); the other
 \nzRentalMovedOther{} are the second-card trend checks for \MinOne{} and the read-ahead oracle and the no-foresight bound
-(Q1 and Q3) on the RTX 4090s, P8 on one machine, T3 on one, and job 113's H5 and H6 on one machine each. No clause changes to failed: failure is decided by the point estimate.
+(Q1 and Q3) on the RTX 4090s, P8 on one machine, T3 on one, job 113's H5 and H6 on one machine each, and job 114's H3
+at 11\% on two machines and its interaction on all three. No clause changes to failed: failure is decided by the point estimate.
 
 \input{tab_prereg}
 
@@ -149,7 +151,7 @@ round of the Ryzen 9 5950X, the slowest machine. The header's statement that no 
 was wrong for one: the Core i9-13900KF's offer had been rented twice before (the first rental for 099d, and 100e),
 both times without a result. Its GPU had never been measured, and it passed the identity gate. Several of the job's
 bands were wide against what earlier jobs had shown: the mean share closed by \MinOne{} (0.25 to 0.55, where the panel
-had shown \dmAllTogetherLow\%), the margin's speed (0.98 to 1.06, where it had run \rbDkMean$\times$ the deployed cache) and the capture bound
+had shown \dmAllTogetherLow\%), the margin's speed (0.98 to 1.06, where it had run \rbDkLow$\times$ the deployed cache at 11\% and \rbDkMid$\times$ at 25\%) and the capture bound
 (at most 0.35). These held, but could hardly have failed. Job 102's floor of 0.50 for the per-layer read time was
 loose in the same way: its header's analytic estimate, before launch, was 0.85 to 0.99. The clauses that could have failed are the interaction's sign
 on every machine and the per-machine bounds on the variants without foresight; job 110's predictions 3 to 5 are
@@ -164,7 +166,7 @@ four machines that had run a round, with the card's own reference (its first rou
 110's predictions unchanged. The fourth, 110e, was not relaunched: its GPU was left out of the relaunch list, an
 oversight we found after the job. Its first round deviated from the trend by \cxNotRelaunchedDev\% at 11\%, inside the band, so
 leaving it out does not change the trend's outcome. In that void round the larger margin captured \cxNotRelaunchedCap\% of
-the read-ahead oracle's gain, a gain of only \cxNotRelaunchedGain\%: where the oracle gains little, capture is unstable; the relaunched machines' first rounds were in the repository when the
+the read-ahead oracle's gain, a gain of only \cxNotRelaunchedGain\%: where the oracle gains little, capture is unstable. The relaunched machines' first rounds were in the repository when the
 relaunch was committed. Those first rounds had come within \cxFirstDevLowMax\% of the trend for \MinOne{} and the
 read-ahead oracle; for the two single changes, whose band is $\pm$0.06 in log, \cxFirstSixOut{} was outside it
 (\cxFirstSixName, \cxFirstSixMaxPct\% off, \cxFirstSixMaxLog{} in log). The predictions were committed before any RTX 4090 data, and the corrected reference
@@ -222,19 +224,24 @@ fit of their times to CPU-served misses, background copies and in-step fetches; 
 committed before any machine started. Of the \dzStarted{} machines that started, \dzGated{} stopped at the first gate
 because their GPUs had been rented before (the gate admits only new GPUs and job 109's), and \dzRoundFailN, a
 \dzRoundFailCpu, failed the round check (its deployed cache's two rounds were \dzRoundFailSpread\% apart) and is not
-scored; the replacements were the next listed offers, as registered, and their listings are committed with the results.
+scored. The replacements did not follow the registered order exactly: we chose them from offer listings taken minutes
+before the ones committed with the results, and in the committed listings a cheaper qualifying offer, a Core Ultra 9
+285K, was listed at each replacement and skipped. The header's statement that none of its listed offers had been rented
+before was wrong for one (job 089's machine, which the gate then stopped). The choices were made before any of these
+machines produced data, so they could not select on outcomes, but they changed which machines were sampled.
 The \dzNWord{} valid machines had link-to-CPU ratios \dzRatioRng; one is job 109f's. \MinOne's misses and fetches per
 token matched the earlier machines' within 1\% at both budgets, so the fetch table played no part in it, and the
 CPU-only deployed cache and \MinTwo{} made no in-step fetch and matched job 113's counters. One valid Ryzen 9 5950X's
 probe gave an all-zero fetch table, so its deployed path already ran without in-step fetches; the two clauses that
 asked the fetches' removal to change something (\DepOne's fetches at most halved, \MinTwo{} at least 1.03$\times$ faster)
 failed there, and held on the other two. Of the job's \dzClauses{} clauses, \dzClausesHeld{} held with their intervals,
-\dzClausesPoint{} on the point estimate (the counter checks, which have no interval) and \dzClausesFailed{} failed. The
+\dzClausesPoint{} on the point estimate (the counter checks, which have no interval) and \dzClausesFailed{} failed; its
+validity condition, at least two valid machines, was met. The
 interaction now has an interval over problems: on the CPU-only path at 11\% it was \dzInterMsLowRng\,ms per token,
 above zero on all \dzN{} machines; at 25\% it was \dzInterMsMidMin{} to \dzInterMsMidMax\,ms, above zero on \dzInterPosCIMid.
 
 The clause-by-clause tables (\scClauses{} rows for jobs 073--098, \scbN{} for job 099, \sccN{} for job 100,
 \jbClauses{} for job 101, \jdClauses{} for job 102, \jeClauses{} and \jfClauses{} for jobs 103 and 104, \jgClauses{}
 for job 105, \jiClauses{} for job 106, \jlClauses{} for job 107, \jmClauses{} for job 108, \olClauses{} for job 109,
-\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112, \hsClauses{} for job 113, \dzClauses{} for job 114) are in the scorecard, a separate document (\texttt{paper/supplement.pdf}), generated by the same
-scripts.
+\cxTenClauses{} for job 110, \cxClauses{} for job 111, \tcClauses{} for job 112, \hsClauses{} for job 113, \dzClauses{} for job 114; from job 107 on, plus each job's validity condition) are in the
+scorecard, a separate document (\texttt{paper/supplement.pdf}), generated by the same scripts.

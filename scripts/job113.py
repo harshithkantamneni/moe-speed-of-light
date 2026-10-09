@@ -91,8 +91,8 @@ def clauses113(V):
         if "fetchplan/base" in r and "bypassplan0/base" in r:
             add(f"{h['job']}-H6", f"fetchplan/base >= bypassplan0/base + 0.05 at 11% ({nm})", r["fetchplan/base"] - r["bypassplan0/base"],
                 lambda v: v >= 0.05, ">= 0.05", nm, ci.get("fetchplan-bypassplan0"))
-    out.append(dict(id="113-valid", short="at least two valid hosts (else single-machine results)", type="count",
-                    measured=len(V), ci=None, threshold=">= 2", status="held" if len(V) >= 2 else "failed", why="", host="pooled"))
+    out.append(dict(id="113-valid", short="at least two valid hosts (else single-machine results)", type="condition",
+                    measured=len(V), ci=None, threshold=">= 2", status="met" if len(V) >= 2 else "not met", why="", host="pooled"))
     return out
 
 
@@ -132,8 +132,9 @@ def macros(H, V, cl):
                                   if "fetchplan/base" in c["rel"] and "bypassplan0/base" in c["rel"] and c["rel"]["fetchplan/base"] > 1], "{:.0f}")
         rng(f"hsReadsRstar{nm}", [c["hostreads"]["bypassplan0"] / J.RSTAR[C] for c in sel if "bypassplan0" in c["hostreads"]])
     # every clause, the pooled count included (as the tally of Table 10 and the scorecard count them)
-    M["hsClauses"] = str(len(cl)); M["hsClausesHeld"] = str(sum(c["status"] == "held" for c in cl))
-    M["hsClausesPoint"] = str(sum(c["status"] == "held (point)" for c in cl)); M["hsClausesFailed"] = str(sum(c["status"] == "failed" for c in cl))
+    pcl = [c for c in cl if not c["id"].endswith("-valid")]   # the predictions; the validity condition apart
+    M["hsClauses"] = str(len(pcl)); M["hsClausesHeld"] = str(sum(c["status"] == "held" for c in pcl))
+    M["hsClausesPoint"] = str(sum(c["status"] == "held (point)" for c in pcl)); M["hsClausesFailed"] = str(sum(c["status"] == "failed" for c in pcl))
     for t, w in (("One", "H1"), ("Two", "H2"), ("Three", "H3"), ("Four", "H4"), ("Five", "H5"), ("Six", "H6")):
         cs = [c for c in cl if f"-{w}" in c["id"] and c["host"] != "pooled"]
         if cs:

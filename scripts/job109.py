@@ -509,7 +509,7 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     failed = [k for k, (ok, _) in pr.items() if k.startswith("P") and ok is False]
     M["olPredN"] = str(sum(1 for k in pr if k.startswith("P"))); M["olPredHeld"] = str(len(held)); M["olPredFailed"] = str(len(failed))
     M["olPredFailedList"] = ", ".join(failed) if failed else "none"
-    cl = clauses109(V, cells); st = Counter(c["status"] for c in cl)
+    cl = [c for c in clauses109(V, cells) if not c["id"].endswith("-valid")]; st = Counter(c["status"] for c in cl)
     M["olClauses"] = str(len(cl)); M["olClausesHeld"] = str(st.get("held (point)", 0) + st.get("held", 0)); M["olClausesFailed"] = str(st.get("failed", 0))
     # the RTX 4090s: job 111 (registered predictions of job 110, relaunched with V1 corrected) and job 110's first rounds
     M["cxN"] = str(len(V3)); M["cxNWord"] = word(len(V3)); M["cxStarted"] = str(len(H3))
@@ -581,8 +581,8 @@ def write_paper(H, V, pr, H2, V2, H3, V3, pr3, cells=(14, 32)):
     M["cxTenGatedRatio"] = f"{gr[0]:.4f}" if gr else "--"
     M["cxTenStarted"] = word(len(H2)); M["cxTenGated"] = word(sum(1 for h in H2 if h["gate"]))
     M["cxElevenStarted"] = word(len(H3)); M["cxElevenNoModel"] = word(sum(1 for h in H3 if not h["gate"] and not h["ran"]))
-    M["cxTenClauses"] = str(len(clauses110(V2, cells)))
-    cl3 = clauses110(V3, cells); st3 = Counter(c["status"] for c in cl3)
+    M["cxTenClauses"] = str(len([c for c in clauses110(V2, cells) if not c["id"].endswith("-valid")]))
+    cl3 = [c for c in clauses110(V3, cells) if not c["id"].endswith("-valid")]; st3 = Counter(c["status"] for c in cl3)
     M["cxClauses"] = str(len(cl3)); M["cxClausesHeld"] = str(st3.get("held", 0)); M["cxClausesPoint"] = str(st3.get("held (point)", 0))
     M["cxClausesFailed"] = str(st3.get("failed", 0))
     M["olClausesHeldCI"] = str(st.get("held", 0)); M["olClausesPoint"] = str(st.get("held (point)", 0))

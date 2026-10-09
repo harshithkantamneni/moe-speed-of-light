@@ -197,10 +197,12 @@ def main():
     json.dump(out, open(P("prereg", "job107.json"), "w"), indent=1, default=float)
     json.dump(dict(job="107", script="jobs/107_newhosts@vast.sh", commit="1a0616a", scored_by="scripts/job107.py (machine)", clauses=clauses),
               open(P("prereg", "scorecard_107.json"), "w"), indent=1)
-    st = Counter(c["status"] for c in clauses)
+    pcl = [c for c in clauses if not c["id"].endswith("-valid")]   # the predictions; the validity condition apart
+    st = Counter(c["status"] for c in pcl)
     M = dict(jlLaunched=str(len(hosts) + len(gated)), jlGated=str(len(gated)), jlRan=str(len(hosts)), jlValid=str(len(valid)),
-             jlInvalid=str(len(hosts) - len(valid)), jlClauses=str(len(clauses)), jlHeld=str(st.get("held", 0)),
+             jlInvalid=str(len(hosts) - len(valid)), jlClauses=str(len(pcl)), jlHeld=str(st.get("held", 0)),
              jlPoint=str(st.get("held (point)", 0)), jlFailed=str(st.get("failed", 0)))
+    M["jlCond"] = "met" if all(c["status"] != "failed" for c in clauses if c["id"].endswith("-valid")) else "not met"
     M["jlGatedUuid"] = str(sum("rented before" in g["reason"] for g in gated.values()))
     M["jlGatedMem"] = str(sum("memory in use" in g["reason"] for g in gated.values()))
 

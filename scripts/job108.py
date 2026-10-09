@@ -121,10 +121,12 @@ def main():
               open(P("prereg", "job108.json"), "w"), indent=1, default=float)
     json.dump(dict(job="108", script="jobs/108_smallhosts@vast.sh", commit="88e954c", scored_by="scripts/job108.py (machine)", clauses=clauses),
               open(P("prereg", "scorecard_108.json"), "w"), indent=1)
-    st = Counter(c["status"] for c in clauses)
+    pcl = [c for c in clauses if not c["id"].endswith("-valid")]   # the predictions; the validity condition apart
+    st = Counter(c["status"] for c in pcl)
     M = dict(jmLaunched=str(len(hosts) + len(gated)), jmGated=str(len(gated)), jmRan=str(len(hosts)), jmValid=str(len(valid)),
-             jmInvalid=str(len(hosts) - len(valid)), jmClauses=str(len(clauses)), jmHeld=str(st.get("held", 0)),
+             jmInvalid=str(len(hosts) - len(valid)), jmClauses=str(len(pcl)), jmHeld=str(st.get("held", 0)),
              jmPoint=str(st.get("held (point)", 0)), jmFailed=str(st.get("failed", 0)))
+    M["jmCond"] = "met" if all(c["status"] != "failed" for c in clauses if c["id"].endswith("-valid")) else "not met"
     M["jmValidWord"] = word(len(valid)); M["jmGatedWord"] = word(len(gated)); M["jmRequiredWord"] = word(REQUIRED)
     M["jmLaunchedWord"] = word(len(hosts) + len(gated))
     M["jmGatedClass"] = str(sum("desktop-class" in g["reason"] for g in gated.values()))

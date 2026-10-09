@@ -84,6 +84,9 @@ def widen(h, extra=0.0):
         # job 112's differences of ratios: add the ranges, converted to ratio units
         def dd(n):
             return r.get(n, 1.0) * (math.exp(w(n)) - 1)
+        if "p1margin" in ci:   # job 109's P1 margin: MIN-1R minus the better single change, in ratio units
+            u = dd("fetch") + max(dd("bypass"), dd("foa"))
+            new["p1margin"] = (ci["p1margin"][0] - u, ci["p1margin"][1] + u)
         if "lag_part" in ci:
             u = dd("bypassplanS") + dd("bypassplan")
             new["lag_part"] = (ci["lag_part"][0] - u, ci["lag_part"][1] + u)
@@ -91,11 +94,11 @@ def widen(h, extra=0.0):
             u = dd("fetchplan") + 2 * dd("bypassplanS") + dd("bypassplan")
             new["read_minus_lag"] = (ci["read_minus_lag"][0] - u, ci["read_minus_lag"][1] + u)
         ci.update(new)
-        # job 114's interaction in ms: its round-to-round range, plus extra on each of its four times
+        # the interaction in ms (jobs 109-115): its round-to-round range, plus extra on each of its four times
         if c.get("inter_ms_ci"):
             ir = c.get("inter_rounds", [])
             t = c.get("t", {})
-            u = (max(ir) - min(ir) if len(ir) >= 2 else 0.0) + extra * sum(t.get(n, 0.0) for n in ("bypass0", "foa0", "base0", "fetch"))
+            u = (max(ir) - min(ir) if len(ir) >= 2 else 0.0) + extra * sum(t.get(n, 0.0) for n in c.get("inter_names", ("bypass0", "foa0", "base0", "fetch")))
             c["inter_ms_ci"] = (c["inter_ms_ci"][0] - u, c["inter_ms_ci"][1] + u)
         # job 113's ratios between two configurations (X/Y) and its one-read margin: each round's own X/Y, its range,
         # plus extra

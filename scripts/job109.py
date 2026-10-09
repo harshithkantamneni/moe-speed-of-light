@@ -102,6 +102,25 @@ def boot_draws(pp, nb=2000, seed=109):
     return draws
 
 
+def inter_draws(pp, names=("bypass", "foa", "base", "fetch"), nb=4000, seed=109):
+    """the interaction in ms per token, t_a + t_b - t_c - t_d over process A's configurations names = (a, b, c, d), with a
+    paired bootstrap over problems (the same draw for every round and configuration): (point, (lo, hi), per-round values),
+    or None when a round lacks one of them"""
+    if not pp or not all(n in pp[r][0] for r in pp for n in names):
+        return None
+    rounds = sorted(pp)
+    seqs = sorted(set.intersection(*(set(pp[r][0][n]) for r in rounds for n in names)))
+    if len(seqs) < 2:
+        return None
+    arr = {r: [np.array([pp[r][0][n][q][0] for q in seqs]) for n in names] for r in rounds}
+    f = lambda r, i: arr[r][0][i].mean() + arr[r][1][i].mean() - arr[r][2][i].mean() - arr[r][3][i].mean()  # noqa: E731
+    allq = np.arange(len(seqs))
+    per_round = [float(f(r, allq)) for r in rounds]
+    rng = np.random.default_rng(seed)
+    draws = [np.mean([f(r, i) for r in rounds]) for i in rng.integers(0, len(seqs), size=(nb, len(seqs)))]
+    return float(np.mean(per_round)), tuple(float(q) for q in np.percentile(draws, [2.5, 97.5])), per_round
+
+
 def tint(v, level=0.95):
     """mean over machines and its t-interval (the machine is the unit; with 3-15 machines a percentile bootstrap is too
     narrow); None for fewer than two values"""
@@ -172,7 +191,16 @@ def load(d, cells=(14, 32), min_ratio=0.5, need_b=True, keep_pp=False):
             c["ratio"][n] = float(math.exp(np.mean(np.log(v))))
         if c["rounds"]:
             c["_draws"] = boot_draws(c["_pp"])
+            # the deployed path's interaction in ms with its interval over problems (the scoring rule needs one)
+            it = inter_draws(c["_pp"], seed=109 + C)
+            if it:
+                c["inter_ms_ci"], c["inter_rounds"] = it[1], it[2]
+                c["inter_names"] = ("bypass", "foa", "base", "fetch")
             c["ci"] = {n: (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) for n, v in c["_draws"].items() if len(v)}
+            dr = c["_draws"]
+            if all(n in dr for n in ("fetch", "bypass", "foa")):   # P1's margin: MIN-1R over the better single change
+                v = dr["fetch"] - np.maximum(dr["bypass"], dr["foa"])
+                c["ci"]["p1margin"] = (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5)))
             if not keep_pp:
                 c.pop("_pp"); c.pop("_draws")
         if c["t"].get("base"):
@@ -337,10 +365,11 @@ def clauses109(V, cells=(14, 32)):
     for h in V:
         nm = f"{h['job']} {h['cpu']}"; c = h["cells"]; r = lambda C, n: c[C]["ratio"].get(n)  # noqa: E731
         add(f"{h['job']}-P1-g11", f"MIN read once beats both single changes by 0.04 ({nm})",
-            r(lo, "fetch") - max(r(lo, "bypass"), r(lo, "foa")), lambda v: v >= 0.04, ">= 0.04", nm)
+            r(lo, "fetch") - max(r(lo, "bypass"), r(lo, "foa")), lambda v: v >= 0.04, ">= 0.04", nm, c[lo]["ci"].get("p1margin"))
         for C in cells:
             if c[C]["rounds"]:
-                add(f"{h['job']}-P1-int-{G[C]}", f"interaction positive ({nm}, {G[C]})", c[C].get("interaction_ms"), lambda v: v > 0, "> 0 ms", nm)
+                add(f"{h['job']}-P1-int-{G[C]}", f"interaction positive ({nm}, {G[C]})", c[C].get("interaction_ms"), lambda v: v > 0, "> 0 ms", nm,
+                    c[C].get("inter_ms_ci"))
         for n in ("foa", "bypass"):
             add(f"{h['job']}-P2-{n}", f"{n}/base within [0.96, 1.05] at 11% ({nm})", r(lo, n), lambda v: 0.96 <= v <= 1.05, "0.96 to 1.05", nm,
                 c[lo]["ci"].get(n))
@@ -415,7 +444,8 @@ def clauses110(V, cells=(14, 32)):
                 add(f"{h['job']}-Q5-{G[C]}", f"R1 and R2 read >= 1.3 R* ({nm}, {G[C]})",
                     min(c[C]["reads"].get("R1", 0), c[C]["reads"].get("R2", 0)) / RSTAR[C], lambda v: v >= 1.3, ">= 1.3", nm)
         if h["ratio"] >= 0.5:
-            add(f"{h['job']}-Q6", f"interaction positive at 11% ({nm})", c[lo].get("interaction_ms"), lambda v: v > 0, "> 0 ms", nm)
+            add(f"{h['job']}-Q6", f"interaction positive at 11% ({nm})", c[lo].get("interaction_ms"), lambda v: v > 0, "> 0 ms", nm,
+                c[lo].get("inter_ms_ci"))
     have = [h for h in V if h["cells"][mid]["rounds"]]
     miss = sum(abs(trend_dev(h, mid, n)) > 0.10 for h in have for n in ("fetch", "both3p")) if have else None
     add("110-Q1-g25", "fetch and both3p within 0.10 (log) of the trend at 25% on all but one host-configuration", miss,

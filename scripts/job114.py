@@ -101,6 +101,7 @@ def load114(d):
             c["inter_rounds"] = [float(arr[r]["bypass0"].mean() + arr[r]["foa0"].mean() - arr[r]["base0"].mean()
                                        - arr[r]["fetch"].mean()) for r in rounds]
             c["inter_ms_ci"] = tuple(float(q) for q in np.percentile(draws, [2.5, 97.5]))
+            c["inter_names"] = ("bypass0", "foa0", "base0", "fetch")
         ct = c["counters"]
         c["misses"] = {n: float(np.mean([x["misses"] for x in v])) for n, v in ct.items()}
         c["admits"] = {n: float(np.mean([x["admits"] for x in v])) for n, v in ct.items()}
@@ -346,14 +347,14 @@ def table(V):
         f.write("\\caption{The 2$\\times$2 with the fetch table on and with the in-step fetches off, registered (gpt-oss 11\\%). "
                 "Speeds relative to the deployed cache on the same machine and read path (\\emph{on}: the deployed read path, "
                 "with the fetch table; \\emph{off}: the in-step fetches off). \\MinOne's forced plans replace the table, so it "
-                "is the same on both paths; its column is against the deployed cache with the fetches off. Subscripts: "
+                "is the same on both paths; its column is against the deployed cache with the fetches off. \\emph{Dep.}: the deployed cache; Eq.~(1): the bound. Subscripts: "
                 "half-widths of 95\\% intervals over problems. Interaction: \\MinTwo's plus \\DepOne's time minus the deployed "
                 "cache's and \\MinOne's, fetches off, in ms per token, with its 95\\% interval. $^\\ddagger$An all-zero fetch table: "
                 "no in-step fetches on either path. $^\\S$The second test.}\\label{tab:job114}\n")
-        f.write("\\setlength\\tabcolsep{4.5pt}\n\\begin{tabular}{@{}lrrrrrrrr@{}}\\toprule\n")
-        f.write(" & & \\multicolumn{1}{c}{Deployed} & \\multicolumn{2}{c}{\\MinTwo} & \\multicolumn{2}{c}{\\DepOne} & & \\\\\n")
-        f.write("\\cmidrule(lr){3-3}\\cmidrule(lr){4-5}\\cmidrule(lr){6-7}\n")
-        f.write("Machine & Ratio & off\\,/\\,on & on & off & on & off & \\MinOne & Interaction (ms) \\\\\\midrule\n")
+        f.write("\\setlength\\tabcolsep{4.5pt}\n\\begin{tabular}{@{}lrrrrrrrrrr@{}}\\toprule\n")
+        f.write(" & & \\multicolumn{2}{c}{ms per token} & \\multicolumn{1}{c}{Deployed} & \\multicolumn{2}{c}{\\MinTwo} & \\multicolumn{2}{c}{\\DepOne} & & \\\\\n")
+        f.write("\\cmidrule(lr){3-4}\\cmidrule(lr){5-5}\\cmidrule(lr){6-7}\\cmidrule(lr){8-9}\n")
+        f.write("Machine & Ratio & Dep. & Eq.\\,(1) & off\\,/\\,on & on & off & on & off & \\MinOne & Interaction (ms) \\\\\\midrule\n")
         groups = (("114", "First test"), ("115", "Second test (three idle probe runs; job 109's machines not admitted)"))
         for job, lab in groups:
             VV = [h for h in V if h["jobno"] == job and h["cells"][14]["rounds"]]
@@ -371,7 +372,7 @@ def table(V):
                 im = c.get("inter_ms"); ic = c.get("inter_ms_ci")
                 inter = "--" if im is None else (f"{im:.1f}".replace("-", "$-$") + (f" [{ic[0]:.1f}, {ic[1]:.1f}]".replace("-", "$-$") if ic else ""))
                 mark = ("$^\\ddagger$" if h["has_table"] is False else "") + ("$^\\S$" if job == "115" else "")
-                f.write(f"{h['cpu']}{mark} & {h['ratio']:.2f} & {cell('base0/base')} & {cell('bypass/base')} & {cell('bypass0/base0')} & "
+                f.write(f"{h['cpu']}{mark} & {h['ratio']:.2f} & {c['t']['base']:.1f} & {c['eq1']:.1f} & {cell('base0/base')} & {cell('bypass/base')} & {cell('bypass0/base0')} & "
                         f"{cell('foa/base')} & {cell('foa0/base0')} & {cell('fetch/base0')} & {inter} \\\\\n")
         f.write("\\bottomrule\\end{tabular}\\end{table*}\n")
     from scripts.tabnote import split_caption

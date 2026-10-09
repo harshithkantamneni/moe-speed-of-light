@@ -186,6 +186,9 @@ def main():
         M[f"dcMachines{nm}"] = str(len(rows))
         M[f"dcShareG{nm}Min"] = f"{100 * np.min(g / T):.0f}"; M[f"dcShareG{nm}Max"] = f"{100 * np.max(g / T):.0f}"
         M[f"dcShareMin{nm}Min"] = f"{100 * np.min(mn / T):.0f}"; M[f"dcShareMin{nm}Max"] = f"{100 * np.max(mn / T):.0f}"
+        # the median and interquartile range over machines (the reviews ask for more than the extremes)
+        q1, q2, q3 = np.percentile(mn / T, [25, 50, 75])
+        M[f"dcShareMin{nm}Med"] = f"{100 * q2:.0f}"; M[f"dcShareMin{nm}QOne"] = f"{100 * q1:.0f}"; M[f"dcShareMin{nm}QThree"] = f"{100 * q3:.0f}"
         # the envelope: the bound at max(probe, engine-implied rate); MIN's read time scales as 1 / rate
         Bv = np.array([r["B"] for r in rows]); Bi = np.array([r["Bimp"] for r in rows])
         env = mn * Bv / np.maximum(Bv, Bi)

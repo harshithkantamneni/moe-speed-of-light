@@ -257,15 +257,24 @@ def main():
             alt["miss"] += abs((c["G"] + tm(ct["misses"])) / c["ms"]["base"] - 1) <= 0.06
     M["jiAltHalf"] = str(alt["half"]); M["jiAltMiss"] = str(alt["miss"])
     # the fewest-admission set loaded by the CPU (two reads) on the slow-link machines of jobs 104-105, gpt-oss 11% and 25%
-    bp = []
+    bp, bph = [], {}
     for pj in (P("prereg", "job104.json"), P("prereg", "job105.json")):
         for hh in json.load(open(pj))["hosts"]:
             if hh["link_over_cpu"] < 1 / 3:
                 for C in ("14", "32"):
                     c = hh["cells"].get(C)
                     if c and "bypassplan" in c["speed"]:
-                        bp.append(c["speed"]["bypassplan"][0])
+                        bp.append(c["speed"]["bypassplan"][0]); bph[hh["dir"]] = hh["link_over_cpu"]
     rng("jkSlowBypassPlan", bp)
+    # the launches behind it, and the machines (by GPU UUID)
+    def _uuid(dn):
+        for ln in open(f"{RES}/{dn}/nvidia-smi-q.txt"):
+            if "GPU UUID" in ln:
+                return ln.split(":", 1)[1].strip()
+        return dn
+    W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    M["jkSlowBpLaunches"] = W[len(bph)]; M["jkSlowBpMachines"] = W[len({_uuid(d) for d in bph})]
+    rng("jkSlowBpRatio", list(bph.values()))
     fail = Counter("unst" if c["id"][:4] in unstable else ("pooled" if c["id"].startswith("106-") else "stable")
                    for c in clauses if c["status"] == "failed")
     M["jiFailedUnst"] = str(fail.get("unst", 0)); M["jiFailedStable"] = str(fail.get("stable", 0)); M["jiFailedPooled"] = str(fail.get("pooled", 0))

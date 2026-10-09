@@ -188,9 +188,10 @@ def clause_pooled(Vall):
     if len(v) < 2:
         return []
     m = float(np.mean(v)); hw = float(tdist.ppf(0.975, len(v) - 1) * np.std(v, ddof=1) / math.sqrt(len(v)))
+    ci = (m - hw, m + hw)   # the t-interval over machines, as job 109's pooled clauses
     return [dict(id="115-H8a", short=f"mean share of the gap closed by MIN's set alone, CPU only, 11%, over {len(v)} machines >= 0.10",
-                 type="band", measured=round(m, 4), ci=None, threshold=">= 0.10", status="held (point)" if m >= 0.10 else "failed",
-                 why="pooled over machines", host="pooled"),
+                 type="band", measured=round(m, 4), ci=[round(x, 4) for x in ci], threshold=">= 0.10",
+                 status=J.status(m, lambda x: x >= 0.10, ci), why="pooled over machines (t-interval)", host="pooled"),
             dict(id="115-H8b", short="its 95% t-interval over machines above zero (lower end)", type="band", measured=round(m - hw, 4),
                  ci=None, threshold="> 0", status="held (point)" if m - hw > 0 else "failed", why="pooled over machines", host="pooled")]
 
@@ -217,6 +218,16 @@ def macros(H, V, cl, pre="dz"):
     vr = [h for h in H if h["gate"].startswith("VR FAIL")]
     M["dzVZeroFailN"] = word(len(vz)); M["dzVRFailN"] = word(len(vr))
     M["dzVRFailCpu"] = ", ".join(sorted({h["cpu"] for h in vr})) or "none"
+    # the same as a phrase with counts and each model's ratios: "two Ryzen Threadripper 3970Xs (0.39) and an EPYC 7352 (0.26)"
+    from collections import Counter
+    cnt = Counter(h["cpu"] for h in vr)
+    parts = []
+    for cpu, n in sorted(cnt.items(), key=lambda kv: (-kv[1], kv[0])):
+        rs = sorted(float(m.group(1)) for h in vr if h["cpu"] == cpu for m in [re.search(r"ratio ([0-9.]+)", h["gate"])] if m)
+        rr = f"{rs[0]:.2f}" if f"{rs[0]:.2f}" == f"{rs[-1]:.2f}" else f"{rs[0]:.2f}--{rs[-1]:.2f}"
+        art = ("an" if cpu[0] in "AEIOU" else "a") if n == 1 else word(n)
+        parts.append(f"{art} {cpu}{'s' if n > 1 else ''} ({rr})")
+    M["dzVRFailList"] = " and ".join([", ".join(parts[:-1]), parts[-1]] if len(parts) > 1 else parts) or "none"
     rng("dzVRFailRatio", [float(m.group(1)) for h in vr for m in [re.search(r"ratio ([0-9.]+)", h["gate"])] if m])
     # machines that passed the gates but failed the registered round check (V2): not scored
     RF = [h for h in H if not h["gate"] and h["V2_fail"]]
@@ -241,6 +252,8 @@ def macros(H, V, cl, pre="dz"):
         if "parts" in c:
             M["dzShInteractionZeroNoTabLow"] = f"{100 * c['parts']['interaction0']:.0f}"
         rng("dzShInteractionZeroNoTabLow", [100 * h["cells"][14]["parts"]["interaction0"] for h in Z if "parts" in h["cells"][14]], "{:.0f}")
+        rng("dzShInteractionNoTabLow", [100 * h["cells"][14]["parts"]["interaction"] for h in Z if "parts" in h["cells"][14]], "{:.0f}")
+        M["dzNoTabCpuUniq"] = ", ".join(sorted({h["cpu"] for h in Z}))
     for C in CELLS:
         nm = NM[C]
         selt = [h["cells"][C] for h in T if h["cells"][C]["rounds"]]
@@ -347,7 +360,7 @@ def table(V):
         f.write("\\caption{The 2$\\times$2 with the fetch table on and with the in-step fetches off, registered (gpt-oss 11\\%). "
                 "Speeds relative to the deployed cache on the same machine and read path (\\emph{on}: the deployed read path, "
                 "with the fetch table; \\emph{off}: the in-step fetches off). \\MinOne's forced plans replace the table, so it "
-                "is the same on both paths; its column is against the deployed cache with the fetches off. \\emph{Dep.}: the deployed cache; Eq.~(1): the bound. Subscripts: "
+                "is the same on both paths; its column is against the deployed cache with the fetches off. \\emph{Dep.}: the deployed cache with its fetch table (on); Eq.~(1): the bound. Subscripts: "
                 "half-widths of 95\\% intervals over problems. Interaction: \\MinTwo's plus \\DepOne's time minus the deployed "
                 "cache's and \\MinOne's, fetches off, in ms per token, with its 95\\% interval. $^\\ddagger$An all-zero fetch table: "
                 "no in-step fetches on either path. $^\\S$The second test.}\\label{tab:job114}\n")

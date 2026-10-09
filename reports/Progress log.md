@@ -3,6 +3,20 @@
 *Started Monday 28 September 2026. Newest entries first. Numbers link to result folders on the `gpu` branch
 (`results/<job>/`).*
 
+## 9 October (morning): final polish after round 28, number check 25
+
+**Status for Harshith.** The polish is committed on main (not pushed). Number check 25 recomputed every changed number
+from raw data: all matched; its 10 wording, pointer and layout defects are fixed.
+
+- Reading once is scoped by budget: with the fetches off it beat reading twice at 11% on all five machines
+  (1.02-1.24x), but at 25% only on the two Ryzen 9 5950Xs (1.12-1.13x); it lost on the three Intel machines
+  (0.96-0.97x, post hoc). Section 5's heading and rule 4 now say so.
+- A direct check of Eq. (1) replaces the Eq. (4) wording in Table 1: none of the 302 times per token behind Table 4 is
+  below it; the fastest (read-ahead oracle) is 1.33x.
+- Table 1 and the claim index follow section order; the pooled job 115 test is marked mostly in-sample; the deployed
+  cache's speed with and without its fetch table (0.98-1.08x) is disclosed; the scorecard's tables are numbered C1,
+  C2, ... so they no longer clash with the IEEE supplement's S-numbers.
+
 ## 9 October (morning): job 115, review round 28 (5, 6; clarity 3, 3)
 
 **Status for Harshith (read this first).** Round 28, MLSys PC / professor: **5 / 6** (down from 6 / 7; soundness 3 / 4,

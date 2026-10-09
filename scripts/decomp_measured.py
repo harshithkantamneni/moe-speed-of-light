@@ -401,11 +401,13 @@ def main():
             out["Cpu" + nm] = [dict(dir=r["dir"], ratio=r["ratio"], cpu=r["cpu"], times=r["t"], eq1=r["eq1"], share=r["share"])
                                for r in sel]
     M["dmCpuN"] = str(len({r["dir"] for r in CPU}))
-    # a direct check of Eq. (1): every measured configuration's time per token on Table 4's machines over the bound
-    over = [(tt / r["eq1"], k, r["dir"], r["C"]) for r in list(R) + list(NEW) + list(CPU) for k, tt in r["t"].items()]
+    # a direct check of Eq. (1): every measured configuration's time per token behind Table 4 over the bound (jobs 114
+    # and 115 ran no process B, so their baseB repeats base and is left out)
+    over = [(tt / r["eq1"], k, r["dir"], r["C"]) for r in list(R) + list(NEW) + list(CPU) for k, tt in r["t"].items()
+            if not (r in CPU and k == "baseB")]
     mo = min(over)
     M["dmBoundMinOver"] = f"{mo[0]:.2f}"; M["dmBoundRuns"] = str(len(over))
-    M["dmBoundLaunches"] = str(len({(x[2], x[3]) for x in over})); M["dmBoundMachinesN"] = str(len({x[2] for x in over}))
+    M["dmBoundLaunchBudgets"] = str(len({(x[2], x[3]) for x in over})); M["dmBoundLaunchesN"] = str(len({x[2] for x in over}))
     M["dmBoundBelow"] = str(sum(1 for x in over if x[0] < 1))
     print("Eq. (1) check: fastest", mo, "below:", M["dmBoundBelow"], "of", len(over))
     M["dmNewRatioMin"] = f"{min(r['ratio'] for r in NEW):.2f}" if NEW else "--"

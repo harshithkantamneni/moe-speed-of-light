@@ -1,0 +1,303 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/117_shadowb1@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
++ C=16
++ NSEQ=20
++ NDEC=256
++ BMIN=150
++ DRMIN=1500
++ VRMIN=0.5
++ RAMMIN=110
++ DISKMIN=190
++ nvidia-smi --query-gpu=name,memory.total,uuid,driver_version --format=csv
++ tee /w/results/117b_shadowb1@vast/gpu0.csv
+name, memory.total [MiB], uuid, driver_version
+NVIDIA RTX PRO 6000 Blackwell Workstation Edition, 97887 MiB, GPU-5dfae5d4-19c1-d734-d8cb-a417809e7e69, 595.91.07
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEM=97887
++ '[' 97887 -ge 79000 ']'
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=20
+++ NPROC=20
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
+++ date +%s
++ T0=1791846948
++ BUDGET=9000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=46948
++ echo 'order seed base 46948'
++ tee /w/results/117b_shadowb1@vast/order_seed.txt
+order seed base 46948
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/117b_shadowb1@vast/cpu.txt
+CPU(s):                                  20
+Model name:                              Intel(R) Core(TM) Ultra 7 265K
+Thread(s) per core:                      1
+Socket(s):                               20
+CPU(s) scaling MHz:                      24%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=19
++ tee /w/results/117b_shadowb1@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 19 (nproc 20); NUMA nodes 1'
+usable physical cores 19 (nproc 20); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 19 -le 32 ']'
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/117b_shadowb1@vast/bw_gate.txt
++ DR=1639
+++ head -1
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'device read 1639 GB/s; memory clock max 14001 MHz'
++ tee /w/results/117b_shadowb1@vast/gate.txt
+device read 1639 GB/s; memory clock max 14001 MHz
++ '[' 1639 -ge 1500 ']'
++ free -g
+++ awk '/Mem:/{print $2}' /w/results/117b_shadowb1@vast/free.txt
++ RAMGB=251
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=240
++ echo 'host RAM 251 GB; disk free 240 GB'
++ tee -a /w/results/117b_shadowb1@vast/gate.txt
+host RAM 251 GB; disk free 240 GB
++ '[' 251 -ge 110 ']'
++ '[' 240 -ge 190 ']'
++ echo 'V0 checked'
++ tee -a /w/results/117b_shadowb1@vast/v0.txt
+V0 checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip python3-venv
++ PYPKG='uv huggingface_hub hf_xet numpy numba scipy'
++ python3 -m pip install -q --break-system-packages --ignore-installed uv huggingface_hub hf_xet numpy numba scipy
++ for i in 1 2 3
++ python3 -c 'import numba, huggingface_hub'
++ command -v uv
++ break
++ python3 -c 'import numba, numpy, huggingface_hub; print('\''numba'\'', numba.__version__, '\''numpy'\'', numpy.__version__, '\''huggingface_hub'\'', huggingface_hub.__version__)'
++ command -v uv
++ tail -2 /w/results/117b_shadowb1@vast/pip.txt
+numba 0.68.0 numpy 2.5.4 huggingface_hub 2.2.0
+/usr/local/bin/uv
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=17
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/117b_shadowb1@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/117b_shadowb1@vast/concur.txt 17 9437184 8 /w/results/117b_shadowb1@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,1,2,2,3,3,4
++ tee /w/results/117b_shadowb1@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-12T23:17:11Z): qwen3 0,0,1,1,2,2,3,3,4'
+law table (2026-10-12T23:17:11Z): qwen3 0,0,1,1,2,2,3,3,4
++ '[' -n 0,0,1,1,2,2,3,3,4 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/117b_shadowb1@vast/fetch_table_law_qwen3.json
++ RATIO=0.5750
++ tee -a /w/results/117b_shadowb1@vast/gate.txt
++ echo 'VR: B_p / B_c = 0.5750'
+VR: B_p / B_c = 0.5750
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.5750 0.5
++ echo 'VR checked'
++ tee -a /w/results/117b_shadowb1@vast/v0.txt
+VR checked
++ HFQ=/work/models/Qwen3-30B-A3B
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ CQ=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ mkdir -p /work/models
++ DLQ=6688
++ VE=/work/venv
++ VC=/work/venv_conv
++ VEP=6689
++ VCP=6690
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j20 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/117b_shadowb1@vast/build_lc-ec.txt
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct 12 23:19 /work/lc-ec/build/bin/llama-ec-bench
++ install_nsys
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/117b_shadowb1@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ tee /w/results/117b_shadowb1@vast/sha.txt
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch /w/jobs/ec2/shadow_runahead.py /w/jobs/ec2/shadow_score.py /w/jobs/ec2/vmap.py /w/jobs/ec2/forecast_file.py /w/jobs/ec2/replay117.py /w/jobs/ec2/score117.py /w/jobs/ec2/prof_summary.py /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
+8b9f08c49c6da88782ccdeff370b600a585ff5b1adfebf5ae4ec0d06337f434d  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
+e55de5e7d3a2de7982dbf3c4e4d8197a9f1f97e30dc5f9d7727b31d65f8bb533  /w/jobs/ec2/shadow_runahead.py
+8a29febd742a30a83510e54b0669d85fc5840ec0365ad4dc30085306bf9205f8  /w/jobs/ec2/shadow_score.py
+c85ae9158b3bddb73450f2eba29da4e370d0c9dbdd39c7b193d3381025db821f  /w/jobs/ec2/vmap.py
+fe9c71cf90345914fe2ecfd5660b4da94b55e17d67cb76133256c1862fd67003  /w/jobs/ec2/forecast_file.py
+7bd2fbafaf3d1debd25a20fdb46d69362687912a0e3c98b80a8d6db16a22e006  /w/jobs/ec2/replay117.py
+abf1896b2b952e7b1dab44b989bb7bbae53d61b9d5495f948fba9dfb36cbd8c8  /w/jobs/ec2/score117.py
+85d625f079bc1f513cd865940193199f2d87956ace4584de45b78e96d81e3f7c  /w/jobs/ec2/prof_summary.py
+d2469f36b0423400ba93f76b5a2714ffdb6d798837aadd2ccf1152ad152550c4  /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ wait 6689 6690
++ . /work/venv/bin/activate
+++ '[' -z '' ']'
+++ '[' -n x ']'
+++ SCRIPT_PATH=/work/venv/bin/activate
+++ '[' /work/venv/bin/activate = /w/jobs/117_shadowb1@vast.sh ']'
+++ deactivate nondestructive
+++ unset -f pydoc
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ hash -r
+++ '[' -z '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/work/venv
+++ '[' linux-gnu = cygwin ']'
+++ '[' linux-gnu = msys ']'
+++ export VIRTUAL_ENV
+++ '[' -z '' ']'
+++ unset SCRIPT_PATH
+++ _OLD_VIRTUAL_PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/work/venv/bin:/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export PATH
+++ '[' x '!=' x ']'
++++ basename /work/venv
+++ VIRTUAL_ENV_PROMPT=venv
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(venv) '
+++ export PS1
+++ alias pydoc
+++ true
+++ hash -r
++ python -c 'import torch, transformers, numba; print(torch.__version__, torch.version.cuda, transformers.__version__, numba.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))'
++ tee /w/results/117b_shadowb1@vast/venv_ok.txt
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'torch'
++ deactivate
++ unset -f pydoc
++ '[' -z _ ']'
++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ export PATH
++ unset _OLD_VIRTUAL_PATH
++ '[' -z '' ']'
++ hash -r
++ '[' -z _ ']'
++ PS1=
++ export PS1
++ unset _OLD_VIRTUAL_PS1
++ unset VIRTUAL_ENV
++ unset VIRTUAL_ENV_PROMPT
++ '[' '!' '' = nondestructive ']'
++ unset -f deactivate
++ '[' -s /w/results/117b_shadowb1@vast/venv_ok.txt ']'
++ echo 'install failed'
+install failed
++ exit 3

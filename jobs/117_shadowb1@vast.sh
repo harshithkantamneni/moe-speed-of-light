@@ -69,6 +69,11 @@
 # and installed both environments, then stopped at the download: the system pip refused to replace Debian's numpy, so
 # huggingface_hub was never installed. pip now installs with --ignore-installed and the job checks the imports. Nothing
 # else changes. Host b (117b) is the cheapest qualifying offer in results/117_offers_at_launch_b.txt.
+# AMENDMENT 2 (before the third launch): host b (117b, offer 55163302 again) passed V0 and VR, installed the system
+# packages and downloaded the model, then stopped at the install: uv's download of a CUDA wheel from pypi.nvidia.com
+# timed out four times. The installs now retry three times with a 300 s HTTP timeout. The rule above allows one
+# replacement; a third machine is used because neither stop ran any timed step (no result could select the machine).
+# Host c (117c) is the cheapest qualifying offer in results/117_offers_at_launch_c.txt.
 # Cheapest qualifying at registration: 55163302 (RTX PRO 6000 WS, Core Ultra 7 265K, $0.91/h; job 116's machine). The account holds about $5.65.
 # Budget: the job stops starting steps 150 minutes after launch.
 set -x
@@ -142,11 +147,16 @@ mkdir -p $M
   echo "qwen3 hf download rc=$? in $(( $(date +%s) - t0 )) s"; du -sh "$HFQ" ) > $OUT/dl_qwen3.txt 2>&1 &
 DLQ=$!
 VE=$WORK/venv; VC=$WORK/venv_conv
-( uv venv -q $VE && . $VE/bin/activate && uv pip install -q torch --index-url https://download.pytorch.org/whl/cu128 &&
-  uv pip install -q "transformers==5.17.0" accelerate numpy numba safetensors huggingface_hub hf_xet ) > $OUT/venv.txt 2>&1 &
+export UV_HTTP_TIMEOUT=300   # host b: a wheel download from pypi.nvidia.com timed out (uv's default is 30 s)
+( uv venv -q $VE && . $VE/bin/activate && for i in 1 2 3; do
+    uv pip install -q torch --index-url https://download.pytorch.org/whl/cu128 &&
+    uv pip install -q "transformers==5.17.0" accelerate numpy numba safetensors huggingface_hub hf_xet && break
+    echo "venv attempt $i failed"; sleep 30; done ) > $OUT/venv.txt 2>&1 &
 VEP=$!
-( uv venv -q $VC && . $VC/bin/activate && uv pip install -q torch --index-url https://download.pytorch.org/whl/cpu &&
-  uv pip install -q numpy transformers sentencepiece safetensors protobuf ) > $OUT/venv_conv.txt 2>&1 &
+( uv venv -q $VC && . $VC/bin/activate && for i in 1 2 3; do
+    uv pip install -q torch --index-url https://download.pytorch.org/whl/cpu &&
+    uv pip install -q numpy transformers sentencepiece safetensors protobuf && break
+    echo "venv attempt $i failed"; sleep 30; done ) > $OUT/venv_conv.txt 2>&1 &
 VCP=$!
 build_tree $WORK/lc-ec "$PATCH" llama-ec-bench
 EC_BIN=$WORK/lc-ec/build/bin/llama-ec-bench; ls -la $EC_BIN || { echo "no ec-bench binary"; exit 3; }

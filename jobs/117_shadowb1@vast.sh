@@ -65,6 +65,10 @@
 # least 12.8, at most $1.60/h, from the listing committed with this header (results/117_offers_at_registration.txt).
 # Machines rented before are allowed (one machine, not a panel). A machine that fails V0 or VR or cannot install or
 # download is replaced once by the cheapest qualifying offer in a new listing committed before that launch.
+# AMENDMENT (before the second launch): host a (117a, offer 55163302) passed V0 and VR (link/CPU 0.58), built the engine
+# and installed both environments, then stopped at the download: the system pip refused to replace Debian's numpy, so
+# huggingface_hub was never installed. pip now installs with --ignore-installed and the job checks the imports. Nothing
+# else changes. Host b (117b) is the cheapest qualifying offer in results/117_offers_at_launch_b.txt.
 # Cheapest qualifying at registration: 55163302 (RTX PRO 6000 WS, Core Ultra 7 265K, $0.91/h; job 116's machine). The account holds about $5.65.
 # Budget: the job stops starting steps 150 minutes after launch.
 set -x
@@ -111,9 +115,13 @@ echo "host RAM ${RAMGB} GB; disk free ${DISKGB} GB" | tee -a $OUT/gate.txt
 [ "${DISKGB:-0}" -ge $DISKMIN ] || gate_fail 6 "V0 FAIL: disk ${DISKGB} GB below $DISKMIN, stopping"
 echo "V0 checked" | tee -a $OUT/v0.txt
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pip python3-venv >> $OUT/apt.txt 2>&1
-python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet numpy numba scipy > $OUT/pip.txt 2>&1
-for i in 1 2 3; do python3 -c "import numba" 2>/dev/null && break; python3 -m pip install -q --break-system-packages numba >> $OUT/pip.txt 2>&1; done
-python3 -c "import numba; print('numba', numba.__version__)" | tee -a $OUT/pip.txt
+# --ignore-installed: pip cannot replace Debian's numpy (no RECORD file), and the whole install then fails (host a)
+PYPKG="uv huggingface_hub hf_xet numpy numba scipy"
+python3 -m pip install -q --break-system-packages --ignore-installed $PYPKG > $OUT/pip.txt 2>&1
+for i in 1 2 3; do python3 -c "import numba, huggingface_hub" 2>/dev/null && command -v uv > /dev/null && break
+  sleep 10; python3 -m pip install -q --break-system-packages --ignore-installed $PYPKG >> $OUT/pip.txt 2>&1; done
+python3 -c "import numba, numpy, huggingface_hub; print('numba', numba.__version__, 'numpy', numpy.__version__, 'huggingface_hub', huggingface_hub.__version__)" >> $OUT/pip.txt && command -v uv >> $OUT/pip.txt || { echo "python packages missing"; tail -5 $OUT/pip.txt; exit 3; }
+tail -2 $OUT/pip.txt
 # ---- the probe on the idle host, the law's table, VR
 platform
 H=$(( CORES > 4 ? CORES - 2 : 2 ))

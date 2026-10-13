@@ -13,7 +13,7 @@ print("#LISTED " + datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-
 for o in rows:
     cpu = (o.get("cpu_name") or "").strip()
     third = bool(re.search(r"Ryzen [3579] (PRO )?[789]\d{3}", cpu))   # a Ryzen 7000, 8000 or 9000 (Zen 4 or Zen 5) desktop part
-    ok = (o.get("gpu_frac") or 0) >= 0.999 and o["dph_total"] <= 1.10 and (o.get("inet_down") or 0) >= 140 \
+    ok = (o.get("gpu_frac") or 0) >= 0.999 and o["dph_total"] <= 1.25 and (o.get("inet_down") or 0) >= 140 \
         and third and o.get("host_id") != 716820 and o["id"] not in led
     print(f"{o['id']} machine {o.get('machine_id')} host {o.get('host_id')} {cpu[:30]} eff {o.get('cpu_cores_effective')} "
           f"cores {o.get('cpu_cores')} ram {round((o.get('cpu_ram') or 0) / 1000)} disk {round(o.get('disk_space') or 0)} "

@@ -1,0 +1,652 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++++ dirname /w/jobs/117_shadowb1@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
++ C=16
++ NSEQ=20
++ NDEC=256
++ BMIN=150
++ DRMIN=1500
++ VRMIN=0.5
++ RAMMIN=110
++ DISKMIN=190
++ nvidia-smi --query-gpu=name,memory.total,uuid,driver_version --format=csv
++ tee /w/results/117c_shadowb1@vast/gpu0.csv
+name, memory.total [MiB], uuid, driver_version
+NVIDIA RTX PRO 6000 Blackwell Workstation Edition, 97887 MiB, GPU-5dfae5d4-19c1-d734-d8cb-a417809e7e69, 595.91.07
+++ head -1
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ tr -d ' '
++ MEM=97887
++ '[' 97887 -ge 79000 ']'
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=20
+++ NPROC=20
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
+++ date +%s
++ T0=1791848074
++ BUDGET=9000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=48074
++ echo 'order seed base 48074'
++ tee /w/results/117c_shadowb1@vast/order_seed.txt
+order seed base 48074
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/117c_shadowb1@vast/cpu.txt
+CPU(s):                                  20
+Model name:                              Intel(R) Core(TM) Ultra 7 265K
+Thread(s) per core:                      1
+Socket(s):                               20
+CPU(s) scaling MHz:                      17%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=19
++ tee /w/results/117c_shadowb1@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 19 (nproc 20); NUMA nodes 1'
+usable physical cores 19 (nproc 20); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 19 -le 32 ']'
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/117c_shadowb1@vast/bw_gate.txt
++ DR=1639
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'device read 1639 GB/s; memory clock max 14001 MHz'
++ tee /w/results/117c_shadowb1@vast/gate.txt
+device read 1639 GB/s; memory clock max 14001 MHz
++ '[' 1639 -ge 1500 ']'
++ free -g
+++ awk '/Mem:/{print $2}' /w/results/117c_shadowb1@vast/free.txt
++ RAMGB=251
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=240
++ echo 'host RAM 251 GB; disk free 240 GB'
++ tee -a /w/results/117c_shadowb1@vast/gate.txt
+host RAM 251 GB; disk free 240 GB
++ '[' 251 -ge 110 ']'
++ '[' 240 -ge 190 ']'
++ echo 'V0 checked'
++ tee -a /w/results/117c_shadowb1@vast/v0.txt
+V0 checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip python3-venv
++ PYPKG='uv huggingface_hub hf_xet numpy numba scipy'
++ python3 -m pip install -q --break-system-packages --ignore-installed uv huggingface_hub hf_xet numpy numba scipy
++ for i in 1 2 3
++ python3 -c 'import numba, huggingface_hub'
++ command -v uv
++ break
++ python3 -c 'import numba, numpy, huggingface_hub; print('\''numba'\'', numba.__version__, '\''numpy'\'', numpy.__version__, '\''huggingface_hub'\'', huggingface_hub.__version__)'
++ command -v uv
++ tail -2 /w/results/117c_shadowb1@vast/pip.txt
+numba 0.68.0 numpy 2.5.4 huggingface_hub 2.2.0
+/usr/local/bin/uv
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=17
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/117c_shadowb1@vast/concur.txt
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/117c_shadowb1@vast/concur.txt 17 9437184 8 /w/results/117c_shadowb1@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,1,2,2,3,3,4
++ tee /w/results/117c_shadowb1@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-12T23:35:56Z): qwen3 0,0,1,1,2,2,3,3,4'
+law table (2026-10-12T23:35:56Z): qwen3 0,0,1,1,2,2,3,3,4
++ '[' -n 0,0,1,1,2,2,3,3,4 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/117c_shadowb1@vast/fetch_table_law_qwen3.json
++ RATIO=0.5740
++ echo 'VR: B_p / B_c = 0.5740'
++ tee -a /w/results/117c_shadowb1@vast/gate.txt
+VR: B_p / B_c = 0.5740
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.5740 0.5
++ echo 'VR checked'
++ tee -a /w/results/117c_shadowb1@vast/v0.txt
+VR checked
++ HFQ=/work/models/Qwen3-30B-A3B
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ CQ=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ mkdir -p /work/models
++ DLQ=6685
++ VE=/work/venv
++ VC=/work/venv_conv
++ export UV_HTTP_TIMEOUT=300
++ UV_HTTP_TIMEOUT=300
++ VEP=6686
++ VCP=6687
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j20 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/117c_shadowb1@vast/build_lc-ec.txt
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct 12 23:37 /work/lc-ec/build/bin/llama-ec-bench
++ install_nsys
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ awk '{print $1}'
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ tail -1
+++ sort -V
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/117c_shadowb1@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch /w/jobs/ec2/shadow_runahead.py /w/jobs/ec2/shadow_score.py /w/jobs/ec2/vmap.py /w/jobs/ec2/forecast_file.py /w/jobs/ec2/replay117.py /w/jobs/ec2/score117.py /w/jobs/ec2/prof_summary.py /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ tee /w/results/117c_shadowb1@vast/sha.txt
+8b9f08c49c6da88782ccdeff370b600a585ff5b1adfebf5ae4ec0d06337f434d  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle6.patch
+e55de5e7d3a2de7982dbf3c4e4d8197a9f1f97e30dc5f9d7727b31d65f8bb533  /w/jobs/ec2/shadow_runahead.py
+8a29febd742a30a83510e54b0669d85fc5840ec0365ad4dc30085306bf9205f8  /w/jobs/ec2/shadow_score.py
+c85ae9158b3bddb73450f2eba29da4e370d0c9dbdd39c7b193d3381025db821f  /w/jobs/ec2/vmap.py
+fe9c71cf90345914fe2ecfd5660b4da94b55e17d67cb76133256c1862fd67003  /w/jobs/ec2/forecast_file.py
+7bd2fbafaf3d1debd25a20fdb46d69362687912a0e3c98b80a8d6db16a22e006  /w/jobs/ec2/replay117.py
+abf1896b2b952e7b1dab44b989bb7bbae53d61b9d5495f948fba9dfb36cbd8c8  /w/jobs/ec2/score117.py
+85d625f079bc1f513cd865940193199f2d87956ace4584de45b78e96d81e3f7c  /w/jobs/ec2/prof_summary.py
+d2469f36b0423400ba93f76b5a2714ffdb6d798837aadd2ccf1152ad152550c4  /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ wait 6686 6687
++ . /work/venv/bin/activate
+++ '[' -z '' ']'
+++ '[' -n x ']'
+++ SCRIPT_PATH=/work/venv/bin/activate
+++ '[' /work/venv/bin/activate = /w/jobs/117_shadowb1@vast.sh ']'
+++ deactivate nondestructive
+++ unset -f pydoc
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ hash -r
+++ '[' -z '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/work/venv
+++ '[' linux-gnu = cygwin ']'
+++ '[' linux-gnu = msys ']'
+++ export VIRTUAL_ENV
+++ '[' -z '' ']'
+++ unset SCRIPT_PATH
+++ _OLD_VIRTUAL_PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/work/venv/bin:/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export PATH
+++ '[' x '!=' x ']'
++++ basename /work/venv
+++ VIRTUAL_ENV_PROMPT=venv
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(venv) '
+++ export PS1
+++ alias pydoc
+++ true
+++ hash -r
++ python -c 'import torch, transformers, numba; print(torch.__version__, torch.version.cuda, transformers.__version__, numba.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))'
++ tee /w/results/117c_shadowb1@vast/venv_ok.txt
+2.11.0+cu128 12.8 5.17.0 0.68.0 True NVIDIA RTX PRO 6000 Blackwell Workstation Edition
++ deactivate
++ unset -f pydoc
++ '[' -z _ ']'
++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ export PATH
++ unset _OLD_VIRTUAL_PATH
++ '[' -z '' ']'
++ hash -r
++ '[' -z _ ']'
++ PS1=
++ export PS1
++ unset _OLD_VIRTUAL_PS1
++ unset VIRTUAL_ENV
++ unset VIRTUAL_ENV_PROMPT
++ '[' '!' '' = nondestructive ']'
++ unset -f deactivate
++ '[' -s /w/results/117c_shadowb1@vast/venv_ok.txt ']'
+++ date +%s
++ echo 'build done, waiting for the download (701 s since launch)'
+build done, waiting for the download (701 s since launch)
++ wait 6685
++ cat /w/results/117c_shadowb1@vast/dl_qwen3.txt
+++ date +%s
++ t0=1791848156
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Fetching 26 files:   0%|          | 0/26 [00:00<?, ?it/s]Fetching 26 files:   4%|▍         | 1/26 [00:00<00:04,  5.98it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 26 files:   8%|▊         | 2/26 [00:00<00:03,  7.28it/s]Fetching 26 files:  19%|█▉        | 5/26 [00:00<00:01, 15.71it/s]Fetching 26 files:  23%|██▎       | 6/26 [00:20<00:01, 15.71it/s]Fetching 26 files:  27%|██▋       | 7/26 [03:21<12:56, 40.86s/it]Fetching 26 files:  31%|███       | 8/26 [03:46<11:10, 37.23s/it]Fetching 26 files:  35%|███▍      | 9/26 [03:58<08:47, 31.01s/it]Fetching 26 files:  38%|███▊      | 10/26 [04:50<09:45, 36.59s/it]Fetching 26 files:  42%|████▏     | 11/26 [05:07<07:48, 31.22s/it]Fetching 26 files:  46%|████▌     | 12/26 [05:33<06:58, 29.88s/it]Fetching 26 files:  50%|█████     | 13/26 [05:41<05:07, 23.68s/it]Fetching 26 files:  50%|█████     | 13/26 [06:00<05:07, 23.68s/it]Fetching 26 files:  54%|█████▍    | 14/26 [06:22<05:42, 28.56s/it]Fetching 26 files:  58%|█████▊    | 15/26 [07:09<06:14, 34.06s/it]Fetching 26 files:  62%|██████▏   | 16/26 [07:10<04:02, 24.21s/it]Fetching 26 files:  65%|██████▌   | 17/26 [07:43<04:01, 26.84s/it]Fetching 26 files:  69%|██████▉   | 18/26 [07:44<02:32, 19.10s/it]Fetching 26 files:  73%|███████▎  | 19/26 [07:45<01:36, 13.73s/it]Fetching 26 files:  77%|███████▋  | 20/26 [08:54<03:02, 30.37s/it]Fetching 26 files:  81%|████████  | 21/26 [09:11<02:11, 26.31s/it]Fetching 26 files:  85%|████████▍ | 22/26 [09:14<01:16, 19.19s/it]Fetching 26 files:  88%|████████▊ | 23/26 [09:26<00:51, 17.21s/it]Fetching 26 files:  92%|█████████▏| 24/26 [09:29<00:25, 12.92s/it]Fetching 26 files:  96%|█████████▌| 25/26 [09:32<00:09,  9.91s/it]Fetching 26 files: 100%|██████████| 26/26 [09:36<00:00,  8.11s/it]Fetching 26 files: 100%|██████████| 26/26 [09:36<00:00, 22.17s/it]
+++ date +%s
++ echo 'qwen3 hf download rc=0 in 577 s'
+qwen3 hf download rc=0 in 577 s
++ du -sh /work/models/Qwen3-30B-A3B
+57G	/work/models/Qwen3-30B-A3B
++ '[' -s /work/models/Qwen3-30B-A3B/config.json ']'
++ CVP=12450
+++ date +%s
++ t0=1791848775
++ R 50m /work/venv/bin/python /w/jobs/ec2/shadow_runahead.py --model /work/models/Qwen3-30B-A3B --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl --out /work/run --C 16 --H 4 --nprob 20 --budget-min 40
++ grep -v -i warn
++ tee /w/results/117c_shadowb1@vast/shadow.txt
+++ secs 50m
+++ case $1 in
+++ echo 3000
++ local t=3000
++ shift
+++ left
++++ date +%s
+++ echo 7999
++ local l=7999
++ '[' 7999 -lt 120 ']'
++ '[' 3000 -gt 7999 ']'
++ timeout -k 30 3000 /work/venv/bin/python /w/jobs/ec2/shadow_runahead.py --model /work/models/Qwen3-30B-A3B --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl --out /work/run --C 16 --H 4 --nprob 20 --budget-min 40
+Loading weights:   0%|          | 0/531 [00:00<?, ?it/s]Loading weights:   1%|          | 4/531 [00:00<00:18, 29.00it/s]Loading weights:   3%|▎         | 15/531 [00:00<00:09, 51.72it/s]Loading weights:   5%|▍         | 26/531 [00:00<00:08, 56.57it/s]Loading weights:   7%|▋         | 37/531 [00:00<00:07, 63.63it/s]Loading weights:   9%|▉         | 48/531 [00:00<00:07, 68.99it/s]Loading weights:  11%|█         | 59/531 [00:00<00:06, 68.29it/s]Loading weights:  13%|█▎        | 70/531 [00:01<00:07, 62.02it/s]Loading weights:  15%|█▌        | 81/531 [00:01<00:06, 70.77it/s]Loading weights:  17%|█▋        | 92/531 [00:01<00:06, 71.83it/s]Loading weights:  19%|█▉        | 103/531 [00:01<00:06, 63.15it/s]Loading weights:  21%|██        | 110/531 [00:01<00:07, 59.69it/s]Loading weights:  22%|██▏       | 117/531 [00:01<00:07, 56.64it/s]Loading weights:  26%|██▌       | 136/531 [00:02<00:05, 66.02it/s]Loading weights:  28%|██▊       | 147/531 [00:02<00:05, 72.79it/s]Loading weights:  30%|██▉       | 158/531 [00:02<00:05, 74.43it/s]Loading weights:  32%|███▏      | 169/531 [00:02<00:05, 70.23it/s]Loading weights:  34%|███▍      | 180/531 [00:02<00:05, 67.37it/s]Loading weights:  36%|███▌      | 191/531 [00:02<00:05, 65.15it/s]Loading weights:  38%|███▊      | 202/531 [00:03<00:05, 63.36it/s]Loading weights:  40%|████      | 213/531 [00:03<00:05, 54.28it/s]Loading weights:  41%|████      | 219/531 [00:03<00:06, 45.53it/s]Loading weights:  44%|████▍     | 236/531 [00:03<00:04, 66.62it/s]Loading weights:  46%|████▋     | 246/531 [00:03<00:03, 72.95it/s]Loading weights:  48%|████▊     | 257/531 [00:03<00:03, 74.51it/s]Loading weights:  50%|█████     | 268/531 [00:04<00:03, 74.55it/s]Loading weights:  53%|█████▎    | 279/531 [00:04<00:03, 73.50it/s]Loading weights:  55%|█████▍    | 290/531 [00:04<00:03, 70.71it/s]Loading weights:  57%|█████▋    | 301/531 [00:04<00:03, 67.20it/s]Loading weights:  59%|█████▉    | 312/531 [00:04<00:03, 64.43it/s]Loading weights:  61%|██████    | 323/531 [00:04<00:03, 67.49it/s]Loading weights:  63%|██████▎   | 334/531 [00:05<00:03, 59.49it/s]Loading weights:  65%|██████▍   | 345/531 [00:05<00:02, 68.39it/s]Loading weights:  67%|██████▋   | 356/531 [00:05<00:02, 65.96it/s]Loading weights:  69%|██████▉   | 367/531 [00:05<00:02, 63.33it/s]Loading weights:  71%|███████   | 378/531 [00:05<00:02, 67.69it/s]Loading weights:  73%|███████▎  | 389/531 [00:05<00:02, 69.96it/s]Loading weights:  75%|███████▌  | 400/531 [00:06<00:02, 64.46it/s]Loading weights:  77%|███████▋  | 411/531 [00:06<00:01, 67.05it/s]Loading weights:  79%|███████▉  | 422/531 [00:06<00:01, 64.46it/s]Loading weights:  82%|████████▏ | 433/531 [00:06<00:01, 55.54it/s]Loading weights:  84%|████████▍ | 445/531 [00:06<00:01, 60.69it/s]Loading weights:  86%|████████▌ | 456/531 [00:07<00:01, 61.25it/s]Loading weights:  88%|████████▊ | 467/531 [00:07<00:00, 65.78it/s]Loading weights:  90%|████████▉ | 477/531 [00:07<00:00, 72.37it/s]Loading weights:  92%|█████████▏| 488/531 [00:07<00:00, 69.32it/s]Loading weights:  94%|█████████▍| 499/531 [00:07<00:00, 65.27it/s]Loading weights:  96%|█████████▌| 510/531 [00:07<00:00, 59.31it/s]Loading weights: 100%|██████████| 531/531 [00:07<00:00, 66.48it/s]
+problem 0: 256 steps, 279 ms per step, greedy match 0.996, elapsed 1.4 min
+problem 1: 256 steps, 277 ms per step, greedy match 0.996, elapsed 2.6 min
+problem 2: 256 steps, 278 ms per step, greedy match 0.992, elapsed 3.8 min
+problem 3: 256 steps, 278 ms per step, greedy match 0.977, elapsed 5.0 min
+problem 4: 256 steps, 265 ms per step, greedy match 0.992, elapsed 6.1 min
+problem 5: 256 steps, 261 ms per step, greedy match 0.988, elapsed 7.2 min
+problem 6: 256 steps, 261 ms per step, greedy match 0.996, elapsed 8.4 min
+problem 7: 256 steps, 261 ms per step, greedy match 0.996, elapsed 9.5 min
+problem 8: 256 steps, 261 ms per step, greedy match 0.992, elapsed 10.6 min
+problem 9: 256 steps, 261 ms per step, greedy match 0.988, elapsed 11.7 min
+problem 10: 256 steps, 261 ms per step, greedy match 0.992, elapsed 12.8 min
+problem 11: 256 steps, 262 ms per step, greedy match 0.984, elapsed 14.0 min
+problem 12: 256 steps, 261 ms per step, greedy match 0.980, elapsed 15.1 min
+problem 13: 256 steps, 261 ms per step, greedy match 0.980, elapsed 16.2 min
+problem 14: 256 steps, 261 ms per step, greedy match 0.984, elapsed 17.3 min
+problem 15: 256 steps, 262 ms per step, greedy match 0.992, elapsed 18.4 min
+problem 16: 256 steps, 261 ms per step, greedy match 0.996, elapsed 19.5 min
+problem 17: 256 steps, 262 ms per step, greedy match 0.973, elapsed 20.7 min
+problem 18: 256 steps, 261 ms per step, greedy match 1.000, elapsed 21.8 min
+problem 19: 256 steps, 261 ms per step, greedy match 0.984, elapsed 22.9 min
+done: 20 problems in 22.9 min
++ tee -a /w/results/117c_shadowb1@vast/shadow.txt
+++ date +%s
++ echo 'shadow run in 1376 s'
+shadow run in 1376 s
++ cp /work/run/run.json /w/results/117c_shadowb1@vast/
++ wait 12450
++ tail -3 /w/results/117c_shadowb1@vast/convert_qwen3.txt
+convert rc=0 in 314 s
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+-rw-r--r-- 1 root root 61095803008 Oct 12 23:51 /work/models/Qwen3-30B-A3B-BF16.gguf
++ '[' '!' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ rm -rf /work/models/Qwen3-30B-A3B
++ '[' -s /work/run/shadow.npz ']'
++ '[' -s /work/models/Qwen3-30B-A3B-BF16.gguf ']'
++ FC=/work/fc_self.bin
++ python3 /w/jobs/ec2/forecast_file.py /work/run/shadow.npz /work/fc_self.bin self
++ tee -a /w/results/117c_shadowb1@vast/shadow.txt
+/work/fc_self.bin: 5120 rows of 1537 int16 (self, k = 8, H = 4)
++ cp /work/fc_self.bin.json /w/results/117c_shadowb1@vast/fc_self.bin.json
+++ date +%s
++ t0=1791850151
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --n-seq 20 --n-prefill 1024 --n-decode 256 --lookahead /w/results/117c_shadowb1@vast/la_q.bin
+++ date +%s
+++ ls -la /w/results/117c_shadowb1@vast/la_q.bin
+++ awk '{print $5}'
++ echo 'lookahead rc=0 in 159 s: 19681280 bytes'
+lookahead rc=0 in 159 s: 19681280 bytes
++ cat /w/results/117c_shadowb1@vast/la_q.bin.json
+{"arch": "qwen3moe", "n_layer": 48, "n_expert": 128, "k": 8, "n_embd": 2048, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/117c_shadowb1@vast/la_q.err
++ rm -f /w/results/117c_shadowb1@vast/la_q.err
++ '[' -s /w/results/117c_shadowb1@vast/la_q.bin ']'
++ python3 - /w/results/117c_shadowb1@vast/la_q.bin /work/la_q.npz /w/jobs/ec2
+trace (5120, 48, 8) problems 20
++ python3 /w/jobs/ec2/shadow_score.py /work/run /work/la_q.npz
++ tee /w/results/117c_shadowb1@vast/score.txt
+{"share_self_W4": 0.4743118377467407, "precision_self_mean": 0.6213921304666059, "bar_share": 0.3333333333333333, "bar_precision": 0.5, "decision": "go"}
+self {'1': (0.765, 0.858), '2': (0.647, 0.741), '3': (0.566, 0.657), '4': (0.507, 0.594)}
+orac {'1': (0.768, 0.861), '2': (0.723, 0.821), '3': (0.699, 0.798), '4': (0.69, 0.79)}
+C16 {'exact_W1': 0.313, 'self_W1': 0.229, 'orac_W1': 0.23, 'exact_W2': 0.514, 'self_W2': 0.345, 'orac_W2': 0.369, 'exact_W4': 0.768, 'self_W4': 0.474, 'orac_W4': 0.531, 'random_r0.5_W4': 0.34, 'random_r0.7_W4': 0.501, 'random_r0.9_W4': 0.676, 'persistence_W4': 0.0}
+C32 {'exact_W1': 0.168, 'self_W1': 0.119, 'orac_W1': 0.12, 'exact_W2': 0.286, 'self_W2': 0.187, 'orac_W2': 0.201, 'exact_W4': 0.463, 'self_W4': 0.275, 'orac_W4': 0.315, 'random_r0.5_W4': 0.206, 'random_r0.7_W4': 0.302, 'random_r0.9_W4': 0.407, 'persistence_W4': 0.0}
++ cp /work/run/score.json /w/results/117c_shadowb1@vast/
+++ python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get('\''V1_trace_overlap'\'') or 0)' /w/results/117c_shadowb1@vast/score.json
++ V1=0.9811752319335938
++ echo 'V1: trace overlap 0.9811752319335938'
++ tee -a /w/results/117c_shadowb1@vast/validity.txt
+V1: trace overlap 0.9811752319335938
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= 0.5 else 1)' 0.9811752319335938
++ tee /w/results/117c_shadowb1@vast/replay117.txt
++ python3 /w/jobs/ec2/replay117.py /w/results/117c_shadowb1@vast/la_q.bin /work/fc_self.bin 16 /w/results/117c_shadowb1@vast/replay117.json /w/results/117c_shadowb1@vast/la_small.npz
+{"records": 5120, "C": 16, "E": 128, "forecast_rows": 5120, "forecast_seq_equal": true, "reads_per_token": {"aa": 151.1150390625, "fetch": 100.7380859375, "w4": 112.4033203125, "r7": 125.988671875, "f0": 127.2419921875, "f1": 132.4837890625, "f2": 138.448828125, "online_k1": 191.38300781249998}, "read_share_aa_to_fetch": {"w4": 0.7684410498972589, "r7": 0.4987671073547087, "f0": 0.4738882642577442, "f1": 0.3698367774202303, "f2": 0.2514286822005968}}
+++ date -u +%FT%TZ
++ echo 'replay written 2026-10-13T00:11:59Z, before any timed run'
+replay written 2026-10-13T00:11:59Z, before any timed run
++ python3 - /work/run/shadow.npz /w/results/117c_shadowb1@vast/shadow_small.npz
+subset 256 steps
+++ date +%s
++ t0=1791850319
++ R 20m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap
+++ date +%s
++ echo 'tfull rc=0 in 39 s'
+tfull rc=0 in 39 s
++ tail -n 5 /w/results/117c_shadowb1@vast/tfull.err
++ rm -f /w/results/117c_shadowb1@vast/tfull.err
++ MB=mailbox=1:tdec=1:helpers=17
++ AA=kappa=-1000000000
++ prof117 F1 f1
++ local label=F1 name=f1
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
+++ cfg_of f1
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1
++ R 15m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_F1 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --seqs 0 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_prof_f1.json
++ echo 'prof F1 rc=0'
+prof F1 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace --format csv --output /work/prof_F1 /work/prof_F1.nsys-rep
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label F1 --out /w/results/117c_shadowb1@vast --tokens 200 --decode-steps 256
++ rm -f /work/prof_F1_cuda_api_trace.csv /work/prof_F1_cuda_gpu_trace.csv /work/prof_F1.sqlite /work/prof_F1.nsys-rep
++ tail -n 20 /w/results/117c_shadowb1@vast/prof_F1.err
++ rm -f /w/results/117c_shadowb1@vast/prof_F1.err
++ prof117 BASE base
++ local label=BASE name=base
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
+++ cfg_of base
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
++ R 15m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_BASE --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --seqs 0 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --ec slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_prof_base.json
++ echo 'prof BASE rc=0'
+prof BASE rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace --format csv --output /work/prof_BASE /work/prof_BASE.nsys-rep
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label BASE --out /w/results/117c_shadowb1@vast --tokens 200 --decode-steps 256
++ rm -f /work/prof_BASE_cuda_api_trace.csv /work/prof_BASE_cuda_gpu_trace.csv /work/prof_BASE.sqlite /work/prof_BASE.nsys-rep
++ tail -n 20 /w/results/117c_shadowb1@vast/prof_BASE.err
++ rm -f /w/results/117c_shadowb1@vast/prof_BASE.err
++ cat /w/results/117c_shadowb1@vast/prof_summary.txt
+F1: 200 tokens (graph launches (254 for 256 decode steps), 1 launch/token); wall 43.229 ms, busy 42.147, short gaps 0.202 (774), long gaps 0.855, ec_wait 0.097 over 48 calls, kernels 1406
+BASE: 200 tokens (graph launches (254 for 256 decode steps), 1 launch/token); wall 35.594 ms, busy 35.328, short gaps 0.158 (758), long gaps 0.033, ec_wait 0.859 over 48 calls, kernels 1422
++ NAMES='base aa fetch w4 f0 f1 f2 r7'
++ run_round 1
++ local rd=1 cfg= n
++ for n in $NAMES
+++ cfg_of base
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json
++ for n in $NAMES
+++ cfg_of aa
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json'
++ for n in $NAMES
+++ cfg_of fetch
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json'
++ for n in $NAMES
+++ cfg_of w4
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json'
++ for n in $NAMES
+++ cfg_of f0
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json'
++ for n in $NAMES
+++ cfg_of f1
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_f1.json'
++ for n in $NAMES
+++ cfg_of f2
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r1_f2.json'
++ for n in $NAMES
+++ cfg_of r7
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r1_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_r7.json'
++ local seed=48190
++ echo 'round 1 order-seed 48190 configs: slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r1_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_r7.json'
+++ date +%s
++ local t0=1791850443
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 48190 --ec 'slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r1_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r1_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r1_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r1_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r1_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r1_r7.json'
++ local rc=0
+++ date +%s
++ echo 'round 1 rc=0 in 1830 s'
+round 1 rc=0 in 1830 s
+++ date +%s
++ echo 'ec_q_r1 0 1830'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/117c_shadowb1@vast/ec_q_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|forecast\|fetch table\|shuffled\|hybrid\|degraded' /w/results/117c_shadowb1@vast/ec_q_r1.err
++ sort
++ uniq -c
++ head -40
++ tail -n 30 /w/results/117c_shadowb1@vast/ec_q_r1.err
++ rm -f /w/results/117c_shadowb1@vast/ec_q_r1.err
++ run_round 2
++ local rd=2 cfg= n
++ for n in $NAMES
+++ cfg_of base
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json
++ for n in $NAMES
+++ cfg_of aa
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json'
++ for n in $NAMES
+++ cfg_of fetch
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json'
++ for n in $NAMES
+++ cfg_of w4
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json'
++ for n in $NAMES
+++ cfg_of f0
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json'
++ for n in $NAMES
+++ cfg_of f1
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_f1.json'
++ for n in $NAMES
+++ cfg_of f2
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r2_f2.json'
++ for n in $NAMES
+++ cfg_of r7
+++ local base=slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1
+++ local orc=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0
+++ local hyb=slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000
+++ case $1 in
+++ echo slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1
++ cfg='slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r2_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_r7.json'
++ local seed=48290
++ echo 'round 2 order-seed 48290 configs: slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r2_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_r7.json'
+++ date +%s
++ local t0=1791852273
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/Qwen3-30B-A3B-BF16.gguf --corpus /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl -t 19 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 48290 --ec 'slots=16:policy=dfa:mailbox=1:tdec=1:helpers=17:fetch=0,0,1,1,2,2,3,3,4:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_base.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=-1:stats=/w/results/117c_shadowb1@vast/st_q_r2_aa.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/117c_shadowb1@vast/st_q_r2_fetch.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:stats=/w/results/117c_shadowb1@vast/st_q_r2_w4.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:stats=/w/results/117c_shadowb1@vast/st_q_r2_f0.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_f1.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_forecast=/work/fc_self.bin:oracle_fc_lag=2:stats=/w/results/117c_shadowb1@vast/st_q_r2_f2.json;slots=16:policy=oracle:oracle=/w/results/117c_shadowb1@vast/la_q.bin:mailbox=1:tdec=1:helpers=17:kappa=1:fetch=0,0,1,1,2,2,3,3,4:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:oracle_hybrid=1:kappa=-1000000000:oracle_w=4:oracle_recall=0.7:oracle_fill=1:oracle_seed=1:stats=/w/results/117c_shadowb1@vast/st_q_r2_r7.json'
++ local rc=0
+++ date +%s
++ echo 'round 2 rc=0 in 1829 s'
+round 2 rc=0 in 1829 s
+++ date +%s
++ echo 'ec_q_r2 0 1829'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/117c_shadowb1@vast/ec_q_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|forecast\|fetch table\|shuffled\|hybrid\|degraded' /w/results/117c_shadowb1@vast/ec_q_r2.err
++ sort
++ uniq -c
++ head -40
++ tail -n 30 /w/results/117c_shadowb1@vast/ec_q_r2.err
++ rm -f /w/results/117c_shadowb1@vast/ec_q_r2.err
++ rm -f /work/models/Qwen3-30B-A3B-BF16.gguf /w/results/117c_shadowb1@vast/la_q.bin
++ python3 /w/jobs/ec2/score117.py /w/results/117c_shadowb1@vast
++ tee /w/results/117c_shadowb1@vast/summary.txt
+base     35.10 ms/token  vs base 1.000 [1.000, 1.000]  reads/token 167.91 (replay nan)  time share nan read share nan
+aa       48.19 ms/token  vs base 0.728 [0.725, 0.732]  reads/token 151.11 (replay 151.12)  time share nan read share nan
+fetch    26.96 ms/token  vs base 1.302 [1.295, 1.309]  reads/token 101.22 (replay 100.74)  time share nan read share nan
+w4       36.45 ms/token  vs base 0.963 [0.955, 0.972]  reads/token 112.80 (replay 112.40)  time share 0.553 read share 0.768
+f0       40.84 ms/token  vs base 0.859 [0.853, 0.866]  reads/token 127.33 (replay 127.24)  time share 0.346 read share 0.477
+f1       42.67 ms/token  vs base 0.823 [0.818, 0.828]  reads/token 132.56 (replay 132.48)  time share 0.260 read share 0.372
+f2       44.55 ms/token  vs base 0.788 [0.784, 0.792]  reads/token 138.48 (replay 138.45)  time share 0.171 read share 0.253
+r7       40.85 ms/token  vs base 0.859 [0.853, 0.865]  reads/token 126.19 (replay 125.99)  time share 0.345 read share 0.500
+room: {"T_full_ms": 5.624294140625, "f1": {"wall": 43.229211, "G_prof": 6.042447, "room": 37.186764, "wait": 0.09712, "copy": 36.7634715, "busy": 42.146512}, "base": {"wall": 35.594187, "G_prof": 5.8741725, "room": 29.720014499999998, "wait": 0.8587225, "copy": 32.019772, "busy": 35.328289}, "shadow_tokens": 4, "need_ms": 22.4971765625}
+validity: {'V1': True, 'V2': True, 'V3': True, 'V4': True, 'V5': True, 'forecast_loaded': True}
+gate: {"a_speed_f1": 0.822555716695131, "a": false, "b_room_ms": 37.186764, "b_need_ms": 22.4971765625, "b": true, "decision": "no-go"}
+predictions: {"P1": true, "P2": {"f0": false, "f1": false, "f2": false, "w4": false, "r7": false}, "P3": {"w4": false, "r7": false, "f0": true, "f1": true, "f2": true}, "P4": false, "P5": true}
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); s = d['\''speed'\'']; print('\''117 '\'' + '\'' '\''.join(f'\''{k} {v["ratio"]:.3f}'\'' for k, v in s.items() if v) + '\'' decision '\'' + d['\''gate'\'']['\''decision'\''])' /w/results/117c_shadowb1@vast/score117.json
++ ONE='117 base 1.000 aa 0.728 fetch 1.302 w4 0.963 f0 0.859 f1 0.823 f2 0.788 r7 0.859 decision no-go'
++ python3 /w/jobs/ec2/manifest.py /w/results/117c_shadowb1@vast 117_shadowb1@vast 1791848074 '117 base 1.000 aa 0.728 fetch 1.302 w4 0.963 f0 0.859 f1 0.823 f2 0.788 r7 0.859 decision no-go' law_qwen3=0,0,1,1,2,2,3,3,4 device_read_gbs=1639 memory_clock_max_mhz=14001 ratio=0.5740
+manifest: 87 files, 6029 s; 117 base 1.000 aa 0.728 fetch 1.302 w4 0.963 f0 0.859 f1 0.823 f2 0.788 r7 0.859 decision no-go
++ cat /w/results/117c_shadowb1@vast/skipped.txt
++ echo 'SUMMARY: 117 base 1.000 aa 0.728 fetch 1.302 w4 0.963 f0 0.859 f1 0.823 f2 0.788 r7 0.859 decision no-go'
+SUMMARY: 117 base 1.000 aa 0.728 fetch 1.302 w4 0.963 f0 0.859 f1 0.823 f2 0.788 r7 0.859 decision no-go

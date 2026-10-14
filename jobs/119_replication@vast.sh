@@ -136,7 +136,11 @@ DISKGB=$(df -BG --output=avail $WORK | tail -1 | tr -dc 0-9); echo "disk free ${
 [ "${DISKGB:-0}" -ge $DISKMIN ] || gate_fail 6 "V0c FAIL: ${DISKGB} GB of free disk (< $DISKMIN), stopping"
 echo "V0c checked" | tee -a $OUT/v0.txt
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pip python3-venv >> $OUT/apt.txt 2>&1
-python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet numpy scipy > $OUT/pip.txt 2>&1
+# fix (after host g): the image's Debian numpy cannot be uninstalled, which failed this whole install on hosts b-g, so
+# huggingface_hub was missing and Qwen3 never downloaded (gpt-oss fell back to curl); install the tools apart from numpy
+python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet > $OUT/pip.txt 2>&1
+python3 -m pip install -q --break-system-packages scipy >> $OUT/pip.txt 2>&1 || python3 -m pip install -q --break-system-packages --ignore-installed numpy scipy >> $OUT/pip.txt 2>&1
+python3 -c "import huggingface_hub" >> $OUT/pip.txt 2>&1 || echo "huggingface_hub missing" >> $OUT/pip.txt
 # --- both downloads first, and the converter's environment; the build and the probe run meanwhile
 mkdir -p $M
 ( t0=$(date +%s)

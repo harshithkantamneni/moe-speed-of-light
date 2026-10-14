@@ -81,8 +81,10 @@ if [ "$SMOKE" = 1 ]; then
 fi
 # PR #29887 sizes its banks from the byte budget: n slots need (n + 1) x 13,219,200 bytes (gate, up and down of one
 # MXFP4 expert of n_embd = n_ff = 2880; its biases stay on the host); the largest n that fits is the slot count
-MIB14=$(python3 -c "import math; print(math.ceil(($CA * $NL + 1) * 13219200 / 2**20))")
-MIB32=$(python3 -c "import math; print(math.ceil(($CB * $NL + 1) * 13219200 / 2**20))")
+# (shell arithmetic: python3 may not be installed yet; the smoke run found both empty, so its pr14 and pr32 ran with
+# the cache off)
+MIB14=$(( ((CA * NL + 1) * 13219200 + 1048575) / 1048576 ))
+MIB32=$(( ((CB * NL + 1) * 13219200 + 1048575) / 1048576 ))
 echo "SMOKE=$SMOKE model $MFILE C=$CA (and base32) problems $NSEQ x $NDEC held-out $NSEQS x $NDECS g=[$NG] s=[$NS] p=[$NP] PR MiB $MIB14 $MIB32" | tee $OUT/mode.txt
 JD="$(cd "$(dirname "$0")" && pwd)"
 gate_fail() {  # exit-code message: a failed gate stops the host
@@ -183,6 +185,8 @@ echo "probe 1 ended $(date -u +%FT%TZ); download running: $(kill -0 $DLG 2>/dev/
 LAWG=$(python3 $J/fetch_table.py $OUT/concur.txt $H 13253760 4 $OUT/fetch_table_law_gptoss.json 37)
 echo "law table ($(date -u +%FT%TZ)): gpt-oss $LAWG" | tee $OUT/tables.txt
 [ -n "$LAWG" ] || { echo "no law table"; exit 3; }
+# smoke runs only: a slow link gives an all-zero table, which would leave the fetch path (and own) untried
+if [ "$SMOKE" = 1 ] && ! echo "$LAWG" | grep -q "[1-9]"; then LAWG=0,0,1,2,2; echo "smoke: table forced to $LAWG" | tee -a $OUT/tables.txt; fi
 RATIO=$(python3 -c "import json, sys; d = json.load(open(sys.argv[1])); print(f'{d[\"B_p\"] / d[\"B_c\"]:.4f}')" $OUT/fetch_table_law_gptoss.json)
 echo "VR: B_p / B_c = ${RATIO:-?}" | tee -a $OUT/gate.txt
 if ! python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)" "${RATIO:-0}" $VRMIN; then

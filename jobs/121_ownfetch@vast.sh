@@ -68,6 +68,14 @@
 # header was pushed, whichever comes first. Budget per host: 250 minutes (later rounds are skipped if the deadline nears;
 # recorded). A smoke run (SMOKE=1: gpt-oss-20b, 2 problems x 32 steps, gates recorded, not enforced) checks the
 # script on one host before launch; it is not a host of this job.
+# Amendment (committed before host b; host a's container never started): consumer desktops with at least 90 GB of host
+# memory and a new GPU proved scarce (at host b's turn one such offer was listed, and its machine failed to start).
+# When no new offer qualifies and at least two hours have passed since this job's last launch, a launch may take the
+# cheapest offer that meets every rule but the ledger's on a machine that was a valid host of jobs 109-120
+# (jobs/ec2/repeat_machines121.txt), with V0's new-GPU clause waived for it (its wrapper sets REPEAT=1): a "repeat"
+# host. Every clause is scored over all valid hosts and, separately, over the new ones alone; no repeat host on a
+# machine already run in this job, and the two-per-provider rule applies to them too. Predictions and validity are
+# unchanged.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0
@@ -97,7 +105,10 @@ gate_fail() {  # exit-code message: a failed gate stops the host
 UUID=$(nvidia-smi --query-gpu=uuid --format=csv,noheader | head -1 | tr -d ' ')
 free -g > $OUT/free.txt; USEDGB=$(awk '/Mem:/{print $3}' $OUT/free.txt)
 echo "GPU UUID $UUID; host memory in use ${USEDGB} GB" | tee $OUT/v0.txt
-if grep -qx "$UUID" "$JD/ec2/known_gpu_uuids.txt"; then
+REPEAT=${REPEAT:-0}
+if grep -qx "$UUID" "$JD/ec2/known_gpu_uuids.txt" && [ "$REPEAT" = 1 ]; then
+  echo "V0: a GPU rented before ($UUID): a repeat host, admitted by the amendment" | tee -a $OUT/v0.txt
+elif grep -qx "$UUID" "$JD/ec2/known_gpu_uuids.txt"; then
   gate_fail 8 "V0 FAIL: GPU rented before ($UUID), stopping"
 else
   echo "V0: a GPU in no earlier launch" | tee -a $OUT/v0.txt

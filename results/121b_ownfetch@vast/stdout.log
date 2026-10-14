@@ -1,0 +1,162 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ NL=36
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ NSEQS=12
++ NDECS=448
++ ROUNDS='1 2 3'
++ BMIN=250
++ RAMMIN=90
++ DISKMIN=150
++ VRMIN=0.5
++ NG='base base0 bypass bypass0 own base32'
++ NS='base base0 bypass bypass0 own'
++ NP='pr14 pr32 cpu'
++ '[' 0 = 1 ']'
++ MIB14=6367
++ MIB32=14536
++ echo 'SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536'
++ tee /w/results/121b_ownfetch@vast/mode.txt
+SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536
++++ dirname /w/jobs/121_ownfetch@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-d0a88928-c4e6-65bb-7aa9-d588fdb27b9f
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/121b_ownfetch@vast/free.txt
++ USEDGB=2
++ echo 'GPU UUID GPU-d0a88928-c4e6-65bb-7aa9-d588fdb27b9f; host memory in use 2 GB'
++ tee /w/results/121b_ownfetch@vast/v0.txt
+GPU UUID GPU-d0a88928-c4e6-65bb-7aa9-d588fdb27b9f; host memory in use 2 GB
++ REPEAT=0
++ grep -qx GPU-d0a88928-c4e6-65bb-7aa9-d588fdb27b9f /w/jobs/ec2/known_gpu_uuids.txt
++ grep -qx GPU-d0a88928-c4e6-65bb-7aa9-d588fdb27b9f /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'V0: a GPU in no earlier launch'
++ tee -a /w/results/121b_ownfetch@vast/v0.txt
+V0: a GPU in no earlier launch
++ '[' 2 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/121b_ownfetch@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=16
+++ NPROC=16
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ export BASE
++ export -f build_tree platform getmodel
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ PRPATCH=/w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
++ PRSHA=2de17c21b81fab40ba962500deb3ee2247d8e356
+++ date +%s
++ T0=1792005309
++ BUDGET=15000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=5309
++ echo 'order seed base 5309'
++ tee /w/results/121b_ownfetch@vast/order_seed.txt
+order seed base 5309
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/121b_ownfetch@vast/cpu.txt
+CPU(s):                                  16
+Model name:                              AMD Ryzen 7 9800X3D 8-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      46%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=8
++ tee /w/results/121b_ownfetch@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 8 (nproc 16); NUMA nodes 1'
+usable physical cores 8 (nproc 16); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 8 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/121b_ownfetch@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/121b_ownfetch@vast/bw_gate.txt
++ DR=18
++ echo 'device read 18 GB/s'
++ tee -a /w/results/121b_ownfetch@vast/gate.txt
+device read 18 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 5090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=32607
++ echo 'card NVIDIA GeForce RTX 5090, 32607 MiB'
++ tee -a /w/results/121b_ownfetch@vast/gate.txt
+card NVIDIA GeForce RTX 5090, 32607 MiB
++ case "$GNAME" in
++ CARD=5090
++ DRMIN=1500
++ V1REF=0.190
++ echo 'card class 5090'
++ tee -a /w/results/121b_ownfetch@vast/gate.txt
+card class 5090
++ '[' 18 -ge 1500 ']'
++ gate_fail 5 'V0c FAIL: GPU reads below 1500 GB/s: throttled card, stopping'
++ local code=5
++ shift
++ echo 'V0c FAIL: GPU reads below 1500 GB/s: throttled card, stopping'
++ tee -a /w/results/121b_ownfetch@vast/v0.txt
+V0c FAIL: GPU reads below 1500 GB/s: throttled card, stopping
++ '[' 0 = 1 ']'
++ exit 5

@@ -1,0 +1,682 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ CARD=5090
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ CA=14
++ CB=32
++ CQ16=16
++ NSEQ=20
++ NDEC=256
++ BMIN=270
++ NA='base base0 foa foa0 bypass bypass0 fetch both3p'
++ NH='base0 bypass0 foa0 fetch'
++ PROF=1
++ V1REF=0.190
++ V1QREF=0.0855
++ DRMIN=1500
++ VRMIN=0.5
++ RAMMIN=90
++ DISKMIN=210
++ KA=3
++ KB=2
++ echo 'CARD=5090 SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 Qwen3 C=16 problems 20 steps 256 A=[base base0 foa foa0 bypass bypass0 fetch both3p] H=[base0 bypass0 foa0 fetch]'
++ tee /w/results/119g_replication@vast/mode.txt
+CARD=5090 SMOKE=0 model gpt-oss-120b-MXFP4.gguf budgets C=14,32 Qwen3 C=16 problems 20 steps 256 A=[base base0 foa foa0 bypass bypass0 fetch both3p] H=[base0 bypass0 foa0 fetch]
++++ dirname /w/jobs/119_replication@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-26ff09e1-3542-06ef-239d-e1fa8972ff95
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/119g_replication@vast/free.txt
++ USEDGB=5
++ echo 'GPU UUID GPU-26ff09e1-3542-06ef-239d-e1fa8972ff95; host memory in use 5 GB'
++ tee /w/results/119g_replication@vast/v0.txt
+GPU UUID GPU-26ff09e1-3542-06ef-239d-e1fa8972ff95; host memory in use 5 GB
++ grep -qx GPU-26ff09e1-3542-06ef-239d-e1fa8972ff95 /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'V0: a GPU in no earlier launch'
++ tee -a /w/results/119g_replication@vast/v0.txt
+V0: a GPU in no earlier launch
++ '[' 5 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/119g_replication@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ . /w/jobs/ec2/prof.sh
++ export BASE
++ export -f build_tree platform getmodel
++ export 'PROF_KEEP_TAIL=G14 G32 Q16'
++ PROF_KEEP_TAIL='G14 G32 Q16'
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+++ date +%s
++ T0=1791966391
++ BUDGET=16200
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=66391
++ echo 'order seed base 66391'
++ tee /w/results/119g_replication@vast/order_seed.txt
+order seed base 66391
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/119g_replication@vast/cpu.txt
+CPU(s):                                  32
+Model name:                              AMD Ryzen 9 5950X 16-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      49%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/119g_replication@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32); NUMA nodes 1'
+usable physical cores 16 (nproc 32); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 16 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/119g_replication@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/119g_replication@vast/bw_gate.txt
++ DR=1695
++ echo 'device read 1695 GB/s'
++ tee -a /w/results/119g_replication@vast/gate.txt
+device read 1695 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 5090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=32607
++ echo 'card NVIDIA GeForce RTX 5090, 32607 MiB'
++ tee -a /w/results/119g_replication@vast/gate.txt
+card NVIDIA GeForce RTX 5090, 32607 MiB
++ case "$GNAME" in
++ '[' 1695 -ge 1500 ']'
+++ awk '/Mem:/{print $2}' /w/results/119g_replication@vast/free.txt
++ RAMGB=125
++ echo 'host RAM 125 GB, in use 5 GB'
++ tee -a /w/results/119g_replication@vast/gate.txt
+host RAM 125 GB, in use 5 GB
++ '[' 125 -ge 90 ']'
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=240
++ echo 'disk free 240 GB'
++ tee -a /w/results/119g_replication@vast/gate.txt
+disk free 240 GB
++ '[' 240 -ge 210 ']'
++ echo 'V0c checked'
++ tee -a /w/results/119g_replication@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip python3-venv
++ python3 -m pip install -q --break-system-packages uv huggingface_hub hf_xet numpy scipy
++ mkdir -p /work/models
++ DLG=6372
++ HFQ=/work/models/Qwen3-30B-A3B
++ DLQ=6374
++ VE=/work/venv
++ VEP=6375
++ '[' 1 = 1 ']'
++ NSP=6377
++ install_nsys
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
+++ ls '/opt/nvidia/nsight-systems/*/bin/nsys'
+++ tail -1
++ NSYS=
++ '[' -z '' ']'
++ local pkg
+++ apt-cache search --names-only '^nsight-systems-20[0-9][0-9]'
+++ awk '{print $1}'
+++ sort -V
+++ tail -1
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ pkg=nsight-systems-2026.3.2
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq nsight-systems-2026.3.2
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
+++ tail -1
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/119g_replication@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/119g_replication@vast/build_lc-ec.txt
++ '[' 1 = 1 ']'
++ wait 6377
++ install_nsys
+++ tail -1
+++ ls /opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ NSYS=/opt/nvidia/nsight-systems/2026.3.2/bin/nsys
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ tee -a /w/results/119g_replication@vast/nsys_install.txt
+++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys --version
++ echo 'nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)'
+nsys: /opt/nvidia/nsight-systems/2026.3.2/bin/nsys (NVIDIA Nsight Systems version 2026.3.2.476-263238834031v0)
++ export NSYS
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct 14 08:29 /work/lc-ec/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch /w/jobs/ec2/known_gpu_uuids.txt /w/jobs/ec2/fetch_table.py
++ tee /w/results/119g_replication@vast/patch_sha.txt
+20994ddab5ed2cf10fd33bfb1530dba6702fbb6bd597a47937362dc6f4990ac3  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle5.patch
+708a31c119fa90d4a1abf35757cdc5cc0191ebda5347d022e272bb8fe744e0ad  /w/jobs/ec2/known_gpu_uuids.txt
+5e551268262681442d8f1f01d5d3de6876e9b4edb73225fe0e244a6d806592b1  /w/jobs/ec2/fetch_table.py
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=14
++ H2=7
++ '[' 7 -lt 2 ']'
++ echo 'helpers H=14 H2=7'
++ tee -a /w/results/119g_replication@vast/gate.txt
+helpers H=14 H2=7
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/119g_replication@vast/concur.txt
++ tee /w/results/119g_replication@vast/probe1_when.txt
+++ date -u +%FT%TZ
+++ kill -0 6372
+++ echo yes
+++ kill -0 6374
+++ echo no
++ echo 'probe 1 ended 2026-10-14T08:31:07Z; downloads running: yes no'
+probe 1 ended 2026-10-14T08:31:07Z; downloads running: yes no
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/119g_replication@vast/concur.txt 14 13253760 4 /w/results/119g_replication@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,2,3
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/119g_replication@vast/concur.txt 7 13253760 4 /w/results/119g_replication@vast/fetch_table_law_gptoss_h2.json 37
++ LAWG2=0,1,1,2,3
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/119g_replication@vast/concur.txt 14 9437184 8 /w/results/119g_replication@vast/fetch_table_law_qwen3.json 48
++ LAWQ=0,0,1,2,3,4,5,5,6
++ tee /w/results/119g_replication@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law tables (2026-10-14T08:31:07Z): gpt-oss 0,0,1,2,3; gpt-oss at H2 0,1,1,2,3; qwen3 0,0,1,2,3,4,5,5,6'
+law tables (2026-10-14T08:31:07Z): gpt-oss 0,0,1,2,3; gpt-oss at H2 0,1,1,2,3; qwen3 0,0,1,2,3,4,5,5,6
++ '[' -n 0,0,1,2,3 ']'
++ '[' -n 0,1,1,2,3 ']'
++ '[' -n 0,0,1,2,3,4,5,5,6 ']'
+++ ratio_of /w/results/119g_replication@vast/fetch_table_law_gptoss.json
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/119g_replication@vast/fetch_table_law_gptoss.json
++ RATIO=0.8765
+++ ratio_of /w/results/119g_replication@vast/fetch_table_law_gptoss_h2.json
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/119g_replication@vast/fetch_table_law_gptoss_h2.json
++ RATIO2=1.1078
++ echo 'VR: B_p / B_c = 0.8765 (H2: 1.1078)'
++ tee -a /w/results/119g_replication@vast/gate.txt
+VR: B_p / B_c = 0.8765 (H2: 1.1078)
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.8765 0.5
++ echo 'VR checked'
++ tee -a /w/results/119g_replication@vast/v0.txt
+VR checked
+++ date +%s
++ echo 'build and probe done, waiting for the downloads (276 s since launch)'
+build and probe done, waiting for the downloads (276 s since launch)
++ wait 6372
++ cat /w/results/119g_replication@vast/dl_gguf.txt
+++ date +%s
++ t0=1791966403
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d(sys.argv[2], sys.argv[3], local_dir=sys.argv[1])' /work/models ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'huggingface_hub'
+++ date +%s
++ echo 'gguf hf download rc=1 in 0 s'
+gguf hf download rc=1 in 0 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+ls: cannot access '/work/models/gpt-oss-120b-MXFP4.gguf': No such file or directory
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf
++ for i in 1 2 3
++ getmodel ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
++ mkdir -p /work/models
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
+++ date +%s
++ local t0=1791966403
++ curl -fL --retry 5 --retry-delay 5 -C - -s -o /work/models/gpt-oss-120b-MXFP4.gguf.part https://huggingface.co/ggml-org/gpt-oss-120b-GGUF/resolve/main/gpt-oss-120b-MXFP4.gguf
++ mv /work/models/gpt-oss-120b-MXFP4.gguf.part /work/models/gpt-oss-120b-MXFP4.gguf
+++ stat -c %s /work/models/gpt-oss-120b-MXFP4.gguf
+++ date +%s
++ echo 'download gpt-oss-120b-MXFP4.gguf: 63387346208 bytes in 787 s'
+download gpt-oss-120b-MXFP4.gguf: 63387346208 bytes in 787 s
++ '[' -f /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ break
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ wait 6374 6375
++ cat /w/results/119g_replication@vast/dl_qwen3.txt
+++ date +%s
++ t0=1791966403
++ python3 -c 'import sys; from huggingface_hub import snapshot_download as s; s('\''Qwen/Qwen3-30B-A3B'\'', local_dir=sys.argv[1])' /work/models/Qwen3-30B-A3B
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'huggingface_hub'
+++ date +%s
++ echo 'qwen3 hf download rc=1 in 0 s'
+qwen3 hf download rc=1 in 0 s
++ du -sh /work/models/Qwen3-30B-A3B
+du: cannot access '/work/models/Qwen3-30B-A3B': No such file or directory
++ tail -2 /w/results/119g_replication@vast/venv_install.txt
++ uv pip install -q torch --index-url https://download.pytorch.org/whl/cpu
++ uv pip install -q numpy transformers sentencepiece safetensors protobuf
++ GQ=/work/models/Qwen3-30B-A3B-BF16.gguf
++ tail -2 /w/results/119g_replication@vast/convert_qwen3.txt
++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+ls: cannot access '/work/models/Qwen3-30B-A3B-BF16.gguf': No such file or directory
++ rm -rf /work/models/Qwen3-30B-A3B
++ df -h /work
++ tail -1
++ for i in 1 2 3
+++ date +%s
++ t0=1791967194
++ R 15m /work/concur
++ tee -a /w/results/119g_replication@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 1 rc=0 in 37 s (2026-10-14T08:40:31Z)'
+idle probe 1 rc=0 in 37 s (2026-10-14T08:40:31Z)
++ for i in 1 2 3
+++ date +%s
++ t0=1791967231
++ R 15m /work/concur
++ tee -a /w/results/119g_replication@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 2 rc=0 in 36 s (2026-10-14T08:41:07Z)'
+idle probe 2 rc=0 in 36 s (2026-10-14T08:41:07Z)
++ for i in 1 2 3
+++ date +%s
++ t0=1791967267
++ R 15m /work/concur
++ tee -a /w/results/119g_replication@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 3 rc=0 in 36 s (2026-10-14T08:41:43Z)'
+idle probe 3 rc=0 in 36 s (2026-10-14T08:41:43Z)
++ python3 - /w/results/119g_replication@vast
++ cat /w/results/119g_replication@vast/probe_compare.txt
+first probe highest 30.60 GB/s; idle runs 31.00 31.10 31.00; idle best / first 1.0163; idle spread 1.0032
++ MB=mailbox=1:tdec=1:helpers=14
++ MBH=mailbox=1:tdec=1:helpers=7
++ PACED=paced=1:chunk=16777216:max_pending=64
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ CQF=/w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
+    30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+    30 /w/jobs/ec2/aime25_owntext_qwen3_084b.jsonl
+    60 total
++ lookahead g /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 24
+++ date +%s
++ local tag=g g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl n=24 t0=1791967303
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/119g_replication@vast/la_g.bin
+++ date +%s
+++ ls -la /w/results/119g_replication@vast/la_g.bin
+++ awk '{print $5}'
++ echo 'lookahead g rc=0 in 918 s: 11816960 bytes'
+lookahead g rc=0 in 918 s: 11816960 bytes
++ cat /w/results/119g_replication@vast/la_g.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/119g_replication@vast/la_g.err
++ rm -f /w/results/119g_replication@vast/la_g.err
++ '[' -s /w/results/119g_replication@vast/la_g.bin ']'
++ profiles G /work/models/gpt-oss-120b-MXFP4.gguf /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 0,0,1,2,3 14 32
++ local m=G g=/work/models/gpt-oss-120b-MXFP4.gguf corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl law=0,0,1,2,3
++ shift 4
++ '[' 1 = 1 ']'
++ local labs= C
++ for C in "$@"
++ prof_run G14 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G14
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G14 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G14 rc=0'
+prof G14 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G14 /work/prof_G14.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G14 --out /w/results/119g_replication@vast --keep-tail
++ '[' -f /work/prof_G14_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G14_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G14_cuda_api_trace.csv /work/prof_G14_cuda_gpu_kern_sum.csv /work/prof_G14_cuda_gpu_trace.csv /work/prof_G14.sqlite
++ ls -la /w/results/119g_replication@vast/prof_G14.err /w/results/119g_replication@vast/prof_G14.json /w/results/119g_replication@vast/prof_G14.stdout /w/results/119g_replication@vast/prof_G14_kern_sum.csv.gz /w/results/119g_replication@vast/prof_G14_tail.csv.gz
+-rw-r--r-- 1 root root 396720 Oct 14 08:59 /w/results/119g_replication@vast/prof_G14.err
+-rw-r--r-- 1 root root   4099 Oct 14 09:00 /w/results/119g_replication@vast/prof_G14.json
+-rw-r--r-- 1 root root   1969 Oct 14 09:00 /w/results/119g_replication@vast/prof_G14.stdout
+-rw-r--r-- 1 root root   2401 Oct 14 09:00 /w/results/119g_replication@vast/prof_G14_kern_sum.csv.gz
+-rw-r--r-- 1 root root 206683 Oct 14 09:00 /w/results/119g_replication@vast/prof_G14_tail.csv.gz
++ labs=' G14'
++ for C in "$@"
++ prof_run G32 /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ local label=G32
++ shift
++ '[' -z /opt/nvidia/nsight-systems/2026.3.2/bin/nsys ']'
++ timeout 30m /opt/nvidia/nsight-systems/2026.3.2/bin/nsys profile -o /work/prof_G32 --force-overwrite true --trace=cuda --cuda-graph-trace=node --sample=none --cpuctxsw=none /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-prefill 1024 --n-decode 24 --no-mmap --host-experts --seqs 1,0 --ec slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:seqs=1/0
++ echo 'prof G32 rc=0'
+prof G32 rc=0
++ /opt/nvidia/nsight-systems/2026.3.2/bin/nsys stats --force-export=true --report cuda_gpu_trace,cuda_api_trace,cuda_gpu_kern_sum --format csv --output /work/prof_G32 /work/prof_G32.nsys-rep
++ local keep=
++ case " $PROF_KEEP_TAIL " in
++ keep=--keep-tail
++ python3 /w/jobs/ec2/prof_summary.py --work /work --label G32 --out /w/results/119g_replication@vast --keep-tail
++ '[' -f /work/prof_G32_cuda_gpu_kern_sum.csv ']'
++ gzip -c /work/prof_G32_cuda_gpu_kern_sum.csv
++ rm -f /work/prof_G32_cuda_api_trace.csv /work/prof_G32_cuda_gpu_kern_sum.csv /work/prof_G32_cuda_gpu_trace.csv /work/prof_G32.sqlite
++ ls -la /w/results/119g_replication@vast/prof_G32.err /w/results/119g_replication@vast/prof_G32.json /w/results/119g_replication@vast/prof_G32.stdout /w/results/119g_replication@vast/prof_G32_kern_sum.csv.gz /w/results/119g_replication@vast/prof_G32_tail.csv.gz
+-rw-r--r-- 1 root root 396721 Oct 14 09:01 /w/results/119g_replication@vast/prof_G32.err
+-rw-r--r-- 1 root root   4139 Oct 14 09:01 /w/results/119g_replication@vast/prof_G32.json
+-rw-r--r-- 1 root root   1968 Oct 14 09:01 /w/results/119g_replication@vast/prof_G32.stdout
+-rw-r--r-- 1 root root   2386 Oct 14 09:01 /w/results/119g_replication@vast/prof_G32_kern_sum.csv.gz
+-rw-r--r-- 1 root root 206456 Oct 14 09:01 /w/results/119g_replication@vast/prof_G32_tail.csv.gz
++ labs=' G14 G32'
++ python3 - /w/results/119g_replication@vast G14 G32
+++ date -u +%FT%TZ
++ echo 'profiles written 2026-10-14T09:01:57Z, before any timed run of this model:'
+profiles written 2026-10-14T09:01:57Z, before any timed run of this model:
++ tail -1 /w/results/119g_replication@vast/g_prof.jsonl
+{"G14": {"G_prof_ms": 4.4852915, "wall_ms": 46.8930335, "wait_ms": 11.732824, "copy_ms": 29.858427}, "G32": {"G_prof_ms": 4.536378, "wall_ms": 32.9578465, "wait_ms": 14.4939455, "copy_ms": 15.0477245}}
++ FAILED=
++ run_round g 14 1 A 'base base0 foa foa0 bypass bypass0 fetch both3p'
++ local m=g C=14 rd=1 pr=A 'names=base base0 foa foa0 bypass bypass0 fetch both3p'
++ local g corpus la law mb
++ case $m in
++ g=/work/models/gpt-oss-120b-MXFP4.gguf
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ la=/w/results/119g_replication@vast/la_g.bin
++ law=0,0,1,2,3
++ mb=mailbox=1:tdec=1:helpers=14
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0
++ local tag=g_C14_r1A
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r1A_both3p.json'
++ local off=0
++ case $m in
++ local seed=66505
++ echo 'cell g_C14_r1A order-seed 66505 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r1A_both3p.json'
+++ date +%s
++ local t0=1791968517
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 66505 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r1A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r1A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r1A_both3p.json'
++ local rc=0
+++ date +%s
++ echo 'cell g_C14_r1A rc=0 in 2043 s'
+cell g_C14_r1A rc=0 in 2043 s
+++ date +%s
++ echo 'ec_g_C14_r1A 0 2043'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/119g_replication@vast/ec_g_C14_r1A.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|plan\|fetch table\|fetch-on-admit\|prefetch\|shuffled\|kappa\|helpers' /w/results/119g_replication@vast/ec_g_C14_r1A.err
++ head -60
++ tail -n 30 /w/results/119g_replication@vast/ec_g_C14_r1A.err
++ rm -f /w/results/119g_replication@vast/ec_g_C14_r1A.err
++ vcheck V1 g 0.190
++ python3 - /w/results/119g_replication@vast 0 V1 g 0.190
++ tee -a /w/results/119g_replication@vast/validity.txt
+V1 ec_g_C14_r1A.jsonl base loss 0.1909 vs 0.19: ok
++ '[' 0 -eq 0 ']'
++ vcheck V3 g 0.190
++ python3 - /w/results/119g_replication@vast 0 V3 g 0.190
++ tee -a /w/results/119g_replication@vast/validity.txt
+V3 ec_g_C14_r1A.jsonl base: 20 problems, loss 0.1909 vs base 0.1909 (+0.00%): ok
+V3 ec_g_C14_r1A.jsonl base0: 20 problems, loss 0.1894 vs base 0.1909 (-0.77%): ok
+V3 ec_g_C14_r1A.jsonl both3p: 20 problems, loss 0.1898 vs base 0.1909 (-0.55%): ok
+V3 ec_g_C14_r1A.jsonl bypass: 20 problems, loss 0.1900 vs base 0.1909 (-0.43%): ok
+V3 ec_g_C14_r1A.jsonl bypass0: 20 problems, loss 0.1906 vs base 0.1909 (-0.11%): ok
+V3 ec_g_C14_r1A.jsonl fetch: 20 problems, loss 0.1904 vs base 0.1909 (-0.26%): ok
+V3 ec_g_C14_r1A.jsonl foa: 20 problems, loss 0.1905 vs base 0.1909 (-0.21%): ok
+V3 ec_g_C14_r1A.jsonl foa0: 20 problems, loss 0.1898 vs base 0.1909 (-0.55%): ok
++ '[' -z '' ']'
++ run_round g 14 2 A 'base base0 foa foa0 bypass bypass0 fetch both3p'
++ local m=g C=14 rd=2 pr=A 'names=base base0 foa foa0 bypass bypass0 fetch both3p'
++ local g corpus la law mb
++ case $m in
++ g=/work/models/gpt-oss-120b-MXFP4.gguf
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ la=/w/results/119g_replication@vast/la_g.bin
++ law=0,0,1,2,3
++ mb=mailbox=1:tdec=1:helpers=14
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0
++ local orc=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0
++ local tag=g_C14_r2A
++ local cfg= n c
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_fetch.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r2A_both3p.json'
++ local off=0
++ case $m in
++ local seed=66605
++ echo 'cell g_C14_r2A order-seed 66605 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r2A_both3p.json'
+++ date +%s
++ local t0=1791970560
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 66605 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_base0.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,2,3:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:fetch_on_admit=1:stats=/w/results/119g_replication@vast/st_g_C14_r2A_foa0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_bypass0.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=1:oracle_fetch=1:paced=0:stats=/w/results/119g_replication@vast/st_g_C14_r2A_fetch.json;slots=14:policy=oracle:oracle=/w/results/119g_replication@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,2,3:overlap=1:oracle_w=0:oracle_bypass=0:oracle_lead=3:oracle_fetch=1:paced=1:chunk=16777216:max_pending=64:stats=/w/results/119g_replication@vast/st_g_C14_r2A_both3p.json'
++ local rc=0
+++ date +%s
++ echo 'cell g_C14_r2A rc=0 in 2106 s'
+cell g_C14_r2A rc=0 in 2106 s
+++ date +%s
++ echo 'ec_g_C14_r2A 0 2106'
++ sed 's/:stats=.*st_/ -> st_/'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/119g_replication@vast/ec_g_C14_r2A.err
++ grep -i 'oracle\|plan\|fetch table\|fetch-on-admit\|prefetch\|shuffled\|kappa\|helpers' /w/results/119g_replication@vast/ec_g_C14_r2A.err
++ head -60
++ tail -n 30 /w/results/119g_replication@vast/ec_g_C14_r2A.err
++ rm -f /w/results/119g_replication@vast/ec_g_C14_r2A.err
++ vcheck V2 g 0.190 14 1 2
++ python3 - /w/results/119g_replication@vast 0 V2 g 0.190 14 1 2
++ tee -a /w/results/119g_replication@vast/validity.txt
+V2 g C14 base ms/token 38.181 39.285: spread 2.89%: FAIL
++ '[' 9 -eq 0 ']'
++ echo 'V2 failed (two rounds): stopping'
++ tee -a /w/results/119g_replication@vast/validity.txt
+V2 failed (two rounds): stopping
++ '[' 0 = 1 ']'
++ FAILED=V2
++ '[' -z V2 ']'
++ '[' -z V2 ']'
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf /w/results/119g_replication@vast/la_g.bin
++ '[' -z V2 ']'
++ tee -a /w/results/119g_replication@vast/skipped.txt
+++ ls -la /work/models/Qwen3-30B-A3B-BF16.gguf
+++ awk '{print $5}'
++ echo 'Qwen3 part skipped (FAILED=V2; GGUF )'
+Qwen3 part skipped (FAILED=V2; GGUF )
++ rm -f /work/models/Qwen3-30B-A3B-BF16.gguf /w/results/119g_replication@vast/la_q.bin
++ python3 - /w/results/119g_replication@vast
++ tee /w/results/119g_replication@vast/summary.txt
+st_g_C14_r1A_base            26.19 tok/s  38.18 ms n=20 vs base 1.000 loss +0.00% misses 59.65 admits 3.46 prefetches 0.00 fetches 29.75 reads/tok 63.11
+st_g_C14_r1A_base0           17.86 tok/s  55.99 ms n=20 vs base 0.682 loss -0.77% misses 62.12 admits 8.20 prefetches 0.00 fetches 0.00 reads/tok 70.32
+st_g_C14_r1A_both3p          37.43 tok/s  26.72 ms n=20 vs base 1.429 loss -0.55% misses 23.35 admits 23.27 prefetches 0.00 fetches 4.49 reads/tok 46.62
+st_g_C14_r1A_bypass          26.79 tok/s  37.32 ms n=20 vs base 1.023 loss -0.43% misses 50.75 admits 15.84 prefetches 0.00 fetches 23.56 reads/tok 66.59
+st_g_C14_r1A_bypass0         22.45 tok/s  44.54 ms n=20 vs base 0.857 loss -0.11% misses 43.50 admits 20.39 prefetches 0.00 fetches 0.00 reads/tok 63.89
+st_g_C14_r1A_fetch           34.39 tok/s  29.08 ms n=20 vs base 1.313 loss -0.26% misses 39.73 admits 0.00 prefetches 0.00 fetches 19.81 reads/tok 39.73
+st_g_C14_r1A_foa             27.06 tok/s  36.95 ms n=20 vs base 1.033 loss -0.21% misses 59.07 admits 0.00 prefetches 0.00 fetches 31.96 reads/tok 59.07
+st_g_C14_r1A_foa0            20.04 tok/s  49.89 ms n=20 vs base 0.765 loss -0.55% misses 60.70 admits 0.00 prefetches 0.00 fetches 8.19 reads/tok 60.70
+st_g_C14_r2A_base            25.46 tok/s  39.28 ms n=20 vs base 1.000 loss +0.00% misses 59.65 admits 3.46 prefetches 0.00 fetches 29.75 reads/tok 63.11
+st_g_C14_r2A_base0           16.88 tok/s  59.24 ms n=20 vs base 0.663 loss -0.77% misses 62.12 admits 8.20 prefetches 0.00 fetches 0.00 reads/tok 70.32
+st_g_C14_r2A_both3p          36.03 tok/s  27.75 ms n=20 vs base 1.416 loss -0.67% misses 23.35 admits 23.29 prefetches 0.00 fetches 4.47 reads/tok 46.64
+st_g_C14_r2A_bypass          25.96 tok/s  38.52 ms n=20 vs base 1.020 loss -0.43% misses 50.75 admits 15.84 prefetches 0.00 fetches 23.56 reads/tok 66.59
+st_g_C14_r2A_bypass0         21.35 tok/s  46.83 ms n=20 vs base 0.839 loss -0.11% misses 43.50 admits 20.39 prefetches 0.00 fetches 0.00 reads/tok 63.89
+st_g_C14_r2A_fetch           33.27 tok/s  30.06 ms n=20 vs base 1.307 loss -0.26% misses 39.73 admits 0.00 prefetches 0.00 fetches 19.81 reads/tok 39.73
+st_g_C14_r2A_foa             26.16 tok/s  38.22 ms n=20 vs base 1.028 loss -0.21% misses 59.07 admits 0.00 prefetches 0.00 fetches 31.96 reads/tok 59.07
+st_g_C14_r2A_foa0            18.93 tok/s  52.82 ms n=20 vs base 0.744 loss -0.55% misses 60.70 admits 0.00 prefetches 0.00 fetches 8.19 reads/tok 60.70
+++ cat /w/results/119g_replication@vast/oneline.txt
++ ONE='119 g_C14_r1A_both3p 1.429 g_C14_r1A_bypass 1.023 g_C14_r1A_bypass0 0.857 g_C14_r1A_fetch 1.313 g_C14_r1A_foa 1.033 g_C14_r1A_foa0 0.765'
++ python3 /w/jobs/ec2/manifest.py /w/results/119g_replication@vast 119_replication@vast 1791966391 '119 g_C14_r1A_both3p 1.429 g_C14_r1A_bypass 1.023 g_C14_r1A_bypass0 0.857 g_C14_r1A_fetch 1.313 g_C14_r1A_foa 1.033 g_C14_r1A_foa0 0.765' card=5090 law_gptoss=0,0,1,2,3 law_gptoss_h2=0,1,1,2,3 law_qwen3=0,0,1,2,3,4,5,5,6 device_read_gbs=1695 memory_clock_max_mhz=14001 ratio=0.8765 ratio_h2=1.1078 helpers=14 helpers_h2=7 failed=V2 smoke=0
+manifest: 87 files, 6281 s; 119 g_C14_r1A_both3p 1.429 g_C14_r1A_bypass 1.023 g_C14_r1A_bypass0 0.857 g_C14_r1A_fetch 1.313 g_C14_r1A_foa 1.033 g_C14_r1A_foa0 0.765
++ cat /w/results/119g_replication@vast/skipped.txt
+Qwen3 part skipped (FAILED=V2; GGUF )
++ cat /w/results/119g_replication@vast/validity.txt
+V1 ec_g_C14_r1A.jsonl base loss 0.1909 vs 0.19: ok
+V3 ec_g_C14_r1A.jsonl base: 20 problems, loss 0.1909 vs base 0.1909 (+0.00%): ok
+V3 ec_g_C14_r1A.jsonl base0: 20 problems, loss 0.1894 vs base 0.1909 (-0.77%): ok
+V3 ec_g_C14_r1A.jsonl both3p: 20 problems, loss 0.1898 vs base 0.1909 (-0.55%): ok
+V3 ec_g_C14_r1A.jsonl bypass: 20 problems, loss 0.1900 vs base 0.1909 (-0.43%): ok
+V3 ec_g_C14_r1A.jsonl bypass0: 20 problems, loss 0.1906 vs base 0.1909 (-0.11%): ok
+V3 ec_g_C14_r1A.jsonl fetch: 20 problems, loss 0.1904 vs base 0.1909 (-0.26%): ok
+V3 ec_g_C14_r1A.jsonl foa: 20 problems, loss 0.1905 vs base 0.1909 (-0.21%): ok
+V3 ec_g_C14_r1A.jsonl foa0: 20 problems, loss 0.1898 vs base 0.1909 (-0.55%): ok
+V2 g C14 base ms/token 38.181 39.285: spread 2.89%: FAIL
+V2 failed (two rounds): stopping
++ echo 'SUMMARY: 119 g_C14_r1A_both3p 1.429 g_C14_r1A_bypass 1.023 g_C14_r1A_bypass0 0.857 g_C14_r1A_fetch 1.313 g_C14_r1A_foa 1.033 g_C14_r1A_foa0 0.765'
+SUMMARY: 119 g_C14_r1A_both3p 1.429 g_C14_r1A_bypass 1.023 g_C14_r1A_bypass0 0.857 g_C14_r1A_fetch 1.313 g_C14_r1A_foa 1.033 g_C14_r1A_foa0 0.765

@@ -29,6 +29,8 @@
 # pushed before each launch (jobs/ec2/list119.py). At most two valid machines per Vast host. Up to three run at once. A
 # host that fails a gate or V1/V2 is replaced by the next. The job stops starting hosts when five are valid, eight have
 # started, its spend in the rental ledger reaches $12, or 72 hours after this header was pushed, whichever comes first.
+# Amendment (committed before host b of either job): the listing rule's host memory is at least 90 GB, the machine's own
+# gate (96 GB listings report 95-96 GB); nothing else changes.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

@@ -70,6 +70,8 @@
 # run at once. A host that fails a gate or V1/V2 is reported and replaced by the next. The job stops starting hosts when
 # eight are valid, fourteen have started, its spend in the rental ledger reaches $35, or 72 hours after this header was
 # pushed, whichever comes first. Budget per host: 270 minutes (the Qwen3 part is skipped if the deadline nears; recorded).
+# Amendment (committed before host b of either job): the listing rule's host memory is at least 90 GB, the machine's own
+# gate (96 GB listings report 95-96 GB); nothing else changes.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

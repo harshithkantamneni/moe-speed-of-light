@@ -1,0 +1,615 @@
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+index c8ad1db..0ed8d16 100644
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -18,6 +18,7 @@ else()
+     add_subdirectory(gguf-split)
+     add_subdirectory(imatrix)
+     add_subdirectory(llama-bench)
++    add_subdirectory(ec-bench)
+     add_subdirectory(completion)
+     add_subdirectory(perplexity)
+     add_subdirectory(quantize)
+diff --git a/tools/ec-bench/CMakeLists.txt b/tools/ec-bench/CMakeLists.txt
+new file mode 100644
+index 0000000..1654fea
+--- /dev/null
++++ b/tools/ec-bench/CMakeLists.txt
+@@ -0,0 +1,5 @@
++set(TARGET llama-ec-bench)
++add_executable(${TARGET} ec-bench.cpp)
++install(TARGETS ${TARGET} RUNTIME)
++target_link_libraries(${TARGET} PRIVATE llama ggml ${CMAKE_THREAD_LIBS_INIT})
++target_compile_features(${TARGET} PRIVATE cxx_std_17)
+diff --git a/tools/ec-bench/ec-bench.cpp b/tools/ec-bench/ec-bench.cpp
+new file mode 100644
+index 0000000..6c442b7
+--- /dev/null
++++ b/tools/ec-bench/ec-bench.cpp
+@@ -0,0 +1,586 @@
++// ec-bench: teacher-forced decode benchmark on real token sequences.
++//
++// For every sequence of a JSONL corpus ({"ids": [...], "prompt_len": P, "domain": "..."}),
++// the KV cache is cleared, the first min(P, --n-prefill) tokens are prefilled in one batch
++// (untimed), and the next --n-decode tokens are decoded ONE AT A TIME (timed), feeding the
++// corpus tokens rather than sampled ones, so expert routing follows real text and is the
++// same for every configuration. Expert placement:
++//   --ncmoe N         experts of the first N MoE layers in (pageable) CPU memory, like llama-bench -ncmoe
++//   --host-experts    all experts in pinned host memory (for the expert cache, LLAMA_EC_* env vars)
++// Output: one JSON line per sequence on stdout; --dump FILE writes the top-5 logits of every step.
++#include "llama.h"
++#include "ggml-backend.h"
++
++#include <algorithm>
++#include <chrono>
++#include <cmath>
++#include <random>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <unistd.h>
++#include <fstream>
++#include <sstream>
++#include <string>
++#include <vector>
++
++extern char ** environ;
++
++struct seq_t {
++    std::vector<llama_token> ids;
++    int prompt_len = 0;
++    std::string domain;
++};
++
++static std::vector<seq_t> read_corpus(const std::string & path) {
++    std::vector<seq_t> out;
++    std::ifstream f(path);
++    std::string line;
++    while (std::getline(f, line)) {
++        seq_t s;
++        size_t p = line.find("\"ids\"");
++        if (p == std::string::npos) {
++            continue;
++        }
++        p = line.find('[', p);
++        size_t q = line.find(']', p);
++        std::string arr = line.substr(p + 1, q - p - 1);
++        const char * c = arr.c_str();
++        char * end;
++        while (*c) {
++            long v = strtol(c, &end, 10);
++            if (end == c) {
++                ++c;
++                continue;
++            }
++            s.ids.push_back((llama_token) v);
++            c = end;
++        }
++        size_t pl = line.find("\"prompt_len\"");
++        if (pl != std::string::npos) {
++            s.prompt_len = atoi(line.c_str() + line.find(':', pl) + 1);
++        }
++        size_t d = line.find("\"domain\"");
++        if (d != std::string::npos) {
++            size_t a = line.find('"', line.find(':', d) + 1);
++            size_t b = line.find('"', a + 1);
++            s.domain = line.substr(a + 1, b - a - 1);
++        }
++        out.push_back(std::move(s));
++    }
++    return out;
++}
++
++// --lookahead FILE: for every decode step and MoE layer, the experts the router selected and the top-8 experts a
++// layer's router would pick from EARLIER hidden states (for studying prefetch). Per step, int16:
++//   seq, step, then per layer: act[k] (selected), self[k] (the layer's own router recomputed on the host from its
++//   pre-norm residual: a check of the host math), mid1[8] (layer il+1's router on the residual after layer il's
++//   attention, available when layer il's MoE starts), out1[8] (layer il+1's router on layer il's output), mid2[8]
++//   (layer il+2's router on the residual after layer il's attention); -1 where undefined. FILE.json holds the shape.
++// Router, norm and bias weights are read through the graph's own nodes (ffn_moe_logits-il: src[0] = router, src[1] =
++// the norm node, whose src[1] is the norm weight and whose src[0] is the RMS norm with its eps; ffn_moe_logits_biased-il:
++// src[1] = bias). Works for any model whose MoE input is an RMS-norm times a weight (gpt-oss, Qwen3-MoE). Uses the
++// scheduler's eval callback, so every observed tensor forces a sync: the timings of such a run are not meaningful.
++struct la_state {
++    int n_layer = 0, k = 0, n_expert = 0, n_embd = 0;
++    std::vector<std::vector<float>> W, nw, b;   // per layer: router [n_expert][n_embd], norm weight, bias
++    std::vector<float> eps;
++    std::vector<char> bchk;   // bias looked for
++    std::vector<std::vector<float>> xmid, xout;
++    std::vector<std::vector<int32_t>> act;
++    FILE * f = nullptr;
++};
++
++static int la_parse(const char * nm, std::string & base) {
++    const char * dash = strrchr(nm, '-');
++    if (!dash || !dash[1] || dash[1] < '0' || dash[1] > '9') {
++        return -1;
++    }
++    base.assign(nm, dash - nm);
++    return atoi(dash + 1);
++}
++
++static std::vector<float> la_get_f32(const ggml_tensor * t) {
++    const int64_t n = ggml_nelements(t);
++    std::vector<uint8_t> raw(ggml_nbytes(t));
++    ggml_backend_tensor_get(const_cast<ggml_tensor *>(t), raw.data(), 0, raw.size());
++    std::vector<float> out(n);
++    if (t->type == GGML_TYPE_F32) {
++        memcpy(out.data(), raw.data(), n * sizeof(float));
++    } else {
++        const auto * tr = ggml_get_type_traits(t->type);
++        GGML_ASSERT(tr->to_float && "router weight type without to_float");
++        const int64_t nr = ggml_nrows(t), nc = t->ne[0];
++        for (int64_t r = 0; r < nr; ++r) {
++            tr->to_float(raw.data() + r * t->nb[1], out.data() + r * nc, nc);
++        }
++    }
++    return out;
++}
++
++static bool la_cb(ggml_tensor * t, bool ask, void * ud) {
++    auto * s = (la_state *) ud;
++    std::string base;
++    const int il = la_parse(t->name, base);
++    if (il < 0 || il >= s->n_layer) {
++        return false;
++    }
++    // the bias node is named ffn_moe_logits_biased, or ffn_moe_probs when the gating reuses the logits (gpt-oss)
++    const bool want = base == "ffn_inp" || base == "l_out" || base == "ffn_moe_topk" ||
++                      (base == "ffn_moe_logits" && s->W[il].empty()) ||
++                      ((base == "ffn_moe_logits_biased" || base == "ffn_moe_probs") && !s->bchk[il]);
++    if (ask) {
++        return want && t->ne[1] == 1;   // decode steps only
++    }
++    if (!want || t->ne[1] != 1) {
++        return true;
++    }
++    if (base == "ffn_inp" || base == "l_out") {
++        std::vector<float> & dst = base == "ffn_inp" ? s->xmid[il] : s->xout[il];
++        dst.resize(t->ne[0]);
++        ggml_backend_tensor_get(t, dst.data(), 0, t->ne[0] * sizeof(float));
++    } else if (base == "ffn_moe_topk") {
++        s->act[il].assign(t->ne[0], -1);
++        ggml_backend_tensor_get(t, s->act[il].data(), 0, t->ne[0] * sizeof(int32_t));
++    } else if (base == "ffn_moe_logits") {
++        const ggml_tensor * w = t->src[0], * nrm = t->src[1];
++        GGML_ASSERT(nrm && nrm->op == GGML_OP_MUL && nrm->src[0] && nrm->src[0]->op == GGML_OP_RMS_NORM);
++        s->W[il] = la_get_f32(w);                 // [n_expert][n_embd]
++        s->nw[il] = la_get_f32(nrm->src[1]);
++        float e;
++        memcpy(&e, nrm->src[0]->op_params, sizeof(float));
++        s->eps[il] = e;
++    } else if (base == "ffn_moe_logits_biased" || base == "ffn_moe_probs") {
++        if (t->op == GGML_OP_ADD && t->src[0] && strncmp(t->src[0]->name, "ffn_moe_logits-", 15) == 0) {
++            s->b[il] = la_get_f32(t->src[1]);
++        }
++        s->bchk[il] = 1;
++    }
++    return true;
++}
++
++// top-n experts of layer j's router on residual x (RMS norm with layer j's weight, then the router and its bias)
++static void la_pred(const la_state & s, int j, const std::vector<float> & x, int n, int16_t * out) {
++    for (int i = 0; i < n; ++i) {
++        out[i] = -1;
++    }
++    if (j >= s.n_layer || s.W[j].empty() || x.empty()) {
++        return;
++    }
++    const int d = (int) x.size();
++    double ss = 0;
++    for (float v : x) {
++        ss += (double) v * v;
++    }
++    const float sc = 1.0f / sqrtf((float) (ss / d) + s.eps[j]);
++    std::vector<float> xn(d);
++    for (int i = 0; i < d; ++i) {
++        xn[i] = x[i] * sc * s.nw[j][i];
++    }
++    std::vector<std::pair<float, int>> lg(s.n_expert);
++    for (int e = 0; e < s.n_expert; ++e) {
++        const float * w = s.W[j].data() + (size_t) e * d;
++        double acc = s.b[j].empty() ? 0.0 : s.b[j][e];
++        for (int i = 0; i < d; ++i) {
++            acc += (double) w[i] * xn[i];
++        }
++        lg[e] = { (float) acc, e };
++    }
++    std::partial_sort(lg.begin(), lg.begin() + n, lg.end(), [](auto & a, auto & b) { return a.first > b.first; });
++    for (int i = 0; i < n; ++i) {
++        out[i] = (int16_t) lg[i].second;
++    }
++}
++
++static void la_record(la_state & s, int seq, int step) {
++    const int L = s.n_layer, k = s.k;
++    std::vector<int16_t> rec(2 + (size_t) L * (2 * k + 24), -1);
++    rec[0] = (int16_t) seq;
++    rec[1] = (int16_t) step;
++    for (int il = 0; il < L; ++il) {
++        int16_t * r = rec.data() + 2 + (size_t) il * (2 * k + 24);
++        for (int i = 0; i < k && i < (int) s.act[il].size(); ++i) {
++            r[i] = (int16_t) s.act[il][i];
++        }
++        la_pred(s, il, s.xmid[il], k, r + k);
++        la_pred(s, il + 1, s.xmid[il], 8, r + 2 * k);
++        la_pred(s, il + 1, s.xout[il], 8, r + 2 * k + 8);
++        la_pred(s, il + 2, s.xmid[il], 8, r + 2 * k + 16);
++        s.act[il].assign(k, -1);
++    }
++    fwrite(rec.data(), sizeof(int16_t), rec.size(), s.f);
++}
++
++int main(int argc, char ** argv) {
++    std::string model_path, corpus_path, dump_path, seqs_arg, ec_configs, gen_path, la_path;
++    float gen_temp = 0.8f;
++    int gen_seed = 42;
++    int order_seed = -1;                               // >= 0: run the configurations in an order shuffled with this seed
++    int ngl = 999, ncmoe = -1, n_seq = 1 << 30, n_prefill = 64, n_decode = 128, threads = -1, seq0 = 0;
++    bool host_experts = false;
++    bool no_mmap = false;
++    for (int i = 1; i < argc; ++i) {
++        std::string a = argv[i];
++        auto next = [&]() { return std::string(argv[++i]); };
++        if (a == "-m") model_path = next();
++        else if (a == "--corpus") corpus_path = next();
++        else if (a == "-ngl") ngl = std::stoi(next());
++        else if (a == "--ncmoe") ncmoe = std::stoi(next());
++        else if (a == "--host-experts") host_experts = true;
++        else if (a == "--no-mmap") no_mmap = true;          // read weights into their buffers (llama.cpp's advice with CPU overrides)
++        else if (a == "--n-seq") n_seq = std::stoi(next());
++        else if (a == "--seq0") seq0 = std::stoi(next());
++        else if (a == "--n-prefill") n_prefill = std::stoi(next());
++        else if (a == "--n-decode") n_decode = std::stoi(next());
++        else if (a == "-t") threads = std::stoi(next());
++        else if (a == "--dump") dump_path = next();
++        else if (a == "--seqs") seqs_arg = next();
++        else if (a == "--ec") ec_configs = next();
++        else if (a == "--gen-out") gen_path = next();       // sample continuations instead of timing (see below)
++        else if (a == "--gen-temp") gen_temp = std::stof(next());
++        else if (a == "--gen-seed") gen_seed = std::stoi(next());
++        else if (a == "--lookahead") la_path = next();      // record router predictions from earlier hidden states (see la_state)
++        else if (a == "--order-seed") order_seed = std::stoi(next());
++        else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 1; }
++    }
++    auto corpus = read_corpus(corpus_path);
++    if (corpus.empty()) {
++        fprintf(stderr, "empty corpus %s\n", corpus_path.c_str());
++        return 1;
++    }
++
++    llama_backend_init();
++
++    // buffer types for the expert overrides
++    ggml_backend_buffer_type_t buft_cpu = ggml_backend_dev_buffer_type(ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU));
++    ggml_backend_buffer_type_t buft_host = buft_cpu;
++    for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
++        ggml_backend_dev_t dev = ggml_backend_dev_get(i);
++        if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_GPU) {
++            if (auto * hb = ggml_backend_dev_host_buffer_type(dev)) {
++                buft_host = hb;
++            }
++            break;
++        }
++    }
++    std::vector<std::string> patterns;
++    std::vector<llama_model_tensor_buft_override> ov;
++    if (host_experts) {
++        patterns.push_back("\\.ffn_(up|down|gate|gate_up)_exps");
++        ov.push_back({ patterns.back().c_str(), buft_host });
++    } else if (ncmoe > 0) {
++        patterns.reserve(ncmoe);
++        for (int il = 0; il < ncmoe; ++il) {
++            patterns.push_back("blk\\." + std::to_string(il) + "\\.ffn_(up|down|gate|gate_up)_exps");
++            ov.push_back({ patterns.back().c_str(), buft_cpu });
++        }
++    }
++    ov.push_back({ nullptr, nullptr });
++
++    llama_model_params mp = llama_model_default_params();
++    mp.n_gpu_layers = ngl;
++    if (host_experts || no_mmap) {
++        mp.load_mode = LLAMA_LOAD_MODE_NONE; // read weights into their (pinned) buffers instead of mapping the file
++    }
++    if (ov.size() > 1) {
++        mp.tensor_buft_overrides = ov.data();
++    }
++    llama_model * model = llama_model_load_from_file(model_path.c_str(), mp);
++    if (!model) {
++        fprintf(stderr, "failed to load %s\n", model_path.c_str());
++        return 1;
++    }
++    const llama_vocab * vocab = llama_model_get_vocab(model);
++    const int n_vocab = llama_vocab_n_tokens(vocab);
++
++    la_state la;
++    if (!la_path.empty()) {
++        char arch[64] = {0}, buf[64] = {0};
++        llama_model_meta_val_str(model, "general.architecture", arch, sizeof(arch));
++        la.n_layer = llama_model_n_layer(model);
++        la.n_embd = llama_model_n_embd(model);
++        if (llama_model_meta_val_str(model, (std::string(arch) + ".expert_count").c_str(), buf, sizeof(buf)) > 0) la.n_expert = atoi(buf);
++        if (llama_model_meta_val_str(model, (std::string(arch) + ".expert_used_count").c_str(), buf, sizeof(buf)) > 0) la.k = atoi(buf);
++        GGML_ASSERT(la.n_expert > 0 && la.k > 0 && la.k <= 8 && "--lookahead needs an MoE model with top-k <= 8");
++        la.W.resize(la.n_layer); la.nw.resize(la.n_layer); la.b.resize(la.n_layer); la.eps.assign(la.n_layer, 1e-5f); la.bchk.assign(la.n_layer, 0);
++        la.xmid.resize(la.n_layer); la.xout.resize(la.n_layer); la.act.assign(la.n_layer, std::vector<int32_t>(la.k, -1));
++        la.f = fopen(la_path.c_str(), "wb");
++        FILE * jf = fopen((la_path + ".json").c_str(), "w");
++        fprintf(jf, "{\"arch\": \"%s\", \"n_layer\": %d, \"n_expert\": %d, \"k\": %d, \"n_embd\": %d, \"dtype\": \"int16\", "
++                    "\"record\": \"seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]\"}\n",
++                arch, la.n_layer, la.n_expert, la.k, la.n_embd);
++        fclose(jf);
++    }
++
++    // sequence selection
++    std::vector<int> seqs;
++    if (!seqs_arg.empty()) {
++        std::stringstream ss(seqs_arg);
++        std::string tok;
++        while (std::getline(ss, tok, ',')) {
++            seqs.push_back(std::stoi(tok));
++        }
++    } else {
++        for (int si = seq0; si < std::min<int>(seq0 + n_seq, (int) corpus.size()); ++si) {
++            seqs.push_back(si);
++        }
++    }
++
++    // expert-cache configurations: "k=v:k=v;k=v:..." with k any LLAMA_EC_<K> variable (slots, policy, overlap, init, stats,
++    // half_life, kappa, max_admit, chunk, check, mailbox, helpers, ...), seqs (a/b/c) or tdec (decode threads);
++    // each configuration gets its own context on the same loaded model. Empty = one run with the current environment.
++    std::vector<std::vector<std::pair<std::string, std::string>>> configs;
++    {
++        std::stringstream ss(ec_configs);
++        std::string cfg;
++        while (std::getline(ss, cfg, ';')) {
++            std::vector<std::pair<std::string, std::string>> kv;
++            std::stringstream cs(cfg);
++            std::string item;
++            while (std::getline(cs, item, ':')) {
++                const size_t eq = item.find('=');
++                if (eq != std::string::npos) {
++                    kv.emplace_back(item.substr(0, eq), item.substr(eq + 1));
++                }
++            }
++            configs.push_back(kv);
++        }
++        if (configs.empty()) {
++            configs.emplace_back();
++        }
++        if (order_seed >= 0 && configs.size() > 1) {
++            std::mt19937 rng((uint32_t) order_seed);
++            std::shuffle(configs.begin(), configs.end(), rng);
++            fprintf(stderr, "[ec-bench] configurations in an order shuffled with seed %d\n", order_seed);
++        }
++    }
++
++    llama_batch batch = llama_batch_init(std::max(n_prefill, 1), 0, 1);
++
++    for (size_t ci = 0; ci < configs.size(); ++ci) {
++        std::string label;
++        if (!ec_configs.empty()) {
++            {   // clear every LLAMA_EC_* variable so nothing leaks from the previous configuration
++                std::vector<std::string> keys;
++                for (char ** e = environ; *e; ++e) {
++                    if (strncmp(*e, "LLAMA_EC_", 9) == 0) {
++                        keys.emplace_back(*e, strchr(*e, '=') - *e);
++                    }
++                }
++                for (auto & k : keys) {
++                    unsetenv(k.c_str());
++                }
++            }
++            for (auto & [k, v] : configs[ci]) {
++                if (k == "seqs") {
++                    continue;
++                }
++                std::string ek = "LLAMA_EC_" + k;
++                std::transform(ek.begin(), ek.end(), ek.begin(), ::toupper);
++                setenv(ek.c_str(), v.c_str(), 1);
++                label += (label.empty() ? "" : ":") + k + "=" + v;
++            }
++        }
++        fprintf(stderr, "[ec-bench] config %zu/%zu: %s\n", ci + 1, configs.size(), label.c_str());
++        fflush(stderr);
++        llama_context_params cp = llama_context_default_params();
++        cp.n_ctx = (uint32_t) (n_prefill + n_decode + 16);
++        cp.n_batch = cp.n_ubatch = (uint32_t) std::max(n_prefill, 32);
++        cp.no_perf = false;
++        if (const char * mc = getenv("LLAMA_EC_MOE_CACHE_MIB")) {
++            // upstream llama.cpp PR #29887: a GPU cache of the experts kept in host memory (--moe-cache-mib N), one LRU
++            // over banks shared by the layers of one expert layout; 0 = off (the experts of a small batch run on the CPU)
++            cp.moe_cache_size = (size_t) atoll(mc) * 1024 * 1024;
++        }
++        if (la.f) {
++            cp.cb_eval = la_cb;
++            cp.cb_eval_user_data = &la;
++        }
++        if (threads > 0) {
++            cp.n_threads = cp.n_threads_batch = threads;
++        }
++        for (auto & [k, v] : configs[ci]) {
++            if (k == "tdec") {   // CPU threads of the decode graph (the prefill keeps -t)
++                cp.n_threads = std::stoi(v);
++            }
++        }
++        llama_context * ctx = llama_init_from_model(model, cp);
++        if (!ctx) {
++            fprintf(stderr, "failed to create context\n");
++            return 1;
++        }
++
++        const std::string dpath = configs.size() > 1 ? dump_path + "." + std::to_string(ci) : dump_path;
++        FILE * dump = dump_path.empty() ? nullptr : fopen(dpath.c_str(), "wb");
++
++        std::vector<int> run_seqs = seqs;   // a config may carry its own sequence list: seqs=a/b/c
++        for (auto & [k, v] : configs[ci]) {
++            if (k == "seqs") {
++                run_seqs.clear();
++                std::stringstream vs(v);
++                std::string tok;
++                while (std::getline(vs, tok, '/')) {
++                    run_seqs.push_back(std::stoi(tok));
++                }
++            }
++        }
++        int n_done = 0;
++        for (int si : run_seqs) {
++            fprintf(stderr, "[ec-bench] config %zu seq %d (%d/%zu)\n", ci + 1, si, ++n_done, run_seqs.size());
++            fflush(stderr);
++            const seq_t & s = corpus[si];
++            const int P = std::max(1, std::min<int>({ n_prefill, s.prompt_len > 0 ? s.prompt_len : n_prefill, (int) s.ids.size() - 1 }));
++            const int N = std::min<int>(n_decode, (int) s.ids.size() - P);
++            if (N <= 0) {
++                continue;
++            }
++            llama_memory_clear(llama_get_memory(ctx), true);
++
++            batch.n_tokens = 0;
++            for (int i = 0; i < P; ++i) {
++                batch.token[i] = s.ids[i];
++                batch.pos[i] = i;
++                batch.n_seq_id[i] = 1;
++                batch.seq_id[i][0] = 0;
++                batch.logits[i] = i == P - 1;
++                batch.n_tokens++;
++            }
++            if (llama_decode(ctx, batch) != 0) {
++                fprintf(stderr, "prefill failed on seq %d\n", si);
++                return 1;
++            }
++            llama_synchronize(ctx);
++
++            if (!gen_path.empty()) {
++                // generation mode: after the prompt, sample n_decode + 1 tokens (top-k 40, top-p 0.95, temperature
++                // gen_temp; end-of-generation tokens banned so every sequence is n_decode long) and write the prompt
++                // plus the sample as a corpus line, for teacher-forced runs on the model's own text
++                static FILE * gf = fopen(gen_path.c_str(), "w");
++                std::mt19937 rng((uint32_t) (gen_seed + si));
++                std::vector<int> out(s.ids.begin(), s.ids.begin() + P);
++                const float * lg = llama_get_logits_ith(ctx, -1);
++                std::vector<std::pair<float, int>> cand;
++                for (int j = 0; j <= n_decode; ++j) {
++                    cand.clear();
++                    for (int v = 0; v < n_vocab; ++v) {
++                        if (!llama_vocab_is_eog(vocab, v)) {
++                            cand.emplace_back(lg[v], v);
++                        }
++                    }
++                    const size_t K = std::min<size_t>(40, cand.size());
++                    std::partial_sort(cand.begin(), cand.begin() + K, cand.end(), [](auto & x, auto & y) { return x.first > y.first; });
++                    std::vector<double> pr(K);
++                    double z = 0.0;
++                    for (size_t i = 0; i < K; ++i) {
++                        pr[i] = std::exp((cand[i].first - cand[0].first) / gen_temp);
++                        z += pr[i];
++                    }
++                    size_t keep = 0;
++                    for (double c = 0.0; keep < K && c < 0.95 * z; ++keep) {
++                        c += pr[keep];
++                    }
++                    std::discrete_distribution<size_t> dd(pr.begin(), pr.begin() + std::max<size_t>(1, keep));
++                    const int tok = cand[dd(rng)].second;
++                    out.push_back(tok);
++                    if (j == n_decode) {
++                        break;
++                    }
++                    batch.n_tokens = 1;
++                    batch.token[0] = tok;
++                    batch.pos[0] = P + j;
++                    batch.n_seq_id[0] = 1;
++                    batch.seq_id[0][0] = 0;
++                    batch.logits[0] = 1;
++                    if (llama_decode(ctx, batch) != 0) {
++                        fprintf(stderr, "generation failed on seq %d step %d\n", si, j);
++                        return 1;
++                    }
++                    lg = llama_get_logits_ith(ctx, -1);
++                }
++                fprintf(gf, "{\"domain\": \"%s\", \"src_seq\": %d, \"prompt_len\": %d, \"ids\": [", s.domain.c_str(), si, P);
++                for (size_t i = 0; i < out.size(); ++i) {
++                    fprintf(gf, "%s%d", i ? ", " : "", out[i]);
++                }
++                fprintf(gf, "]}\n");
++                fflush(gf);
++                continue;
++            }
++
++            std::vector<double> step_ms;
++            step_ms.reserve(N);
++            double nll_sum = 0.0;
++            int nll_n = 0;
++            for (int j = 0; j < N; ++j) {
++                batch.n_tokens = 1;
++                batch.token[0] = s.ids[P + j];
++                batch.pos[0] = P + j;
++                batch.n_seq_id[0] = 1;
++                batch.seq_id[0][0] = 0;
++                batch.logits[0] = 1;
++                const auto t0 = std::chrono::steady_clock::now();
++                if (llama_decode(ctx, batch) != 0) {
++                    fprintf(stderr, "decode failed on seq %d step %d\n", si, j);
++                    return 1;
++                }
++                const float * lg = llama_get_logits_ith(ctx, -1);   // synchronizes
++                const auto t1 = std::chrono::steady_clock::now();
++                step_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
++                if (la.f) {
++                    la_record(la, si, j);
++                }
++                if (P + j + 1 < (int) s.ids.size()) {   // teacher-forced NLL of the next corpus token (untimed)
++                    double mx = -1e30;
++                    for (int v = 0; v < n_vocab; ++v) {
++                        mx = std::max(mx, (double) lg[v]);
++                    }
++                    double se = 0.0;
++                    for (int v = 0; v < n_vocab; ++v) {
++                        se += std::exp((double) lg[v] - mx);
++                    }
++                    nll_sum += mx + std::log(se) - (double) lg[s.ids[P + j + 1]];
++                    nll_n++;
++                }
++                if (dump) {
++                    int32_t top[5] = { 0, 0, 0, 0, 0 };
++                    float val[5] = { -1e30f, -1e30f, -1e30f, -1e30f, -1e30f };
++                    for (int v = 0; v < n_vocab; ++v) {
++                        if (lg[v] > val[4]) {
++                            int k = 4;
++                            while (k > 0 && lg[v] > val[k - 1]) {
++                                val[k] = val[k - 1];
++                                top[k] = top[k - 1];
++                                --k;
++                            }
++                            val[k] = lg[v];
++                            top[k] = v;
++                        }
++                    }
++                    fwrite(top, sizeof(top), 1, dump);
++                    fwrite(val, sizeof(val), 1, dump);
++                }
++            }
++            double tot = 0;
++            for (double x : step_ms) {
++                tot += x;
++            }
++            printf("{\"config\": \"%s\", \"seq\": %d, \"domain\": \"%s\", \"n_prefill\": %d, \"n_decode\": %d, \"decode_ms\": %.3f, \"tok_s\": %.3f, \"nll_sum\": %.6f, \"nll_n\": %d, \"step_ms\": [",
++                   label.c_str(), si, s.domain.c_str(), P, N, tot, 1000.0 * N / tot, nll_sum, nll_n);
++            for (size_t j = 0; j < step_ms.size(); ++j) {
++                printf("%s%.3f", j ? "," : "", step_ms[j]);
++            }
++            printf("]}\n");
++            fflush(stdout);
++        }
++        if (dump) {
++            fclose(dump);
++        }
++        llama_free(ctx);        // the expert cache writes LLAMA_EC_STATS here
++    }
++    llama_batch_free(batch);
++    if (la.f) {
++        fclose(la.f);
++    }
++    llama_model_free(model);
++    llama_backend_free();
++    return 0;
++}

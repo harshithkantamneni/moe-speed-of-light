@@ -1,0 +1,304 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ NL=36
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ NSEQS=12
++ NDECS=448
++ ROUNDS='1 2 3'
++ BMIN=250
++ RAMMIN=90
++ DISKMIN=150
++ VRMIN=0.5
++ NG='base base0 bypass bypass0 own base32'
++ NS='base base0 bypass bypass0 own'
++ NP='pr14 pr32 cpu'
++ '[' 0 = 1 ']'
++ MIB14=6367
++ MIB32=14536
++ echo 'SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536'
++ tee /w/results/121e_ownfetch@vast/mode.txt
+SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536
++++ dirname /w/jobs/121_ownfetch@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-26c6d9c9-3229-9c5e-d9b2-7528887da676
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/121e_ownfetch@vast/free.txt
++ USEDGB=3
++ echo 'GPU UUID GPU-26c6d9c9-3229-9c5e-d9b2-7528887da676; host memory in use 3 GB'
++ tee /w/results/121e_ownfetch@vast/v0.txt
+GPU UUID GPU-26c6d9c9-3229-9c5e-d9b2-7528887da676; host memory in use 3 GB
++ REPEAT=0
++ grep -qx GPU-26c6d9c9-3229-9c5e-d9b2-7528887da676 /w/jobs/ec2/known_gpu_uuids.txt
++ grep -qx GPU-26c6d9c9-3229-9c5e-d9b2-7528887da676 /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'V0: a GPU in no earlier launch'
++ tee -a /w/results/121e_ownfetch@vast/v0.txt
+V0: a GPU in no earlier launch
++ '[' 3 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/121e_ownfetch@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=24
+++ NPROC=24
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ export BASE
++ export -f build_tree platform getmodel
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ PRPATCH=/w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
++ PRSHA=2de17c21b81fab40ba962500deb3ee2247d8e356
+++ date +%s
++ T0=1792444532
++ BUDGET=15000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=44532
++ echo 'order seed base 44532'
++ tee /w/results/121e_ownfetch@vast/order_seed.txt
+order seed base 44532
++ lscpu
++ tee /w/results/121e_ownfetch@vast/cpu.txt
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
+CPU(s):                                  24
+Model name:                              Intel(R) Core(TM) Ultra 7 270K Plus
+Thread(s) per core:                      1
+Socket(s):                               1
+CPU(s) scaling MHz:                      45%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=23
++ tee /w/results/121e_ownfetch@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 23 (nproc 24); NUMA nodes 1'
+usable physical cores 23 (nproc 24); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 23 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/121e_ownfetch@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/121e_ownfetch@vast/bw_gate.txt
++ DR=1695
++ echo 'device read 1695 GB/s'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+device read 1695 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 5090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=32607
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
++ echo 'card NVIDIA GeForce RTX 5090, 32607 MiB'
+card NVIDIA GeForce RTX 5090, 32607 MiB
++ case "$GNAME" in
++ CARD=5090
++ DRMIN=1500
++ V1REF=0.190
++ echo 'card class 5090'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+card class 5090
++ '[' 1695 -ge 1500 ']'
+++ awk '/Mem:/{print $2}' /w/results/121e_ownfetch@vast/free.txt
++ RAMGB=93
++ echo 'host RAM 93 GB, in use 3 GB'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+host RAM 93 GB, in use 3 GB
++ '[' 93 -ge 90 ']'
+++ df -BG --output=avail /work
+++ tr -dc 0-9
+++ tail -1
++ DISKGB=170
++ echo 'disk free 170 GB'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+disk free 170 GB
++ '[' 170 -ge 150 ']'
++ echo 'V0c checked'
++ tee -a /w/results/121e_ownfetch@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
++ python3 -c 'import huggingface_hub'
++ mkdir -p /work/models
++ DLG=6320
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
+error: RPC failed; curl 56 GnuTLS recv error (-9): Error decoding the received TLS packet.
+error: 6533 bytes of body are still expected
+fetch-pack: unexpected disconnect while reading sideband packet
+fatal: early EOF
+fatal: fetch-pack: invalid index-pack output
++ sleep 10
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j24 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/121e_ownfetch@vast/build_lc-ec.txt
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct 19 21:26 /work/lc-ec/build/bin/llama-ec-bench
++ build_pr
++ local d=/work/lc-pr
++ '[' -f /work/lc-pr/.built ']'
++ cd /work
++ rm -rf /work/lc-pr
++ mkdir -p /work/lc-pr
++ cd /work/lc-pr
++ git init -q .
++ git remote add origin https://github.com/ggml-org/llama.cpp
++ git fetch -q --depth 1 origin 2de17c21b81fab40ba962500deb3ee2247d8e356
++ git checkout -q FETCH_HEAD
+++ git rev-parse HEAD
++ '[' 2de17c21b81fab40ba962500deb3ee2247d8e356 = 2de17c21b81fab40ba962500deb3ee2247d8e356 ']'
++ git apply /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF
++ cmake --build build -j24 --target llama-ec-bench
++ touch .built
+++ '[' -f /work/lc-pr/.built ']'
+++ echo ok
+++ git -C /work/lc-pr rev-parse HEAD
++ echo 'build lc-pr: ok at 2de17c21b81fab40ba962500deb3ee2247d8e356'
+build lc-pr: ok at 2de17c21b81fab40ba962500deb3ee2247d8e356
++ grep -E error /w/results/121e_ownfetch@vast/build_lc-pr.txt
++ head -20
++ PR_BIN=/work/lc-pr/build/bin/llama-ec-bench
++ ls -la /work/lc-pr/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107896 Oct 19 21:27 /work/lc-pr/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch /w/jobs/ec2/known_gpu_uuids.txt /w/jobs/ec2/fetch_table.py /w/jobs/ec2/S_gpt-oss-120b.jsonl
++ tee /w/results/121e_ownfetch@vast/patch_sha.txt
+018065f1d3576d2336bb2ffa84630b3105537fc01506f5e5c89584512c99f8c9  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
+3293be9fa2a6d282ffef5cd15f31e85b2c5332960d10607d13e7883e9d1b5701  /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
+8a3f7b1c099ca82ed7cc01ceb53aac84ff02ad6c957f03a535e71b18aca9e924  /w/jobs/ec2/known_gpu_uuids.txt
+5e551268262681442d8f1f01d5d3de6876e9b4edb73225fe0e244a6d806592b1  /w/jobs/ec2/fetch_table.py
+e511cb92661c917d753cf125c7ef8b3fc103d817f3be10489f3d4d90a37f315b  /w/jobs/ec2/S_gpt-oss-120b.jsonl
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a pr 2de17c21b81fab40ba962500deb3ee2247d8e356'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=21
++ echo 'helpers H=21'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+helpers H=21
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/121e_ownfetch@vast/concur.txt
++ tee /w/results/121e_ownfetch@vast/probe1_when.txt
+++ date -u +%FT%TZ
+++ kill -0 6320
+++ echo no
++ echo 'probe 1 ended 2026-10-19T21:28:34Z; download running: no'
+probe 1 ended 2026-10-19T21:28:34Z; download running: no
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/121e_ownfetch@vast/concur.txt 21 13253760 4 /w/results/121e_ownfetch@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,0,0,1
++ tee /w/results/121e_ownfetch@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-19T21:28:34Z): gpt-oss 0,0,0,0,1'
+law table (2026-10-19T21:28:34Z): gpt-oss 0,0,0,0,1
++ '[' -n 0,0,0,0,1 ']'
++ '[' 0 = 1 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/121e_ownfetch@vast/fetch_table_law_gptoss.json
++ RATIO=0.2642
++ echo 'VR: B_p / B_c = 0.2642'
++ tee -a /w/results/121e_ownfetch@vast/gate.txt
+VR: B_p / B_c = 0.2642
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.2642 0.5
++ '[' 0 '!=' 1 ']'
++ pkill -P 6320
++ kill 6320
+/w/jobs/121_ownfetch@vast.sh: line 208: kill: (6320) - No such process
++ gate_fail 10 'VR FAIL: link/CPU ratio 0.2642 below 0.5, stopping'
++ local code=10
++ shift
++ echo 'VR FAIL: link/CPU ratio 0.2642 below 0.5, stopping'
++ tee -a /w/results/121e_ownfetch@vast/v0.txt
+VR FAIL: link/CPU ratio 0.2642 below 0.5, stopping
++ '[' 0 = 1 ']'
++ exit 10

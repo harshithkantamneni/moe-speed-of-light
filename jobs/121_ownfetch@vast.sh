@@ -179,7 +179,8 @@ build_pr() {  # upstream llama.cpp at PR #29887's head 2de17c2 with the harness 
   local d=$WORK/lc-pr
   [ -f $d/.built ] && return 0
   ( cd $WORK && rm -rf $d && mkdir -p $d && cd $d && git init -q . && git remote add origin https://github.com/ggml-org/llama.cpp &&
-    { git fetch -q --depth 1 origin $PRSHA || git fetch -q --depth 1 origin refs/pull/29887/head; } &&
+    { git fetch -q --depth 1 origin $PRSHA || { sleep 20; git fetch -q --depth 1 origin $PRSHA; } || { sleep 60; git fetch -q --depth 1 origin $PRSHA; } ||
+      git fetch -q --depth 1 origin refs/pull/29887/head; } &&   # retries: host f's fetch met a DNS failure
     git checkout -q FETCH_HEAD && [ "$(git rev-parse HEAD)" = "$PRSHA" ] && git apply "$PRPATCH" &&
     cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$SM -DLLAMA_CURL=OFF \
       > $OUT/cmake_lc-pr.txt 2>&1 &&

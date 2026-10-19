@@ -76,6 +76,10 @@
 # host. Every clause is scored over all valid hosts and, separately, over the new ones alone; no repeat host on a
 # machine already run in this job, and the two-per-provider rule applies to them too. Predictions and validity are
 # unchanged.
+# Amendment 2 (committed before host d): the job was paused from 2026-10-14T20:27Z to 2026-10-19 (the operator's usage
+# limits), so its 72-hour window lapsed on 2026-10-17T18:13Z with no valid host (a never started; b stopped at V0c, a
+# throttled card; c's offer vanished before its launch). The window is reopened for 72 hours from this amendment's push.
+# The launcher also skips machines that failed V0c or VR in jobs 119-121, as they would fail again. Nothing else changes.
 set -x
 exec 2>&1
 export CUDA_VISIBLE_DEVICES=0

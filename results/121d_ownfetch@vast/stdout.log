@@ -1,0 +1,1100 @@
++ export CUDA_VISIBLE_DEVICES=0
++ CUDA_VISIBLE_DEVICES=0
++ SMOKE=0
++ MREPO=ggml-org/gpt-oss-120b-GGUF
++ MFILE=gpt-oss-120b-MXFP4.gguf
++ NL=36
++ CA=14
++ CB=32
++ NSEQ=20
++ NDEC=256
++ NSEQS=12
++ NDECS=448
++ ROUNDS='1 2 3'
++ BMIN=250
++ RAMMIN=90
++ DISKMIN=150
++ VRMIN=0.5
++ NG='base base0 bypass bypass0 own base32'
++ NS='base base0 bypass bypass0 own'
++ NP='pr14 pr32 cpu'
++ '[' 0 = 1 ']'
++ MIB14=6367
++ MIB32=14536
++ echo 'SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536'
++ tee /w/results/121d_ownfetch@vast/mode.txt
+SMOKE=0 model gpt-oss-120b-MXFP4.gguf C=14 (and base32) problems 20 x 256 held-out 12 x 448 g=[base base0 bypass bypass0 own base32] s=[base base0 bypass bypass0 own] p=[pr14 pr32 cpu] PR MiB 6367 14536
++++ dirname /w/jobs/121_ownfetch@vast.sh
+++ cd /w/jobs
+++ pwd
++ JD=/w/jobs
+++ nvidia-smi --query-gpu=uuid --format=csv,noheader
+++ head -1
+++ tr -d ' '
++ UUID=GPU-a06af98f-5146-e1a0-a71d-1b0db93ea6b4
++ free -g
+++ awk '/Mem:/{print $3}' /w/results/121d_ownfetch@vast/free.txt
++ USEDGB=3
++ echo 'GPU UUID GPU-a06af98f-5146-e1a0-a71d-1b0db93ea6b4; host memory in use 3 GB'
++ tee /w/results/121d_ownfetch@vast/v0.txt
+GPU UUID GPU-a06af98f-5146-e1a0-a71d-1b0db93ea6b4; host memory in use 3 GB
++ REPEAT=0
++ grep -qx GPU-a06af98f-5146-e1a0-a71d-1b0db93ea6b4 /w/jobs/ec2/known_gpu_uuids.txt
++ grep -qx GPU-a06af98f-5146-e1a0-a71d-1b0db93ea6b4 /w/jobs/ec2/known_gpu_uuids.txt
++ echo 'V0: a GPU in no earlier launch'
++ tee -a /w/results/121d_ownfetch@vast/v0.txt
+V0: a GPU in no earlier launch
++ '[' 3 -le 48 ']'
++ echo 'V0 checked'
++ tee -a /w/results/121d_ownfetch@vast/v0.txt
+V0 checked
++ . /w/jobs/ec2/setup.sh
+++++ dirname /w/jobs/ec2/setup.sh
++++ cd /w/jobs/ec2
++++ pwd
+++ J=/w/jobs/ec2
+++ export J M=/work/models GGML_NO_BACKTRACE=1 PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ M=/work/models
+++ GGML_NO_BACKTRACE=1
+++ PATH=/usr/local/cuda/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ BASE=4da6337767f973e2b4d0797e5b323d77d8565e4a
+++ for i in 1 2 3 4
+++ command -v cmake
+++ '[' 1 -gt 1 ']'
+++ apt-get update -qq
+++ DEBIAN_FRONTEND=noninteractive
+++ apt-get install -y -qq cmake ninja-build build-essential git curl python3 python3-numpy numactl pciutils
+++ for i in 1 2 3 4
+++ command -v cmake
+++ command -v ninja
+++ command -v python3
+++ command -v numactl
+++ break
++++ nvidia-smi --query-gpu=compute_cap --format=csv,noheader
++++ head -1
++++ tr -d .
+++ SM=120
++++ nproc
+++ export SM NPROC=32
+++ NPROC=32
+++ export EC_BIN=/work/lc-ec/build/bin/llama-ec-bench EC_TESTS=/work/lc-ec/build/bin/test-backend-ops EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops STOCK_BENCH=/work/lc-stock/build/bin/llama-bench STOCK_SERVER=/work/lc-stock/build/bin/llama-server
+++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
+++ EC_TESTS=/work/lc-ec/build/bin/test-backend-ops
+++ EC_CPUBENCH=/work/lc-ec/build/bin/llama-ec-cpubench
+++ STOCK_TESTS=/work/lc-stock/build/bin/test-backend-ops
+++ STOCK_BENCH=/work/lc-stock/build/bin/llama-bench
+++ STOCK_SERVER=/work/lc-stock/build/bin/llama-server
++ export BASE
++ export -f build_tree platform getmodel
++ PATCH=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ PRPATCH=/w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
++ PRSHA=2de17c21b81fab40ba962500deb3ee2247d8e356
+++ date +%s
++ T0=1792444104
++ BUDGET=15000
++ RESERVE=300
+++ date +%s
++ ORDER_SEED=44104
++ echo 'order seed base 44104'
++ tee /w/results/121d_ownfetch@vast/order_seed.txt
+order seed base 44104
++ lscpu
++ grep -E 'Model name|^CPU\(s\)|Thread|Socket|NUMA node\(s\)'
++ tee /w/results/121d_ownfetch@vast/cpu.txt
+CPU(s):                                  32
+Model name:                              AMD Ryzen 9 9950X 16-Core Processor
+Thread(s) per core:                      2
+Socket(s):                               1
+CPU(s) scaling MHz:                      39%
+NUMA node(s):                            1
+++ lscpu
+++ sed -n 's/^NUMA node(s): *\([0-9]*\).*/\1/p'
++ NUMA=1
+++ usable_cores
+++ python3 -
++ CORES=16
++ tee /w/results/121d_ownfetch@vast/cores.txt
+++ nproc
++ echo 'usable physical cores 16 (nproc 32); NUMA nodes 1'
+usable physical cores 16 (nproc 32); NUMA nodes 1
++ '[' 1 -eq 1 ']'
++ '[' 16 -le 32 ']'
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
+++ nvidia-smi --query-gpu=clocks.max.memory --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ MEMCLK=14001
++ echo 'memory clock max 14001 MHz'
++ tee /w/results/121d_ownfetch@vast/gate.txt
+memory clock max 14001 MHz
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o /work/bw0
++ /work/bw0
+++ sed -n 's/device read 1 GiB: *\([0-9]*\).*/\1/p' /w/results/121d_ownfetch@vast/bw_gate.txt
++ DR=1696
++ echo 'device read 1696 GB/s'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+device read 1696 GB/s
+++ nvidia-smi --query-gpu=name --format=csv,noheader
+++ head -1
++ GNAME='NVIDIA GeForce RTX 5090'
+++ nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits
+++ head -1
+++ tr -d ' '
++ GMEM=32607
++ echo 'card NVIDIA GeForce RTX 5090, 32607 MiB'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+card NVIDIA GeForce RTX 5090, 32607 MiB
++ case "$GNAME" in
++ CARD=5090
++ DRMIN=1500
++ V1REF=0.190
++ echo 'card class 5090'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+card class 5090
++ '[' 1696 -ge 1500 ']'
+++ awk '/Mem:/{print $2}' /w/results/121d_ownfetch@vast/free.txt
++ RAMGB=91
++ echo 'host RAM 91 GB, in use 3 GB'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+host RAM 91 GB, in use 3 GB
++ '[' 91 -ge 90 ']'
+++ df -BG --output=avail /work
+++ tail -1
+++ tr -dc 0-9
++ DISKGB=170
++ echo 'disk free 170 GB'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+disk free 170 GB
++ '[' 170 -ge 150 ']'
++ echo 'V0c checked'
++ tee -a /w/results/121d_ownfetch@vast/v0.txt
+V0c checked
++ DEBIAN_FRONTEND=noninteractive
++ apt-get install -y -qq python3-pip
++ python3 -m pip install -q --break-system-packages huggingface_hub hf_xet
++ python3 -c 'import huggingface_hub'
++ mkdir -p /work/models
++ DLG=6328
++ build_tree /work/lc-ec /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch llama-ec-bench
++ local d=/work/lc-ec p=/w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ shift 2
++ '[' -f /work/lc-ec/.built ']'
++ cd /work
++ '[' -d lc ']'
++ git init -q lc
++ git -C lc remote add origin https://github.com/ggml-org/llama.cpp
++ git -C lc fetch -q --depth 1 origin 4da6337767f973e2b4d0797e5b323d77d8565e4a
++ rm -rf /work/lc-ec
++ git -C lc worktree add -q -f /work/lc-ec FETCH_HEAD
++ cd /work/lc-ec
++ '[' -z /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch ']'
++ git apply /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=ON
+++ basename /work/lc-ec
++ cmake --build build -j32 --target llama-ec-bench
+++ basename /work/lc-ec
++ touch .built
+++ basename /work/lc-ec
+++ '[' -f /work/lc-ec/.built ']'
+++ echo ok
++ echo 'build lc-ec: ok'
+build lc-ec: ok
++ head -20
+++ basename /work/lc-ec
++ grep -E error /w/results/121d_ownfetch@vast/build_lc-ec.txt
++ EC_BIN=/work/lc-ec/build/bin/llama-ec-bench
++ ls -la /work/lc-ec/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107800 Oct 19 21:10 /work/lc-ec/build/bin/llama-ec-bench
++ build_pr
++ local d=/work/lc-pr
++ '[' -f /work/lc-pr/.built ']'
++ cd /work
++ rm -rf /work/lc-pr
++ mkdir -p /work/lc-pr
++ cd /work/lc-pr
++ git init -q .
++ git remote add origin https://github.com/ggml-org/llama.cpp
++ git fetch -q --depth 1 origin 2de17c21b81fab40ba962500deb3ee2247d8e356
++ git checkout -q FETCH_HEAD
+++ git rev-parse HEAD
++ '[' 2de17c21b81fab40ba962500deb3ee2247d8e356 = 2de17c21b81fab40ba962500deb3ee2247d8e356 ']'
++ git apply /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
++ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=120 -DLLAMA_CURL=OFF
++ cmake --build build -j32 --target llama-ec-bench
++ touch .built
+++ '[' -f /work/lc-pr/.built ']'
+++ echo ok
+++ git -C /work/lc-pr rev-parse HEAD
++ echo 'build lc-pr: ok at 2de17c21b81fab40ba962500deb3ee2247d8e356'
+build lc-pr: ok at 2de17c21b81fab40ba962500deb3ee2247d8e356
++ grep -E error /w/results/121d_ownfetch@vast/build_lc-pr.txt
++ head -20
++ PR_BIN=/work/lc-pr/build/bin/llama-ec-bench
++ ls -la /work/lc-pr/build/bin/llama-ec-bench
+-rwxr-xr-x 1 root root 107896 Oct 19 21:11 /work/lc-pr/build/bin/llama-ec-bench
++ sha256sum /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch /w/jobs/ec2/known_gpu_uuids.txt /w/jobs/ec2/fetch_table.py /w/jobs/ec2/S_gpt-oss-120b.jsonl
++ tee /w/results/121d_ownfetch@vast/patch_sha.txt
+018065f1d3576d2336bb2ffa84630b3105537fc01506f5e5c89584512c99f8c9  /w/jobs/ec2/llama.cpp-expert-cache-4da6337-oracle7.patch
+3293be9fa2a6d282ffef5cd15f31e85b2c5332960d10607d13e7883e9d1b5701  /w/jobs/ec2/llama.cpp-pr29887-2de17c2-ec-bench.patch
+8a3f7b1c099ca82ed7cc01ceb53aac84ff02ad6c957f03a535e71b18aca9e924  /w/jobs/ec2/known_gpu_uuids.txt
+5e551268262681442d8f1f01d5d3de6876e9b4edb73225fe0e244a6d806592b1  /w/jobs/ec2/fetch_table.py
+e511cb92661c917d753cf125c7ef8b3fc103d817f3be10489f3d4d90a37f315b  /w/jobs/ec2/S_gpt-oss-120b.jsonl
++ echo 'base 4da6337767f973e2b4d0797e5b323d77d8565e4a pr 2de17c21b81fab40ba962500deb3ee2247d8e356'
++ platform
++ nvidia-smi --query-gpu=name,memory.total,clocks.max.sm,clocks.max.mem,pcie.link.gen.max,pcie.link.gen.current,pcie.link.width.max,pcie.link.width.current,driver_version,power.limit --format=csv
++ nvidia-smi -q
++ lscpu
++ free -g
++ numactl -H
++ nproc
++ cat /sys/fs/cgroup/cpu.max
++ df -h / /work
++ mkdir -p /work/bench
++ cd /work/bench
++ curl -fsSL https://raw.githubusercontent.com/jeffhammond/STREAM/master/stream.c -o stream.c
++ gcc -O3 -march=native -fopenmp -DSTREAM_ARRAY_SIZE=200000000 -DNTIMES=8 -mcmodel=medium stream.c -o stream
++ nvcc -O3 -arch=sm_120 /w/jobs/ec2/bw.cu -o bw
++ ./bw
++ cd /work
++ H=14
++ echo 'helpers H=14'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+helpers H=14
++ nvcc -O3 -arch=sm_120 -Xcompiler -march=native -std=c++17 /w/jobs/ec2/concur.cu -o /work/concur
++ R 15m /work/concur
++ grep -q 'concurrent t=' /w/results/121d_ownfetch@vast/concur.txt
++ tee /w/results/121d_ownfetch@vast/probe1_when.txt
+++ date -u +%FT%TZ
+++ kill -0 6328
+++ echo no
++ echo 'probe 1 ended 2026-10-19T21:12:24Z; download running: no'
+probe 1 ended 2026-10-19T21:12:24Z; download running: no
+++ python3 /w/jobs/ec2/fetch_table.py /w/results/121d_ownfetch@vast/concur.txt 14 13253760 4 /w/results/121d_ownfetch@vast/fetch_table_law_gptoss.json 37
++ LAWG=0,0,1,1,2
++ tee /w/results/121d_ownfetch@vast/tables.txt
+++ date -u +%FT%TZ
++ echo 'law table (2026-10-19T21:12:24Z): gpt-oss 0,0,1,1,2'
+law table (2026-10-19T21:12:24Z): gpt-oss 0,0,1,1,2
++ '[' -n 0,0,1,1,2 ']'
++ '[' 0 = 1 ']'
+++ python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(f'\''{d["B_p"] / d["B_c"]:.4f}'\'')' /w/results/121d_ownfetch@vast/fetch_table_law_gptoss.json
++ RATIO=0.7907
++ echo 'VR: B_p / B_c = 0.7907'
++ tee -a /w/results/121d_ownfetch@vast/gate.txt
+VR: B_p / B_c = 0.7907
++ python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' 0.7907 0.5
++ echo 'VR checked'
++ tee -a /w/results/121d_ownfetch@vast/v0.txt
+VR checked
+++ date +%s
++ echo 'builds and probe done, waiting for the download (240 s since launch)'
+builds and probe done, waiting for the download (240 s since launch)
++ wait 6328
++ cat /w/results/121d_ownfetch@vast/dl_gguf.txt
+++ date +%s
++ t0=1792444119
++ python3 -c 'import sys; from huggingface_hub import hf_hub_download as d; d(sys.argv[2], sys.argv[3], local_dir=sys.argv[1])' /work/models ggml-org/gpt-oss-120b-GGUF gpt-oss-120b-MXFP4.gguf
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+++ date +%s
++ echo 'gguf hf download rc=0 in 213 s'
+gguf hf download rc=0 in 213 s
++ ls -la /work/models/gpt-oss-120b-MXFP4.gguf
+-rw-r--r-- 1 root root 63387346208 Oct 19 21:12 /work/models/gpt-oss-120b-MXFP4.gguf
++ '[' '!' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ F=/work/models/gpt-oss-120b-MXFP4.gguf
++ '[' -s /work/models/gpt-oss-120b-MXFP4.gguf ']'
++ df -h /work
++ tail -1
++ for i in 1 2 3
+++ date +%s
++ t0=1792444344
++ R 15m /work/concur
++ tee -a /w/results/121d_ownfetch@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 1 rc=0 in 33 s (2026-10-19T21:12:57Z)'
+idle probe 1 rc=0 in 33 s (2026-10-19T21:12:57Z)
++ for i in 1 2 3
+++ date +%s
++ t0=1792444377
++ R 15m /work/concur
++ tee -a /w/results/121d_ownfetch@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 2 rc=0 in 33 s (2026-10-19T21:13:30Z)'
+idle probe 2 rc=0 in 33 s (2026-10-19T21:13:30Z)
++ for i in 1 2 3
+++ date +%s
++ t0=1792444410
++ R 15m /work/concur
++ tee -a /w/results/121d_ownfetch@vast/probe_idle.txt
+++ date +%s
+++ date -u +%FT%TZ
++ echo 'idle probe 3 rc=0 in 33 s (2026-10-19T21:14:03Z)'
+idle probe 3 rc=0 in 33 s (2026-10-19T21:14:03Z)
++ MB=mailbox=1:tdec=1:helpers=14
++ CG=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ CS=/w/jobs/ec2/S_gpt-oss-120b.jsonl
++ wc -l /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl /w/jobs/ec2/S_gpt-oss-120b.jsonl
+    30 /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
+    12 /w/jobs/ec2/S_gpt-oss-120b.jsonl
+    42 total
++ lookahead g /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl 20 256
+++ date +%s
++ local tag=g corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl ns=20 nd=256 t0=1792444443
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --ncmoe 24 --lookahead /w/results/121d_ownfetch@vast/la_g.bin
+++ date +%s
+++ ls -la /w/results/121d_ownfetch@vast/la_g.bin
+++ awk '{print $5}'
++ echo 'lookahead g rc=0 in 281 s: 11816960 bytes'
+lookahead g rc=0 in 281 s: 11816960 bytes
++ cat /w/results/121d_ownfetch@vast/la_g.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/121d_ownfetch@vast/la_g.err
++ rm -f /w/results/121d_ownfetch@vast/la_g.err
++ python3 /w/jobs/ec2/la_act.py /w/results/121d_ownfetch@vast/la_g.bin /w/results/121d_ownfetch@vast/route_g.npz
+routes /w/results/121d_ownfetch@vast/route_g.npz: 5120 steps x 36 layers x 4, 20 sequences
++ lookahead s /w/jobs/ec2/S_gpt-oss-120b.jsonl 12 448
+++ date +%s
++ local tag=s corpus=/w/jobs/ec2/S_gpt-oss-120b.jsonl ns=12 nd=448 t0=1792444724
++ R 30m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --ncmoe 24 --lookahead /w/results/121d_ownfetch@vast/la_s.bin
+++ date +%s
+++ ls -la /w/results/121d_ownfetch@vast/la_s.bin
+++ awk '{print $5}'
++ echo 'lookahead s rc=0 in 276 s: 12407808 bytes'
+lookahead s rc=0 in 276 s: 12407808 bytes
++ cat /w/results/121d_ownfetch@vast/la_s.bin.json
+{"arch": "gpt-oss", "n_layer": 36, "n_expert": 128, "k": 4, "n_embd": 2880, "dtype": "int16", "record": "seq, step, then per layer: act[k], self[k], mid1[8], out1[8], mid2[8]"}
++ tail -n 5 /w/results/121d_ownfetch@vast/la_s.err
++ rm -f /w/results/121d_ownfetch@vast/la_s.err
++ python3 /w/jobs/ec2/la_act.py /w/results/121d_ownfetch@vast/la_s.bin /w/results/121d_ownfetch@vast/route_s.npz
+routes /w/results/121d_ownfetch@vast/route_s.npz: 5376 steps x 36 layers x 4, 12 sequences
++ '[' -s /w/results/121d_ownfetch@vast/la_g.bin ']'
++ '[' -s /w/results/121d_ownfetch@vast/la_s.bin ']'
++ FAILED=
++ for rd in $ROUNDS
+++ order_of 1
+++ case $1 in
+++ echo 'g s p'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' g = s ']'
++ run_round g 1
++ local m=g rd=1
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ la=/w/results/121d_ownfetch@vast/la_g.bin
++ ns=20
++ nd=256
++ names='base base0 bypass bypass0 own base32'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=g_C14_r1
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_own.json'
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base32.json'
++ local off=0
++ case $m in
++ local seed=44204
++ echo 'cell g_C14_r1 order-seed 44204 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base32.json'
+++ date +%s
++ local t0=1792445001
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44204 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r1_base32.json'
++ local rc=0
+++ date +%s
++ echo 'cell g_C14_r1 rc=0 in 518 s'
+cell g_C14_r1 rc=0 in 518 s
+++ date +%s
++ echo 'ec_g_C14_r1 0 518'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_g_C14_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_g_C14_r1.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_g_C14_r1.err
++ rm -f /w/results/121d_ownfetch@vast/ec_g_C14_r1.err
++ '[' g = g ']'
++ '[' 1 = 1 ']'
++ vcheck V1 g 0.190
++ python3 - /w/results/121d_ownfetch@vast 0 V1 g 0.190
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
+V1 ec_g_C14_r1.jsonl base loss 0.1906 vs 0.19: ok
++ '[' 0 -eq 0 ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' s = s ']'
++ '[' -z 'base base0 bypass bypass0 own' ']'
++ run_round s 1
++ local m=s rd=1
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/S_gpt-oss-120b.jsonl
++ la=/w/results/121d_ownfetch@vast/la_s.bin
++ ns=12
++ nd=448
++ names='base base0 bypass bypass0 own'
++ local 'common=--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=s_C14_r1
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_own.json'
++ local off=0
++ case $m in
++ off=7
++ local seed=44211
++ echo 'cell s_C14_r1 order-seed 44211 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_own.json'
+++ date +%s
++ local t0=1792445519
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts --order-seed 44211 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r1_own.json'
++ local rc=0
+++ date +%s
++ echo 'cell s_C14_r1 rc=0 in 417 s'
+cell s_C14_r1 rc=0 in 417 s
+++ date +%s
++ echo 'ec_s_C14_r1 0 417'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_s_C14_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_s_C14_r1.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_s_C14_r1.err
++ rm -f /w/results/121d_ownfetch@vast/ec_s_C14_r1.err
++ '[' s = g ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' p = s ']'
++ run_round p 1
++ local m=p rd=1
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ ns=20
++ nd=256
++ names='pr14 pr32 cpu'
++ bin=/work/lc-pr/build/bin/llama-ec-bench
++ '[' -x /work/lc-pr/build/bin/llama-ec-bench ']'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=p_C14_r1
++ for n in $names
++ case $n in
++ c=moe_cache_mib=6367
++ cfg=moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr14.json
++ for n in $names
++ case $n in
++ c=moe_cache_mib=14536
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr32.json'
++ for n in $names
++ case $n in
++ c=moe_cache_mib=0
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_cpu.json'
++ local off=0
++ case $m in
++ off=13
++ local seed=44217
++ echo 'cell p_C14_r1 order-seed 44217 configs: moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_cpu.json'
+++ date +%s
++ local t0=1792445936
++ R 60m /work/lc-pr/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44217 --ec 'moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r1_cpu.json'
++ local rc=0
+++ date +%s
++ echo 'cell p_C14_r1 rc=0 in 421 s'
+cell p_C14_r1 rc=0 in 421 s
+++ date +%s
++ echo 'ec_p_C14_r1 0 421'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_p_C14_r1.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_p_C14_r1.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_p_C14_r1.err
++ rm -f /w/results/121d_ownfetch@vast/ec_p_C14_r1.err
++ '[' p = g ']'
++ '[' -z '' ']'
++ '[' 1 = 2 ']'
++ for rd in $ROUNDS
+++ order_of 2
+++ case $1 in
+++ echo 'p g s'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' p = s ']'
++ run_round p 2
++ local m=p rd=2
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ ns=20
++ nd=256
++ names='pr14 pr32 cpu'
++ bin=/work/lc-pr/build/bin/llama-ec-bench
++ '[' -x /work/lc-pr/build/bin/llama-ec-bench ']'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=p_C14_r2
++ for n in $names
++ case $n in
++ c=moe_cache_mib=6367
++ cfg=moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr14.json
++ for n in $names
++ case $n in
++ c=moe_cache_mib=14536
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr32.json'
++ for n in $names
++ case $n in
++ c=moe_cache_mib=0
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_cpu.json'
++ local off=0
++ case $m in
++ off=13
++ local seed=44317
++ echo 'cell p_C14_r2 order-seed 44317 configs: moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_cpu.json'
+++ date +%s
++ local t0=1792446358
++ R 60m /work/lc-pr/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44317 --ec 'moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r2_cpu.json'
++ local rc=0
+++ date +%s
++ echo 'cell p_C14_r2 rc=0 in 424 s'
+cell p_C14_r2 rc=0 in 424 s
+++ date +%s
++ echo 'ec_p_C14_r2 0 424'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_p_C14_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ head -80
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_p_C14_r2.err
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_p_C14_r2.err
++ rm -f /w/results/121d_ownfetch@vast/ec_p_C14_r2.err
++ '[' p = g ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' g = s ']'
++ run_round g 2
++ local m=g rd=2
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ la=/w/results/121d_ownfetch@vast/la_g.bin
++ ns=20
++ nd=256
++ names='base base0 bypass bypass0 own base32'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=g_C14_r2
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_own.json'
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base32.json'
++ local off=0
++ case $m in
++ local seed=44304
++ echo 'cell g_C14_r2 order-seed 44304 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base32.json'
+++ date +%s
++ local t0=1792446782
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44304 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r2_base32.json'
++ local rc=0
+++ date +%s
++ echo 'cell g_C14_r2 rc=0 in 521 s'
+cell g_C14_r2 rc=0 in 521 s
+++ date +%s
++ echo 'ec_g_C14_r2 0 521'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_g_C14_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_g_C14_r2.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_g_C14_r2.err
++ rm -f /w/results/121d_ownfetch@vast/ec_g_C14_r2.err
++ '[' g = g ']'
++ '[' 2 = 1 ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' s = s ']'
++ '[' -z 'base base0 bypass bypass0 own' ']'
++ run_round s 2
++ local m=s rd=2
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/S_gpt-oss-120b.jsonl
++ la=/w/results/121d_ownfetch@vast/la_s.bin
++ ns=12
++ nd=448
++ names='base base0 bypass bypass0 own'
++ local 'common=--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=s_C14_r2
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_own.json'
++ local off=0
++ case $m in
++ off=7
++ local seed=44311
++ echo 'cell s_C14_r2 order-seed 44311 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_own.json'
+++ date +%s
++ local t0=1792447303
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts --order-seed 44311 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r2_own.json'
++ local rc=0
+++ date +%s
++ echo 'cell s_C14_r2 rc=0 in 416 s'
+cell s_C14_r2 rc=0 in 416 s
+++ date +%s
++ echo 'ec_s_C14_r2 0 416'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_s_C14_r2.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_s_C14_r2.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_s_C14_r2.err
++ rm -f /w/results/121d_ownfetch@vast/ec_s_C14_r2.err
++ '[' s = g ']'
++ '[' -z '' ']'
++ '[' 2 = 2 ']'
++ vcheck V2 g 0.190 1 2
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
++ python3 - /w/results/121d_ownfetch@vast 0 V2 g 0.190 1 2
+V2 g base ms/token 13.570 13.544: spread 0.19%: ok
++ '[' 0 -eq 0 ']'
++ for rd in $ROUNDS
+++ order_of 3
+++ case $1 in
+++ echo 's p g'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' s = s ']'
++ '[' -z 'base base0 bypass bypass0 own' ']'
++ run_round s 3
++ local m=s rd=3
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/S_gpt-oss-120b.jsonl
++ la=/w/results/121d_ownfetch@vast/la_s.bin
++ ns=12
++ nd=448
++ names='base base0 bypass bypass0 own'
++ local 'common=--corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=s_C14_r3
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_own.json'
++ local off=0
++ case $m in
++ off=7
++ local seed=44411
++ echo 'cell s_C14_r3 order-seed 44411 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_own.json'
+++ date +%s
++ local t0=1792447719
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/S_gpt-oss-120b.jsonl -t 16 --n-seq 12 --n-prefill 1024 --n-decode 448 --no-mmap --host-experts --order-seed 44411 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_s.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_s_C14_r3_own.json'
++ local rc=0
+++ date +%s
++ echo 'cell s_C14_r3 rc=0 in 416 s'
+cell s_C14_r3 rc=0 in 416 s
+++ date +%s
++ echo 'ec_s_C14_r3 0 416'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_s_C14_r3.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_s_C14_r3.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_s_C14_r3.err
++ rm -f /w/results/121d_ownfetch@vast/ec_s_C14_r3.err
++ '[' s = g ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' p = s ']'
++ run_round p 3
++ local m=p rd=3
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ ns=20
++ nd=256
++ names='pr14 pr32 cpu'
++ bin=/work/lc-pr/build/bin/llama-ec-bench
++ '[' -x /work/lc-pr/build/bin/llama-ec-bench ']'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=p_C14_r3
++ for n in $names
++ case $n in
++ c=moe_cache_mib=6367
++ cfg=moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr14.json
++ for n in $names
++ case $n in
++ c=moe_cache_mib=14536
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr32.json'
++ for n in $names
++ case $n in
++ c=moe_cache_mib=0
++ cfg='moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_cpu.json'
++ local off=0
++ case $m in
++ off=13
++ local seed=44417
++ echo 'cell p_C14_r3 order-seed 44417 configs: moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_cpu.json'
+++ date +%s
++ local t0=1792448135
++ R 60m /work/lc-pr/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44417 --ec 'moe_cache_mib=6367:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr14.json;moe_cache_mib=14536:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_pr32.json;moe_cache_mib=0:stats=/w/results/121d_ownfetch@vast/st_p_C14_r3_cpu.json'
++ local rc=0
+++ date +%s
++ echo 'cell p_C14_r3 rc=0 in 427 s'
+cell p_C14_r3 rc=0 in 427 s
+++ date +%s
++ echo 'ec_p_C14_r3 0 427'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_p_C14_r3.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_p_C14_r3.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_p_C14_r3.err
++ rm -f /w/results/121d_ownfetch@vast/ec_p_C14_r3.err
++ '[' p = g ']'
++ for m in $(order_of $rd)
++ '[' -n '' ']'
++ '[' g = s ']'
++ run_round g 3
++ local m=g rd=3
++ local bin=/work/lc-ec/build/bin/llama-ec-bench corpus la ns nd names cfg= n c
++ case $m in
++ corpus=/w/jobs/ec2/aime25_owntext_gptoss_084.jsonl
++ la=/w/results/121d_ownfetch@vast/la_g.bin
++ ns=20
++ nd=256
++ names='base base0 bypass bypass0 own base32'
++ local 'common=--corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts'
++ local base=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ local base0=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ local orc=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local orc0=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ local tag=g_C14_r3
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json
++ for n in $names
++ case $n in
++ c=slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass0.json'
++ for n in $names
++ case $n in
++ c=slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_own.json'
++ for n in $names
++ case $n in
++ c=slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1
++ cfg='slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base32.json'
++ local off=0
++ case $m in
++ local seed=44404
++ echo 'cell g_C14_r3 order-seed 44404 configs: slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base32.json'
+++ date +%s
++ local t0=1792448562
++ R 60m /work/lc-ec/build/bin/llama-ec-bench -m /work/models/gpt-oss-120b-MXFP4.gguf --corpus /w/jobs/ec2/aime25_owntext_gptoss_084.jsonl -t 16 --n-seq 20 --n-prefill 1024 --n-decode 256 --no-mmap --host-experts --order-seed 44404 --ec 'slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base.json;slots=14:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_bypass0.json;slots=14:policy=oracle:oracle=/w/results/121d_ownfetch@vast/la_g.bin:mailbox=1:tdec=1:helpers=14:kappa=1:fetch=0,0,1,1,2:overlap=1:oracle_w=0:oracle_bypass=1:paced=0:fetch_own=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_own.json;slots=32:policy=dfa:mailbox=1:tdec=1:helpers=14:fetch=0,0,1,1,2:paced=0:overlap=1:oracle_w=0:kappa=1:stats=/w/results/121d_ownfetch@vast/st_g_C14_r3_base32.json'
++ local rc=0
+++ date +%s
++ echo 'cell g_C14_r3 rc=0 in 525 s'
+cell g_C14_r3 rc=0 in 525 s
+++ date +%s
++ echo 'ec_g_C14_r3 0 525'
++ grep '\[ec-bench\] config [0-9]*/' /w/results/121d_ownfetch@vast/ec_g_C14_r3.err
++ sed 's/:stats=.*st_/ -> st_/'
++ grep -i 'oracle\|fetch table\|own order\|helpers\|moe_cache\|moe cache\|slots (' /w/results/121d_ownfetch@vast/ec_g_C14_r3.err
++ head -80
++ tail -n 30 /w/results/121d_ownfetch@vast/ec_g_C14_r3.err
++ rm -f /w/results/121d_ownfetch@vast/ec_g_C14_r3.err
++ '[' g = g ']'
++ '[' 3 = 1 ']'
++ '[' -z '' ']'
++ '[' 3 = 2 ']'
++ '[' -z '' ']'
++ vcheck V2 g 0.190 1 2 3
++ python3 - /w/results/121d_ownfetch@vast 0 V2 g 0.190 1 2 3
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
+V2 g base ms/token 13.570 13.544 13.518: spread 0.39%: ok
++ vcheck V2 s 0.190 1 2 3
++ sed 's/^V2 s/VS s/'
++ python3 - /w/results/121d_ownfetch@vast 0 V2 s 0.190 1 2 3
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
+VS s base ms/token 12.819 12.783 12.778: spread 0.32%: ok
++ for m in g s p
++ vcheck V3 g 0.190
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
++ python3 - /w/results/121d_ownfetch@vast 0 V3 g 0.190
+V3 ec_g_C14_r1.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r1.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r1.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r1.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r1.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r1.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
+V3 ec_g_C14_r2.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r2.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r2.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r2.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r2.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r2.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
+V3 ec_g_C14_r3.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r3.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r3.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r3.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r3.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r3.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
++ for m in g s p
++ vcheck V3 s 0.190
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
++ python3 - /w/results/121d_ownfetch@vast 0 V3 s 0.190
+V3 ec_s_C14_r1.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r1.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r1.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r1.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r1.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
+V3 ec_s_C14_r2.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r2.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r2.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r2.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r2.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
+V3 ec_s_C14_r3.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r3.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r3.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r3.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r3.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
++ for m in g s p
++ vcheck V3 p 0.190
++ tee -a /w/results/121d_ownfetch@vast/validity.txt
++ python3 - /w/results/121d_ownfetch@vast 0 V3 p 0.190
+V3 ec_p_C14_r1.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r1.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r1.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r2.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r2.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r2.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r3.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r3.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r3.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
++ sort
++ grep -h 'slots (\|MoE cache size\|hits = ' /w/results/121d_ownfetch@vast/ec_p_C14_r1.err.oracle /w/results/121d_ownfetch@vast/ec_p_C14_r2.err.oracle /w/results/121d_ownfetch@vast/ec_p_C14_r3.err.oracle
++ uniq -c
++ cat /w/results/121d_ownfetch@vast/pr_cache_log.txt
+      3 impl:      CUDA0 MoE cache size =  6366.44 MiB for 58092.19 MiB of host experts
+      3 impl:      CUDA0 MoE cache size = 14535.65 MiB for 58092.19 MiB of host experts
+      3 impl: 36 layers, mxfp4:   504 slots (10.9%)
+      3 impl: 36 layers, mxfp4:  1152 slots (25.0%)
+      3 llama_moe_cache: ubatch <= 8: hits = 380930, misses = 356350, hit rate = 51.67%, uploaded = 4492437.29 MiB
+      3 llama_moe_cache: ubatch <= 8: hits = 578125, misses = 159155, hit rate = 78.41%, uploaded = 2006437.09 MiB
++ rm -f /work/models/gpt-oss-120b-MXFP4.gguf /w/results/121d_ownfetch@vast/la_g.bin /w/results/121d_ownfetch@vast/la_s.bin
++ python3 - /w/results/121d_ownfetch@vast
++ tee /w/results/121d_ownfetch@vast/summary.txt
+st_g_C14_r1_base             73.69 tok/s  13.57 ms n=20 vs ref 1.000 loss +0.00% misses 59.98 admits 3.64 fetches 21.34
+st_g_C14_r1_base0            67.48 tok/s  14.82 ms n=20 vs ref 0.916 loss -0.25% misses 62.12 admits 8.22 fetches 0.00
+st_g_C14_r1_base32          111.57 tok/s   8.96 ms n=20 vs ref 1.514 loss -0.12% misses 29.77 admits 4.94 fetches 8.01
+st_g_C14_r1_bypass           75.71 tok/s  13.21 ms n=20 vs ref 1.027 loss -0.19% misses 48.59 admits 17.52 fetches 16.07
+st_g_C14_r1_bypass0          76.90 tok/s  13.00 ms n=20 vs ref 1.044 loss -0.31% misses 43.49 admits 20.34 fetches 0.00
+st_g_C14_r1_own              82.89 tok/s  12.06 ms n=20 vs ref 1.125 loss -0.30% misses 42.86 admits 15.31 fetches 13.50
+st_g_C14_r2_base             73.83 tok/s  13.54 ms n=20 vs ref 1.000 loss +0.00% misses 59.98 admits 3.64 fetches 21.34
+st_g_C14_r2_base0            67.37 tok/s  14.84 ms n=20 vs ref 0.913 loss -0.25% misses 62.12 admits 8.22 fetches 0.00
+st_g_C14_r2_base32          111.49 tok/s   8.97 ms n=20 vs ref 1.510 loss -0.12% misses 29.77 admits 4.94 fetches 8.01
+st_g_C14_r2_bypass           75.67 tok/s  13.22 ms n=20 vs ref 1.025 loss -0.19% misses 48.59 admits 17.52 fetches 16.07
+st_g_C14_r2_bypass0          76.84 tok/s  13.01 ms n=20 vs ref 1.041 loss -0.31% misses 43.49 admits 20.34 fetches 0.00
+st_g_C14_r2_own              83.10 tok/s  12.03 ms n=20 vs ref 1.126 loss -0.30% misses 42.86 admits 15.31 fetches 13.50
+st_g_C14_r3_base             73.98 tok/s  13.52 ms n=20 vs ref 1.000 loss +0.00% misses 59.98 admits 3.64 fetches 21.34
+st_g_C14_r3_base0            67.39 tok/s  14.84 ms n=20 vs ref 0.911 loss -0.25% misses 62.12 admits 8.22 fetches 0.00
+st_g_C14_r3_base32          111.67 tok/s   8.95 ms n=20 vs ref 1.510 loss -0.12% misses 29.77 admits 4.94 fetches 8.01
+st_g_C14_r3_bypass           75.74 tok/s  13.20 ms n=20 vs ref 1.024 loss -0.19% misses 48.59 admits 17.52 fetches 16.07
+st_g_C14_r3_bypass0          76.85 tok/s  13.01 ms n=20 vs ref 1.039 loss -0.31% misses 43.49 admits 20.34 fetches 0.00
+st_g_C14_r3_own              83.23 tok/s  12.02 ms n=20 vs ref 1.125 loss -0.30% misses 42.86 admits 15.31 fetches 13.50
+st_p_C14_r1_cpu              34.30 tok/s  29.15 ms n=20 vs ref 1.000 loss +0.00% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r1_pr14             41.70 tok/s  23.98 ms n=20 vs ref 1.216 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r1_pr32             68.57 tok/s  14.58 ms n=20 vs ref 1.999 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r2_cpu              34.14 tok/s  29.29 ms n=20 vs ref 1.000 loss +0.00% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r2_pr14             41.65 tok/s  24.01 ms n=20 vs ref 1.220 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r2_pr32             68.63 tok/s  14.57 ms n=20 vs ref 2.010 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r3_cpu              33.98 tok/s  29.43 ms n=20 vs ref 1.000 loss +0.00% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r3_pr14             41.65 tok/s  24.01 ms n=20 vs ref 1.226 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_p_C14_r3_pr32             68.59 tok/s  14.58 ms n=20 vs ref 2.019 loss +0.25% misses 0.00 admits 0.00 fetches 0.00
+st_s_C14_r1_base             78.01 tok/s  12.82 ms n=12 vs ref 1.000 loss +0.00% misses 55.02 admits 3.61 fetches 18.98
+st_s_C14_r1_base0            70.56 tok/s  14.17 ms n=12 vs ref 0.904 loss -0.31% misses 58.05 admits 8.31 fetches 0.00
+st_s_C14_r1_bypass           81.76 tok/s  12.23 ms n=12 vs ref 1.048 loss +0.11% misses 42.71 admits 16.66 fetches 13.46
+st_s_C14_r1_bypass0          82.82 tok/s  12.07 ms n=12 vs ref 1.062 loss -0.34% misses 38.43 admits 18.97 fetches 0.00
+st_s_C14_r1_own              89.41 tok/s  11.18 ms n=12 vs ref 1.146 loss -0.28% misses 37.65 admits 14.53 fetches 11.28
+st_s_C14_r2_base             78.23 tok/s  12.78 ms n=12 vs ref 1.000 loss +0.00% misses 55.02 admits 3.61 fetches 18.98
+st_s_C14_r2_base0            70.82 tok/s  14.12 ms n=12 vs ref 0.905 loss -0.31% misses 58.05 admits 8.31 fetches 0.00
+st_s_C14_r2_bypass           81.62 tok/s  12.25 ms n=12 vs ref 1.043 loss +0.11% misses 42.71 admits 16.66 fetches 13.46
+st_s_C14_r2_bypass0          83.03 tok/s  12.04 ms n=12 vs ref 1.061 loss -0.34% misses 38.43 admits 18.97 fetches 0.00
+st_s_C14_r2_own              89.49 tok/s  11.17 ms n=12 vs ref 1.144 loss -0.28% misses 37.65 admits 14.53 fetches 11.28
+st_s_C14_r3_base             78.26 tok/s  12.78 ms n=12 vs ref 1.000 loss +0.00% misses 55.02 admits 3.61 fetches 18.98
+st_s_C14_r3_base0            70.52 tok/s  14.18 ms n=12 vs ref 0.901 loss -0.31% misses 58.05 admits 8.31 fetches 0.00
+st_s_C14_r3_bypass           81.59 tok/s  12.26 ms n=12 vs ref 1.043 loss +0.11% misses 42.71 admits 16.66 fetches 13.46
+st_s_C14_r3_bypass0          82.92 tok/s  12.06 ms n=12 vs ref 1.060 loss -0.34% misses 38.43 admits 18.97 fetches 0.00
+st_s_C14_r3_own              89.33 tok/s  11.19 ms n=12 vs ref 1.141 loss -0.28% misses 37.65 admits 14.53 fetches 11.28
+++ cat /w/results/121d_ownfetch@vast/oneline.txt
++ ONE='121 g_C14_r1_base0 0.916 g_C14_r1_base32 1.514 g_C14_r1_bypass 1.027 g_C14_r1_bypass0 1.044 g_C14_r1_own 1.125 p_C14_r1_pr14 1.216 p_C14_r1_pr32 1.999 s_C14_r1_base0 0.904 s_C14_r1_bypass 1.048 s_C14_r1_bypass0 1.062 s_C14_r1_own 1.146'
++ python3 /w/jobs/ec2/manifest.py /w/results/121d_ownfetch@vast 121_ownfetch@vast 1792444104 '121 g_C14_r1_base0 0.916 g_C14_r1_base32 1.514 g_C14_r1_bypass 1.027 g_C14_r1_bypass0 1.044 g_C14_r1_own 1.125 p_C14_r1_pr14 1.216 p_C14_r1_pr32 1.999 s_C14_r1_base0 0.904 s_C14_r1_bypass 1.048 s_C14_r1_bypass0 1.062 s_C14_r1_own 1.146' card=5090 law_gptoss=0,0,1,1,2 device_read_gbs=1696 memory_clock_max_mhz=14001 ratio=0.7907 helpers=14 pr_mib14=6367 pr_mib32=14536 failed=none smoke=0
+manifest: 120 files, 4983 s; 121 g_C14_r1_base0 0.916 g_C14_r1_base32 1.514 g_C14_r1_bypass 1.027 g_C14_r1_bypass0 1.044 g_C14_r1_own 1.125 p_C14_r1_pr14 1.216 p_C14_r1_pr32 1.999 s_C14_r1_base0 0.904 s_C14_r1_bypass 1.048 s_C14_r1_bypass0 1.062 s_C14_r1_own 1.146
++ cat /w/results/121d_ownfetch@vast/skipped.txt
++ cat /w/results/121d_ownfetch@vast/validity.txt
+V1 ec_g_C14_r1.jsonl base loss 0.1906 vs 0.19: ok
+V2 g base ms/token 13.570 13.544: spread 0.19%: ok
+V2 g base ms/token 13.570 13.544 13.518: spread 0.39%: ok
+VS s base ms/token 12.819 12.783 12.778: spread 0.32%: ok
+V3 ec_g_C14_r1.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r1.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r1.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r1.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r1.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r1.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
+V3 ec_g_C14_r2.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r2.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r2.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r2.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r2.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r2.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
+V3 ec_g_C14_r3.jsonl base: 20 problems, loss 0.1906 vs base 0.1906 (+0.00%): ok
+V3 ec_g_C14_r3.jsonl base0: 20 problems, loss 0.1901 vs base 0.1906 (-0.25%): ok
+V3 ec_g_C14_r3.jsonl base32: 20 problems, loss 0.1903 vs base 0.1906 (-0.12%): ok
+V3 ec_g_C14_r3.jsonl bypass: 20 problems, loss 0.1902 vs base 0.1906 (-0.19%): ok
+V3 ec_g_C14_r3.jsonl bypass0: 20 problems, loss 0.1900 vs base 0.1906 (-0.31%): ok
+V3 ec_g_C14_r3.jsonl own: 20 problems, loss 0.1900 vs base 0.1906 (-0.30%): ok
+V3 ec_s_C14_r1.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r1.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r1.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r1.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r1.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
+V3 ec_s_C14_r2.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r2.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r2.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r2.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r2.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
+V3 ec_s_C14_r3.jsonl base: 12 problems, loss 0.5086 vs base 0.5086 (+0.00%): ok
+V3 ec_s_C14_r3.jsonl base0: 12 problems, loss 0.5070 vs base 0.5086 (-0.31%): ok
+V3 ec_s_C14_r3.jsonl bypass: 12 problems, loss 0.5091 vs base 0.5086 (+0.11%): ok
+V3 ec_s_C14_r3.jsonl bypass0: 12 problems, loss 0.5068 vs base 0.5086 (-0.34%): ok
+V3 ec_s_C14_r3.jsonl own: 12 problems, loss 0.5071 vs base 0.5086 (-0.28%): ok
+V3 ec_p_C14_r1.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r1.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r1.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r2.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r2.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r2.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r3.jsonl cpu: 20 problems, loss 0.1897 vs cpu 0.1897 (+0.00%): ok
+V3 ec_p_C14_r3.jsonl pr14: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
+V3 ec_p_C14_r3.jsonl pr32: 20 problems, loss 0.1902 vs cpu 0.1897 (+0.25%): ok
++ echo 'SUMMARY: 121 g_C14_r1_base0 0.916 g_C14_r1_base32 1.514 g_C14_r1_bypass 1.027 g_C14_r1_bypass0 1.044 g_C14_r1_own 1.125 p_C14_r1_pr14 1.216 p_C14_r1_pr32 1.999 s_C14_r1_base0 0.904 s_C14_r1_bypass 1.048 s_C14_r1_bypass0 1.062 s_C14_r1_own 1.146'
+SUMMARY: 121 g_C14_r1_base0 0.916 g_C14_r1_base32 1.514 g_C14_r1_bypass 1.027 g_C14_r1_bypass0 1.044 g_C14_r1_own 1.125 p_C14_r1_pr14 1.216 p_C14_r1_pr32 1.999 s_C14_r1_base0 0.904 s_C14_r1_bypass 1.048 s_C14_r1_bypass0 1.062 s_C14_r1_own 1.146

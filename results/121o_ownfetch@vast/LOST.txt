@@ -1,0 +1,6 @@
+Instance 56813273 (offer 56215256, RTX 5090, Ryzen 9 7950X) finished: its log showed @@RESULT_END at 2026-10-20T03:37Z, 3.04 h after launch.
+The controller's fetch of the full log then failed (http.client.RemoteDisconnected from Vast's log API) and the launcher pass destroyed the
+instance anyway, so the log, the only copy of the results, is gone ("No such container" on a later request). Nobody saw any result of this
+host: the 60-line log tail the launcher reads holds heartbeats and the end marker only. Host o is reported as started and finished, with no
+data; it is not counted as valid. Fix, before host p's fetch: the launcher destroys only after a fetch that unpacked a results directory
+(three tries, then the next pass), and the controller retries dropped connections.

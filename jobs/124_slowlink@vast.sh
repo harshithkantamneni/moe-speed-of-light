@@ -25,7 +25,7 @@
 # The frozen model: job 123's, unchanged (T_pred = max(G + sum over layer-steps of max(f s_p, c s_c, [0 < f < n] n
 # s_b), root(G + X_in s_p, A s_p), root(G + (X_c + X_in) s_b, A s_b)), S = 13,253,760 bytes, the split of a
 # layer-step's misses and B_c, B_p, B_both from this machine's first probe as its header states). G = 4.413 ms on an
-# RTX 5090 (job 123's constant); on an RTX 4090 G = 5.329 ms, the same definition (the median over machines of the
+# RTX 5090 (job 123's constant); on an RTX 4090 G = 5.32896 ms, the same definition (the median over machines of the
 # Nsight GPU time of gpt-oss-120b, 13 RTX 4090s; paper 2's G table). No constant is fitted to time.
 # The scorer: jobs/124/scorer.py on this branch, committed with this header, sha256
 # a642e0ebc6b469b252ca60cba943d49c817c22c4dfc4a20996d32e8ed67ddabf. Standard library only; it reads the results

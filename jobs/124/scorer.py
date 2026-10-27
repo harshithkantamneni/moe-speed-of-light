@@ -13,7 +13,12 @@ hosts (results/124*_slowlink@vast) under this job's header.
 
 Self-test (run before this file was committed, recorded here and in the job header): pointed at job 123's results
 (branch gpu at 5d25868a, results/123*_confirm@vast) with --job 123, this scorer reproduces job 123's rebuilt scorecard
-(main: prereg/p2/scorecard_123.json, written by scripts/p2/job123.py from the engine table): SELFTEST_RESULT.
+(main: prereg/p2/scorecard_123.json, written by scripts/p2/job123.py from the engine table): all 8,348 values agree
+(8,347 exactly, 1 within 1.3e-15 relative; none differs, none missing), every clause's verdict and the decision
+(confirmed); and so do the job 123 numbers recovery/known-state.md records (median |error| 1.7%, 90th percentile 6.0%,
+90 cells on 5 machines, T6 40 of 40 pairs in 8 contrasts, pairs ordered by the model / the hit rate / raw reads 94.9 /
+76.4 / 80.0%, the per-token form's T1 2.6%). Written by scripts/p2/job124_selftest.py on main
+(prereg/p2/job124_selftest.md).
 
 The frozen model (job 123's header, unchanged): T_pred = max(G + sum over layer-steps of max(f s_p, c s_c, [0 < f < n]
 n s_b), root(G + X_in s_p, A s_p), root(G + (X_c + X_in) s_b, A s_b)), root(a, v) = (a + v + sqrt((a + v)^2 - 4 v G))
@@ -243,6 +248,7 @@ def read_host(d):
                 ratio_gate=(re.search(r"VR: B_p / B_c = ([\d.]+)", txt["gate.txt"]) or [None, None])[1],
                 not_started=txt["NOT_STARTED.txt"].strip() or None, done=txt["DONE"].strip() or None,
                 cores=num(r"usable physical cores (\d+)", txt["cores.txt"], int),
+                plan_dropped="NO PLAN: fetchplan dropped" in txt["validity.txt"],
                 probe=txt["concur.txt"] if "cpu_read_gbs" in txt["concur.txt"] else "")
 
 
@@ -497,6 +503,10 @@ def score(results, job):
                                   B_both=b[2], probe_dir=name, run_id=r["run_id"], fetch_table=r["fetch_table"]))
             hr = [c["ratio"] for c in cells if c["host"] == name]
             h["ratio_probe"] = statistics.median(hr) if hr else None
+            if job == "124":   # the population as the scorer reads it (reported; the gates on the machine decide)
+                h["population_check"] = dict(
+                    ratio_below=h["ratio_probe"] is not None and h["ratio_probe"] < TH["VR_max"],
+                    card=h["card_class"] == "4090" or (h["card_class"] == "5090" and h["vendor"] == "Intel"))
         del h["probe"]
         hosts_info.append(h)
     for c in cells:
@@ -529,11 +539,13 @@ def score(results, job):
             ok_core &= ok
         frozen_used[key] = fv
         c0_rows.append(dict(host=c["host"], arm=c["arm"], C=c["C"], reads=c["reads"], frozen=fv, deviation=dev, tol=tol, ok=ok))
-    missing = []
+    missing, dropped = [], {x["host"] for x in hosts_info if x["plan_dropped"]}
     for arm in FROZEN_ARMS:
         if arm == "baselaw":
             continue
         for h in hosts:
+            if arm == "fetchplan" and h in dropped:
+                continue     # the header's rule: no plan, fetchplan dropped on that host (recorded on the machine)
             for C in sorted({c["C"] for c in cells if c["host"] == h}):
                 if not cell(h, arm, C):
                     missing.append(f"{h} {arm} C{C}")
